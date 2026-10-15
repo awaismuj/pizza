@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { MusicPlayerContext } from "./MusicPlayerContext";
+import { axiosWrapper } from "../../https/axiosWrapper";
 
 const STORAGE_KEY = "pizza-pos-music-player";
 const EMPTY_SETTINGS = { folderUrl: "", tracks: [] };
@@ -77,19 +78,27 @@ const MusicPlayerProvider = ({ children }) => {
       return;
     }
 
-    audio.src = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(currentTrackId)}`;
+    audio.crossOrigin = "use-credentials";
+    audio.src = `${axiosWrapper.defaults.baseURL.replace(/\/$/, "")}/api/music/${encodeURIComponent(currentTrackId)}`;
     audio.load();
     if (shouldPlayAfterChange.current) {
       shouldPlayAfterChange.current = false;
-      audio.play().catch(() => {
-        setMessage("Could not play this file. Check that Drive sharing is set to anyone with the link.");
-      });
+      audio.play().catch(reportPlaybackFailure);
     }
   }, [currentTrackId]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
+
+  const reportPlaybackFailure = (error) => {
+    console.error("Music playback failed:", error);
+    if (error.name === "NotAllowedError") {
+      setMessage("Your browser blocked playback. Press Play again to start the song.");
+      return;
+    }
+    setMessage("Could not stream this song. Check that you are signed in, the POS backend is updated, and the Drive file is public.");
+  };
 
   const playTrack = (index) => {
     if (!tracks[index]) return;
@@ -98,9 +107,7 @@ const MusicPlayerProvider = ({ children }) => {
       const audio = audioRef.current;
       if (audio) {
         audio.currentTime = 0;
-        audio.play().catch(() => {
-          setMessage("Could not play this file. Check that Drive sharing is set to anyone with the link.");
-        });
+        audio.play().catch(reportPlaybackFailure);
       }
       return;
     }
@@ -116,9 +123,7 @@ const MusicPlayerProvider = ({ children }) => {
     }
     if (audio.paused) {
       setMessage("");
-      audio.play().catch(() => {
-        setMessage("Could not play this file. Check that Drive sharing is set to anyone with the link.");
-      });
+      audio.play().catch(reportPlaybackFailure);
     } else {
       audio.pause();
     }
@@ -142,9 +147,7 @@ const MusicPlayerProvider = ({ children }) => {
     }
     if (nextIndex === currentIndex && audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {
-        setMessage("Could not play this file. Check that Drive sharing is set to anyone with the link.");
-      });
+      audioRef.current.play().catch(reportPlaybackFailure);
       return;
     }
     playTrack(nextIndex);
@@ -204,9 +207,7 @@ const MusicPlayerProvider = ({ children }) => {
     }
     if (nextIndex === currentIndex && audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {
-        setMessage("Could not play this file. Check that Drive sharing is set to anyone with the link.");
-      });
+      audioRef.current.play().catch(reportPlaybackFailure);
       return;
     }
     playTrack(nextIndex);
@@ -257,8 +258,15 @@ const MusicPlayerProvider = ({ children }) => {
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
         onEnded={handleEnded}
-        onError={() => {
-          if (currentTrack) setMessage("Google Drive could not stream this song. Check its link-sharing access and try again.");
+        onError={(event) => {
+          if (currentTrack) {
+            const code = event.currentTarget.error?.code;
+            setMessage(
+              code === 3 || code === 4
+                ? "This file format is not supported. Try MP3, WAV, AAC, or OGG."
+                : "Could not stream this song. Check your sign-in, backend connection, and the file's Drive sharing."
+            );
+          }
         }}
         preload="metadata"
         className="hidden"
