@@ -25,6 +25,12 @@ const buildImagePrompt = ({ itemName, style }) => {
     return `Create a premium, photorealistic restaurant advertising photograph featuring exactly this menu item: "${itemName}". Art direction: ${IMAGE_STYLES[style]}. Composition: ${composition}. Creative variation ${variation}: invent a distinctive camera angle, plating arrangement, garnish placement, and lighting. Make it look like a polished high-end fast-food campaign: dramatic warm highlights, rich deep shadows, vivid but natural food colors, crisp appetizing textures, delicious melted cheese or glossy sauce where appropriate, and a cinematic shallow-depth-of-field restaurant background. Show one large hero serving, not a collage. Vertical portrait composition. Absolutely no text, letters, numbers, logos, watermarks, people, hands, or packaging.`;
 };
 
+const buildPosterPrompt = ({ brand, headline, tagline, items, originalPrice, offerPrice, phone, address, theme, textStyle }) => {
+    const variation = crypto.randomInt(1_000_000, 10_000_000);
+    const itemList = items.map((item) => `${item.quantity} x ${item.name}`).join(", ");
+    return `Design a polished, exciting vertical 2:3 fast-food combo advertisement poster, variation ${variation}. This must look like a professionally art-directed restaurant campaign, not a plain menu or a web page. Visual direction: bold Gen-Z street-food branding, dramatic cinematic food photography, a softly blurred warm restaurant background, glossy appetizing food, punchy contrast, tactile red brush-stroke banners, energetic hand-painted yellow accents, ${textStyle} typography, clean visual hierarchy, carefully aligned composition, print-ready detail. Use a large hero food photo and show the bundle foods as distinct, recognizable dishes arranged together: ${itemList}. Brand name, reproduced exactly: "${brand}". Headline, reproduced exactly: "${headline}". Tagline, reproduced exactly: "${tagline}". Deal items and quantities, reproduced exactly: "${itemList}". Original price: "Rs ${originalPrice}", shown smaller with a clear strikethrough. Offer price, reproduced exactly and much larger: "Rs ${offerPrice}". Order phone, reproduced exactly: "${phone}". Address, reproduced exactly: "${address}". Color palette: ${theme}. Place the brand and tagline at the top, large energetic headline below, food photography across the center, a bright jagged yellow offer-price burst, then a red order-phone button and a clear delivery/address footer. Spell all supplied words and digits exactly; do not invent any additional prices, phone numbers, brands, or text. No watermarks.`;
+};
+
 const parseGeneratedImage = (response) => {
     const imageData = response.data?.[0]?.b64_json;
     if (typeof imageData !== "string" || !imageData) {
@@ -112,4 +118,17 @@ const generateFoodImage = async ({ itemName, style }) => {
     return parseGeneratedImage(response);
 };
 
-module.exports = { IMAGE_STYLES, buildImagePrompt, parseGeneratedImage, generateFoodImage };
+const generatePosterDesign = async (details) => {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+        const error = new Error("OpenAI image generation is not configured. Add OPENAI_API_KEY to the backend environment.");
+        error.statusCode = 503;
+        throw error;
+    }
+
+    const prompt = buildPosterPrompt(details);
+    const response = await requestImage(apiKey, process.env.OPENAI_IMAGE_MODEL || "gpt-image-2.5-sunburst", prompt);
+    return parseGeneratedImage(response);
+};
+
+module.exports = { IMAGE_STYLES, buildImagePrompt, buildPosterPrompt, parseGeneratedImage, generateFoodImage, generatePosterDesign };
