@@ -74,7 +74,7 @@ const Header = () => {
             GenZ Pizza Land
           </h1>
         </button>
-        <MusicPlayer />
+        <MusicPlayer variant="compact" canManage={String(userData.role || "").toLowerCase() === "admin"} />
       </div>
 
       {/* SEARCH - only where there's real room for it, so it never competes
