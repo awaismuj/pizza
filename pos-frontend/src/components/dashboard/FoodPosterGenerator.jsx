@@ -218,6 +218,61 @@ const drawPhoneIcon = (ctx, x, y, radius) => {
   ctx.textBaseline = "alphabetic";
 };
 
+const drawDeliveryScooter = (ctx, x, y, size, color) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 100, size / 100);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.arc(18, 70, 11, 0, Math.PI * 2);
+  ctx.arc(78, 70, 11, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(18, 70);
+  ctx.lineTo(35, 48);
+  ctx.lineTo(53, 70);
+  ctx.lineTo(78, 70);
+  ctx.lineTo(66, 47);
+  ctx.lineTo(48, 47);
+  ctx.moveTo(34, 48);
+  ctx.lineTo(27, 39);
+  ctx.moveTo(65, 47);
+  ctx.lineTo(72, 35);
+  ctx.lineTo(83, 35);
+  ctx.stroke();
+  roundRect(ctx, 46, 20, 31, 23, 4);
+  ctx.fill();
+  ctx.fillStyle = "#11100a";
+  ctx.font = "900 12px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("FOOD", 61, 32);
+  ctx.restore();
+};
+
+const drawLocationPin = (ctx, x, y, size, color) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 40, size / 40);
+  ctx.beginPath();
+  ctx.moveTo(20, 38);
+  ctx.bezierCurveTo(16, 32, 5, 21, 5, 15);
+  ctx.arc(20, 15, 15, Math.PI, 0);
+  ctx.bezierCurveTo(35, 21, 24, 32, 20, 38);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(20, 15, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.restore();
+};
+
 const drawPoster = (canvas, images, photo, settings) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas rendering is not available in this browser.");
@@ -245,10 +300,15 @@ const drawPoster = (canvas, images, photo, settings) => {
     else ctx.fillText(content, x, y);
   };
   const drawDisplayText = (text, x, y, size, color, weight, maxWidth, alignment = "left") => {
-    ctx.font = `${weight} ${size}px ${typography.displayFont}`;
+    let fittedSize = size;
+    ctx.font = `${weight} ${fittedSize}px ${typography.displayFont}`;
+    while (fittedSize > 22 && ctx.measureText(String(text)).width > maxWidth) {
+      fittedSize -= 1;
+      ctx.font = `${weight} ${fittedSize}px ${typography.displayFont}`;
+    }
     ctx.fillStyle = color;
     ctx.textAlign = alignment;
-    ctx.fillText(fitText(ctx, String(text), maxWidth), alignment === "center" ? x + maxWidth / 2 : x, y, maxWidth);
+    ctx.fillText(String(text), alignment === "center" ? x + maxWidth / 2 : x, y, maxWidth);
     ctx.textAlign = "left";
   };
   const drawCenteredText = (text, x, y, size, color, weight, maxWidth) =>
@@ -338,10 +398,23 @@ const drawPoster = (canvas, images, photo, settings) => {
   canvas.height = height;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = theme.background;
-  ctx.fillRect(0, 0, 1080, logicalHeight);
-
   if (template === "Gen-Z Blast") {
+    ctx.fillStyle = theme.background;
+    ctx.fillRect(0, 0, 1080, logicalHeight);
+    if (image) {
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.filter = "blur(28px)";
+      drawCover(ctx, image, -30, -30, 1140, logicalHeight + 60);
+      ctx.restore();
+    }
+    const backgroundShade = ctx.createLinearGradient(0, 0, 0, logicalHeight);
+    backgroundShade.addColorStop(0, "rgba(11, 9, 7, 0.84)");
+    backgroundShade.addColorStop(0.56, "rgba(11, 9, 7, 0.72)");
+    backgroundShade.addColorStop(1, "rgba(11, 9, 7, 0.96)");
+    ctx.fillStyle = backgroundShade;
+    ctx.fillRect(0, 0, 1080, logicalHeight);
+
     const compact = logicalHeight < 700;
     if (compact) {
       const sidePhotos = images.supporting;
@@ -386,7 +459,7 @@ const drawPoster = (canvas, images, photo, settings) => {
     }
 
     const photoY = bannerY + bannerHeight + 24;
-    const photoHeight = Math.min(logicalHeight * 0.35, logicalHeight - photoY - logicalHeight * 0.39);
+    const photoHeight = Math.min(logicalHeight * 0.39, logicalHeight - photoY - logicalHeight * 0.38);
     const supporting = images.supporting;
     const sideKeys = settings.supportPhotoKeys || [];
     const cardGap = 12;
@@ -491,15 +564,16 @@ const drawPoster = (canvas, images, photo, settings) => {
     drawText("ORDER NOW", 143, ctaY + ctaHeight * 0.38, Math.max(20, ctaHeight * 0.27), theme.accent, 900, 530);
     drawText(settings.phone || "Call to order", 143, ctaY + ctaHeight * 0.75, Math.max(28, ctaHeight * 0.42), "#ffffff", 900, 535);
     drawBrushShape(ctx, 751, ctaY - 2, 294, ctaHeight + 9, theme.highlight);
-    drawCenteredText("🛵", 820, ctaY + ctaHeight * 0.48, Math.max(28, ctaHeight * 0.42), theme.accent, 900, 58);
+    drawDeliveryScooter(ctx, 774, ctaY + ctaHeight * 0.12, ctaHeight * 0.74, theme.accent);
     drawCenteredText("FAST", 950, ctaY + ctaHeight * 0.4, Math.max(16, ctaHeight * 0.2), "#ffffff", 900, 140);
     drawCenteredText("DELIVERY", 950, ctaY + ctaHeight * 0.7, Math.max(19, ctaHeight * 0.25), theme.accent, 900, 150);
-    drawText(`📍 ${settings.address || "Add your restaurant address"}`, 54, logicalHeight * 0.91, 23, theme.ink, 700, 970);
+    drawLocationPin(ctx, 66, logicalHeight * 0.91 - 24, 24, theme.highlight);
+    drawText(settings.address || "Add your restaurant address", 94, logicalHeight * 0.91, 23, theme.ink, 700, 920);
     const footerY = logicalHeight * 0.936;
     drawBrushShape(ctx, 205, footerY, 670, logicalHeight * 0.048, theme.accent);
     drawCenteredText(settings.brand || "GEN-Z PIZZA LAND", 540, footerY + logicalHeight * 0.027, 34, "#11100a", 900, 600);
     drawCenteredText(settings.tagline || "GOOD FOOD · GREAT MOOD", 540, footerY + logicalHeight * 0.045, 21, "#11100a", 800, 580);
-    drawCredit(48, logicalHeight - 8, 984, "#b9b2ad");
+    drawCredit(48, logicalHeight - 28, 984, "#b9b2ad");
     return;
   }
 
@@ -596,15 +670,16 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
   useEffect(() => {
     if (!imageSrc || !canvasRef.current) return undefined;
     let cancelled = false;
-    const staticSupportingKeys = ["cola", "burger", "shawarma", "chicken", "pizza"]
+    const supportingItems = generatedItems
+      .filter((item) => item.id !== heroItem?.id)
+      .map((item) => ({ type: "item", item, src: item.image }));
+    const fallbackSources = ["cola", "burger", "shawarma", "chicken", "pizza"]
       .filter((key) => key !== photoKey)
-      .slice(0, 3);
+      .map((key) => ({ type: "stock", key, src: PHOTOS[key].src }));
     const supportingSources = [
-      ...generatedItems
-        .filter((item) => item.id !== heroItem?.id)
-        .map((item) => ({ type: "item", item, src: item.image })),
-      ...staticSupportingKeys.map((key) => ({ type: "stock", key, src: PHOTOS[key].src })),
-    ].slice(0, 4);
+      ...supportingItems,
+      ...fallbackSources.slice(0, Math.max(0, 4 - supportingItems.length)),
+    ];
     Promise.all([
       loadPosterImage(imageSrc),
       loadPosterImage(brandLogo),
@@ -956,16 +1031,22 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
                       />
                     </label>
                     {item.image && (
-                      <img
-                        src={item.image}
-                        alt={`${item.name} added to the poster`}
-                        className="h-10 w-10 rounded-md object-cover"
-                      />
+                      <div className="flex items-center gap-2 rounded-md border border-[#444] bg-[#191919] p-1.5">
+                        <img
+                          src={item.image}
+                          alt={`${item.name} added to the poster`}
+                          className="h-12 w-12 rounded object-cover"
+                        />
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-[#8de0a8]">
+                          {item.imageSource === "gemini" ? "AI image ready" : "Photo ready"}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
               ))}
             </div>
+            {message && <p role="status" className="mt-2 text-sm leading-relaxed text-[#f6b100]">{message}</p>}
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1045,7 +1126,6 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
               <FaDownload aria-hidden="true" /> Download
             </button>
           </div>
-          {message && <p role="status" className="text-sm text-[#f6b100]">{message}</p>}
           {photo && !heroItem && !uploadedPhoto && (
             <p className="text-xs leading-relaxed text-[#929292]">
               Photo: {photo.creator}, Wikimedia Commons, {photo.license}.{" "}
@@ -1066,11 +1146,11 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
             <h3 className="font-semibold text-[#f5f5f5]">Live preview</h3>
             <span className="text-xs text-[#ababab]">{size.width} × {size.height}px</span>
           </div>
-          <div className="flex max-h-[75vh] justify-center overflow-auto rounded-lg bg-[#161616] p-2 sm:p-4">
+          <div className="flex max-h-[80vh] justify-center overflow-auto rounded-lg bg-[#161616] p-2 sm:p-4">
             <canvas
               ref={canvasRef}
               aria-label="Preview of your food offer poster"
-              className="h-auto max-h-[70vh] w-auto max-w-full rounded shadow-xl"
+              className="h-auto max-h-[76vh] w-auto max-w-full rounded shadow-xl"
               style={{ objectFit: "contain" }}
             />
           </div>
