@@ -5,6 +5,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import PropTypes from "prop-types";
 import { Home, Auth, Orders, Tables, Menu, Outdoor, Dashboard, OnlineOrders } from "./pages";
 import Header from "./components/shared/Header";
 import NewOrderPopup from "./components/shared/NewOrderPopup";
@@ -14,18 +15,20 @@ import { useSelector } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import useScrollHoverFix from "./hooks/useScrollHoverFix";
 import FullScreenLoader from "./components/shared/FullScreenLoader"
+import FoodPosterGenerator from "./components/dashboard/FoodPosterGenerator";
 
 function Layout() {
   const isLoading = useLoadData();
   useScrollHoverFix();
   const location = useLocation();
-  const hideHeaderRoutes = ["/auth"];
+  const isGuestPoster = location.pathname === "/poster-maker";
+  const hideHeaderRoutes = ["/auth", "/poster-maker"];
   // The floating WhatsApp button is fixed near the bottom-right of every
   // page - but on /menu that's exactly where the Cash/Online/Print
   // Receipt/Place Order row sits, so it was floating on top of and
   // partially hiding those buttons. Support inquiries aren't the point of
   // that screen anyway, so it's simplest to just not show it there.
-  const hideWhatsAppRoutes = ["/menu"];
+  const hideWhatsAppRoutes = ["/menu", "/poster-maker"];
   const { isAuth } = useSelector(state => state.user);
 
   if(isLoading) return <FullScreenLoader />
@@ -33,8 +36,8 @@ function Layout() {
   return (
     <>
       {!hideHeaderRoutes.includes(location.pathname) && <Header />}
-      {isAuth && <NewOrderPopup />}
-      {isAuth && <LowStockAlert />}
+      {isAuth && !isGuestPoster && <NewOrderPopup />}
+      {isAuth && !isGuestPoster && <LowStockAlert />}
       {!hideWhatsAppRoutes.includes(location.pathname) && <WhatsAppButton />}
       <Routes>
         <Route
@@ -46,6 +49,7 @@ function Layout() {
           }
         />
         <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
+        <Route path="/poster-maker" element={<GuestPosterMaker />} />
         <Route
           path="/orders"
           element={
@@ -102,6 +106,14 @@ function Layout() {
   );
 }
 
+function GuestPosterMaker() {
+  return (
+    <main className="min-h-screen bg-[#1a1a1a] py-6 sm:py-10">
+      <FoodPosterGenerator guestMode />
+    </main>
+  );
+}
+
 function ProtectedRoutes({ children }) {
   const { isAuth } = useSelector((state) => state.user);
   if (!isAuth) {
@@ -110,6 +122,9 @@ function ProtectedRoutes({ children }) {
 
   return children;
 }
+ProtectedRoutes.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 // Dashboard (inventory, menu, profit...) is admin-only. Cashiers/waiters who
 // type the URL are sent back home instead of seeing admin tools.
@@ -121,6 +136,9 @@ function AdminRoute({ children }) {
 
   return children;
 }
+AdminRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 function App() {
   return (

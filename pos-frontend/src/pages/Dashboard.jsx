@@ -15,6 +15,7 @@ import PaymentsOverview from "../components/dashboard/PaymentsOverview";
 import TaxManager from "../components/dashboard/TaxManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
+import FoodPosterGenerator from "../components/dashboard/FoodPosterGenerator";
 import {
   getCategories,
   getDishes,
@@ -38,7 +39,7 @@ const buttons = [
   { label: "Add Dishes", icon: <BiSolidDish />, action: "dishes" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax"];
+const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Poster Maker"];
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -350,6 +351,7 @@ const Dashboard = () => {
       {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}
+      {activeTab === "Poster Maker" && <FoodPosterGenerator />}
       {activeTab === "Menu" && (
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
