@@ -16,6 +16,9 @@ const allowedOrigins = [
     config.storeUrl,
     // POS frontend dev server (vite default)
     'http://localhost:5173',
+    // Vite preview server
+    'http://localhost:4173',
+    'http://127.0.0.1:4175',
     // Online store dev server (see online-store/vite.config.js)
     'http://localhost:5174',
     'http://localhost:3000',
@@ -68,6 +71,7 @@ app.use("/api/upload", require("./routes/uploadRoute"));
 app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
+app.use("/api/music", require("./routes/musicRoute"));
 
 // Global Error Handler
 app.use(globalErrorHandler);
