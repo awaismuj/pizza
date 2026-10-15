@@ -40,7 +40,7 @@ const findImagePart = (value, visited = new Set()) => {
 const buildImagePrompt = ({ itemName, style }) => {
     const composition = COMPOSITIONS[crypto.randomInt(COMPOSITIONS.length)];
     const variation = crypto.randomInt(1_000_000, 10_000_000);
-    return `Create one original food advertisement photograph featuring exactly this menu item: "${itemName}". Art direction: ${IMAGE_STYLES[style]}. Composition: ${composition}. Creative variation ${variation}: use a fresh camera angle, plating arrangement, garnish placement, and lighting from other generations. Make the food look freshly prepared, appetizing, detailed, and realistic. Portrait crop, restaurant advertising quality. Show only food and simple background; absolutely no text, letters, numbers, logos, watermarks, people, or packaging.`;
+    return `Create a premium, photorealistic restaurant menu photograph of exactly this food item: "${itemName}". Art direction: ${IMAGE_STYLES[style]}. Composition: ${composition}. Creative variation ${variation}: choose a distinctly different camera angle, plating arrangement, garnish placement, and lighting from other generations. Show one clear hero serving, large in frame, with appetizing natural texture, fresh ingredients, crisp detail, and polished commercial food photography lighting. Use a simple, softly blurred restaurant background that contrasts with the food. Do not make a collage or add other dishes. Portrait crop. Show no text, letters, numbers, logos, watermarks, people, hands, or packaging.`;
 };
 
 const requestImage = (apiKey, model, prompt) => new Promise((resolve, reject) => {

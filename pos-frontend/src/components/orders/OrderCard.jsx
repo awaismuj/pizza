@@ -78,17 +78,20 @@ const OrderCard = ({ order }) => {
   };
 
   return (
-    <div className="w-full max-w-[500px] bg-[#262626] p-4 rounded-lg mb-4">
-      <div className="flex items-center gap-5">
-        <button className="bg-[#f6b100] p-3 text-xl font-bold rounded-lg">
+    <div className="w-full min-w-0 bg-[#262626] p-4 rounded-lg">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <button className="shrink-0 bg-[#f6b100] p-3 text-xl font-bold rounded-lg">
           {getAvatarName(order.customerDetails.name)}
         </button>
-        <div className="flex items-center justify-between w-[100%]">
-          <div className="flex flex-col items-start gap-1">
-            <h1 className="text-[#f5f5f5] text-lg font-semibold tracking-wide">
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-col items-start gap-1">
+            <h1
+              title={order.customerDetails.name}
+              className="max-w-full truncate text-[#f5f5f5] text-base sm:text-lg font-semibold tracking-wide"
+            >
               {order.customerDetails.name}
             </h1>
-            <p className="text-[#ababab] text-sm">
+            <p className="max-w-full truncate text-[#ababab] text-xs sm:text-sm">
               #{getOrderNumber(order)} /{" "}
               {isOnline ? "Online delivery" : isTakeaway ? "Outdoor / Takeaway" : "Dine in"}
             </p>
@@ -102,7 +105,7 @@ const OrderCard = ({ order }) => {
               </p>
             )}
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex shrink-0 flex-col items-end gap-2">
             <p className={`px-2 py-1 rounded-lg text-sm font-semibold ${statusPillClass(order.orderStatus)}`}>
               {STAGE_LABELS[order.orderStatus] || order.orderStatus}
             </p>

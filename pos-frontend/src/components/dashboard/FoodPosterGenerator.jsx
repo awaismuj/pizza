@@ -392,12 +392,18 @@ const drawPoster = (canvas, images, photo, settings) => {
     const cardGap = 12;
     const sideX = 660;
     const sideWidth = 385;
-    const sideHeight = (photoHeight - cardGap * 2) / 3;
+    const supportColumns = supporting.length > 3 ? 2 : 1;
+    const supportRows = Math.ceil(supporting.length / supportColumns);
+    const supportWidth = (sideWidth - cardGap * (supportColumns - 1)) / supportColumns;
+    const sideHeight = (photoHeight - cardGap * (supportRows - 1)) / supportRows;
     drawPhotoCard(ctx, image, 24, photoY, 650, photoHeight, -0.008, theme.accent);
     supporting.forEach((sideImage, index) => {
       if (!sideImage) return;
-      const sideY = photoY + index * (sideHeight + cardGap);
-      drawPhotoCard(ctx, sideImage, sideX, sideY, sideWidth, sideHeight, index % 2 === 0 ? 0.01 : -0.01, index === 1 ? theme.highlight : theme.ink);
+      const column = index % supportColumns;
+      const row = Math.floor(index / supportColumns);
+      const sideCardX = sideX + column * (supportWidth + cardGap);
+      const sideY = photoY + row * (sideHeight + cardGap);
+      drawPhotoCard(ctx, sideImage, sideCardX, sideY, supportWidth, sideHeight, index % 2 === 0 ? 0.01 : -0.01, index % 2 === 1 ? theme.highlight : theme.ink);
       const source = settings.supportingSources?.[index];
       const sideKey = source?.key || sideKeys[index];
       const matchingItem = source?.item || items.find((item) => {
@@ -408,12 +414,12 @@ const drawPoster = (canvas, images, photo, settings) => {
       drawProductTag(
         ctx,
         label.toUpperCase(),
-        sideX + 12,
+        sideCardX + 8,
         sideY + sideHeight - Math.min(54, sideHeight * 0.34),
-        sideWidth * 0.86,
+        supportWidth * 0.88,
         Math.min(52, sideHeight * 0.34),
         theme.highlight,
-        Math.max(18, Math.min(34, sideHeight * 0.16)),
+        Math.max(14, Math.min(34, supportWidth * 0.085)),
         typography.displayFont
       );
     });
@@ -559,6 +565,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
   const [downloadFormat, setDownloadFormat] = useState("png");
   const [message, setMessage] = useState("");
   const [generatingItems, setGeneratingItems] = useState([]);
+  const [generatingMissingImages, setGeneratingMissingImages] = useState(false);
   const [textStyle, setTextStyle] = useState("bold");
 
   useEffect(() => {
@@ -597,7 +604,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
         .filter((item) => item.id !== heroItem?.id)
         .map((item) => ({ type: "item", item, src: item.image })),
       ...staticSupportingKeys.map((key) => ({ type: "stock", key, src: PHOTOS[key].src })),
-    ].slice(0, 3);
+    ].slice(0, 4);
     Promise.all([
       loadPosterImage(imageSrc),
       loadPosterImage(brandLogo),
@@ -697,7 +704,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
   const generateItemImage = async (item) => {
     if (!item.name.trim()) {
       setMessage("Enter a food name before generating its image.");
-      return;
+      return false;
     }
     setGeneratingItems((current) => current.includes(item.id) ? current : [...current, item.id]);
     setMessage(`Creating a new ${IMAGE_STYLES.find((style) => style.value === item.imageStyle)?.label.toLowerCase() || "food"} image for ${item.name}…`);
@@ -719,15 +726,37 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
       updateItem(item.id, "image", url);
       updateItem(item.id, "imageSource", "gemini");
       setMessage(`New image created for ${item.name}. Click Generate another view to make a different version.`);
+      return true;
     } catch (error) {
-      const serverMessage = error.response?.data?.message;
-      setMessage(serverMessage || (error.code === "ECONNABORTED"
+      const message = error.response?.data?.message || (error.code === "ECONNABORTED"
         ? "Gemini took too long to respond. Please try again."
-        : error.response
-          ? "Gemini image generation failed. Please try again."
-          : "Cannot reach the poster image service. Make sure the POS backend is running and has GEMINI_API_KEY configured."));
+        : error.request
+          ? "Cannot reach the poster image service. Start the POS backend and configure GEMINI_API_KEY in pos-backend/.env."
+          : error.message || "Gemini image generation failed. Please try again.");
+      setMessage(message);
+      return false;
     } finally {
       setGeneratingItems((current) => current.filter((id) => id !== item.id));
+    }
+  };
+
+  const generateMissingImages = async () => {
+    const missingItems = items.filter((item) => item.name.trim() && !item.image);
+    if (!missingItems.length) {
+      setMessage("Add a food name or use Generate another view on an item that already has an image.");
+      return;
+    }
+    setGeneratingMissingImages(true);
+    try {
+      for (let index = 0; index < missingItems.length; index += 1) {
+        const item = missingItems[index];
+        setMessage(`Generating image ${index + 1} of ${missingItems.length}: ${item.name}…`);
+        const generated = await generateItemImage(item);
+        if (!generated) return;
+      }
+      setMessage(`Generated images for ${missingItems.length} food items.`);
+    } finally {
+      setGeneratingMissingImages(false);
     }
   };
 
@@ -834,15 +863,26 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
               <button
                 type="button"
                 onClick={addItem}
-                disabled={items.length >= 5}
+                disabled={items.length >= 5 || generatingMissingImages}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#363636] px-3 py-2 text-xs font-semibold text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <FaPlus aria-hidden="true" /> Add item
               </button>
             </div>
-            <p className="mb-2 text-xs leading-relaxed text-[#929292]">
-              Generate an original image directly here. Choose an art style and click again whenever you want another unique variation.
-            </p>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs leading-relaxed text-[#929292]">
+                Generate original food photos here. Poster text is added separately so your deal details stay readable.
+              </p>
+              <button
+                type="button"
+                onClick={generateMissingImages}
+                disabled={generatingMissingImages || generatingItems.length > 0 || !items.some((item) => item.name.trim() && !item.image)}
+                className="inline-flex min-h-[38px] shrink-0 items-center gap-2 rounded-lg bg-[#393021] px-3 py-2 text-xs font-semibold text-[#ffdc00] hover:bg-[#4b3d25] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {generatingMissingImages ? <FaSpinner aria-hidden="true" className="animate-spin" /> : <FaMagic aria-hidden="true" />}
+                {generatingMissingImages ? "Generating images…" : "Generate missing images"}
+              </button>
+            </div>
             <p className="mb-2 text-xs leading-relaxed text-[#929292]">
               Food names and style prompts are sent to Gemini using the site&apos;s server key. Google quota or billing may apply; generation is limited to 5 images per minute.
             </p>
@@ -897,7 +937,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
                     </label>
                     <button
                       type="button"
-                      disabled={!item.name.trim() || generatingItems.includes(item.id)}
+                      disabled={!item.name.trim() || generatingItems.length > 0 || generatingMissingImages}
                       onClick={() => generateItemImage(item)}
                       className="inline-flex min-h-[40px] items-center gap-2 rounded-lg bg-[#393021] px-3 py-2 text-xs font-semibold text-[#ffdc00] hover:bg-[#4b3d25] disabled:cursor-not-allowed disabled:opacity-40"
                     >
