@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { MdDashboard, MdDeliveryDining, MdReceiptLong } from "react-icons/md";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import ExpenseQuickAdd from "./ExpenseQuickAdd";
+import MusicPlayer from "./MusicPlayer";
 
 const Header = () => {
   const userData = useSelector((state) => state.user);
@@ -57,15 +58,23 @@ const Header = () => {
     // flex children actually shrink instead of forcing the row to overflow.
     <header className="flex flex-wrap items-center justify-between gap-2 py-3 px-3 bg-[#1a1a1a] sm:gap-3 sm:px-4 lg:flex-nowrap lg:gap-4 lg:px-8 lg:py-4">
       {/* LOGO */}
-      <div onClick={() => navigate("/")} className="flex min-w-0 shrink-0 items-center gap-2 cursor-pointer">
-        <img
-          src={genzLogo}
-          alt="GenZ Pizza Land"
-          className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm lg:h-9 lg:w-9"
-        />
-        <h1 className="truncate text-base font-semibold text-[#f5f5f5] tracking-wide lg:text-lg">
-          GenZ Pizza Land
-        </h1>
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          aria-label="Go to home"
+          className="flex min-w-0 items-center gap-2 text-left"
+        >
+          <img
+            src={genzLogo}
+            alt="GenZ Pizza Land"
+            className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm lg:h-9 lg:w-9"
+          />
+          <h1 className="truncate text-base font-semibold text-[#f5f5f5] tracking-wide lg:text-lg">
+            GenZ Pizza Land
+          </h1>
+        </button>
+        <MusicPlayer />
       </div>
 
       {/* SEARCH - only where there's real room for it, so it never competes
