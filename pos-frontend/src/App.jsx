@@ -10,6 +10,7 @@ import Header from "./components/shared/Header";
 import NewOrderPopup from "./components/shared/NewOrderPopup";
 import LowStockAlert from "./components/shared/LowStockAlert";
 import WhatsAppButton from "./components/shared/WhatsAppButton";
+import MusicPlayerProvider from "./components/shared/MusicPlayerProvider";
 import { useSelector } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import useScrollHoverFix from "./hooks/useScrollHoverFix";
@@ -125,7 +126,9 @@ function AdminRoute({ children }) {
 function App() {
   return (
     <Router>
-      <Layout />
+      <MusicPlayerProvider>
+        <Layout />
+      </MusicPlayerProvider>
     </Router>
   );
 }
