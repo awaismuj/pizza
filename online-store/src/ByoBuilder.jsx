@@ -89,12 +89,12 @@ export const BYO_STYLES = `
   gap: 18px;
   padding: 22px 20px;
   border-radius: var(--r-xl);
-  border: 1px solid rgba(180, 6, 20, 0.45);
+  border: 1px solid rgba(230, 57, 47, 0.35);
   background:
-    radial-gradient(520px 220px at 100% 0%, rgba(180, 6, 20, 0.3), transparent 65%),
-    radial-gradient(420px 220px at 0% 100%, rgba(180, 6, 20, 0.16), transparent 65%),
-    linear-gradient(135deg, rgba(255, 246, 228, 0.94), rgba(250, 226, 170, 0.9));
-  box-shadow: 0 24px 60px -28px rgba(180, 6, 20, 0.55);
+    radial-gradient(520px 220px at 100% 0%, rgba(255, 200, 61, 0.2), transparent 65%),
+    radial-gradient(420px 220px at 0% 100%, rgba(230, 57, 47, 0.08), transparent 65%),
+    linear-gradient(135deg, #fff8ef, rgba(255, 248, 239, 0.9));
+  box-shadow: 0 24px 60px -28px rgba(37, 37, 37, 0.2);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -129,8 +129,8 @@ export const BYO_STYLES = `
   gap: 8px;
   padding: 5px 12px;
   border-radius: var(--r-pill);
-  background: rgba(180, 6, 20, 0.14);
-  border: 1px solid rgba(180, 6, 20, 0.45);
+  background: rgba(255, 200, 61, 0.22);
+  border: 1px solid rgba(255, 200, 61, 0.65);
   color: var(--gold);
   font-weight: 800;
   font-size: 0.72rem;
@@ -180,7 +180,7 @@ export const BYO_STYLES = `
 
 .gzp-byo-tier:hover {
   transform: translateY(-3px);
-  border-color: rgba(180, 6, 20, 0.6);
+  border-color: rgba(230, 57, 47, 0.45);
 }
 
 .gzp-byo-tier b {
@@ -212,8 +212,8 @@ export const BYO_STYLES = `
 }
 
 .gzp-byo-tier.is-best {
-  border-color: rgba(180, 6, 20, 0.6);
-  background: rgba(180, 6, 20, 0.08);
+  border-color: rgba(230, 57, 47, 0.45);
+  background: rgba(230, 57, 47, 0.06);
 }
 
 /* ---- builder (full-screen) ---- */
@@ -237,7 +237,7 @@ export const BYO_STYLES = `
   width: 100%;
   max-width: 1080px;
   height: 100%;
-  background: #FFF3DA;
+  background: #FFF8EF;
   border: 1px solid var(--line);
   box-shadow: var(--shadow-float);
   animation: gzp-sheet-up 0.26s cubic-bezier(0.2, 0.8, 0.3, 1);
@@ -278,14 +278,14 @@ export const BYO_STYLES = `
 .gzp-byo-progress {
   padding: 14px 18px 12px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(180, 6, 20, 0.08), transparent);
+  background: linear-gradient(180deg, rgba(230, 57, 47, 0.06), transparent);
 }
 
 .gzp-byo-track {
   position: relative;
   height: 10px;
   border-radius: var(--r-pill);
-  background: rgba(43, 26, 8, 0.16);
+  background: rgba(37, 37, 37, 0.16);
   margin: 6px 6px 26px;
 }
 
@@ -294,7 +294,7 @@ export const BYO_STYLES = `
   inset: 0 auto 0 0;
   border-radius: var(--r-pill);
   background: var(--heat);
-  box-shadow: 0 0 14px rgba(180, 6, 20, 0.65);
+  box-shadow: 0 0 14px rgba(230, 57, 47, 0.4);
   transition: width 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
@@ -309,8 +309,8 @@ export const BYO_STYLES = `
   place-items: center;
   font-size: 0.7rem;
   font-weight: 800;
-  background: #FFF3DA;
-  border: 2px solid rgba(43, 26, 8, 0.35);
+  background: #FFF8EF;
+  border: 2px solid rgba(37, 37, 37, 0.28);
   color: var(--flour-dim);
   transition: all 0.25s ease;
 }
@@ -377,7 +377,7 @@ export const BYO_STYLES = `
 
 .gzp-byo-cat:hover {
   color: var(--flour);
-  border-color: rgba(43, 26, 8, 0.5);
+  border-color: rgba(37, 37, 37, 0.32);
 }
 
 .gzp-byo-cat.is-active {
@@ -433,14 +433,14 @@ export const BYO_STYLES = `
 }
 
 .gzp-byo-tile.is-picked {
-  border-color: rgba(180, 6, 20, 0.75);
-  box-shadow: 0 0 0 1px rgba(180, 6, 20, 0.35), 0 14px 34px -16px rgba(180, 6, 20, 0.6);
+  border-color: rgba(230, 57, 47, 0.6);
+  box-shadow: 0 0 0 1px rgba(230, 57, 47, 0.25), 0 14px 34px -16px rgba(230, 57, 47, 0.35);
 }
 
 .gzp-byo-tile-media {
   position: relative;
   aspect-ratio: 4 / 3;
-  background: radial-gradient(circle at 50% 40%, #fff3d9, #f0cd8c);
+  background: var(--ink-900);
   display: grid;
   place-items: center;
   font-size: 2.2rem;
@@ -468,7 +468,7 @@ export const BYO_STYLES = `
   color: #ffffff;
   font-weight: 800;
   font-size: 0.8rem;
-  box-shadow: 0 6px 16px -6px rgba(180, 6, 20, 0.9);
+  box-shadow: 0 6px 16px -6px rgba(230, 57, 47, 0.55);
   animation: gzp-byo-pop 0.25s ease;
 }
 
@@ -519,8 +519,8 @@ export const BYO_STYLES = `
   width: 100%;
   padding: 9px 10px;
   border-radius: var(--r-md);
-  border: 1px solid rgba(180, 6, 20, 0.55);
-  background: rgba(180, 6, 20, 0.1);
+  border: 1px solid rgba(230, 57, 47, 0.4);
+  background: rgba(230, 57, 47, 0.06);
   color: var(--ember);
   font: inherit;
   font-weight: 800;
@@ -601,8 +601,8 @@ export const BYO_STYLES = `
   margin: 4px 0 14px;
   padding: 12px;
   border-radius: var(--r-lg);
-  border: 1px solid rgba(180, 6, 20, 0.5);
-  background: linear-gradient(135deg, rgba(180, 6, 20, 0.12), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(230, 57, 47, 0.4);
+  background: linear-gradient(135deg, rgba(230, 57, 47, 0.08), rgba(255, 255, 255, 0.02));
 }
 
 .gzp-byo-cart-head {
@@ -660,8 +660,8 @@ export const BYO_STYLES = `
   margin: 0 0 10px;
   padding: 10px 12px;
   border-radius: var(--r-md);
-  background: rgba(180, 6, 20, 0.12);
-  border: 1px solid rgba(180, 6, 20, 0.5);
+  background: rgba(230, 57, 47, 0.08);
+  border: 1px solid rgba(230, 57, 47, 0.4);
   color: var(--gold);
   font-size: 0.86rem;
   font-weight: 700;

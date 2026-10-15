@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { FaHome, FaShoppingBag } from "react-icons/fa";
 import { MdOutlineReorder, MdTableBar, MdDeliveryDining } from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
@@ -70,48 +70,48 @@ const BottomNav = () => {
     {/* Bottom bar: 5 real buttons - Home, Orders, Tables, Online, Outdoor.
         z-30 keeps it above page content (cards, lists) so every button is
         always clickable. */}
-    <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#262626] p-2 h-16 grid grid-cols-5 items-center max-w-screen-lg mx-auto sm:px-4">
+    <div className="fixed bottom-0 left-0 right-0 z-30 mx-auto grid h-[calc(4rem+env(safe-area-inset-bottom))] w-full grid-cols-5 items-center bg-[#262626] pb-[env(safe-area-inset-bottom)] p-2">
       <button
         onClick={() => navigate("/")}
-        className={`flex flex-1 h-full items-center justify-center font-bold text-xs sm:text-base ${
+        className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 font-bold text-[10px] leading-none sm:flex-row sm:text-base ${
           isActive("/") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
         } rounded-[20px]`}
       >
-        <FaHome className="inline sm:mr-2" size={18} /> <p className="hidden sm:inline">Home</p>
+        <FaHome className="shrink-0 sm:mr-2" size={18} /> <p>Home</p>
       </button>
       <button
         onClick={() => navigate("/orders")}
-        className={`flex flex-1 h-full items-center justify-center font-bold text-xs sm:text-base ${
+        className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 font-bold text-[10px] leading-none sm:flex-row sm:text-base ${
           isActive("/orders") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
         } rounded-[20px]`}
       >
-        <MdOutlineReorder className="inline sm:mr-2" size={18} /> <p className="hidden sm:inline">Orders</p>
+        <MdOutlineReorder className="shrink-0 sm:mr-2" size={18} /> <p>Orders</p>
       </button>
 
       <button
         onClick={() => navigate("/tables")}
-        className={`flex flex-1 h-full items-center justify-center font-bold text-xs sm:text-base ${
+        className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 font-bold text-[10px] leading-none sm:flex-row sm:text-base ${
           isActive("/tables") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
         } rounded-[20px]`}
       >
-        <MdTableBar className="inline sm:mr-2" size={20} /> <p className="hidden sm:inline">Tables</p>
+        <MdTableBar className="shrink-0 sm:mr-2" size={20} /> <p>Tables</p>
       </button>
 
       <button
         onClick={() => navigate("/online-orders")}
-        className={`flex flex-1 h-full items-center justify-center font-bold text-xs sm:text-base ${
+        className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 font-bold text-[10px] leading-none sm:flex-row sm:text-base ${
           isActive("/online-orders") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
         } rounded-[20px]`}
       >
-        <MdDeliveryDining className="inline sm:mr-2" size={18} /> <p className="hidden sm:inline">Online</p>
+        <MdDeliveryDining className="shrink-0 sm:mr-2" size={18} /> <p>Online</p>
       </button>
       <button
         onClick={() => navigate("/outdoor")}
-        className={`flex flex-1 h-full items-center justify-center font-bold text-xs sm:text-base ${
+        className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 font-bold text-[10px] leading-none sm:flex-row sm:text-base ${
           isActive("/outdoor") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
         } rounded-[20px]`}
       >
-        <FaShoppingBag className="inline sm:mr-2" size={16} /> <p className="hidden sm:inline">Outdoor</p>
+        <FaShoppingBag className="shrink-0 sm:mr-2" size={16} /> <p>Outdoor</p>
       </button>
 
     </div>

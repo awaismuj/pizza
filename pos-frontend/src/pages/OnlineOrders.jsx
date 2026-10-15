@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { enqueueSnackbar } from "notistack";
@@ -131,7 +131,7 @@ const OnlineOrders = () => {
         })}
       </div>
 
-      <div className="max-w-screen-xl mx-auto grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-2 sm:px-10 lg:grid-cols-3">
+      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 px-4 py-4 min-[480px]:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {visibleOrders.length === 0 && (
           <p className="col-span-full text-gray-500">No orders here yet.</p>
         )}

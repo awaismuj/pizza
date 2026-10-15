@@ -1,8 +1,11 @@
-# React + Vite
+# POS Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Local responsive preview
 
-Currently, two official plugins are available:
+To preview the POS screens without a backend, create `.env.local` with:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```env
+VITE_POS_DEMO=true
+```
+
+Then run `npm run dev` and open the local Vite URL. The preview uses a demo admin and sample orders/tables. It is development-only and read-only; production builds continue to use the configured API.

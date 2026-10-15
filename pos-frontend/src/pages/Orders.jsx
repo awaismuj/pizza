@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "../components/shared/BottomNav";
 import OrderCard from "../components/orders/OrderCard";
 import BackButton from "../components/shared/BackButton";
@@ -80,7 +80,7 @@ const Orders = () => {
         </div>
       </div>
 
-      <div className="max-w-screen-xl mx-auto grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-2 sm:px-10 lg:grid-cols-3 overflow-y-auto scrollbar-hide">
+      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 overflow-y-auto px-4 py-4 scrollbar-hide min-[480px]:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {
           filteredOrders.length > 0 ? (
             filteredOrders.map((order) => {
