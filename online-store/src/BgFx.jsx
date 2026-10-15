@@ -104,12 +104,27 @@ export default function BgFx() {
     };
 
     const showClickFood = (x, y) => {
-      const count = 7 + Math.floor(Math.random() * 3);
-      const burst = Array.from({ length: count }, () => ({
+      if (!reduce) {
+        const maxDistance = Math.hypot(W, H) || 1;
+        icons.forEach((icon) => {
+          const dx = icon.x - x;
+          const dy = icon.y - y;
+          const distance = Math.hypot(dx, dy);
+          const angle = distance > 1 ? Math.atan2(dy, dx) : rand(0, Math.PI * 2);
+          const strength = 3 + (1 - Math.min(distance / maxDistance, 1)) * 3;
+          icon.vx += Math.cos(angle) * strength + rand(-1, 1);
+          icon.vy += Math.sin(angle) * strength + rand(-1, 1);
+          icon.vr += rand(-0.08, 0.08);
+        });
+      }
+
+      const count = 2 + Math.floor(Math.random() * 3);
+      const sparkleCount = count > 2 && Math.random() < 0.35 ? 2 : 1;
+      const burst = Array.from({ length: count - sparkleCount }, () => ({
         emoji: CLICK_FOODS[Math.floor(Math.random() * CLICK_FOODS.length)],
         size: rand(22, 34),
       }));
-      for (let i = 0, sparkleCount = 3 + Math.floor(Math.random() * 3); i < sparkleCount; i++) {
+      for (let i = 0; i < sparkleCount; i++) {
         burst.push({
           emoji: CLICK_SPARKLES[Math.floor(Math.random() * CLICK_SPARKLES.length)],
           size: rand(15, 23),
