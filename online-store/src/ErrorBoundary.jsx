@@ -59,8 +59,8 @@ export default class ErrorBoundary extends React.Component {
             padding: 24,
             textAlign: "center",
             fontFamily: "system-ui, sans-serif",
-            background: "#0b0d10",
-            color: "#f5f5f5",
+            background: "#FFF8EF",
+            color: "#252525",
           }}
         >
           <h1 style={{ fontSize: "1.3rem", margin: 0 }}>
@@ -77,7 +77,7 @@ export default class ErrorBoundary extends React.Component {
               padding: "10px 22px",
               borderRadius: 8,
               border: "none",
-              background: "#e6392b",
+              background: "#E6392F",
               color: "#fff",
               fontWeight: 600,
               cursor: "pointer",

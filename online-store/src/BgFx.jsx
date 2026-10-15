@@ -3,12 +3,11 @@ import React, { useEffect, useRef } from "react";
 /* ---------------------------------------------------------------------------
    Animated storefront background.
 
-   - A constellation of small gold nodes joined by thin glowing lines.
+   - A constellation of soft glowing nodes.
    - Tiny, soft fast-food icons (pizza, burger, fries...) drifting and
      slowly spinning behind the content.
-   - Interactive: the lines reach for your finger / mouse, and every
-     click or tap sends a shockwave that pushes the nodes and icons away,
-     leaves a ripple, and drops a few extra nodes that fade out.
+   - Interactive: clicks and taps burst food emojis and sparkles from
+     the touch point.
 
    It is a single fixed <canvas> behind the page (pointer-events: none), so
    it never blocks a button. It pauses when the tab is hidden, caps its own
@@ -17,8 +16,8 @@ import React, { useEffect, useRef } from "react";
    --------------------------------------------------------------------------- */
 
 const ICONS = ["🍕", "🍔", "🍟", "🌭", "🌮", "🥤", "🍗", "🍩", "🥪", "🍦"];
-const RED = [255, 255, 255]; // line / node colour (r, g, b)
-
+const CLICK_FOODS = ["🍔", "🍕", "🍟", "🍗", "🌭", "🥪", "🌯", "🌮", "🍩"];
+const CLICK_SPARKLES = ["✨", "⭐"];
 const rand = (a, b) => a + Math.random() * (b - a);
 
 function makeSprite(char, size) {
@@ -49,10 +48,19 @@ export default function BgFx() {
     let nodes = [];
     let icons = [];
     let sprites = [];
-    let ripples = [];
     let raf = 0;
     let running = false;
     const pointer = { x: -9999, y: -9999, active: false };
+    const popupLayer = document.createElement("div");
+    popupLayer.setAttribute("aria-hidden", "true");
+    Object.assign(popupLayer.style, {
+      position: "fixed",
+      inset: "0",
+      zIndex: "1001",
+      overflow: "hidden",
+      pointerEvents: "none",
+    });
+    document.body.appendChild(popupLayer);
 
     const isSmall = () => window.innerWidth < 700;
 
@@ -95,43 +103,68 @@ export default function BgFx() {
       }));
     };
 
-    const shockwave = (x, y) => {
-      ripples.push({ x, y, t: 0 });
-      const push = (o, power) => {
-        const dx = o.x - x;
-        const dy = o.y - y;
-        const d = Math.hypot(dx, dy) || 1;
-        if (d < 320) {
-          const f = (1 - d / 320) * power;
-          o.vx += (dx / d) * f;
-          o.vy += (dy / d) * f;
-        }
-      };
-      nodes.forEach((n) => push(n, 3.2));
-      icons.forEach((ic) => {
-        push(ic, 4.5);
-        ic.vr += rand(-0.05, 0.05);
-      });
-      // a few extra nodes that burst out of the click point, then fade
-      for (let i = 0; i < 6; i++) {
-        const a = rand(0, Math.PI * 2);
-        const sp = rand(0.8, 2.2);
-        nodes.push({
-          x,
-          y,
-          vx: Math.cos(a) * sp,
-          vy: Math.sin(a) * sp,
-          r: rand(1.4, 2.6),
-          life: 0.999,
-          temp: true,
+    const showClickFood = (x, y) => {
+      const count = 7 + Math.floor(Math.random() * 3);
+      const burst = Array.from({ length: count }, () => ({
+        emoji: CLICK_FOODS[Math.floor(Math.random() * CLICK_FOODS.length)],
+        size: rand(22, 34),
+      }));
+      for (let i = 0, sparkleCount = 3 + Math.floor(Math.random() * 3); i < sparkleCount; i++) {
+        burst.push({
+          emoji: CLICK_SPARKLES[Math.floor(Math.random() * CLICK_SPARKLES.length)],
+          size: rand(15, 23),
         });
       }
+
+      burst.forEach(({ emoji, size }, index) => {
+        const angle = (index / burst.length) * Math.PI * 2 + rand(-0.35, 0.35);
+        const distance = rand(55, 115);
+        const driftX = Math.cos(angle) * distance;
+        const driftY = Math.sin(angle) * distance - rand(18, 48);
+        const item = document.createElement("span");
+        item.textContent = emoji;
+        Object.assign(item.style, {
+          position: "absolute",
+          left: `${x}px`,
+          top: `${y}px`,
+          fontSize: `${size}px`,
+          lineHeight: "1",
+          pointerEvents: "none",
+          userSelect: "none",
+          filter: "drop-shadow(0 2px 5px rgba(30,20,10,0.3))",
+          transform: "translate(-50%, -50%) scale(0.3)",
+        });
+        popupLayer.appendChild(item);
+
+        if (reduce) {
+          item.style.transform = `translate(calc(-50% + ${driftX * 0.35}px), calc(-50% + ${driftY * 0.35}px)) scale(1)`;
+          window.setTimeout(() => item.remove(), 550);
+          return;
+        }
+
+        const animation = item.animate(
+          [
+            { opacity: 0, transform: "translate(-50%, -50%) scale(0.3) rotate(0deg)" },
+            { opacity: 1, transform: "translate(-50%, -50%) scale(1.25) rotate(10deg)", offset: 0.18 },
+            { opacity: 1, transform: "translate(-50%, -50%) scale(1) rotate(-5deg)", offset: 0.34 },
+            {
+              opacity: 0,
+              transform: `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(0.7) rotate(${rand(-55, 55)}deg)`,
+            },
+          ],
+          {
+            duration: rand(750, 1050),
+            easing: "cubic-bezier(0.2, 0.75, 0.3, 1)",
+            fill: "forwards",
+          }
+        );
+        animation.onfinish = () => item.remove();
+      });
     };
 
     const frame = (time) => {
       ctx.clearRect(0, 0, W, H);
       const small = isSmall();
-      const linkDist = small ? 105 : 150;
       const pointerDist = small ? 150 : 200;
 
       // soft glow following the pointer
@@ -178,41 +211,6 @@ export default function BgFx() {
         else if (n.y > H + 20) n.y = -20;
       }
 
-      // --- lines between neighbours ---
-      ctx.lineWidth = 1;
-      for (let i = 0; i < nodes.length; i++) {
-        const a = nodes[i];
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < linkDist * linkDist) {
-            const k = 1 - Math.sqrt(d2) / linkDist;
-            const alpha = k * 0.6 * Math.min(a.life, b.life);
-            ctx.strokeStyle = `rgba(${RED[0]},${RED[1]},${RED[2]},${alpha})`;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.stroke();
-          }
-        }
-        // line from the pointer to nearby nodes
-        if (pointer.active) {
-          const dx = a.x - pointer.x;
-          const dy = a.y - pointer.y;
-          const d = Math.hypot(dx, dy);
-          if (d < pointerDist) {
-            const k = 1 - d / pointerDist;
-            ctx.strokeStyle = `rgba(255,255,255,${k * 0.9})`;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(pointer.x, pointer.y);
-            ctx.stroke();
-          }
-        }
-      }
-
       // --- nodes (dots with a little glow) ---
       for (const n of nodes) {
         const a = 0.35 + 0.5 * (n.r / 2.8);
@@ -224,21 +222,6 @@ export default function BgFx() {
         ctx.fill();
       }
       ctx.shadowBlur = 0;
-
-      // --- ripples from clicks ---
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.t += 0.025;
-        if (r.t >= 1) {
-          ripples.splice(i, 1);
-          continue;
-        }
-        ctx.strokeStyle = `rgba(255,255,255,${(1 - r.t) * 0.7})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.t * 220, 0, Math.PI * 2);
-        ctx.stroke();
-      }
 
       // --- floating fast-food icons ---
       for (const ic of icons) {
@@ -306,7 +289,7 @@ export default function BgFx() {
       pointer.x = e.clientX;
       pointer.y = e.clientY;
       pointer.active = true;
-      if (!reduce) shockwave(e.clientX, e.clientY);
+      showClickFood(e.clientX, e.clientY);
       // on touch there is no hover, so let the pointer glow fade shortly after
       if (e.pointerType === "touch") setTimeout(onLeave, 900);
     };
@@ -322,6 +305,7 @@ export default function BgFx() {
     return () => {
       stop();
       clearTimeout(resizeT);
+      popupLayer.remove();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", onDown);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import BottomNav from "../components/shared/BottomNav";
 import Greetings from "../components/home/Greetings";
 import { BsCashCoin } from "react-icons/bs";
@@ -26,7 +26,7 @@ const Home = () => {
 
   return (
     <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] overflow-x-hidden px-3 pb-36 pt-2 sm:px-4 md:px-6">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:gap-3">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 md:flex-row md:gap-3">
         <div className="w-full md:flex-1">
           <Greetings />
           <div className="mt-6 flex w-full flex-col gap-3 px-2 sm:px-4 md:flex-row md:items-stretch md:px-8">

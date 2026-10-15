@@ -25,38 +25,37 @@ const FONTS_HREF =
 const STYLES = `
 /* ==========================================================================
    GenZ Pizza Land — storefront
-   Palette: charred charcoal + ember amber + basil green.
-   Photos carry the page; chrome stays quiet. Amber is reserved for price
-   and the primary action, green only for live/delivery status.
+   Palette: cream + charcoal with red actions and yellow offer accents.
+   Green is reserved for live/delivery status.
    ========================================================================== */
 
 :root {
-  --ink-900: #E8AE58;
-  --ink-850: rgba(255, 246, 228, 0.95);
-  --ink-800: rgba(255, 247, 232, 0.74);
-  --ink-700: rgba(255, 255, 255, 0.5);
-  --ink-600: rgba(43, 26, 8, 0.22);
-  --line: rgba(43, 26, 8, 0.16);
+  --ink-900: #FFF8EF;
+  --ink-850: rgba(255, 248, 239, 0.98);
+  --ink-800: rgba(255, 255, 255, 0.78);
+  --ink-700: rgba(255, 255, 255, 0.56);
+  --ink-600: rgba(37, 37, 37, 0.22);
+  --line: rgba(37, 37, 37, 0.14);
 
-  --flour: #2B1A0A;
-  --flour-dim: #5b3f1c;
-  --flour-faint: #664624;
+  --flour: #252525;
+  --flour-dim: #5b5b5b;
+  --flour-faint: #777777;
 
-  --ember: #B40614;
-  --ember-deep: #8A0410;
-  --gold: #6B3806;
+  --ember: #E6392F;
+  --ember-deep: #c92f27;
+  --gold: #FFC83D;
   --basil: #1a9e56;
   --chili: #ff5d5d;
 
-  --heat: #B40614; /* Pepperoni Red: every call-to-action sits on the #E8AE58 page */
+  --heat: #E6392F;
 
   --r-xl: 26px;
   --r-lg: 18px;
   --r-md: 12px;
   --r-pill: 999px;
 
-  --shadow-lift: 0 18px 40px -18px rgba(43, 26, 8, 0.45);
-  --shadow-float: 0 22px 50px -12px rgba(43, 26, 8, 0.5);
+  --shadow-lift: 0 18px 40px -18px rgba(37, 37, 37, 0.18);
+  --shadow-float: 0 22px 50px -12px rgba(37, 37, 37, 0.22);
 
   --header-h: 60px;
   --nav-h: 54px;
@@ -82,8 +81,8 @@ body {
   font-size: 16px;
   line-height: 1.5;
   background:
-    radial-gradient(900px 520px at 88% -4%, rgba(255, 236, 190, 0.45), transparent 62%),
-    radial-gradient(720px 520px at -4% 104%, rgba(190, 120, 30, 0.22), transparent 62%),
+    radial-gradient(900px 520px at 88% -4%, rgba(255, 200, 61, 0.12), transparent 62%),
+    radial-gradient(720px 520px at -4% 104%, rgba(230, 57, 47, 0.04), transparent 62%),
     var(--ink-900);
   background-attachment: fixed;
   color: var(--flour);
@@ -181,8 +180,8 @@ select {
   height: var(--header-h);
   display: flex;
   align-items: center;
-  background: #B40614; /* Pepperoni Red header */
-  box-shadow: 0 6px 18px -10px rgba(120, 0, 10, 0.7);
+  background: var(--flour);
+  box-shadow: 0 6px 18px -10px rgba(37, 37, 37, 0.3);
   border-bottom: 1px solid rgba(0, 0, 0, 0.18);
 }
 
@@ -262,7 +261,7 @@ select {
 }
 
 .gzp-icon-btn:hover {
-  border-color: rgba(43, 26, 8, 0.45);
+  border-color: rgba(37, 37, 37, 0.32);
   background: var(--ink-700);
 }
 
@@ -274,7 +273,7 @@ select {
 
 .gzp-cart-btn {
   border-color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 246, 228, 0.96);
+  background: rgba(255, 248, 239, 0.96);
 }
 
 .gzp-cart-btn:hover {
@@ -290,8 +289,8 @@ select {
   height: 20px;
   padding: 0 5px;
   border-radius: var(--r-pill);
-  background: var(--heat);
-  color: #ffffff;
+  background: var(--gold);
+  color: var(--flour);
   font-family: "Archivo", sans-serif;
   font-weight: 800;
   font-size: 0.68rem;
@@ -350,7 +349,7 @@ select {
   display: grid;
   place-items: center;
   height: 100%;
-  background: radial-gradient(circle at 50% 35%, #fff3d9, #f0cd8c);
+  background: var(--ink-900);
 }
 
 .gzp-slider-fallback img {
@@ -419,11 +418,11 @@ select {
 .gzp-btn-primary {
   background: var(--heat);
   color: #ffffff;
-  box-shadow: 0 10px 26px -12px rgba(180, 6, 20, 0.9);
+  box-shadow: 0 10px 26px -12px rgba(230, 57, 47, 0.55);
 }
 
 .gzp-btn-primary:hover {
-  background: #EE4540; /* brighter Pepperoni Red on hover */
+  background: var(--ember-deep);
 }
 
 .gzp-btn-primary:disabled {
@@ -438,7 +437,7 @@ select {
 }
 
 .gzp-btn-ghost:hover {
-  border-color: rgba(43, 26, 8, 0.45);
+  border-color: rgba(37, 37, 37, 0.32);
   background: var(--ink-800);
 }
 
@@ -452,10 +451,10 @@ select {
   position: sticky;
   top: var(--header-h);
   z-index: 50;
-  background: rgba(238, 188, 104, 0.92);
+  background: rgba(255, 248, 239, 0.96);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(43, 26, 8, 0.16);
+  border-bottom: 1px solid rgba(37, 37, 37, 0.14);
 }
 
 .gzp-navbar-inner {
@@ -619,7 +618,7 @@ select {
 }
 
 .gzp-deal:hover {
-  border-color: rgba(180, 6, 20, 0.5);
+  border-color: rgba(230, 57, 47, 0.45);
   transform: translateY(-2px);
 }
 
@@ -649,25 +648,25 @@ select {
   border-radius: var(--r-pill);
   background: rgba(11, 13, 16, 0.85);
   border: 1px solid rgba(246, 177, 0, 0.55);
-  color: #E8AE58;
+  color: #FFC83D;
   font-weight: 700;
   font-size: 0.72rem;
 }
 
 .gzp-stock.is-out {
   border-color: rgba(228, 20, 43, 0.6);
-  color: #d6402f;
+  color: var(--ember);
 }
 
 .gzp-stock-note {
   margin: 6px 0 0;
   font-weight: 700;
   font-size: 0.85rem;
-  color: #6B3806;
+  color: var(--flour);
 }
 
 .gzp-stock-note.is-out {
-  color: #e4142b;
+  color: var(--ember);
 }
 
 .gzp-whatsapp {
@@ -695,7 +694,7 @@ select {
   width: 100%;
   height: 100%;
   font-size: 2.2rem;
-  background: radial-gradient(circle at 50% 40%, #fff3d9, #f0cd8c);
+  background: var(--ink-900);
 }
 
 .gzp-badge {
@@ -863,7 +862,7 @@ select {
 }
 
 .gzp-card:hover {
-  border-color: rgba(180, 6, 20, 0.45);
+  border-color: rgba(230, 57, 47, 0.35);
   transform: translateY(-2px);
 }
 
@@ -962,7 +961,7 @@ select {
   border-radius: 50%;
   border: 0;
   background: rgba(18, 18, 21, 0.78);
-  color: #E8AE58;
+  color: #FFC83D;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   cursor: pointer;
   transition: transform 0.12s ease;
@@ -1046,8 +1045,8 @@ select {
   align-items: center;
   gap: 2px;
   border-radius: var(--r-md);
-  border: 1px solid rgba(180, 6, 20, 0.45);
-  background: rgba(180, 6, 20, 0.1);
+  border: 1px solid rgba(230, 57, 47, 0.35);
+  background: rgba(230, 57, 47, 0.06);
   overflow: hidden;
 }
 
@@ -1065,7 +1064,7 @@ select {
 }
 
 .gzp-stepper button:hover {
-  background: rgba(180, 6, 20, 0.16);
+  background: rgba(230, 57, 47, 0.12);
 }
 
 .gzp-stepper span {
@@ -1162,7 +1161,7 @@ select {
 }
 
 .gzp-result:hover {
-  border-color: rgba(43, 26, 8, 0.45);
+  border-color: rgba(37, 37, 37, 0.32);
 }
 
 .gzp-result img,
@@ -1258,7 +1257,7 @@ select {
   height: 34px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: rgba(255, 246, 228, 0.94);
+  background: rgba(255, 248, 239, 0.96);
   backdrop-filter: blur(6px);
   color: var(--flour);
   font-size: 1rem;
@@ -1317,7 +1316,7 @@ select {
   background: var(--heat);
   color: #ffffff;
   cursor: pointer;
-  box-shadow: 0 18px 40px -14px rgba(180, 6, 20, 0.75);
+  box-shadow: 0 18px 40px -14px rgba(230, 57, 47, 0.5);
   animation: gzp-rise 0.24s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
@@ -1490,7 +1489,7 @@ select {
   margin-right: 6px;
   padding: 2px 7px;
   border-radius: 5px;
-  background: rgba(43, 26, 8, 0.16);
+  background: rgba(37, 37, 37, 0.16);
   color: var(--gold);
   font-family: "Archivo", sans-serif;
   font-weight: 800;
@@ -1559,7 +1558,7 @@ select {
 .gzp-field input:focus,
 .gzp-field textarea:focus {
   border-color: var(--ember);
-  box-shadow: 0 0 0 3px rgba(180, 6, 20, 0.14);
+  box-shadow: 0 0 0 3px rgba(230, 57, 47, 0.14);
 }
 
 .gzp-field input::placeholder,
@@ -1594,7 +1593,7 @@ select {
   border-radius: var(--r-md);
   border: 1px solid rgba(255, 93, 93, 0.35);
   background: rgba(255, 93, 93, 0.09);
-  color: #d6402f;
+  color: var(--ember);
   font-size: 0.88rem;
 }
 
@@ -1629,7 +1628,7 @@ select {
   height: 260px;
   background: radial-gradient(
     circle,
-    rgba(180, 6, 20, 0.18),
+    rgba(230, 57, 47, 0.18),
     transparent 65%
   );
   pointer-events: none;
@@ -1724,7 +1723,7 @@ select {
 .gzp-steps li.is-current::before {
   border-color: var(--ember);
   background: var(--ember);
-  box-shadow: 0 0 0 5px rgba(180, 6, 20, 0.18);
+  box-shadow: 0 0 0 5px rgba(230, 57, 47, 0.18);
 }
 
 .gzp-steps li.is-current {
@@ -1774,7 +1773,7 @@ select {
   border-radius: var(--r-md);
   border: 1px solid rgba(255, 93, 93, 0.3);
   background: rgba(255, 93, 93, 0.08);
-  color: #d6402f;
+  color: var(--ember);
 }
 
 /* ---------- Footer ---------- */
@@ -1969,9 +1968,9 @@ select {
   box-sizing: border-box;
   padding: 26px 24px 22px;
   border-radius: 24px;
-  background: #FFF4DC;
-  border: 1px solid rgba(180, 6, 20, 0.3);
-  box-shadow: var(--shadow-float), 0 0 40px -10px rgba(180, 6, 20, 0.35);
+  background: #FFF8EF;
+  border: 1px solid rgba(230, 57, 47, 0.25);
+  box-shadow: var(--shadow-float), 0 0 40px -10px rgba(230, 57, 47, 0.2);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -2002,7 +2001,7 @@ select {
   border-radius: 50%;
   overflow: hidden;
   background: #000;
-  border: 3px solid #FFF4DC;
+  border: 3px solid #FFF8EF;
   box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.4);
 }
 .gzp-thankyou-badge img {
@@ -2056,7 +2055,7 @@ select {
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
-  box-shadow: 0 10px 24px -10px rgba(180, 6, 20, 0.85);
+  box-shadow: 0 10px 24px -10px rgba(230, 57, 47, 0.55);
 }
 .gzp-thankyou-track-btn:hover { filter: brightness(1.06); }
 
@@ -2095,13 +2094,13 @@ select {
 .gzp-deal {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(43, 26, 8, 0.14);
+  border: 1px solid rgba(37, 37, 37, 0.14);
   transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
 }
 .gzp-card:hover,
 .gzp-deal:hover {
-  border-color: rgba(180, 6, 20, 0.55);
-  box-shadow: 0 0 0 1px rgba(180, 6, 20, 0.25), 0 18px 44px -18px rgba(180, 6, 20, 0.45);
+  border-color: rgba(230, 57, 47, 0.45);
+  box-shadow: 0 0 0 1px rgba(230, 57, 47, 0.18), 0 18px 44px -18px rgba(230, 57, 47, 0.3);
 }
 
 input,
@@ -2164,7 +2163,7 @@ textarea::placeholder {
   if (!document.querySelector('meta[name="theme-color"]')) {
     const meta = document.createElement("meta");
     meta.name = "theme-color";
-    meta.content = "#B40614";
+    meta.content = "#FFF8EF";
     document.head.appendChild(meta);
   }
 })();
@@ -3596,7 +3595,7 @@ function App() {
                     <button
                       type="button"
                       className="gzp-btn gzp-btn-ghost"
-                      style={{ marginTop: 14, color: "#e6392b", borderColor: "#e6392b" }}
+                      style={{ marginTop: 14, color: "#E6392F", borderColor: "#E6392F" }}
                       onClick={handleCancelOrder}
                       disabled={cancellingOrder}
                     >
