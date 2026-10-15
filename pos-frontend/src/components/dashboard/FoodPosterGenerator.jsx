@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FaDownload, FaMagic, FaPlus, FaSpinner, FaTrash, FaUpload } from "react-icons/fa";
 import PropTypes from "prop-types";
 import brandLogo from "../../assets/images/genz-pizza-land-logo.jpg";
-import { generatePosterFoodImage } from "../../https";
+import { generateFullPosterDesign, generatePosterFoodImage } from "../../https";
 
 const IMAGE_STYLES = [
   { value: "photorealistic", label: "Realistic menu photo" },
@@ -398,6 +398,10 @@ const drawPoster = (canvas, images, photo, settings) => {
   canvas.height = height;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.textBaseline = "alphabetic";
+  if (settings.generatedPoster) {
+    drawCover(ctx, image, 0, 0, 1080, logicalHeight);
+    return;
+  }
   if (template === "Gen-Z Blast") {
     ctx.fillStyle = theme.background;
     ctx.fillRect(0, 0, 1080, logicalHeight);
@@ -640,6 +644,8 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
   const [message, setMessage] = useState("");
   const [generatingItems, setGeneratingItems] = useState([]);
   const [generatingMissingImages, setGeneratingMissingImages] = useState(false);
+  const [generatingFullPoster, setGeneratingFullPoster] = useState(false);
+  const [generatedPoster, setGeneratedPoster] = useState(null);
   const [textStyle, setTextStyle] = useState("bold");
 
   useEffect(() => {
@@ -652,6 +658,25 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
   const imageSrc = heroItem?.image ?? uploadedPhoto?.url ?? photo?.src;
   const size = SIZES[sizeKey];
   const theme = THEMES[themeKey];
+  const posterDetails = useMemo(() => ({
+    brand,
+    headline,
+    tagline,
+    items: items.map(({ name, quantity }) => ({ name: name.trim(), quantity })),
+    originalPrice,
+    offerPrice,
+    phone,
+    address,
+    theme: theme.label,
+    textStyle: TEXT_STYLES[textStyle].label,
+  }), [address, brand, headline, items, offerPrice, originalPrice, phone, tagline, textStyle, theme]);
+  const posterSignature = JSON.stringify({
+    ...posterDetails,
+    size: sizeKey,
+    theme: themeKey,
+    template,
+    textStyle,
+  });
   const validationMessage = useMemo(() => {
     if (items.some((item) => !item.name.trim())) return "Give every bundle item a name before downloading.";
     if (
@@ -670,6 +695,26 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
   useEffect(() => {
     if (!imageSrc || !canvasRef.current) return undefined;
     let cancelled = false;
+    if (generatedPoster?.signature === posterSignature) {
+      loadPosterImage(generatedPoster.url)
+        .then((poster) => {
+          if (cancelled || !canvasRef.current) return;
+          drawPoster(canvasRef.current, { hero: poster, supporting: [] }, null, {
+            size,
+            theme,
+            textStyle,
+            template,
+            items,
+            generatedPoster: true,
+          });
+        })
+        .catch(() => {
+          if (!cancelled) setMessage("The generated poster could not be loaded. Generate it again.");
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
     const supportingItems = generatedItems
       .filter((item) => item.id !== heroItem?.id)
       .map((item) => ({ type: "item", item, src: item.image }));
@@ -715,7 +760,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
     return () => {
       cancelled = true;
     };
-  }, [imageSrc, photo, photoKey, uploadedPhoto, items, generatedItems, heroItem, brand, headline, tagline, originalPrice, offerPrice, phone, address, size, theme, textStyle, template]);
+  }, [imageSrc, photo, photoKey, uploadedPhoto, items, generatedItems, heroItem, brand, headline, tagline, originalPrice, offerPrice, phone, address, size, theme, textStyle, template, generatedPoster, posterSignature]);
 
   useEffect(
     () => () => {
@@ -815,6 +860,40 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
     }
   };
 
+  const generateFullPoster = async () => {
+    if (validationMessage) {
+      setMessage(validationMessage);
+      return;
+    }
+    setGeneratingFullPoster(true);
+    setMessage("Designing your complete food poster with OpenAI. This can take a minute…");
+    try {
+      const response = await generateFullPosterDesign(posterDetails);
+      const generated = response.data?.data;
+      if (!generated || generated.mimeType !== "image/png" || !generated.data) {
+        throw new Error("OpenAI returned an unsupported poster image. Please try again.");
+      }
+      const binary = atob(generated.data);
+      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: generated.mimeType }));
+      if (generatedPoster?.url) {
+        URL.revokeObjectURL(generatedPoster.url);
+        itemImageUrls.current.delete(generatedPoster.url);
+      }
+      itemImageUrls.current.add(url);
+      setGeneratedPoster({ url, signature: posterSignature });
+      setMessage("Your AI-designed poster is ready. Review spelling and prices before downloading.");
+    } catch (error) {
+      setMessage(error.response?.data?.message || (error.code === "ECONNABORTED"
+        ? "OpenAI is still working or took too long. Please try again."
+        : error.request
+          ? "Cannot reach the poster service. Check the deployed backend and OPENAI_API_KEY configuration."
+          : error.message || "OpenAI could not create the poster. Please try again."));
+    } finally {
+      setGeneratingFullPoster(false);
+    }
+  };
+
   const generateMissingImages = async () => {
     const missingItems = items.filter((item) => item.name.trim() && !item.image);
     if (!missingItems.length) {
@@ -906,6 +985,28 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
         <section className="min-w-0 space-y-4 rounded-xl bg-[#262626] p-4 sm:p-5" aria-label="Poster settings">
+          <div className="rounded-xl border border-[#634b18] bg-gradient-to-br from-[#33270f] to-[#211b13] p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="font-bold text-[#ffdc00]">Create a complete AI poster</h3>
+                <p className="mt-1 text-xs leading-relaxed text-[#d0c6ad]">
+                  OpenAI designs the full food-ad composition from your offer details in one image.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={generateFullPoster}
+                disabled={generatingFullPoster || Boolean(validationMessage)}
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg bg-[#f6b100] px-4 py-2.5 text-sm font-extrabold text-[#17130a] shadow-lg shadow-black/20 transition hover:bg-[#ffd04b] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {generatingFullPoster ? <FaSpinner aria-hidden="true" className="animate-spin" /> : <FaMagic aria-hidden="true" />}
+                {generatingFullPoster ? "Designing poster…" : "Generate full AI poster"}
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-[#a99b7c]">
+              AI-generated poster lettering may contain mistakes. Check the image before downloading; API usage may be billed.
+            </p>
+          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label>
               <span className={labelClass}>Brand / restaurant</span>
