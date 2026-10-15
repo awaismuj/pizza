@@ -1,0 +1,35 @@
+Bundled poster food photography
+
+Images below are CC0 1.0 Universal or public domain. They may be used without
+attribution; creator attribution is included here and in the poster-maker
+interface as a courtesy.
+
+pizza.jpg
+  Title: Pizza ( Italian Food).jpg
+  Creator: SristiAwasthi21
+  Source: https://commons.wikimedia.org/wiki/File:Pizza_(_Italian_Food).jpg
+  License: https://creativecommons.org/publicdomain/zero/1.0/
+
+burger.jpg
+  Title: Acme Burger - April 2025 - Sarah Stierch.jpg
+  Creator: Missvain
+  Source: https://commons.wikimedia.org/wiki/File:Acme_Burger_-_April_2025_-_Sarah_Stierch.jpg
+  License: https://creativecommons.org/publicdomain/zero/1.0/
+
+shawarma.jpg
+  Title: Chicken Shawarma Platter - Lavash 2025-02-10.jpg
+  Creator: Andy Li
+  Source: https://commons.wikimedia.org/wiki/File:Chicken_Shawarma_Platter_-_Lavash_2025-02-10.jpg
+  License: https://creativecommons.org/publicdomain/zero/1.0/
+
+chicken.jpg
+  Title: Fried chicken and sriracha.jpg
+  Creator: Corn cheese
+  Source: https://commons.wikimedia.org/wiki/File:Fried_chicken_and_sriracha.jpg
+  License: https://creativecommons.org/publicdomain/zero/1.0/
+
+cola.jpg
+  Title: Glass cola.jpg
+  Creator: pic_p_ter
+  Source: https://commons.wikimedia.org/wiki/File:Glass_cola.jpg
+  License: Public domain (Wikimedia Commons metadata; attribution not required)
