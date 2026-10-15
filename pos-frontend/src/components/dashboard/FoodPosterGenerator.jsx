@@ -369,18 +369,18 @@ const drawPoster = (canvas, images, photo, settings) => {
   const drawCredit = (x, y, maxWidth, color) => {
     const credits = photo?.creator
       ? [`${photo.creator} (${photo.license})`]
-      : settings.heroImageSource === "gemini"
-        ? ["AI-GENERATED WITH GEMINI"]
+      : settings.heroImageSource === "openai"
+        ? ["AI-GENERATED WITH OPENAI"]
         : settings.heroIsUploadedItem
           ? ["uploaded item photo"]
           : ["your uploaded photo"];
     if (includeSupportingCredits) {
       credits.push(...(settings.supportPhotoKeys || []).map((key) => `${PHOTOS[key].creator} (${PHOTOS[key].license})`));
       const itemSources = settings.supportingSources?.filter((source) => source.type === "item") || [];
-      if (itemSources.some((source) => source.item.imageSource === "gemini")) {
-        credits.push("AI-GENERATED WITH GEMINI");
+      if (itemSources.some((source) => source.item.imageSource === "openai")) {
+        credits.push("AI-GENERATED WITH OPENAI");
       }
-      if (itemSources.some((source) => source.item.imageSource !== "gemini")) {
+      if (itemSources.some((source) => source.item.imageSource !== "openai")) {
         credits.push("uploaded item photos");
       }
     }
@@ -787,7 +787,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
       const response = await generatePosterFoodImage({ itemName: item.name.trim(), style: item.imageStyle || "photorealistic" });
       const generated = response.data?.data;
       if (!generated || !["image/png", "image/jpeg", "image/webp"].includes(generated.mimeType)) {
-        throw new Error("Gemini returned an unsupported image. Please try again.");
+        throw new Error("OpenAI returned an unsupported image. Please try again.");
       }
       const binary = atob(generated.data);
       const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
@@ -799,15 +799,15 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
       }
       itemImageUrls.current.add(url);
       updateItem(item.id, "image", url);
-      updateItem(item.id, "imageSource", "gemini");
+      updateItem(item.id, "imageSource", "openai");
       setMessage(`New image created for ${item.name}. Click Generate another view to make a different version.`);
       return true;
     } catch (error) {
       const message = error.response?.data?.message || (error.code === "ECONNABORTED"
-        ? "Gemini took too long to respond. Please try again."
+        ? "OpenAI image generation took too long. Please try again."
         : error.request
-          ? "Cannot reach the poster image service. Start the POS backend and configure GEMINI_API_KEY in pos-backend/.env."
-          : error.message || "Gemini image generation failed. Please try again.");
+          ? "Cannot reach the poster image service. Start the POS backend and configure OPENAI_API_KEY in pos-backend/.env."
+          : error.message || "OpenAI image generation failed. Please try again.");
       setMessage(message);
       return false;
     } finally {
@@ -899,7 +899,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
         </p>
         {guestMode && (
           <p className="mt-2 rounded-lg border border-[#5a4a20] bg-[#292315] px-3 py-2 text-xs leading-relaxed text-[#f6d56f]">
-            Create and download posters here without signing in. Images generate right here when the site has a Gemini API key configured and available quota.
+            Create and download posters here without signing in. Generate original images here with the site&apos;s OpenAI API setup, or use the free bundled photos.
           </p>
         )}
       </div>
@@ -959,7 +959,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
               </button>
             </div>
             <p className="mb-2 text-xs leading-relaxed text-[#929292]">
-              Food names and style prompts are sent to Gemini using the site&apos;s server key. Google quota or billing may apply; generation is limited to 5 images per minute.
+              Food names and style prompts are sent to OpenAI using the site&apos;s server key. OpenAI API billing and usage limits apply; generation is limited to 5 images per minute.
             </p>
             <div className="space-y-2">
               {items.map((item, index) => (
@@ -1038,7 +1038,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
                           className="h-12 w-12 rounded object-cover"
                         />
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-[#8de0a8]">
-                          {item.imageSource === "gemini" ? "AI image ready" : "Photo ready"}
+                          {item.imageSource === "openai" ? "AI image ready" : "Photo ready"}
                         </span>
                       </div>
                     )}

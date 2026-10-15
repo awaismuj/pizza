@@ -1,5 +1,5 @@
 const createHttpError = require("http-errors");
-const { IMAGE_STYLES, generateFoodImage } = require("../services/geminiImageService");
+const { IMAGE_STYLES, generateFoodImage } = require("../services/openaiImageService");
 
 const generatePosterImage = async (req, res, next) => {
     const itemName = typeof req.body?.itemName === "string" ? req.body.itemName.trim() : "";
@@ -17,17 +17,21 @@ const generatePosterImage = async (req, res, next) => {
         res.json({ data: image });
     } catch (error) {
         if (error.statusCode === 429) {
-            return next(createHttpError(429, "Gemini's generation quota is busy or exhausted. Check the Google AI Studio quota and try again later."));
+            return next(createHttpError(429, "OpenAI image generation rate limit or quota reached. Check your OpenAI API billing and usage limits."));
         }
-        if (error.statusCode === 400 || error.statusCode === 403) {
-            console.error("Gemini image request was rejected:", error.message);
-            return next(createHttpError(502, "Gemini rejected the request. Check the backend API key, model access, and quota."));
+        if (error.statusCode === 401 || error.statusCode === 403) {
+            console.error("OpenAI image request was rejected:", error.message);
+            return next(createHttpError(502, "OpenAI rejected the request. Check the backend API key, account billing, and image model access."));
+        }
+        if (error.statusCode === 400 || error.statusCode === 404) {
+            console.error("OpenAI image request was invalid:", error.message);
+            return next(createHttpError(502, "OpenAI could not process the image request. Check the configured model and try again."));
         }
         if (error.statusCode === 503) {
             return next(createHttpError(503, error.message));
         }
-        console.error("Gemini image generation failed:", error.message);
-        return next(createHttpError(502, "Gemini image generation failed. Please try again."));
+        console.error("OpenAI image generation failed:", error.message);
+        return next(createHttpError(502, "OpenAI image generation failed. Please try again."));
     }
 };
 
