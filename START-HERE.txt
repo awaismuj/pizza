@@ -1,0 +1,17 @@
+GenZ Pizza Land - complete project (one file)
+=============================================
+
+online-store/   the online store (ONE folder)
+   src/         source code (dark theme, gold #E8AE58, animated background,
+                Build Your Own Deal)
+   dist/        the READY-TO-UPLOAD website, already built with
+                https://apipos.muscatfood.com as the backend.
+                Upload the contents of online-store/dist to
+                genzpizza.muscatfood.com, then press Ctrl+Shift+R.
+
+pos-frontend/   POS / admin / cashier (80mm receipt printing, bottom bar fix,
+                Dashboard > Build Your Own tab)
+pos-backend/    API server (restart it after replacing the files)
+
+To rebuild a part from source:  cd <folder>  &&  npm install  &&  npm run build
+(the online-store build is written into online-store/dist)
