@@ -12,6 +12,7 @@ import {
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
+import sindbadLogo from "./assets/sindbad-solution-logo.png";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
 
 /* ---------------------------------------------------------------------------
@@ -1808,6 +1809,33 @@ select {
   letter-spacing: -0.02em;
   color: var(--flour);
   margin-bottom: 4px;
+}
+
+.gzp-footer-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  color: var(--flour-faint);
+  font-size: 0.75rem;
+}
+
+.gzp-footer-credit img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.gzp-footer-credit strong {
+  display: inline;
+  margin: 0;
+  color: var(--flour-dim);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  letter-spacing: normal;
 }
 
 /* ---------- Toast ---------- */
@@ -3922,6 +3950,11 @@ function App() {
             <button className="gzp-btn gzp-btn-ghost" onClick={() => setTrackOpen(true)} type="button">
               <IconTruck /> Track an order
             </button>
+          </div>
+          <div className="gzp-footer-credit">
+            <span>Developed by</span>
+            <img src={sindbadLogo} alt="" />
+            <strong>Sindbad Solution</strong>
           </div>
         </footer>
       </div>

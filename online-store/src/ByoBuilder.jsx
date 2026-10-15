@@ -129,9 +129,9 @@ export const BYO_STYLES = `
   gap: 8px;
   padding: 5px 12px;
   border-radius: var(--r-pill);
-  background: rgba(255, 200, 61, 0.22);
-  border: 1px solid rgba(255, 200, 61, 0.65);
-  color: var(--gold);
+  background: var(--ember);
+  border: 1px solid var(--ember-deep);
+  color: #fff;
   font-weight: 800;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
