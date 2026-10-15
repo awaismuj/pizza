@@ -1,0 +1,1119 @@
+Script started on 2026-08-28 20:53:53+02:00 [TERM="xterm-256color" TTY="/dev/pts/1" COLUMNS="184" LINES="43"]
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mpm2 status[27m
+[7mpm2 logs pos-backend --lines 50[27m[A]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# pm2 status
+pm2 logs pos-backend --lines 50
+[?2004l[90m┌────┬────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐[39m
+[90m│[39m[1m[36m id [39m[22m[90m│[39m[1m[36m name               [39m[22m[90m│[39m[1m[36m namespace   [39m[22m[90m│[39m[1m[36m version [39m[22m[90m│[39m[1m[36m mode    [39m[22m[90m│[39m[1m[36m pid      [39m[22m[90m│[39m[1m[36m uptime [39m[22m[90m│[39m[1m[36m ↺    [39m[22m[90m│[39m[1m[36m status    [39m[22m[90m│[39m[1m[36m cpu      [39m[22m[90m│[39m[1m[36m mem      [39m[22m[90m│[39m[1m[36m user     [39m[22m[90m│[39m[1m[36m watching [39m[22m[90m│[39m
+[90m├────┼────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤[39m
+[90m│[39m[1m[36m [1m[36m0[39m[36m[22m[1m  [39m[22m[90m│[39m jap-backend        [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 307386   [90m│[39m 3D     [90m│[39m 40   [90m│[39m [32m[1monline[22m[39m    [90m│[39m 0%       [90m│[39m 97.7mb   [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m│[39m[1m[36m [1m[36m3[39m[36m[22m[1m  [39m[22m[90m│[39m pos-backend        [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 680177   [90m│[39m 40s    [90m│[39m 0    [90m│[39m [32m[1monline[22m[39m    [90m│[39m 0%       [90m│[39m 87.8mb   [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m│[39m[1m[36m [1m[36m2[39m[36m[22m[1m  [39m[22m[90m│[39m saholat-backend    [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 582028   [90m│[39m 16h    [90m│[39m 0    [90m│[39m [32m[1monline[22m[39m    [90m│[39m 0%       [90m│[39m 115.6mb  [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m└────┴────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘[39m
+[1m[36mhost metrics[39m[22m | [1mcpu[22m: [32m3.3%[39m | [1mram usage[22m: [32m11.6%[39m | [1meth0[22m: ⇓ [32m0.007mb/s[39m ⇑ [32m0.003mb/s[39m | [1mdisk[22m: ⇓ [32m0.012mb/s[39m ⇑ [32m0.029mb/s[39m
+[1m[90m[TAILING] Tailing last 50 lines for [pos-backend] process (change the value with --lines option)[39m[22m
+[90m/root/.pm2/logs/pos-backend-error.log last 50 lines:[39m
+[31m3|pos-back | [39mError: Cannot find module 'mongodb'
+[31m3|pos-back | [39mRequire stack:
+[3mhost metrics[39m[22m | [1mcpu[22m: [32m3.3%[39m | [1mram usage[22m: [32m11.6%[39m | [1meth0[22m: ⇓ [32m0.007mb/s[39m ⇑ [32m0.003mb/s[39m | [1mdisk[22m: ⇓ [32m0.012mb/s[39m ⇑ [32m0.029mb/s[39m
+[1m[90m[TAILING] Tailing last 50 lines for [pos-backend] process (change the value with --lines option)[39m[22m
+[90m/root/.pm2/logs/pos-backend-error.log last 50 lines:[39m
+[31m3|pos-back | [39mError: Cannot find module 'mongodb'
+[31m3|pos-back | [39mRequire stack:
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/index.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/index.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/index.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/config/database.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/app.js
+[31m3|pos-back | [39m    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+[31m3|pos-back | [39m    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+[31m3|pos-back | [39m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+[31m3|pos-back | [39m    at Function._load (node:internal/modules/cjs/loader:1216:25)
+[31m3|pos-back | [39m    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+[31m3|pos-back | [39m    at Module.require (node:internal/modules/cjs/loader:1527:12)
+[31m3|pos-back | [39m    at require (node:internal/modules/helpers:147:16)
+[31m3|pos-back | [39m    at Object.<anonymous> (/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:9:20)
+[31m3|pos-back | [39m    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+[31m3|pos-back | [39m    at Object..js (node:internal/modules/cjs/loader:1913:10) {
+[31m3|pos-back | [39m  code: 'MODULE_NOT_FOUND',
+[31m3|pos-back | [39m  requireStack: [
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/index.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/index.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/index.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/config/database.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/app.js'
+[31m3|pos-back | [39m  ]
+[31m3|pos-back | [39m}
+[31m3|pos-back | [39mError: `key_id` or `oauthToken` is mandatory
+[31m3|pos-back | [39m    at new Razorpay (/var/www/Restaurant_POS_System/pos-backend/node_modules/razorpay/dist/razorpay.js:34:13)
+[31m3|pos-back | [39m    at createOrder (/var/www/Restaurant_POS_System/pos-backend/controllers/paymentController.js:7:20)
+[31m3|pos-back | [39m    at Layer.handle [as handle_request] (/var/www/Restaurant_POS_System/pos-backend/node_modules/express/lib/router/layer.js:95:5)
+[31m3|pos-back | [39m    at next (/var/www/Restaurant_POS_System/pos-backend/node_modules/express/lib/router/route.js:149:13)
+[31m3|pos-back | [39m    at isVerifiedUser (/var/www/Restaurant_POS_System/pos-backend/middlewares/tokenVerification.js:26:9)
+[31m3|pos-back | [39m    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+[90m/root/.pm2/logs/pos-backend-out.log last 50 lines:[39m
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3| [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3006
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-01.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+
+pm2 save^C
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mpm2 save[27mpm2 save
+[?2004l[32m[PM2] [39mSaving current process list...
+[32m[PM2] [39mSuccessfully saved in /root/.pm2/dump.pm2
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mpm2 startup[27mpm2 startup
+[?2004l[32m[PM2] [39mInit System found: [1msystemd[22m
+[1mPlatform[22m systemd
+[1mTemplate[22m
+[Unit]
+Description=PM2 process manager
+Documentation=https://pm2.keymetrics.io/
+After=network.target
+
+[Service]
+Type=forking
+User=root
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PM2_HOME=/root/.pm2
+PIDFile=/root/.pm2/pm2.pid
+Restart=on-failure
+
+ExecStart=/usr/local/lib/node_modules/pm2/bin/pm2 resurrect
+ExecReload=/usr/local/lib/node_modules/pm2/bin/pm2 reload all
+ExecStop=/usr/local/lib/node_modules/pm2/bin/pm2 kill
+
+[Install]
+WantedBy=multi-user.target
+
+[1mTarget path[22m
+/etc/systemd/system/pm2-root.service
+[1mCommand list[22m
+[ 'systemctl enable pm2-root' ]
+[32m[PM2] [39mWriting init configuration in /etc/systemd/system/pm2-root.service
+[32m[PM2] [39mMaking script booting at startup...
+[32m[PM2] [39m[-] Executing: [1msystemctl enable pm2-root[22m...
+[32m[PM2] [39m[1m[v] Command successfully executed.[22m
+[1m[34m+---------------------------------------+[39m[22m
+[1m[34m[32m[PM2] [34mFreeze a process list on reboot via:[39m[22m
+[1m$ pm2 save[22m
+
+[1m[34m[32m[PM2] [34mRemove init script via:[39m[22m
+[1m$ pm2 unstartup systemd[22m
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# pm2 startup[3Pave
+[?2004l[32m[PM2] [39mSaving current process list...
+[32m[PM2] [39mSuccessfully saved in /root/.pm2/dump.pm2
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# C[KLL
+[?2004lLL: command not found
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ll
+[?2004ltotal 152
+drwxr-xr-x   9 root root  4096 Aug 28 20:53 [0m[01;34m.[0m/
+drwxr-xr-x   5 root root  4096 Aug 28 20:23 [01;34m..[0m/
+-rw-r--r--   1 root root   533 Aug 28 20:46 .env
+-rw-r--r--   1 root root   349 Aug 28 20:23 .env.example
+-rw-r--r--   1 root root    17 Aug 28 20:23 .gitignore
+-rw-r--r--   1 root root  1204 Aug 28 20:23 app.js
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mconfig[0m/
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mcontrollers[0m/
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mmiddlewares[0m/
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mmodels[0m/
+drwxr-xr-x 183 root root  4096 Aug 28 20:49 [01;34mnode_modules[0m/
+-rw-r--r--   1 root root 83772 Aug 28 20:49 package-lock.json
+-rw-r--r--   1 root root   688 Aug 28 20:23 package.json
+-rw-r--r--   1 root root 12288 Aug 28 20:54 path:
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mroutes[0m/
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mscripts[0m/
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# cd ..
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaisposroot@vmi3520756:/var/www/awaispos# cd pos-frontend/
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# ll
+[?2004ltotal 276
+drwxr-xr-
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mroutes[0m/
+drwxr-xr-x   2 root root  4096 Aug 28 20:23 [01;34mscripts[0m/
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# cd ..
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaisposroot@vmi3520756:/var/www/awaispos# cd pos-frontend/
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# ll
+[?2004ltotal 276
+drwxr-xr-x   5 root root   4096 Aug 28 20:48 [0m[01;34m.[0m/
+drwxr-xr-x   5 root root   4096 Aug 28 20:23 [01;34m..[0m/
+-rw-r--r--   1 root root    159 Aug 28 20:47 .env
+-rw-r--r--   1 root root    157 Aug 28 20:23 .env.example
+-rw-r--r--   1 root root    258 Aug 28 20:23 .gitignore
+-rw-r--r--   1 root root    451 Aug 28 20:23 README.md
+-rw-r--r--   1 root root   1003 Aug 28 20:23 eslint.config.js
+-rw-r--r--   1 root root    361 Aug 28 20:23 index.html
+drwxr-xr-x 323 root root  12288 Aug 28 20:51 [01;34mnode_modules[0m/
+-rw-r--r--   1 root root 211169 Aug 28 20:48 package-lock.json
+-rw-r--r--   1 root root   1025 Aug 28 20:23 package.json
+-rw-r--r--   1 root root     80 Aug 28 20:23 postcss.config.js
+drwxr-xr-x   2 root root   4096 Aug 28 20:23 [01;34mpublic[0m/
+drwxr-xr-x  10 root root   4096 Aug 28 20:23 [01;34msrc[0m/
+-rw-r--r--   1 root root    225 Aug 28 20:23 tailwind.config.js
+-rw-r--r--   1 root root    161 Aug 28 20:23 vite.config.js
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# pm2 status
+[?2004l[90m┌────┬────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐[39m
+[90m│[39m[1m[36m id [39m[22m[90m│[39m[1m[36m name               [39m[22m[90m│[39m[1m[36m namespace   [39m[22m[90m│[39m[1m[36m version [39m[22m[90m│[39m[1m[36m mode    [39m[22m[90m│[39m[1m[36m pid      [39m[22m[90m│[39m[1m[36m uptime [39m[22m[90m│[39m[1m[36m ↺    [39m[22m[90m│[39m[1m[36m status    [39m[22m[90m│[39m[1m[36m cpu      [39m[22m[90m│[39m[1m[36m mem      [39m[22m[90m│[39m[1m[36m user     [39m[22m[90m│[39m[1m[36m watching [39m[22m[90m│[39m
+[90m├────┼────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤[39m
+[90m│[39m[1m[36m [1m[36m0[39m[36m[22m[1m  [39m[22m[90m│[39m jap-backend        [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 307386   [90m│[39m 3D     [90m│[39m 40   [90m│[39m [32m[1monline[22m[39m    [90m│[39m 0%       [90m│[39m 98.3mb   [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m│[39m[1m[36m [1m[36m3[39m[36m[22m[1m  [39m[22m[90m│[39m pos-backend        [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 680177   [90m│[39m 2m     [90m│[39m 0    [90m│[39m [32m[1monline[22m[39m    [90m│[39m 0%       [90m│[39m 92.4mb   [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m│[39m[1m[36m [1m[36m2[39m[36m[22m[1m  [39m[22m[90m│[39m saholat-backend    [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 5────┴──────────┴──────────┴──────────┴──────────┘[39m
+[1m[36mhost metrics[39m[22m | [1mcpu[22m: [32m2%[39m | [1mram usage[22m: [32m11.5%[39m | [1meth0[22m: ⇓ [32m0.004mb/s[39m ⇑ [32m0.002mb/s[39m | [1mdisk[22m: ⇓ [32m0.009mb/s[39m ⇑ [32m0.027mb/s[39m
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# cd /v[Ketc/nginx/sites-
+sites-available/ sites-enabled/   
+]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# cd /etc/nginx/sites-
+sites-available/ sites-enabled/   
+]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# cd /etc/nginx/sites-available/
+[?2004l[?2004h]0;root@vmi3520756: /etc/nginx/sites-availableroot@vmi3520756:/etc/nginx/sites-available# cat pos.muscatfood.com 
+[?2004lserver {
+    server_name pos.muscatfood.com;
+
+    root /var/www/Restaurant_POS_System/pos-frontend/dist;
+    index index.html;
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Frontend
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    listen [::]:443 ssl;
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/pos.muscatfood.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/pos.muscatfood.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+}
+
+
+server {
+    if ($host = pos.muscatfood.com) {
+        return 301 https://$host$request_uri;
+    }
+
+    listen 80;
+    listen [::]:80;
+
+    server_name pos.muscatfood.com;
+
+    return 404;
+
+
+}
+
+[?2004h]0;root@vmi3520756: /etc/nginx/sites-availableroot@vmi3520756:/etc/nginx/sites-available# cat apipos.muscatfood.com 
+[?2004lserver {
+
+    server_name apipos.muscatfood.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    listen [::]:443 ssl; # managed by Certbot
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/apipos.muscatfood.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/apipos.muscatfood.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+server {
+    if ($host = apipos.muscatfood.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    listen [::]:80;
+
+    server_name apipos.muscatfood.com;
+    return 404; # managed by Certbot
+
+
+}
+[?2004h]0;root@vmi3520756: /etc/nginx/sites-availableroot@vmi3520756:/etc/nginx/sites-available# [7mcd /var/www/awaispos/pos-frontend[27m
+[7mnpm install[27m
+[7mnpm run build[27m[A[A]0;root@vmi3520756: /etc/nginx/sites-availableroot@vmi3520756:/etc/nginx/sites-available# cd /var/www/awaispos/pos-frontend
+npm install
+npm run build
+[?2004l[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K
+up to date, audited 382 packages in 7s
+[1G[0K⠏[1G[0K
+[1G[0K⠏[1G[0K137 packages are looking for funding
+[1G[0K⠏[1G[0K  run `npm fund` for details
+[1G[0K⠏[1G[0K
+[31m[1m23[22m[39m vulnerabilities (3 [1mlow[22m, 5 [33m[1mmoderate[22m[39m, 14 [31m[1mhigh[22m[39m, 1 [35m[1mcritical[22m[39m)
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+[1G[0K⠋[1G[0K
+> pos-frontend@0.0.0 build
+> vite build
+
+[1G[0K[36mvite v6.0.7 [32mbuilding for production...[36m[39m
+[2K[1Gtransforming (1) [2msrc/main.jsx[22m[2K[1Gtransforming (2) [2mindex.html[22mBrowserslist: browsers data (caniuse-lite) is 20 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1Gtransforming (5) [2mnode_modules/notistack/notistack.esm.js[22m[2K[1Gtransforming (10) [2mnode_modules/@tanstack/query-core/build/modern/index.js[22m[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1Gtransforming (30) [2mnode_modules/react/index.js[22m[2K[1G[2K[1G[2K[1G[2K[1Gtransforming (51) [2mnode_modules/@tanstack/query-core/build/modern/mutationCache.js[22m[2K[1G[2K[1G[2K[1Gtransforming (77) [2mnode_modules/react-router/dist/development/index.mjs[22m[2K[1Gtransforming (83) [2mnode_modules/redux-thunk/dist/redux-thunk.mjs[22m[2K[1Gtransforming (94) [2msrc/components/shared/BottomNav.jsx[22m[2K[1Gtransforming (99) [2mnode_modules/react-icons/gr/index.mjs[22m[2K[1Gtransforming (113) [2msrc/assets/images/butter-chicken-4.jpg[22m[2K[1G[2K[1Gtransforming (132) [2mnode_modules/react-icons/io/index.mjs[22m[2K[1Gtransforming (137) [2mnode_modules/scheduler/index.js[22m[2K[1G[2K[1G[2K[1G[2K[1Gtransforming (152) [2mnode_modules/framer-motion/dist/es/value/use-scroll.mjs[22m[2K[1Gtransforming (161) [2mnode_modules/react-dom/client.js[22m[2K[1G[2K[1Gtransforming (179) [2mnode_modules/framer-motion/dist/es/motion/utils/is-motion-component.mjs[22m[2K[1G[2K[1Gtransforming (196) [2mnode_modules/framer-motion/dist/es/animation/generators/spring/index.mjs[22m[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1Gtransforming (237) [2mnode_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs[22m[2K[1G[2K[1G[2K[1Gtransforming (298) [2mnode_modules/framer-motion/dist/es/motion/features/definitions.mjs[22m[2K[1Gtransforming (336) [2mnode_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs[22m[2K[1G[2K[1G[2K[1Gtransforming (386) [2mnode_modules/axios/lib/cancel/CanceledError.js[22m[2K[1Gtransforming (410) [2mnode_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs[22m[2K[1G[2K[1G[2K[1Gtransforming (430) [2mnode_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs[22m[2K[1G[2K[1Gtransforming (469) [2mnode_modules/axios/lib/helpers/validator.js[22m[2K[1Gtransforming (511) [2mnode_modules/framer-motion/dist/es/projection/styles/transform.mjs[22m[2K[1Gtransforming (563) [2mnode_modules/axios/lib/helpers/speedometer.js[22m
+[2K[1G[32m✓[39m 566 modules transformed.
+[2K[1Grendering chunks (1)...[2K[1G[2K[1Gcomputing gzip size (0)...[2K[1Gcomputing gzip size (1)...[2K[1Gcomputing gzip size (2)...[2K[1Gcomputing gzip size (3)...[2K[1G[2mdist/[22m[32mindex.html                             [39m[1m[2m    0.46 kB[22m[1m[22m[2m │ gzip:   0.29 kB[22m
+[2mdist/[22m[2massets/[22m[32mrajma-chawal-1-BHeZJRod.jpg     [39m[1m[2m   80.54 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mrogan-josh-BIG6WwxY.jpg         [39m[1m[2m  164.45 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mpoori-sabji-Bbqx7_-b.webp       [39m[1m[2m  204.43 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mSaag-Paneer-1-ClAhic1Z.jpg      [39m[1m[2m  208.25 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mbutter-chicken-4-C8VI_0vi.jpg   [39m[1m[2m  216.09 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mgulab-jamun-DLzWyo-J.webp       [39m[1m[2m  217.17 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mpaneer-tika-CMme86vd.webp       [39m[1m[2m  246.43 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mmasala-dosa-CCy0lXfM.jpg        [39m[1m[2m  278.42 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mchole-bhature-DWoZHzrl.jpg      [39m[1m[2m  417.88 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mrestaurant-img-CeGC0n2o.jpg     [39m[1m[2m1,336.82 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mhyderabadibiryani-C3BHiBxp.jpg  [39m[1m[2m5,520.30 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[35mindex-D67PhrDx.css              [39m[1m[2m   16.64 kB[22m[1m[22m[2m │ gzip:   4.04 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-DKIK00lW.js               [39m[1m[2m  478.75 kB[22m[1m[22m[2m │ gzip: 155.32 kB[22m
+[32m✓ built in 19.55s[39m
+[1G[0K⠙[1G[0K[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# [7mnano /etc/nginx/sites-available/pos.muscatfood.com[27m[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cnano /etc/nginx/sites-available/pos.muscatfood.com
+[?2004l[?2004h[?1049h[22;0;0t[1;43r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[41;86H(B[0;7m[ Reading... ](B[m[41;84H(B[0;7m[ Read 48 lines ](B[m[H(B[0;7m  GNU nano 7.2                                                          /etc/nginx/sites-available/pos.muscatfood.com                                                                   [1;183H(B[m[42d(B[0;7m^G(B[m Help[42;17H(B[0;7m^O(B[m Write Out    (B[0;7m^W(B[m Where Is     (B[0;7m^K(B[m Cut[42;65H(B[0;7m^T(B[m Execute[81G(B[0;7m^C(B[m Location     (B[0;7mM-U(B[m Undo[42;113H(B[0;7mM-A(B[m Set Mark    (B[0;7mM-](B[m To Bracket  (B[0;7mM-Q(B[m Previous    (B[0;7m^B(B[m Back[43d(B[0;7m^X(B[m Exit[43;17H(B[0;7m^R(B[m Read File    (B[0;7m^\(B[m Replace[49G(B[0;7m^U(B[m Paste[43;65H(B[0;7m^J(B[m Justify[81G(B[0;7m^/(B[m Go To Line   (B[0;7mM-E(B[m Redo[43;113H(B[0;7mM-6(B[m Copy[43;129H(B[0;7m^Q(B[m Where Was    (B[0;7mM-W(B[m Next[43;161H(B[0;7m^F(B[m Forward[2dserver {[3;5Hserver_name pos.muscatfood.com;[5;5Hroot /var/www/Restaurant_POS_System/pos-frontend/dist;[6;5Hindex index.html;[8d[36m    # Backend API[9;5H[39m(B[mlocation /api/ {[10;9Hproxy_pass [94mhttp://127.0.0.1:3000;[12;9H[39m(B[mproxy_http_version 1.1;[14;9Hproxy_set_header Host $host;[15;9Hproxy_set_header X-Real-IP $remote_addr;[16;9Hproxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;[17;9Hproxy_set_header X-Forwarded-Proto $scheme;[18;5H}[20d[36m    # Frontend[21;5H[39m(B[mlocation / {[22;9Htry_files $uri $uri/ /index.html;[23;5H}[25dlisten [::]:443 ssl;[26;5Hlisten 443 ssl;[27;5Hssl_certificate /etc/letsencrypt/live/pos.muscatfood.com/fullchain.pem; # managed by Certbot[28;5Hssl_certificate_key /etc/letsencrypt/live/pos.muscatfood.com/privkey.pem; # managed by Certbot[29;5Hinclude /etc/letsencrypt/options-ssl-nginx.conf;[30;5Hssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;[32d}[35dserver {[36;5Hif ($host = pos.muscatfood.com) {[37;9Hreturn 301 https://$host$request_uri;[38;5H}[40dlisten 80;[2d[?12l[?25h[?25l[41;63H(B[0;7m[ line  1/49 ( 2%), col  1/ 9 ( 11%), char    0/1082 ( 0%) ](B[m[?12l[?25h[2d[?25l[41d[J[43d[?12l[?25h[43;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# nano /etc/nginx/sites-available/pos.muscatfood.com[1P /etc/nginx/sites-available/pos.muscatfood.comuri;[38;5H}[40dlisten 80;[2d[?12l[?25h[?25l[41;63H(B[0;7m[ line  1/49 ( 2%), col  1/ 9 ( 11%), char    0/1082 ( 0%) ](B[m[?12l[?25h[2d[?25l[41d[J[43d[?12l[?25h[43;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# nano /etc/nginx/sites-available/pos.muscatfood.com[1P /etc/nginx/sites-available/pos.muscatfood.com[1P /etc/nginx/sites-available/pos.muscatfood.com[1P /etc/nginx/sites-available/pos.muscatfood.com[1P /etc/nginx/sites-available/pos.muscatfood.comv /etc/nginx/sites-available/pos.muscatfood.comi /etc/nginx/sites-available/pos.muscatfood.com
+[?2004l[?1049h[22;0;0t[>4;2m[?1h=[?2004h[?1004h[1;43r[?12h[?12l[22;2t[22;1t[27m[23m[29m[m[H[2J[?25l[43;1H"/etc/nginx/sites-available/pos.muscatfood.com" 48L, 1082B[2;1H▽[6n[2;1H  [3;1HPzz\[0%m[6n[3;1H           [1;1H[>c]10;?]11;?[1;5H# Backend API
+    location [38;5;130m/[mapi[38;5;130m/[m {[2;21H[K[3;1H        proxy_pass [36mhttp:[m[38;5;130m//[m[31m127[m[35m.[m[31m0[m[35m.[m[31m0[m[35m.[m[31m1[m:[31m3000[m[35m;[m[3;42H[K[5;9Hproxy_http_version [31m1[m[35m.[m[31m1[m[35m;[m[7;9Hproxy_set_header Host $host[35m;[m[8;9Hproxy_set_header X-Real-IP $remote_addr[35m;[m[9;9Hproxy_set_header X-Forwarded-[38;5;130mFor[m $proxy_add_x_forwarded_for[35m;[m[10;9Hproxy_set_header X-Forwarded-Proto $scheme[35m;[m
+    }[13;5H# Frontend
+    location [38;5;130m/[m {[15;9Htry_files $uri $uri[38;5;130m/[m [38;5;130m/[mindex[35m.[mhtml[35m;[m
+    }[18;5Hlisten [35m[[m::[35m][m:[31m443[m ssl[35m;[m
+    listen [31m443[m ssl[35m;[m
+    ssl_certificate [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[mlive[38;5;130m/[mpos[35m.[mmuscatfood[35m.[mcom[38;5;130m/[mfullchain[35m.[mpem[35m;[m # managed by Certbot
+    ssl_certificate_key [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[mlive[38;5;130m/[mpos[35m.[mmuscatfood[35m.[mcom[38;5;130m/[mprivkey[35m.[mpem[35m;[m # managed by Certbot
+    include [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[moptions-ssl-nginx[35m.[mconf[35m;[m
+    ssl_dhparam [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[mssl-dhparams[35m.[mpem[35m;[m
+
+}
+
+
+server {
+    [38;5;130mif[m [35m([m$host [38;5;130m=[m pos[35m.[mmuscatfood[35m.[mcom[35m)[m {[30;9H[38;5;130mreturn[m [31m301[m [36mhttps:[m[38;5;130m//[m$host$request_uri[35m;[m
+    }[33;5Hlisten [31m80[m[35m;[m
+    listen [35m[[m::[35m][m:[31m80[m[35m;[m[36;5Hserver_name pos[35m.[mmuscatfood[35m.[mcom[35m;[m[38;5H[38;5;130mreturn[m [31m404[m[35m;[m
+
+
+}[43;167H46,0-1[8CBot[40;1H[?25h[?4mP+q436f\P+q6b75\P+q6b64\P+q6b72\P+q6b6c\P+q2332\P+q2334\P+q2569\P+q2a37\P+q6b31\P$q q\[?12$p[?25l[43;157H0[40;1H[43;158H3[40;1H[43;159H0[40;1H[43;160H/[40;1H[43;161H0[40;1H[43;162Ha[40;1H[43;163H0[40;1H[43;164Ha[40;1H[43;165H/[40;1H[43;166H2[40;1H[43;157H          [40;1H[27m[23m[29m[m[H[2J[1;5H# Backend API
+    location [93m/[mapi[93m/[m {[3;9Hproxy_pass [1m[96mhttp:[m[93m//[m[95m127[m[38;5;224m.[m[95m0[m[38;5;224m.[m[95m0[m[38;5;224m.[m[95m1[m:[95m3000[m[38;5;224m;[m[5;9Hproxy_http_version [95m1[m[38;5;224m.[m[95m1[m[38;5;224m;[m[7;9Hproxy_set_header Host $host[38;5;224m;[m[8;9Hproxy_set_header X-Real-IP $remote_addr[38;5;224m;[m[9;9Hproxy_set_header X-Forwarded-[93mFor[m $proxy_add_x_forwarded_for[38;5;224m;[m[10;9Hproxy_set_header X-Forwarded-Proto $scheme[38;5;224m;[m
+    }[13;5H# Frontend
+    location [93m/[m {[15;9Htry_files $uri $uri[93m/[m [93m/[mindex[38;5;224m.[mhtml[38;5;224m;[m
+    }[18;5Hlisten [38;5;224m[[m::[38;5;224m][m:[95m443[m ssl[38;5;224m;[m
+    listen [95m443[m ssl[38;5;224m;[m
+    ssl_certificate [93m/[metc[93m/[mletsencrypt[93m/[mlive[93m/[mpos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[93m/[mfullchain[38;5;224m.[mpem[38;5;224m;[m # managed by Certbot
+    ssl_certificate_key [93m/[metc[93m/[mletsencrypt[93m/[mlive[93m/[mpos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[93m/[mprivkey[38;5;224m.[mpem[38;5;224m;[m # managed by Certbot
+    include [93m/[metc[93m/[mletsencrypt[93m/[moptions-ssl-nginx[38;5;224m.[mconf[38;5;224m;[m
+    ssl_dhparam [93m/[metc[93m/[mletsencrypt[93m/[mssl-dhparams[38;5;224m.[mpem[38;5;224m;[m
+
+}
+
+
+server {
+    [93mif[m [38;5;224m([m$host [93m=[m pos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m)[m {[30;9H[93mreturn[m [95m301[m [1m[96mhttps:[m[93m//[m$host$request_uri[38;5;224m;[m
+    }[33;5Hlisten [95m80[m[38;5;224m;[m
+    listen [38;5;224m[[m::[38;5;224m][m:[95m80[m[38;5;224m;[m[36;5Hserver_name pos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m;[m[38;5H[93mreturn[m [95m404[m[38;5;224m;[m
+
+
+}[43;167H46,0-1[8CBot"/etc/nginx/sites-available/pos.muscatfood.com" 48L, 1082B[40;1H[?25h[?25l[43;157H:[40;1H[43;1H[K[43;1H:[?25h%d[?25l[1;1H[1;5H[K[2;1H[94m~                                                                                                                                                                                       [3;1H~                                                                                                                                                                                       [4;1H~                                                                                                                                                                                       [5;1H~                                                                                                                                                                                       [6;1H~                                                                                                                                                                                       [7;1H~                                                                                                                                                                                       [8;1H~                                                                                                                                                                                       [9;1H~                                                                                                                                                                                       [10;1H~                                                                                                                                                                                       [11;1H~                                                                                                                                                                                       [12;1H~                                                                                                                                                                                       [13;1H~                                                                                                                                                                                       [14;1H~                                                                                                                                                                                       [15;1H~                                                                                                                                                                                       [16;1H~                                                                                                                                                                                       [17;1H~                                                                                                                                                                                       [18;1H~                                                                                                                                                                                       [19;1H~                                                                                                                                                                                       [20;1H~                                                                                                                                                                                       [21;1H~                                                                                                                                                                                       [22;1H~                                                                                                                                                                                       [23;1H~                                                                                                                                                                                       [24;1H~                                                                                                                                                                                       [25;1H~                                                                                                                                                                                       [26;1H~                                                                                                                                                                                       [27;1H~                                                                                                                                                                                       [28;1H~                                                                                                                                                                                       [29;1H~                                                                                                                                                                                       [30;1H~                                                                                                                                                                                       [31;1H~                                                                                                                                                                                       [32;1H~                                                                                                                                                                                       [33;1H~                                                                                                                                                                                       [34;1H~                                                                                                                                                                                       [35;1H~                                                                                                                                                                                       [36;1H~                                                                                                                                                                                       [37;1H~                                                                                                                                                                                                                                                         [41;1H~                                                                                                                                                                                       [42;1H~                                                                                                                                                                                       [m[43;167H0,0-1[9CAll--No lines in buffer--[43;167H[K[43;167H0,0-1[9CAll[1;1H[?25h[?25l[43;1H[1m-- INSERT --[m[43;13H[K[43;167H0,1[11CAll[1;1Hserver {
+    server_name pos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m;[m[2;36H[K[3;1H[K[4;1H   [4;4H[K[4;4H[?25h[?25l root [93m/[mvar[93m/[mwww[93m/[mawaispos[93m/[mpos-frontend[93m/[mdist[38;5;224m;[m
+    index index[38;5;224m.[mh[5;18H[K[5;18H[?25h[?25ltml[38;5;224m;[m[6;1H[K[7;1H    location [93m/[m {[7;17H[K[8;1H        try_files $uri $uri[93m/[m [93m/[mindex[38;5;224m.[mht[8;39H[K[8;39H[?25h[?25lml[38;5;224m;[m
+    }[9;6H[K[10;1H[K[11;1H    listen [95m443[m ssl[38;5;224m;[m[11;20H[K[12;1H    listen [38;5;224m[[m::[38;5;224m][m:[95m443[m ssl[38;5;224m;[m[12;25H[K[13;1H[K[14;1H    s[14;6H[K[14;6H[?25h[?25lsl_certificate [93m/[metc[93m/[mletsencrypt[93m/[mlive[93m/[mpos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[93m/[mfullch[?25h[?25lain[38;5;224m.[mpem[38;5;224m;[m
+    ssl_certificate_key [93m/[metc[93m/[mletsencrypt[93m/[mlive[93m/[mpos[38;5;224m.[mmus[15;54H[K[15;54H[?25h[?25lcatfood[38;5;224m.[mcom[93m/[mprivkey[38;5;224m.[mpem[38;5;224m;[m
+    include [93m/[metc[93m/[mletsencrypt[93m/[moptions-s[16;39H[K[16;39H[?25h[?25lsl-nginx[38;5;224m.[mconf[38;5;224m;[m
+    ssl_dhparam [93m/[metc[93m/[mletsencrypt[93m/[mssl-dhparams[38;5;224m.[mpe[17;49H[K[17;49H[?25h[?25lm[38;5;224m;[m
+}[18;2H[K[19;1H[K[20;1Hserver {[20;9H[K[21;1H    listen [95m80[m[38;5;224m;[m[21;15H[K[22;1H    listen [38;5;224m[[m::[38;5;224m][m:[95m80[m[38;5;224m;[m[22;20H[K[23;1H[K[24;1H    server_n[24;13H[K[24;13H[?25h[?25lame pos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m;[m[25;1H[K[26;1H    [93mreturn[m [95m301[m [1m[96mhttps:[m[93m//[m$host$request_u[26;39H[K[26;39H[?25h[?25l[43;1H[K[20;8H[46m{[m[26;39Hri[38;5;224m;[m
+[46m}[m[27;2H[K[43;167H27,1[10CAll[27;1H[?25h[?25l[43;157H^X[27;1H[43;157H  [27;1H[?25h[?25l[43;157Hy[27;1H[?25h[?25l[43;158H^M[27;1H[43;157H   [27;1H[?25h[?25l[43;157H^[[27;1H[43;157H  [27;1H[43;157H^[[27;1H[43;157H  [27;1H[?25h[?25l[43;157H:[27;1H[43;157H[K[43;1H:[?25hwq[?25l[?2004l[>4;m"/etc/nginx/sites-available/pos.muscatfood.com" 27L, 614B written[23;2t[23;1t
+[?1004l[?2004l[?1l>[?1049l[23;0;0t[?25h[>4;m[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# vi /etc/nginx/sites-available/pos.muscatfood.com[2@nano[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[2Pvi[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Capos.muscatfood.com[Cpos.muscatfood.comipos.muscatfood.com
+[?2004l[?1049h[22;0;0t[>4;2m[?1h=[?2004h[?1004h[1;43r[?12h[?12l[22;2t[22;1t[27m[23m[29m[m[H[2J[?25l[43;1H"/etc/nginx/sites-available/apipos.muscatfood.com" 37L, 1036B[2;1H▽[6n[2;1H  [3;1HPzz\[0%m[6n[3;1H           [1;1H[>c]10;?]11;?[[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Capos.muscatfood.com[Cpos.muscatfood.comipos.muscatfood.com
+[?2004l[?1049h[22;0;0t[>4;2m[?1h=[?2004h[?1004h[1;43r[?12h[?12l[22;2t[22;1t[27m[23m[29m[m[H[2J[?25l[43;1H"/etc/nginx/sites-available/apipos.muscatfood.com" 37L, 1036B[2;1H▽[6n[2;1H  [3;1HPzz\[0%m[6n[3;1H           [1;1H[>c]10;?]11;?[1;1Hserver {[2;1H[K[3;1H    server_name apipos[35m.[mmuscatfood[35m.[mcom[35m;[m[3;39H[K[5;5Hlocation [38;5;130m/[m {[6;9Hproxy_pass [36mhttp:[m[38;5;130m//[m[31m127[m[35m.[m[31m0[m[35m.[m[31m0[m[35m.[m[31m1[m:[31m3000[m[35m;[m[8;9Hproxy_http_version [31m1[m[35m.[m[31m1[m[35m;[m[10;9Hproxy_set_header Host $host[35m;[m[11;9Hproxy_set_header X-Real-IP $remote_addr[35m;[m[12;9Hproxy_set_header X-Forwarded-[38;5;130mFor[m $proxy_add_x_forwarded_for[35m;[m[13;9Hproxy_set_header X-Forwarded-Proto $scheme[35m;[m
+    }[16;5Hlisten [35m[[m::[35m][m:[31m443[m ssl[35m;[m # managed by Certbot
+    listen [31m443[m ssl[35m;[m # managed by Certbot
+    ssl_certificate [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[mlive[38;5;130m/[mapipos[35m.[mmuscatfood[35m.[mcom[38;5;130m/[mfullchain[35m.[mpem[35m;[m # managed by Certbot
+    ssl_certificate_key [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[mlive[38;5;130m/[mapipos[35m.[mmuscatfood[35m.[mcom[38;5;130m/[mprivkey[35m.[mpem[35m;[m # managed by Certbot
+    include [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[moptions-ssl-nginx[35m.[mconf[35m;[m # managed by Certbot
+    ssl_dhparam [38;5;130m/[metc[38;5;130m/[mletsencrypt[38;5;130m/[mssl-dhparams[35m.[mpem[35m;[m # managed by Certbot
+
+}
+server {
+    [38;5;130mif[m [35m([m$host [38;5;130m=[m apipos[35m.[mmuscatfood[35m.[mcom[35m)[m {[26;9H[38;5;130mreturn[m [31m301[m [36mhttps:[m[38;5;130m//[m$host$request_uri[35m;[m
+    } # managed by Certbot[30;5Hlisten [31m80[m[35m;[m
+    listen [35m[[m::[35m][m:[31m80[m[35m;[m[33;5Hserver_name apipos[35m.[mmuscatfood[35m.[mcom[35m;[m
+    [38;5;130mreturn[m [31m404[m[35m;[m # managed by Certbot
+
+
+}
+[94m~                                                                                                                                                                                       [39;1H~                                                                                                                                                                                       [40;1H~                                                                                                                                                                                       [41;1H~                                                                                                                                                                                       [42;1H~                                                                                                                                                                                       [m[43;167H1,1[11CAll[1;1H[?25h[?4mP+q436f\P+q6b75\P+q6b64\P+q6b72\P+q6b6c\P+q2332\P+q2334\P+q2569\P+q2a37\P+q6b31\P$q q\[?12$p[?25l[43;157H:[1;1H[43;158H3[1;1H[43;159H0[1;1H[43;160H3[1;1H[43;161H0[1;1H[43;162H/[1;1H[43;163H0[1;1H[43;164Ha[1;1H[43;165H0[1;1H[43;166Ha[1;1H[43;157H          [1;1H[27m[23m[29m[m[H[2J[1;1Hserver {[3;5Hserver_name apipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m;[m[5;5Hlocation [93m/[m {[6;9Hproxy_pass [1m[96mhttp:[m[93m//[m[95m127[m[38;5;224m.[m[95m0[m[38;5;224m.[m[95m0[m[38;5;224m.[m[95m1[m:[95m3000[m[38;5;224m;[m[8;9Hproxy_http_version [95m1[m[38;5;224m.[m[95m1[m[38;5;224m;[m[10;9Hproxy_set_header Host $host[38;5;224m;[m[11;9Hproxy_set_header X-Real-IP $remote_addr[38;5;224m;[m[12;9Hproxy_set_header X-Forwarded-[93mFor[m $proxy_add_x_forwarded_for[38;5;224m;[m[13;9Hproxy_set_header X-Forwarded-Proto $scheme[38;5;224m;[m
+    }[16;5Hlisten [38;5;224m[[m::[38;5;224m][m:[95m443[m ssl[38;5;224m;[m # managed by Certbot
+    listen [95m443[m ssl[38;5;224m;[m # managed by Certbot
+    ssl_certificate [93m/[metc[93m/[mletsencrypt[93m/[mlive[93m/[mapipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[93m/[mfullchain[38;5;224m.[mpem[38;5;224m;[m # managed by Certbot
+    ssl_certificate_key [93m/[metc[93m/[mletsencrypt[93m/[mlive[93m/[mapipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[93m/[mprivkey[38;5;224m.[mpem[38;5;224m;[m # managed by Certbot
+    include [93m/[metc[93m/[mletsencrypt[93m/[moptions-ssl-nginx[38;5;224m.[mconf[38;5;224m;[m # managed by Certbot
+    ssl_dhparam [93m/[metc[93m/[mletsencrypt[93m/[mssl-dhparams[38;5;224m.[mpem[38;5;224m;[m # managed by Certbot
+
+}
+server {
+    [93mif[m [38;5;224m([m$host [93m=[m apipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m)[m {[26;9H[93mreturn[m [95m301[m [1m[96mhttps:[m[93m//[m$host$request_uri[38;5;224m;[m
+    } # managed by Certbot[30;5Hlisten [95m80[m[38;5;224m;[m
+    listen [38;5;224m[[m::[38;5;224m][m:[95m80[m[38;5;224m;[m[33;5Hserver_name apipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m;[m
+    [93mreturn[m [95m404[m[38;5;224m;[m # managed by Certbot
+
+
+}
+[94m~                                                                                                                                                                                       [39;1H~                                                                                                                                                                                       [40;1H~                                                                                                                                                                                       [41;1H~                                                                                                                                                                                       [42;1H~                                                                                                                                                                                       [m[43;167H1,1[11CAll"/etc/nginx/sites-available/apipos.muscatfood.com" 37L, 1036B[1;1H[?25h[?25l[43;157H:[1;1H[43;1H[K[43;1H:[?25h%d[?25l[1;1H[1;1H[K[2;1H[94m~                                                                                                                                                                                       [3;1H~                                                                                                                                                                                       [4;1H~                                                                                                                                                                                       [5;1H~                                                                                                                                                                                       [6;1H~                                                                                                                                                                                       [7;1H~                                                                                                                                                                                       [8;1H~                                                                                                                                                                                       [9;1H~                                                                                                                                                                                       [10;1H~                                                                                                                                                                                       [11;1H~                                                                                                                                                                                       [12;1H~                                                                                                                                                                                       [13;1H~                                                                                                                                                                                       [14;1H~                                                                                                                                                                                       [15;1H~                                                                                                                                                                                       [16;1H~                                                                                                                                                                                       [17;1H~                                                                                                                                                                                       [18;1H~                                                                                                                                                                                       [19;1H~                                                                                                                                                                                       [20;1H~                                                                                                                                                                                       [21;1H~                                                                                                                                                                                       [22;1H~                                                                                                                                                                                       [23;1H~                                                                                                                                                                                       [24;1H~                                                                                                                                                                                       [25;1H~                                                                                                                                                                                       [26;1H~                                                                                                                                                                                       [27;1H~                                                                                                                                                                                       [28;1H~                                                                                                                                                                                       [29;1H~                                                                                                                                                                                       [30;1H~                                                                                                                                                                                                                                                         [34;1H~                                                                                                                                                                                       [35;1H~                                                                                                                                                                                       [36;1H~                                                                                                                                                                                       [37;1H~                                                                                                                                                                                       [m[43;167H0,0-1[9CAll--No lines in buffer--[43;167H[K[43;167H0,0-1[9CAll[1;1H[?25h[?25l[43;1H[1m-- INSERT --[m[43;13H[K[43;167H0,1[11CAll[1;1Hserver {
+    server_name apipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[38;5;224m;[m[2;39H[K[3;1H[K[4;1H    [4;5H[K[4;5H[?25h[?25llocation [93m/[m {
+        proxy_pass [1m[96mhttp:[m[93m//[m[95m127[m[38;5;224m.[m[95m0[m[38;5;224m.[m[95m0[m[38;5;224m.[m[95m1[m:[95m3000[m[38;5;224m;[m[5;42H[K[6;1H[K[7;1H       [7;8H[K[7;8H[?25h[?25l proxy_http_version [95m1[m[38;5;224m.[m[95m1[m[38;5;224m;[m[8;1H[K[9;1H        proxy_set_header Host $host[38;5;224m;[m[9;37H[K[10;1H[K[10;1H[?25h[?25l[8Cproxy_set_header X-Real-IP $remote_addr[38;5;224m;[m
+        proxy_[11;15H[K[11;15H[?25h[?25lset_header X-Forwarded-[93mFor[m $proxy_add_x_forwarded_for[38;5;224m;[m
+        [12;9H[K[12;9H[?25h[?25lproxy_set_header X-Forwarded-Proto $scheme[38;5;224m;[m
+    }[13;6H[K[14;1H[K[15;1H    listen [95m4[m[15;13H[K[15;13H[?25h[?25l[95m43[m ssl[38;5;224m;[m
+    listen [38;5;224m[[m::[38;5;224m][m:[95m443[m ssl[38;5;224m;[m[16;25H[K[17;1H[K[18;1H    ssl_certificate [93m/[metc[93m/[mlets[18;30H[K[18;30H[?25h[?25lencrypt[93m/[mlive[93m/[mapipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[93m/[mfullchain[38;5;224m.[mpem[38;5;224m;[m
+    ssl_certi[19;14H[K[19;14H[?25h[?25lficate_key [93m/[metc[93m/[mletsencrypt[93m/[mlive[93m/[mapipos[38;5;224m.[mmuscatfood[38;5;224m.[mcom[93m/[mprivkey[38;5;224m.[?25h[?25l[mpem[38;5;224m;[m
+    include [93m/[metc[93m/[mletsencrypt[93m/[moptions-ssl-nginx[38;5;224m.[mconf[38;5;224m;[m[20;53H[K[21;1H    s[21;6H[K[21;6H[?25h[?25lsl_dhparam [93m/[metc[93m/[mletsencrypt[93m/[mssl-dhparams[38;5;224m.[mpem[38;5;224m;[m
+}[22;2H[K[23;1H[K[24;1Hserver {[24;9H[K[25;1H    l[25;6H[K[25;6H[?25h[?25listen [95m80[m[38;5;224m;[m
+    listen [38;5;224m[[m::[38;5;224m][m:[95m80[m[38;5;224m;[m[26;20H[K[27;1H[K[28;1H    server_name apipos[38;5;224m.[mmuscatfoo[28;33H[K[28;33H[?25h[?25l[43;1H[K[24;8H[46m{[m[28;33Hd[38;5;224m.[mcom[38;5;224m;[m[29;1H[K[30;1H    [93mreturn[m [95m301[m [1m[96mhttps:[m[93m//[m$host$request_uri[38;5;224m;[m[30;42H[K[31;1H[46m}[m[31;2H[K[43;167H31,1[10CAll[31;1H[?25h[?25l[43;157H^[[31;1H[43;157H  [31;1H[43;157H^[[31;1H[43;157H  [31;1H[?25h[?25l[43;157H:[31;1H[43;157H[K[43;1H:[?25hwq[?25l[?2004l[>4;m"/etc/nginx/sites-available/apipos.muscatfood.com" 31L, 798B written[23;2t[23;1t
+[?1004l[?2004l[?1l>[?1049l[23;0;0t[?25h[>4;m[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# [7mln -sf /etc/nginx/sites-available/pos.muscatfood.com /etc/nginx/sites-enabled/pos.muscatfood.com[27m
+
+[7mln -sf /etc/nginx/sites-available/apipos.muscatfood.com /etc/nginx/sites-enabled/apipos.muscatfood.com[27m[A[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cln -sf /etc/nginx/sites-available/pos.muscatfood.com /etc/nginx/sites-enabled/pos.muscatfood.com
+
+ln -sf /etc/nginx/sites-available/apipos.muscatfood.com /etc/nginx/sites-enabled/apipos.muscatfood.com
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# [7msystemctl reload nginx[27msystemctl reload nginx
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# [7mpm2 restart pos-backend --update-env[27mpm2 restart pos-backend --update-env
+[?2004l[32m[PM2] [39mApplying action restartProcessId on app [pos-backend](ids: [ 3 ])
+[32m[PM2] [39m[pos-backend](3) ✓
+[90m┌────┬────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐[39m
+[90m│[39m[1m[36m id [39m[22m[90m│[39m[1m[36m name               [39m[22m[90m│[39m[1m[36m namespace   [39m[22m[90m│[39m[1m[36m version [39m[22m[90m│[39m[1m[36m mode    [39m[22m[90m│[39m[1m[36m pid      [39m[22m[90m│[39m[1m[36m uptime [39m[22m[90m│[39m[1m[36m ↺    [39m[22m[90m│[39m[1m[36m status    [39m[22m[90m│[39m[1m[36m cpu      [39m[22m[90m│[39m[1m[36m mem      [39m[22m[90m│[39m[1m[36m user     [39m[22m[90m│[39m[1m[36m watching [39m[22m[90m│[39m
+[90m├────┼────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤[39m
+[90m│[39m[1m[36m [1m[36m0[39m[36m[22m[1m  [39m[22m[90m│[39m jap-backend        [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 307386   [90m│[39m 3D     [90m│[39m 40   [90m│[39m [32m[1monline[22m[39m    [90m│[39m 0%       [90m│[39m 99.0mb   [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m│[39m[1m[36m [1m[36m3[39m[36m[22m[1m  [39m[22m[90m│[39m pos-backend        [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 680432   [90m│[39m 0s     [90m│[39m 1    [90m│[39m [32m[1monline[22m[39m    [90m│[39m 0%       [90m│[39m 24.6mb   [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m│[39m[1m[36m [1m[36m2[39m[36m[22m[1m  [39m[22m[90m│[39m saholat-backend    [90m│[39m default     [90m│[39m 1.0.0   [90m│[39m [7m[1mfork[22m[27m    [90m│[39m 582028   [90m│[39m 16h    [90m│[39m 0    [90m│[39m [32m[1monline[22m[39m    [90m│[39m 5%       [90m│[39m 115.6mb  [90m│[39m [1mroot[22m     [90m│[39m [90mdisabled[39m [90m│[39m
+[90m└────┴────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘[39m
+[1m[36mhost metrics[39m[22m | [1mcpu[22m: [32m1.4%[39m | [1mram usage[22m: [32m11.6%[39m | [1meth0[22m: ⇓ [32m0.006mb/s[39m ⇑ [32m0.004mb/s[39m | [1mdisk[22m: ⇓ 0mb/s ⇑ [32m0.008mb/s[39m
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# [7mcd /var/www/awaispos/pos-frontend[27m
+[7mnpm run build[27m
+
+[7mls -lah dist[27m
+
+[7mpm2 describe pos-backend[27m
+
+[7mnginx -t[27m[A[A[A[A[A[A[A]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# cd /var/www/awaispos/pos-frontend
+npm run build
+
+ls -lah dist
+
+pm2 describe pos-backend
+
+nginx -t
+[?2004l
+> pos-frontend@0.0.0 build
+> vite build
+
+[1G[0K[36mvite v6.0.7 [32mbuilding for production...[36m[39m
+[2K[1Gtransforming (1) [2msrc/main.jsx[22m[2K[1Gtransforming (4) [2mnode_modules/@tanstack/react-query/build/modern/index.js[22mBrowserslist: browsers data (caniuse-lite) is 20 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[2K[1Gtransforming (5) [2mnode_modules/notistack/notistack.esm.js[22m[2K[1Gtransforming (6) [2msrc/index.css[22m[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1Gtransforming (29) [2mnode_modules/react/cjs/react.production.min.js[22m[2K[1Gtransforming (51) [2mnode_modules/react/jsx-runtime.js[22m[2K[1Gtransforming (59) [2msrc/redux/slices/cartSlice.js[22m[2K[1G[2K[1Gtransforming (68) [2mnode_modules/@tanstack/query-core/build/modern/thenable.js[22m[2K[1G[2K[1Gtransforming (75) [2mnode_modules/react-router/dist/development/index.mjs[22m[2K[1Gtransforming (77) [2mnode_modules/react-router/dist/development/dom-export.mjs[22m[2K[1Gtransforming (84) [2mnode_modules/use-sync-external-store/cjs/use-sync-external-store-with-selector.production.js[22m[2K[1Gtransforming (86) [2mnode_modules/use-sync-external-store/with-selector.js[22m[2K[1Gtransforming (92) [2mnode_modules/scheduler/cjs/scheduler.production.min.js[22m[2K[1Gtransforming (95) [2msrc/constants/index.js[22m[2K[1Gtransforming (100) [2mnode_modules/react-dom/cjs/react-dom.production.min.js[22m[2K[1Gtransforming (114) [2mnode_modules/react-icons/bs/index.mjs[22m[2K[1Gtransforming (116) [2mnode_modules/react-icons/lib/index.mjs[22m[2K[1Gtransforming (117) [2msrc/assets/images/butter-chicken-4.jpg[22m[2K[1G[2K[1Gtransforming (137) [2msrc/utils/index.js[22m[2K[1Gtransforming (138) [2mnode_modules/axios/index.js[22m[2K[1Gtransforming (145) [2mnode_modules/framer-motion/dist/es/components/LayoutGroup/index.mjs[22m[2K[1G[2K[1G[2K[1Gtransforming (155) [2mnode_modules/framer-motion/dist/es/utils/use-motion-value-event.mjs[22m[2K[1G[2K[1Gtransforming (160) [2mnode_modules/framer-motion/dist/es/value/use-spring.mjs[22m[2K[1G[2K[1Gtransforming (164) [2mnode_modules/framer-motion/dist/es/value/use-transform.mjs[22m[2K[1Gtransforming (175) [2mnode_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs[22m[2K[1G[2K[1Gtransforming (196) [2mnode_modules/framer-motion/dist/es/value/types/complex/index.mjs[22m[2K[1G[2K[1G[2K[1G[2K[1G[2K[1G[2K[1Gtransforming (223) [2mnode_modules/framer-motion/dist/es/animation/generators/keyframes.mjs[22m[2K[1G[2K[1Gtransforming (269) [2mnode_modules/framer-motion/dist/es/motion/features/load-features.mjs[22m[2K[1G[2K[1Gtransforming (288) [2mnode_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs[22m[2K[1Gtransforming (300) [2mnode_modules/framer-motion/dist/es/motion/utils/symbol.mjs[22m[2K[1Gtransforming (328) [2mnode_modules/framer-motion/dist/es/animation/optimized-appear/store.mjs[22m[2K[1G[2K[1G[2K[1Gtransforming (371) [2mnode_modules/framer-motion/dist/es/utils/mix/complex.mjs[22m[2K[1Gtransforming (399) [2mnode_modules/axios/lib/helpers/HttpStatusCode.js[22m[2K[1G[2K[1G[2K[1Gtransforming (421) [2mnode_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs[22m[2K[1G[2K[1Gtransforming (445) [2mnode_modules/motion-dom/dist/es/gestures/press/uGtransforming (328) [2mnode_modules/framer-motion/dist/es/animation/optimized-appear/store.mjs[22m[2K[1G[2K[1G[2K[1Gtransforming (371) [2mnode_modules/framer-motion/dist/es/utils/mix/complex.mjs[22m[2K[1Gtransforming (399) [2mnode_modules/axios/lib/helpers/HttpStatusCode.js[22m[2K[1G[2K[1G[2K[1Gtransforming (421) [2mnode_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs[22m[2K[1G[2K[1Gtransforming (445) [2mnode_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs[22m[2K[1Gtransforming (474) [2mnode_modules/axios/lib/helpers/null.js[22m[2K[1Gtransforming (488) [2mnode_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs[22m[2K[1Gtransforming (494) [2mnode_modules/framer-motion/dist/es/projection/utils/measure.mjs[22m[2K[1Gtransforming (503) [2mnode_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs[22m[2K[1Gtransforming (547) [2mnode_modules/axios/lib/helpers/resolveConfig.js[22m[2K[1G[32m✓[39m 566 modules transformed.
+[2K[1Grendering chunks (1)...[2K[1G[2K[1Gcomputing gzip size (0)...[2K[1Gcomputing gzip size (1)...[2K[1Gcomputing gzip size (2)...[2K[1Gcomputing gzip size (3)...[2K[1G[2mdist/[22m[32mindex.html                             [39m[1m[2m    0.46 kB[22m[1m[22m[2m │ gzip:   0.29 kB[22m
+[2mdist/[22m[2massets/[22m[32mrajma-chawal-1-BHeZJRod.jpg     [39m[1m[2m   80.54 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mrogan-josh-BIG6WwxY.jpg         [39m[1m[2m  164.45 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mpoori-sabji-Bbqx7_-b.webp       [39m[1m[2m  204.43 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mSaag-Paneer-1-ClAhic1Z.jpg      [39m[1m[2m  208.25 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mbutter-chicken-4-C8VI_0vi.jpg   [39m[1m[2m  216.09 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mgulab-jamun-DLzWyo-J.webp       [39m[1m[2m  217.17 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mpaneer-tika-CMme86vd.webp       [39m[1m[2m  246.43 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mmasala-dosa-CCy0lXfM.jpg        [39m[1m[2m  278.42 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mchole-bhature-DWoZHzrl.jpg      [39m[1m[2m  417.88 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mrestaurant-img-CeGC0n2o.jpg     [39m[1m[2m1,336.82 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[32mhyderabadibiryani-C3BHiBxp.jpg  [39m[1m[2m5,520.30 kB[22m[1m[22m
+[2mdist/[22m[2massets/[22m[35mindex-D67PhrDx.css              [39m[1m[2m   16.64 kB[22m[1m[22m[2m │ gzip:   4.04 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-DKIK00lW.js               [39m[1m[2m  478.75 kB[22m[1m[22m[2m │ gzip: 155.32 kB[22m
+[32m✓ built in 23.42s[39m
+[1G[0K⠙[1G[0Ktotal 20K
+drwxr-xr-x 3 root root 4.0K Aug 28 21:00 [0m[01;34m.[0m
+drwxr-xr-x 6 root root 4.0K Aug 28 20:57 [01;34m..[0m
+drwxr-xr-x 2 root root 4.0K Aug 28 21:00 [01;34massets[0m
+-rw-r--r-- 1 root root  459 Aug 28 21:00 index.html
+-rw-r--r-- 1 root root 1.5K Aug 28 21:00 [01;35mvite.svg[0m
+[1m[7m Describing process with id 3 - name pos-backend [27m[22m
+[90m┌───────────────────┬───────────────────────────────────────┐[39m
+[90m│[39m[1m[36m status            [39m[22m[90m│[39m [32m[1monline[22m[39m                                [90m│[39m
+[90m│[39m[1m[36m name              [39m[22m[90m│[39m pos-backend                           [90m│[39m
+[90m│[39m[1m[36m namespace         [39m[22m[90m│[39m default                               [90m│[39m
+[90m│[39m[1m[36m version           [39m[22m[90m│[39m 1.0.0                                 [90m│[39m
+[90m│[39m[1m[36m restarts          [39m[22m[90m│[39m 1                                     [90m│[39m
+[90m│[39m[1m[36m uptime            [39m[22m[90m│[39m 44s                                   [90m│[39m
+[90m│[39m[1m[36m script path       [39m[22m[90m│[39m /var/www/awaispos/pos-backend/app.js  [90m│[39m
+[90m│[39m[1m[36m script args       [39m[22m[90m│[39m N/A                                   [90m│[39m
+[90m│[39m[1m[36m error log path    [39m[22m[90m│[39m /root/.pm2/logs/pos-backend-error.log [90m│[39m
+[90m│[39m[1m[36m out log path      [39m[22m[90m│[39m /root/.pm2/logs/pos-backend-out.log   [90m│[39m
+[90m│[39m[1m[36m pid path          [39m[22m[90m│[39m /root/.pm2/pids/pos-backend-3.pid     [90m│[39m
+[90m│[39m[1m[36m interpreter       [39m[22m[90m│[39m node                                  [90m│[39m
+[90m│[39m[1m[36m interpreter args  [39m[22m[90m│[39m N/A                                   [90m│[39m
+[90m│[39m[1m[36m script id         [39m[22m[90m│[39m 3                                     [90m│[39m
+[90m│[39m[1m[36m exec cwd          [39m[22m[90m│[39m /var/www/awaispos/pos-backend         [90m│[39m
+[90m│[39m[1m[36m exec mode         [39m[22m[90m│[39m fork_mode                             [90m│[39m
+[90m│[39m[1m[36m node.js version   [39m[22m[90m│[39m 22.23.2                               [90m│[39m
+[90m│[39m[1m[36m node env          [39m[22m[90m│[39m N/A                                   [90m│[39m
+[90m│[39m[1m[36m watch & reload    [39m[22m[90m│[39m ✘                                     [90m│[39m
+[90m│[39m[1m[36m unstable restarts [39m[22m[90m│[39m 0                                     [90m│[39m
+[90m│[39m[1m[36m created at        [39m[22m[90m│[39m 2026-08-28T18:59:44.230Z              [90m│[39m
+[90m└───────────────────┴───────────────────────────────────────┘[39m
+[7m[1m Actions available [22m[27m
+[90m┌────────────────────────┐[39m
+[90m│[39m km:heapdump            [90m│[39m
+[90m│[39m km:cpu:profiling:start [90m│[39m
+[90m│[39m km:cpu:profiling:stop  [90m│[39m
+[90m│[39m km:heap:sampling:start [90m│[39m
+[90m│[39m km:heap:sampling:stop  [90m│[39m
+[90m└────────────────────────┘[39m
+[37m[3m Trigger via: pm2 trigger pos-backend <action_name>[23m[39m
+[37m[3m[23m[39m
+[7m[1m Code metrics value [22m[27m
+[90m┌────────────────────────┬──────────────┐[39m
+[90m│[39m[1m[36m Heap Size              [39m[22m[90m│[39m 27.84 MiB    [90m│[39m
+[90m│[39m[1m[36m Heap Usage             [39m[22m[90m│[39m 92.25 %      [90m│[39m
+[90m│[39m[1m[36m Used Heap Size         [39m[22m[90m│[39m 25.68 MiB    [90m│[39m
+[90m│[39m[1m[36m Active requests        [39m[22m[90m│[39m 0            [90m│[39m
+[90m│[39m[1m[36m Active handles         [39m[22m[90m│[39m 14           [90m│[39m
+[90m│[39m[1m[36m Event Loop Latency     [39m[22m[90m│[39m 1.01 ms      [90m│[39m
+[90m│[39m[1m[36m Event Loop Latency p95 [39m[22m[90m│[39m 79.54 ms     [90m│[39m
+[90m│[39m[1m[36m HTTP Mean Latency      [39m[22m[90m│[39m 9 ms         [90m│[39m
+[90m│[39m[1m[36m HTTP P95 Latency       [39m[22m[90m│[39m 26 ms        [90m│[39m
+[90m│[39m[1m[36m HTTP                   [39m[22m[90m│[39m 0.09 req/min [90m│[39m
+[90m└────────────────────────┴──────────────┘[39m
+[7m[1m Divergent env variables from local env [22m[27m
+[90m┌────────┬────────────────────────────┐[39m
+[90m│[39m[1m[36m OLDPWD [39m[22m[90m│[39m /etc/nginx/sites-available [90m│[39m
+[90m└────────┴────────────────────────────┘[39m
+
+[37m[3m Add your own code metrics: http://bit.ly/code-metrics[23m[39m
+[37m[3m Use `pm2 logs pos-backend [--lines 1000]` to display logs[23m[39m
+[37m[3m Use `pm2 env 3` to display environment variables[23m[39m
+[37m[3m Use `pm2 monit` to monitor CPU and Memory usage[23m[39m pos-backend
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-frontendroot@vmi3520756:/var/www/awaispos/pos-frontend# cd ..
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaisposroot@vmi3520756:/var/www/awaispos# cd [[Kpos-
+pos-backend/  pos-frontend/ 
+]0;root@vmi3520756: /var/www/awaisposroot@vmi3520756:/var/www/awaispos# cd pos-backend/
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ls
+[?2004lapp.js  [0m[01;34mconfig[0m  [01;34mcontrollers[0m  [01;34mmiddlewares[0m  [01;34mmodels[0m  [01;34mnode_modules[0m  package-lock.json  package.json  path:  [01;34mroutes[0m  [01;34mscripts[0m
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mnpm run db:setup[27mnpm run db:setup
+[?2004l
+> pos-backend@1.0.0 db:setup
+> node scripts/db-bootstrap.js
+
+[1G[0K✅ Connected to MongoDB: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+✅ User indexes synced
+ℹ️ Default admin already exists: devops.awais@gmail.com
+✅ Database bootstrap completed successfully
+[1G[0K⠙[1G[0K[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mpm2 logs pos-backend --lines 100[27mpm2 logs pos-backend --lines 100
+[?2004l[1m[90m[TAILING] Tailing last 100 lines for [pos-backend] process (change the value with --lines option)[39m[22m
+[90m/root/.pm2/logs/pos-backend-error.log last 100 lines:[39m
+[31m3|pos-back | [39mError: Cannot find module 'mongodb'
+[31m3|pos-back | [39mRequire stack:
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/index.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/index.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/index.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/config/database.js
+[31m3|pos-back | [39m- /var/www/Restaurant_POS_System/pos-backend/app.js
+[31m3|pos-back | [39m    at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+[31m3|pos-back | [39m    at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+[31m3|pos-back | [39m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+[31m3|pos-back | [39m    at Function._load (node:internal/modules/cjs/loader:1216:25)
+[31m3|pos-back | [39m    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+[31m3|pos-back | [39m    at Module.require (node:internal/modules/cjs/loader:1527:12)
+[31m3|pos-back | [39m    at require (node:internal/modules/helpers:147:16)
+[31m3|pos-back | [39m    at Object.<anonymous> (/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:9:20)
+[31m3|pos-back | [39m    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+[31m3|pos-back | [39m    at Object..js (node:internal/modules/cjs/loader:1913:10) {
+[31m3|pos-back | [39m  code: 'MODULE_NOT_FOUND',
+[31m3|pos-back | [39m  requireStack: [
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/drivers/node-mongodb-native/index.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/lib/index.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/node_modules/mongoose/index.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/config/database.js',
+[31m3|pos-back | [39m    '/var/www/Restaurant_POS_System/pos-backend/app.js'
+[31m3|pos-back | [39m  ]
+[31m3|pos-back | [39m}
+[31m3|pos-back | [39mError: `key_id` or `oauthToken` is mandatory
+[31m3|pos-back | [39m    at new Razorpay (/var/www/Restaurant_POS_System/pos-backend/node_modules/razorpay/dist/razorpay.js:34:13)
+[31m3|pos-back | [39m    at createOrder (/var/www/Restaurant_POS_System/pos-backend/controllers/paymentController.js:7:20)
+[31m3|pos-back | [39m    at Layer.handle [as handle_request] (/var/www/Restaurant_POS_System/pos-backend/node_modules/express/lib/router/layer.js:95:5)
+[31m3|pos-back | [39m    at next (/var/www/Restaurant_POS_System/pos-backend/node_modules/express/lib/router/route.js:149:13)
+[31m3|pos-back | [39m    at isVerifiedUser (/var/www/Restaurant_POS_System/pos-backend/middlewares/tokenVerification.js:26:9)
+[31m3|pos-back | [39m    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+[90m/root/.pm2/logs/pos-backend-out.log last 100 lines:[39m
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.aled: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m❌ Database connection failed: querySrv ENOTFOUND _mongodb._tcp.cluster0.abcde.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3006
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-01.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+[32m3|pos-back | [39m☑️  POS Server is listening on port 3000
+[32m3|pos-back | [39m✅ MongoDB Connected: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+
+^C
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# cat //e[K[K[K[K,[K .env
+[?2004lPORT=3000
+NODE_ENV=production
+
+FRONTEND_URL=https://pos.muscatfood.com
+
+MONGODB_URI=mongodb+srv://awaismuj_db_user:rUfQesgfGxTJSrnr@cluster0.giczvdb.mongodb.net/pos-db?appName=Cluster0
+
+JWT_SECRET=73e20c7ef3c86f61febd3d9c3e2b83b1f1b7e3fb26acea75e1bb52c8ca762cb0a71c437752e250b04e1ba73f5db07a6ad072c8014593579f1d74a75ef5c6e98cy
+
+ADMIN_NAME=System Admin
+ADMIN_EMAIL=devops.awais@gmail.com
+ADMIN_PHONE=9999999999
+ADMIN_PASSWORD=CHANGE_THIS_ADMIN_PASSWORD
+ADMIN_ROLE=Admin
+
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# cat .envpm2 logs pos-backend --lines 100[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[KNANI[K[K[K[Knano .env
+[?2004l[?2004h[?1049h[22;0;0t[1;43r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[41;86H(B[0;7m[ Reading... ](B[m[41;84H(B[0;7m[ Read 18 lines ](B[m[H(B[0;7m  GNU nano 7.2                                                  B[0;7m^R(B[m Read File    (B[0;7m^\(B[m Replace[49G(B[0;7m^U(B[m Paste[43;65H(B[0;7m^J(B[m Justify[81G(B[0;7m^/(B[m Go To Line   (B[0;7mM-E(B[m Redo[43;113H(B[0;7mM-6(B[m Copy[43;129H(B[0;7m^Q(B[m Where Was    (B[0;7mM-W(B[m Next[43;161H(B[0;7m^F(B[m Forward[2dPORT=3000[3dNODE_ENV=production[5dFRONTEND_URL=[94mhttps://pos.muscatfood.com[7d[39m(B[mMONGODB_URI=mongodb+srv://awaismuj_db_user:rUfQesgfGxTJSrnr@cluster0.giczvdb.mongodb.net/pos-db?appName=Cluster0[9dJWT_SECRET=73e20c7ef3c86f61febd3d9c3e2b83b1f1b7e3fb26acea75e1bb52c8ca762cb0a71c437752e250b04e1ba73f5db07a6ad072c8014593579f1d74a75ef5c6e98cy[11dADMIN_NAME=System Admin[12dADMIN_EMAIL=devops.awais@gmail.com[13dADMIN_PHONE=9999999999[14dADMIN_PASSWORD=CHANGE_THIS_ADMIN_PASSWORD[15dADMIN_ROLE=Admin[17dRAZORPAY_KEY_ID=[18dRAZORPAY_KEY_SECRET=[19dRAZORPAY_WEBHOOK_SECRET=[2d[?12l[?25h[?25l[?12l[?25h[3d[?25l[?12l[?25h[7d[?25l[?12l[?25h[8d[?25l[?12l[?25h[9d[?25l[?12l[?25h[10d[?25l[?12l[?25h[14d[?25l[?12l[?25h[15d[?25l[?12l[?25h[16d[?25l[?12l[?25h[17d[?25l[?12l[?25h[18d[?25l[?12l[?25h[A[?25l[?12l[?25h[A[?25l[?12l[?25h[A[?25l[41d[K[?12l[?25h[14;42H[?25l[1;98H(B[0;7m*[183G(B[m[?12l[?25h[14;41H [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25h [?25l[?12l[?25ha[?25l[?12l[?25hd[?25l[?12l[?25hm[?25l[?12l[?25hi[?25l[?12l[?25hn[?25l[?12l[?25h1[?25l[?12l[?25h2[?25l[?12l[?25h3[?25l[41d(B[0;7mSave modified buffer?                                                                                                                                                                   [42;1H Y(B[m Yes[K[43d(B[0;7m N(B[m No  [43;18H(B[0;7mC(B[m Cancel[K[41;23H[?12l[?25h[?25l[42d(B[0;7m^G(B[m Help[42;47H(B[0;7mM-D(B[m DOS Format[42;93H(B[0;7mM-A(B[m Append[42;139H(B[0;7mM-B(B[m Backup File[43d(B[0;7m^C(B[m Cancel[17G         [43;47H(B[0;7mM-M(B[m Mac Format[43;93H(B[0;7mM-P(B[m Prepend[43;139H(B[0;7m^T(B[m Browse[41d(B[0;7mFile Name to Write: .env(B[m[?12l[?25h[?25l[41;85H[1K (B[0;7m[ Writing... ](B[m[K[1;98H(B[0;7m [183G(B[m[41;84H(B[0;7m[ Wrote 18 lines ](B[m[J[43d[?12l[?25h[43;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mnpm run db:setup[27mnpm run db:setup
+[?2004l
+> pos-backend@1.0.0 db:setup
+> node scripts/db-bootstrap.js
+
+[1G[0K✅ Connected to MongoDB: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+✅ User indexes synced
+ℹ️ Default admin already exists: devops.awais@gmail.com
+✅ Database bootstrap completed successfully
+[1G[0K⠙[1G[0K[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mnpm run migrate[27m
+[7mnpm run seed[27m[A]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# npm run migrate
+npm run seed
+[?2004l
+> pos-backend@1.0.0 migrate
+> node scripts/migrate.js
+
+[1G[0K✅ Connected to MongoDB: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+✅ User indexes synced
+ℹ️ Default admin already exists: devops.awais@gmail.com
+✅ Database bootstrap completed successfully
+[1G[0K⠙[1G[0K
+> pos-backend@1.0.0 seed
+> node scripts/seed.js
+
+[1G[0K✅ Connected to MongoDB: ac-8neafjy-shard-00-02.giczvdb.mongodb.net
+✅ User indexes synced
+ℹ️ Default admin already exists: devops.awais@gmail.com
+✅ Database bootstrap completed successfully
+[1G[0K⠙[1G[0K[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# nano .env
+[?2004l[?2004h[?1049h[22;0;0t[1;43r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[41;86H(B[0;7m[ Reading... ](B[m[41;84H(B[0;7m[ Read 18 lines ](B[m[H(B[0;7m  GNU nano 7.2                                                                              .env                                                                                        [1;183H(B[m[42d(B[0;7m^G(B[m Help[42;17H(B[0;7m^O(B[m Write Out    (B[0;7m^W(B[m Where Is     (B[0;7m^K(B[m Cut[42;65H(B[0;7m^T(B[m Execute[81G(B[0;7m^C(B[m Location     (B[0;7mM-U(B[m Undo[42;113H(B[0;7mM-A(B[m Set Mark    (B[0;7mM-](B[m To Bracket  (B[0;7mM-Q(B[m Previous    (B[0;7m^B(B[m Back[43d(B[0;7m^X(B[m Exit[43;17H(B[0;7m^R(B[m Read File    (B[0;7m^\(B[m Replace[49G(B[0;7m^U(B[m Paste[43;65H(B[0;7m^J(B[m Justify[81G(B[0;7m^/(B[m Go To Line   (B[0;7mM-E(B[m Redo[43;113H(B[0;7mM-6(B[m Copy[43;129H(B[0;7m^Q(B[m Where Was    (B[0;7mM-W(B[m Next[43;161H(B[0;7m^F(B[m Forward[2dPORT=3000[3dNODE_ENV=production[5dFRONTEND_URL=[94mhttps://pos.muscatfood.com[7d[39m(B[mMONGODB_URI=mongodb+srv://awaismuj_db_user:rUfQesgfGxTJSrnr@cluster0.giczvdb.mongodb.net/pos-db?appName=Cluster0[9dJWT_SECRET=73e20c7ef3c86f61febd3d9c3e2b83b1f1b7e3fb26acea75e1bb52c8ca762cb0a71c437752e250b04e1ba73f5db07a6ad072c8014593579f1d74a75ef5c6e98cy[11dADMIN_NAME=System Admin[12dADMIN_EMAIL=devops.awais@gmail.com[13dADMIN_PHONE=9999999999[14dADMIN_PASSWORD=admin123[15dADMIN_ROLE=Admin[17dRAZORPAY_KEY_ID=[18dRAZORPAY_KEY_SECRET=[19dRAZORPAY_WEBHOOK_SECRET=[2d[?12l[?25h[?25l[41d[J[43d[?12l[?25h[43;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcd /var/www/awaispos/pos-backend[27m
+[7mcat package.json[27m[A]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# cd /var/www/awaispos/pos-backend
+cat package.json[7mcd /var/www/awaispos/pos-backend[27m
+[7mcat package.json[27m[Acd /var/www/awaispos/pos-backend
+cat package.json
+[?2004lcat: package.jsoncd: No such file or directory
+cat: /var/www/awaispos/pos-backend: Is a directory
+{
+  "name": "pos-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon app.js",
+    "start": "node app.js",
+    "migrate": "node scripts/migrate.js",
+    "seed": "node scripts/seed.js",
+    "db:setup": "node scripts/db-bootstrap.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "http-errors": "^2.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "razorpay": "^2.9.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcd /var/www/awaispos/pos-backend[27m
+[7mcat scripts/seed.js[27m[A]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# cd /var/www/awaispos/pos-backend
+cat scripts/seed.js
+[?2004lrequire("./db-bootstrap");
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcat scripts/db-bootstrap.js[27mcat scripts/db-bootstrap.js\\[K[K
+[?2004lrequire("dotenv").config();
+
+const mongoose = require("mongoose");
+const User = require("../models/userModel");
+const config = require("../config/config");
+
+const bootstrap = async () => {
+  if (!config.databaseURI) {
+    throw new Error("MONGODB_URI is not configured. Copy .env.example to .env and fill in your MongoDB connection string.");
+  }
+
+  await mongoose.connect(config.databaseURI);
+  console.log(`✅ Connected to MongoDB: ${mongoose.connection.host}`);
+
+  try {
+    await User.syncIndexes();
+    console.log("✅ User indexes synced");
+  } catch (error) {
+    console.warn(`⚠️ Could not sync indexes: ${error.message}`);
+  }
+
+  const adminEmail = String(config.defaultAdmin.email).trim().toLowerCase();
+  const existingAdmin = await User.findOne({ email: adminEmail });
+
+  if (existingAdmin) {
+    console.log(`ℹ️ Default admin already exists: ${adminEmail}`);
+    return;
+  }
+
+  const adminUser = new User({
+    name: config.defaultAdmin.name,
+    email: adminEmail,
+    phone: config.defaultAdmin.phone,
+    password: config.defaultAdmin.password,
+    role: config.defaultAdmin.role
+  });
+
+  await adminUser.save();
+  console.log(`✅ Seeded default admin user: ${adminEmail} / ${config.defaultAdmin.password}`);
+};
+
+bootstrap()
+  .then(() => {
+    console.log("✅ Database bootstrap completed successfully");
+    return mongoose.disconnect();
+  })
+  .catch((error) => {
+    console.error("❌ Database bootstrap failed:", error.message);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    if (mongoose.connection.readyState !== 0) {
+      mongoose.disconnect();
+    }
+  });
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcd /var/www/awaispos/pos-backend[27m
+
+[7mgrep -E '^(MONGODB_URI|ADMIN_EMAIL|ADMIN_NAME|ADMIN_PHONE|ADMIN_ROLE)=' .env[27m[A[Acd /var/www/awaispos/pos-backend
+
+grep -E '^(MONGODB_URI|ADMIN_EMAIL|ADMIN_NAME|ADMIN_PHONE|ADMIN_ROLE)=' .env
+[?2004l[01;31m[KMONGODB_URI=[m[Kmongodb+srv://awaismuj_db_user:rUfQesgfGxTJSrnr@cluster0.giczvdb.mongodb.net/pos-db?appName=Cluster0
+[01;31m[KADMIN_NAME=[m[KSystem Admin
+[01;31m[KADMIN_EMAIL=[m[Kdevops.awais@gmail.com
+[01;31m[KADMIN_PHONE=[m[K9999999999
+[01;31m[KADMIN_ROLE=[m[KAdmin
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mnpm run db:setup[27mnpm run db:setup
+[?2004l
+> pos-backend@1.0.0 db:setup
+> node scripts/db-bootstrap.js
+
+[1G[0K✅ Connected to MongoDB: ac-8neafjy-shard-00-00.giczvdb.mongodb.net
+✅ User indexes synced
+ℹ️ Default admin already exists: devops.awais@gmail.com
+✅ Database bootstrap completed successfully
+[1G[0K⠙[1G[0K[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcd /var/www/awaispos/pos-backend[27m
+
+[7mgrep -R "login" -n controllers routes[27m[A[A]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# cd /var/www/awaispos/pos-backend
+
+grep -R "login" -n controllers routes
+[?2004l[35m[Kcontrollers/userController.js[m[K[36m[K:[m[K[32m[K37[m[K[36m[K:[m[Kconst [01;31m[Klogin[m[K = async (req, res, next) => {
+[35m[Kcontrollers/userController.js[m[K[36m[K:[m[K[32m[K71[m[K[36m[K:[m[K        res.status(200).json({success: true, message: "User [01;31m[Klogin[m[K successfully!", 
+[35m[Kcontrollers/userController.js[m[K[36m[K:[m[K[32m[K107[m[K[36m[K:[m[Kmodule.exports = { register, [01;31m[Klogin[m[K, getUserData, logout }
+[35m[Kroutes/userRoute.js[m[K[36m[K:[m[K[32m[K2[m[K[36m[K:[m[Kconst { register, [01;31m[Klogin[m[K, getUserData, logout } = require("../controllers/userController");
+[35m[Kroutes/userRoute.js[m[K[36m[K:[m[K[32m[K9[m[K[36m[K:[m[Krouter.route("/[01;31m[Klogin[m[K").post([01;31m[Klogin[m[K);
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaisp[m[Kmodule.exports = { register, [01;31m[Klogin[m[K, getUserData, logout }
+[35m[Kroutes/userRoute.js[m[K[36m[K:[m[K[32m[K2[m[K[36m[K:[m[Kconst { register, [01;31m[Klogin[m[K, getUserData, logout } = require("../controllers/userController");
+[35m[Kroutes/userRoute.js[m[K[36m[K:[m[K[32m[K9[m[K[36m[K:[m[Krouter.route("/[01;31m[Klogin[m[K").post([01;31m[Klogin[m[K);
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcat controllers/userController.js[27mcat controllers/userController.js
+[?2004lconst createHttpError = require("http-errors");
+const User = require("../models/userModel");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const config = require("../config/config");
+
+const register = async (req, res, next) => {
+    try {
+
+        const { name, phone, email, password, role } = req.body;
+
+        if(!name || !phone || !email || !password || !role){
+            const error = createHttpError(400, "All fields are required!");
+            return next(error);
+        }
+
+        const isUserPresent = await User.findOne({email});
+        if(isUserPresent){
+            const error = createHttpError(400, "User already exist!");
+            return next(error);
+        }
+
+
+        const user = { name, phone, email, password, role };
+        const newUser = User(user);
+        await newUser.save();
+
+        res.status(201).json({success: true, message: "New user created!", data: newUser});
+
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+
+const login = async (req, res, next) => {
+
+    try {
+        
+        const { email, password } = req.body;
+
+        if(!email || !password) {
+            const error = createHttpError(400, "All fields are required!");
+            return next(error);
+        }
+
+        const isUserPresent = await User.findOne({email});
+        if(!isUserPresent){
+            const error = createHttpError(401, "Invalid Credentials");
+            return next(error);
+        }
+
+        const isMatch = await bcrypt.compare(password, isUserPresent.password);
+        if(!isMatch){
+            const error = createHttpError(401, "Invalid Credentials");
+            return next(error);
+        }
+
+        const accessToken = jwt.sign({_id: isUserPresent._id}, config.accessTokenSecret, {
+            expiresIn : '1d'
+        });
+
+        res.cookie('accessToken', accessToken, {
+            maxAge: 1000 * 60 * 60 *24 * 30,
+            httpOnly: true,
+            sameSite: 'none',
+            secure: true
+        })
+
+        res.status(200).json({success: true, message: "User login successfully!", 
+            data: isUserPresent
+        });
+
+
+    } catch (error) {
+        next(error);
+    }
+
+}
+
+const getUserData = async (req, res, next) => {
+    try {
+        
+        const user = await User.findById(req.user._id);
+        res.status(200).json({success: true, data: user});
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+const logout = async (req, res, next) => {
+    try {
+        
+        res.clearCookie('accessToken');
+        res.status(200).json({success: true, message: "User logout successfully!"});
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+
+
+
+module.exports = { register, login, getUserData, logout }[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcat models/userModel.js[27mcat models/userModel.js
+[?2004lconst mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+
+const userSchema = new mongoose.Schema({
+    name : {
+        type: String,
+        required: true,
+    },
+
+    email : {
+        type: String,
+        required: true,
+        validate: {
+            validator: function (v) {
+                return /\S+@\S+\.\S+/.test(v);
+            },
+            message : "Email must be in valid format!"
+        }
+    },
+
+    phone: {
+        type : Number,
+        required: true,
+        validate: {
+            validator: function (v) {
+                return /\d{10}/.test(v);
+            },
+            message : "Phone number must be a 10-digit number!"
+        }
+    },
+
+    password: {
+        type: String,
+        required: true,
+    },
+
+    role: {
+        type: String,
+        required: true
+    }
+}, { timestamps : true })
+
+userSchema.pre('save', async function (next) {
+    if(!this.isModified('password')){
+        next();
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+})
+
+module.exports = mongoose.model("User", userSchema);[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mcat models/userModel.js[27mcat models/userModel.js
+[?2004lconst mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+
+const userSchema = new mongoose.Schema({
+    name : {
+        type: String,
+        required: true,
+    },
+
+    email : {
+        type: String,
+        required: true,
+        validate: {
+            validator: function (v) {
+                return /\S+@\S+\.\S+/.test(v);
+            },
+            message : "Email must be in valid format!"
+        }
+    },
+
+    phone: {
+        type : Number,
+        required: true,
+        validate: {
+            validator: function (v) {
+                return /\d{10}
+module.exports = mongoose.model("User", userSchema);[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend#   [7mnano scripts/reset-admin-password.js[27mnano scripts/reset-admin-password.js
+[?2004l[?2004h[?1049h[22;0;0t[1;43r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[41;87H(B[0;7m[ New File ](B[m[H(B[0;7m  GNU nano 7.2                                                                 scripts/reset-admin-password.js                                                                          [1;183H(B[m[42d(B[0;7m^G(B[m Help[42;17H(B[0;7m^O(B[m Write Out    (B[0;7m^W(B[m Where Is     (B[0;7m^K(B[m Cut[42;65H(B[0;7m^T(B[m Execute[81G(B[0;7m^C(B[m Location     (B[0;7mM-U(B[m Undo[42;113H(B[0;7mM-A(B[m Set Mark    (B[0;7mM-](B[m To Bracket  (B[0;7mM-Q(B[m Previous    (B[0;7m^B(B[m Back[43d(B[0;7m^X(B[m Exit[43;17H(B[0;7m^R(B[m Read File    (B[0;7m^\(B[m Replace[49G(B[0;7m^U(B[m Paste[43;65H(B[0;7m^J(B[m Justify[81G(B[0;7m^/(B[m Go To Line   (B[0;7mM-E(B[m Redo[43;113H(B[0;7mM-6(B[m Copy[43;129H(B[0;7m^Q(B[m Where Was    (B[0;7mM-W(B[m Next[43;161H(B[0;7m^F(B[m Forward[2d[?12l[?25h[?25l[41d[J[43d[?12l[?25h[43;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# ^C[?2004l[?2004h[?2004l
+[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# [7mnano scripts/reset-admin-password.js[27mnano scripts/reset-admin-password.js
+[?2004l[?2004h[?1049h[22;0;0t[1;43r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[41;87H(B[0;7m[ New File ](B[m[H(B[0;7m  GNU nano 7.2                                                                 scripts/reset-admin-password.js                                                                          [1;183H(B[m[42d(B[0;7m^G(B[m Help[42;17H(B[0;7m^O(B[m Write Out    (B[0;7m^W(B[m Where Is     (B[0;7m^K(B[m Cut[42;65H(B[0;7m^T(B[m Execute[81G(B[0;7m^C(B[m Location     (B[0;7mM-U(B[m Undo[42;113H(B[0;7mM-A(B[m Set Mark    (B[0;7mM-](B[m To Bracket  (B[0;7mM-Q(B[m Previous    (B[0;7m^B(B[m Back[43d(B[0;7m^X(B[m Exit[43;17H(B[0;7m^R(B[m Read File    (B[0;7m^\(B[m Replace[49G(B[0;7m^U(B[m Paste[43;65H(B[0;7m^J(B[m Justify[81G(B[0;7m^/(B[m Go To Line   (B[0;7mM-E(B[m Redo[43;113H(B[0;7mM-6(B[m Copy[43;129H(B[0;7m^Q(B[m Where Was    (B[0;7mM-W(B[m Next[43;161H(B[0;7m^F(B[m Forward[2d[?12l[?25h[?25l[1;112H(B[0;7m*[41d(B[m[K[1;183H[2drequire((B[0;1m[35m"dotenv"[39m(B[m).config();[4d[32mconst[39m(B[m mongoose = require((B[0;1m[35m"mongoose"[39m(B[m);[5d[32mconst[39m(B[m bcrypt = require((B[0;1m[35m"bcrypt"[39m(B[m);[6d[32mconst[39m(B[m User = require((B[0;1m[35m"../models/userModel"[39m(B[m);[7d[32mconst[39m(B[m config = require((B[0;1m[35m"../config/config"[39m(B[m);[9d[32masync[39m(B[m [32mfunction[39m(B[m resetPassword() {[10;3H(B[0;1m[33mawait[39m(B[m mongoose.connect(config.databaseURI);[12;3H[32mconst[39m(B[m email = (B[0;1m[35m"devops.awais@gmail.com"[39m(B[m;[13;3H[32mconst[39m(B[m newPassword = (B[0;1m[35m"admin123"[39m(B[m;(B[0;1m[34m // change this if you want[15;3H(B[0m[32mconst[39m(B[m user = (B[0;1m[33mawait[39m(B[m User.findOne({ email });[17;3H(B[0;1m[33mif[39m(B[m (!user) {[18;5Hconsole.log((B[0;1m[35m"❌ Admin user not found:"[39m(B[m, email);[19;5H(B[0;1m[33mawait[39m(B[m mongoose.disconnect();[20;5H[35mreturn[39m(B[m;[21;3H}[23duser.password = newPassword;[24;3H(Bgmail.com"[39m(B[m;[13;3H[32mconst[39m(B[m newPassword = (B[0;1m[35m"admin123"[39m(B[m;(B[0;1m[34m // change this if you want[15;3H(B[0m[32mconst[39m(B[m user = (B[0;1m[33mawait[39m(B[m User.findOne({ email });[17;3H(B[0;1m[33mif[39m(B[m (!user) {[18;5Hconsole.log((B[0;1m[35m"❌ Admin user not found:"[39m(B[m, email);[19;5H(B[0;1m[33mawait[39m(B[m mongoose.disconnect();[20;5H[35mreturn[39m(B[m;[21;3H}[23duser.password = newPassword;[24;3H(B[0;1m[33mawait[39m(B[m user.save();[26;3Hconsole.log((B[0;1m[35m"✅ Admin password reset successfully:"[39m(B[m, email);[28;3H(B[0;1m[33mawait[39m(B[m mongoose.disconnect();[29d}[31dresetPassword().(B[0;1m[33mcatch[39m(B[m((error) => {[32;3Hconsole.error((B[0;1m[35m"❌ Password reset failed:"[39m(B[m, error.message);[33;3Hprocess.exit([36m1[39m(B[m);[34d});[?12l[?25h[?25l[41d(B[0;7mSave modified buffer?                                                                                                                                                                   [42;1H Y(B[m Yes[K[43d(B[0;7m N(B[m No  [43;18H(B[0;7mC(B[m Cancel[K[41;23H[?12l[?25h[?25l[42d(B[0;7m^G(B[m Help[42;47H(B[0;7mM-D(B[m DOS Format[42;93H(B[0;7mM-A(B[m Append[42;139H(B[0;7mM-B(B[m Backup File[43d(B[0;7m^C(B[m Cancel[17G         [43;47H(B[0;7mM-M(B[m Mac Format[43;93H(B[0;7mM-P(B[m Prepend[43;139H(B[0;7m^T(B[m Browse[41d(B[0;7mFile Name to Write: scripts/reset-admin-password.js(B[m[?12l[?25h[?25l[?12l[?25h[?25l[41;85H[1K (B[0;7m[ Writing... ](B[m[K[1;112H(B[0;7m [183G(B[m[41;84H(B[0;7m[ Wrote 33 lines ](B[m[J[43d[?12l[?25h[43;1H[?1049l[23;0;0t[?1l>[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# 
+[?2004l[?2004h]0;root@vmi3520756: /var/www/awaispos/pos-backendroot@vmi3520756:/var/www/awaispos/pos-backend# nano scripts/reset-admin-password.js
+[?2004l[?2004h[?1049h[22;0;0t[1;43r(B[m[4l[?7h[39;49m[?1h=[?1h=[?25l[39;49m(B[m[H[2J[41;86H(B[0;7m[ Reading... ](B[m[41;84H(B[0;7m[ Read 33 lines ](B[m[H(B[0;7m  GNU nano 7.2                                                                 scripts/reset-admin-password.js                                                                          [1;183H(B[m[42d(B[0;7m^G(B[m Help[42;17H(B[0;7m^O(B[m Write Out    (B[0;7m^W(B[m Where Is     (B[0;7m^K(B[m Cut[42;65H(B[0;7m^T(B[m Execute[81G(B[0;7m^C(B[m Location     (B[0;7mM-U(B[m Undo[42;113H(B[0;7mM-A(B[m Set Mark    (B[0;7mM-](B[m To Bracket  (B[0;7mM-Q(B[m Previous    (B[0;7m^B(B[m Back[43d(B[0;7m^X(B[m Exit[43;17H(B[0;7m^R(B[m Read File    (B[0;7m^\(B[m Replace[49G(B[0;7m^U(B[m Paste[43;65H(B[0;7m^J(B[m Justify[81G(B[0;7m^/(B[m Go To Line   (B[0;7mM-E(B[m Redo[43;113H(B[0;7mM-6(B[m Copy[43;129H(B[0;7m^Q(B[m Where Was    (B[0;7mM-W(B[m Next[43;161H(B[0;7m^F(B[m Forward[2drequire((B[0;1m[35m"dotenv"[39m(B[m).config();[4d[32mconst[39m(B[m mongoose = require((B[0;1m[35m"mongoose"[39m(B[m);[5d[32mconst[39m(B[m bcrypt = require((B[0;1m[35m"bcrypt"[39m(B[m);[6d[32mconst[39m(B[m User = require((B[0;1m[35m"../models/userModel"[39m(B[m);[7d[32mconst[39m(B[m config = require((B[0;1m[35m"../config/config"[39m(B[m);[9d[32masync[39m(B[m [32mfunction[39m(B[m resetPassword() {[10;3H(B[0;1m[33mawait[39m(B[m mongoose.connect(config.databaseURI);[12;3H[32mconst[39m(B[m email = (B[0;1m[35m"devops.awais@gmail.com"[39m(B[m;[13;3H[32mconst[39m(B[m newPassword = (B[0;1m[35m"admin123"[39m(B[m;(B[0;1m[34m // change this if you want[15;3H(B[0m[32mconst[39m(B[m user = (B[0;1m[33mawait[39m(B[m User.findOne({ emai

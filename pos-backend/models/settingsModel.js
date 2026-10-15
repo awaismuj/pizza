@@ -1,0 +1,27 @@
+const mongoose = require("mongoose");
+
+// Singleton document (single fixed `key`) so there's always exactly one
+// settings record to read/update, instead of a whole collection for one row.
+const settingsSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true, unique: true, default: "global" },
+    // Applied to every order - dine-in, outdoor/takeaway and online - from
+    // wherever it's read. Admin-editable from Dashboard > Tax.
+    taxRatePercent: { type: Number, required: true, default: 16, min: 0 },
+    // "Build Your Own Deal" (online store): the customer picks any items from
+    // the menu - at least `minItems` of them - and gets a discount that grows
+    // with how many they pick. Every number here is admin-editable from
+    // Dashboard > Build Your Own, so the shop can run 13% one week and 18%
+    // the next without touching code.
+    buildYourOwnDeal: {
+      enabled: { type: Boolean, default: true },
+      minItems: { type: Number, default: 3, min: 1 },
+      discount3: { type: Number, default: 15, min: 0, max: 90 }, // exactly 3 items
+      discount4: { type: Number, default: 17, min: 0, max: 90 }, // exactly 4 items
+      discount5Plus: { type: Number, default: 20, min: 0, max: 90 }, // 5 or more
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Settings", settingsSchema);
