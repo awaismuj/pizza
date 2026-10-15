@@ -2853,6 +2853,7 @@ function App() {
   const [trackError, setTrackError] = useState("");
 
   const railRef = useRef(null);
+  const [dealsRailPaused, setDealsRailPaused] = useState(false);
   const chipsRef = useRef(null);
   const toastTimer = useRef(null);
 
@@ -3272,6 +3273,35 @@ function App() {
     if (!rail) return;
     rail.scrollBy({ left: direction * (rail.clientWidth * 0.8), behavior: "smooth" });
   };
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (
+      loading ||
+      deals.length < 2 ||
+      dealsRailPaused ||
+      !rail ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      const card = rail.querySelector(".gzp-deal");
+      const maxScroll = rail.scrollWidth - rail.clientWidth;
+      if (!card || maxScroll <= 0) return;
+
+      const gap = Number.parseFloat(window.getComputedStyle(rail).columnGap) || 0;
+      const step = card.getBoundingClientRect().width + gap;
+      if (rail.scrollLeft >= maxScroll - 2) {
+        rail.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        rail.scrollBy({ left: Math.min(step, maxScroll - rail.scrollLeft), behavior: "smooth" });
+      }
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [deals.length, dealsRailPaused, loading]);
 
   // Stop the menu scrolling underneath an open sheet.
   const overlayOpen = cartOpen || checkoutOpen || trackOpen || searchOpen || !!quickView;
@@ -3807,7 +3837,24 @@ function App() {
                 </div>
 
                 <div className="gzp-rail-wrap">
-                  <div className="gzp-rail" ref={railRef}>
+                  <div
+                    className="gzp-rail"
+                    ref={railRef}
+                    onMouseEnter={() => setDealsRailPaused(true)}
+                    onMouseLeave={() => setDealsRailPaused(false)}
+                    onFocus={() => setDealsRailPaused(true)}
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget)) {
+                        setDealsRailPaused(false);
+                      }
+                    }}
+                    onPointerDown={(event) => {
+                      if (event.pointerType !== "mouse") setDealsRailPaused(true);
+                    }}
+                    onPointerUp={(event) => {
+                      if (event.pointerType !== "mouse") setDealsRailPaused(false);
+                    }}
+                  >
                     {deals.map((deal) => {
                       const key = cartKey("deal", deal._id);
                       const saving =

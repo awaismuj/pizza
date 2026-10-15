@@ -19,6 +19,12 @@ const settingsSchema = new mongoose.Schema(
       discount3: { type: Number, default: 15, min: 0, max: 90 }, // exactly 3 items
       discount4: { type: Number, default: 17, min: 0, max: 90 }, // exactly 4 items
       discount5Plus: { type: Number, default: 20, min: 0, max: 90 }, // 5 or more
+      description: {
+        type: String,
+        default:
+          "Pick any 3 or more items from our menu — pizzas, burgers, wings, drinks, anything. The more you add, the more you save. No codes, the discount applies automatically.",
+        maxlength: 300,
+      },
     },
   },
   { timestamps: true }

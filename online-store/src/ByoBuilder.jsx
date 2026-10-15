@@ -23,6 +23,8 @@ export const DEFAULT_BYO = {
   discount3: 15,
   discount4: 17,
   discount5Plus: 20,
+  description:
+    "Pick any 3 or more items from our menu — pizzas, burgers, wings, drinks, anything. The more you add, the more you save. No codes, the discount applies automatically.",
 };
 
 export const normalizeByo = (raw) => {
@@ -34,6 +36,7 @@ export const normalizeByo = (raw) => {
     discount3: num(src.discount3, DEFAULT_BYO.discount3),
     discount4: num(src.discount4, DEFAULT_BYO.discount4),
     discount5Plus: num(src.discount5Plus, DEFAULT_BYO.discount5Plus),
+    description: typeof src.description === "string" ? src.description : DEFAULT_BYO.description,
   };
 };
 
@@ -689,10 +692,7 @@ export const ByoBanner = ({ cfg, pickedCount, onStart }) => (
           <h2>
             Build your <em>own deal</em>
           </h2>
-          <p>
-            Pick any {cfg.minItems} or more items from our menu — pizzas, burgers, wings, drinks, anything. The more
-            you add, the more you save. No codes, the discount applies automatically.
-          </p>
+          {cfg.description && <p>{cfg.description}</p>}
           <button type="button" className="gzp-btn gzp-btn-primary" onClick={onStart}>
             {pickedCount > 0 ? `Edit your deal (${pickedCount} item${pickedCount === 1 ? "" : "s"})` : "Start building"}
           </button>
