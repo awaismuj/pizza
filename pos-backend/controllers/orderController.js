@@ -248,19 +248,120 @@ const addPublicOrder = async (req, res, next) => {
 
     const subtotalBeforeDiscount = total;
     total -= discount; // from here on `total` is what the customer actually owes pre-tax
+
+    // ---- Fulfilment: delivery or pickup ----
+    // The website and the POS share these rules, so eligibility, fees and ETAs
+    // are re-validated here from live Settings - the browser is never trusted
+    // for money or availability decisions.
+    const deliveryType = String(req.body.deliveryType || "delivery") === "pickup" ? "pickup" : "delivery";
+    const branchId = req.body.branchId;
+    const fulfilmentConfig = settings.deliveryFulfillment || {};
+    const timeZone = fulfilmentConfig.timeZone || "Asia/Karachi";
+    const branches = fulfilmentConfig.branches || [];
+
+    const minutesFor = (value) => {
+      const parts = String(value || "").split(":").map(Number);
+      return parts.length === 2 ? parts[0] * 60 + parts[1] : 0;
+    };
+
+    // A branch is orderable when its configured opening hours (if any) cover
+    // right now in the configured time zone. Hours left unset mean "always open".
+    const branchIsOpen = (branch) => {
+      const hours = branch.openingHours || [];
+      if (hours.length === 0) return true;
+      const local = new Date(new Date().toLocaleString("en-US", { timeZone }));
+      const today = hours.find((h) => h.dayOfWeek === local.getDay());
+      if (!today || today.closed) return false;
+      const now = local.getHours() * 60 + local.getMinutes();
+      return now >= minutesFor(today.open) && now < minutesFor(today.close);
+    };
+
+    // Match the delivery address against enabled delivery zones (fuzzy area
+    // match, e.g. "Gojra" or "Gojra city" both match zone "Gojra").
+    const zoneCovering = (addr) => {
+      const text = String(addr || "").toLowerCase().trim();
+      for (const branch of branches) {
+        if (!branch.enabled || !branch.deliveryEnabled || branch.deliveryRestrictionActive) continue;
+        for (const zone of branch.deliveryZones || []) {
+          if (!zone.enabled) continue;
+          const area = String(zone.area || "").toLowerCase().trim();
+          if (area && (text.includes(area) || area.includes(text))) return { branch, zone };
+        }
+      }
+      return null;
+    };
+
+    let deliveryFee = 0;
+    let eta = null;
+    let fulfilmentNote = "";
+    let resolvedBranch = null;
+
+    if (deliveryType === "pickup") {
+      resolvedBranch = branches.find((b) => String(b.branchId) === String(branchId));
+      if (!resolvedBranch) {
+        const error = createHttpError(400, "That branch isn't available for pickup.");
+        return next(error);
+      }
+      if (!resolvedBranch.enabled || !resolvedBranch.pickupEnabled) {
+        const error = createHttpError(400, "Pickup isn't available at that branch right now.");
+        return next(error);
+      }
+      if (!branchIsOpen(resolvedBranch)) {
+        const error = createHttpError(400, `${resolvedBranch.name} is closed at the moment.`);
+        return next(error);
+      }
+      eta = Number(resolvedBranch.preparationMinutes) || 25;
+      fulfilmentNote = resolvedBranch.pickupInstructions || "";
+    } else {
+      // Home delivery: address must fall inside an enabled delivery zone.
+      if (!address || !address.trim()) {
+        const error = createHttpError(400, "Please enter a delivery address.");
+        return next(error);
+      }
+      const cover = zoneCovering(address);
+      if (!cover) {
+        const restricted = branches.find((b) => b.deliveryEnabled && b.deliveryRestrictionActive);
+        if (restricted) {
+          const error = createHttpError(400, restricted.deliveryRestrictionMessage || "Delivery is temporarily unavailable.");
+          return next(error);
+        }
+        const error = createHttpError(400, "We don't deliver to this area yet - please enter another address, or choose pickup.");
+        return next(error);
+      }
+      resolvedBranch = cover.branch;
+      const zone = cover.zone;
+      if (!branchIsOpen(resolvedBranch)) {
+        const error = createHttpError(400, `${resolvedBranch.name} is closed at the moment.`);
+        return next(error);
+      }
+      deliveryFee = Number(zone.fee) || 0;
+      const minimumOrder = Number(zone.minimumOrder) || 0;
+      if (minimumOrder > 0 && total < minimumOrder) {
+        const error = createHttpError(400, `Minimum order for delivery to this area is Rs ${minimumOrder}.`);
+        return next(error);
+      }
+      eta = (Number(resolvedBranch.preparationMinutes) || 25) + (Number(zone.estimatedDeliveryMinutes) || 30);
+      fulfilmentNote = "Cash on delivery - pay the rider when the food arrives.";
+    }
+
     const tax = (total * taxRatePercent) / 100;
-    const totalWithTax = total + tax;
+    const totalWithTax = total + tax + deliveryFee;
 
     const order = new Order({
       customerDetails: {
         name: customerName,
         phone: customerPhone,
         guests: 1,
-        address: address || "",
+        address: deliveryType === "delivery" ? address : "",
       },
       orderStatus: "Pending",
       orderSource: "Online",
       statusHistory: [{ status: "Pending", at: new Date() }],
+      deliveryType,
+      branch: resolvedBranch ? { branchId: resolvedBranch.branchId, name: resolvedBranch.name } : undefined,
+      deliveryFee,
+      fulfillmentEtaMinutes: eta,
+      fulfillmentNote,
       bills: {
         total,
         tax,
@@ -269,6 +370,7 @@ const addPublicOrder = async (req, res, next) => {
         discount,
         discountPercent,
         discountLabel,
+        deliveryFee,
       },
       items: resolvedItems,
       paymentMethod: "Cash on Delivery",
