@@ -191,64 +191,85 @@ const FulfillmentManager = () => {
           </button>
           <span className="text-xs text-[#6b6b6b]">Zones set where this branch delivers and what it costs.</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-1">
-          <div className="text-[#6b6b6b] text-xs font-medium">Area</div>
-          <div className="text-[#6b6b6b] text-xs font-medium">Fee</div>
-          <div className="text-[#6b6b6b] text-xs font-medium">Min. order</div>
-          <div className="text-[#6b6b6b] text-xs font-medium">Est. delivery (min)</div>
+        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="bg-[#262626]">
+                <th className="px-4 py-3 text-[#6b6b6b] font-medium">Area</th>
+                <th className="px-4 py-3 text-[#6b6b6b] font-medium">Fee</th>
+                <th className="px-4 py-3 text-[#6b6b6b] font-medium">Min. order</th>
+                <th className="px-4 py-3 text-[#6b6b6b] font-medium">Est. delivery (min)</th>
+                <th className="px-4 py-3 text-[#6b6b6b] font-medium">Enabled</th>
+                <th className="px-4 py-3 text-[#6b6b6b] font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {zones.map((z, zi) => (
+                <tr key={zi} className="border-b border-[#333] last:border-0">
+                  <td className="px-4 py-3">
+                    <input
+                      value={z.area}
+                      onChange={(e) => setZone(bi, zi, "area", e.target.value)}
+                      placeholder="e.g. Gojra"
+                      className="w-full bg-[#1a1a1a] text-white rounded outline-none border border-[#333] focus-within:border-[#525252] text-sm"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="number"
+                      min="0"
+                      value={z.fee}
+                      onChange={(e) => setZone(bi, zi, "fee", Number(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full bg-[#1a1a1a] text-white rounded outline-none border border-[#333] focus-within:border-[#525252] text-sm"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="number"
+                      min="0"
+                      value={z.minimumOrder}
+                      onChange={(e) => setZone(bi, zi, "minimumOrder", Number(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-full bg-[#1a1a1a] text-white rounded outline-none border border-[#333] focus-within:border-[#525252] text-sm"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="number"
+                      min="0"
+                      max="240"
+                      value={z.estimatedDeliveryMinutes}
+                      onChange={(e) => setZone(bi, zi, "estimatedDeliveryMinutes", Number(e.target.value) || 30)}
+                      placeholder="30"
+                      className="w-full bg-[#1a1a1a] text-white rounded outline-none border border-[#333] focus-within:border-[#525252] text-sm"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <label className="flex items-center justify-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={z.enabled}
+                        onChange={() => toggleZone(bi, zi)}
+                        className="rounded bg-[#1a1a1a] border border-[#333] text-[#F6B100] focus:ring-0"
+                      />
+                      <span className="text-xs text-[#ababab]">{z.enabled ? "Enabled" : "Disabled"}</span>
+                    </label>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => removeZone(bi, zi)}
+                      className="text-[#ff5d5d] text-xs hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {zones.map((z, zi) => (
-          <div key={zi} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end mb-2">
-            <input
-              value={z.area}
-              onChange={(e) => setZone(bi, zi, "area", e.target.value)}
-              placeholder="e.g. Gojra"
-              className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none border border-[#333] focus-within:border-[#525252] text-sm"
-            />
-            <input
-              type="number"
-              min="0"
-              value={z.fee}
-              onChange={(e) => setZone(bi, zi, "fee", Number(e.target.value) || 0)}
-              placeholder="0"
-              className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none border border-[#333] focus-within:border-[#525252] text-sm"
-            />
-            <input
-              type="number"
-              min="0"
-              value={z.minimumOrder}
-              onChange={(e) => setZone(bi, zi, "minimumOrder", Number(e.target.value) || 0)}
-              placeholder="0"
-              className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none border border-[#333] focus-within:border-[#525252] text-sm"
-            />
-            <input
-              type="number"
-              min="0"
-              max="240"
-              value={z.estimatedDeliveryMinutes}
-              onChange={(e) => setZone(bi, zi, "estimatedDeliveryMinutes", Number(e.target.value) || 30)}
-              placeholder="30"
-              className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none border border-[#333] focus-within:border-[#525252] text-sm"
-            />
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={z.enabled}
-                onChange={() => toggleZone(bi, zi)}
-                className="rounded bg-[#1a1a1a] border border-[#333] text-[#F6B100] focus:ring-0"
-              />
-              <span className="text-xs text-[#ababab]">Enabled</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => removeZone(bi, zi)}
-              className="text-[#ff5d5d] text-xs hover:underline"
-              title="Remove zone"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
       </div>
     );
   };
@@ -256,42 +277,56 @@ const FulfillmentManager = () => {
   const hoursGrid = (bi) => (
     <div className="mt-3">
       <h4 className="text-[#ababab] text-xs font-semibold mb-2">Opening hours</h4>
-      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-7 gap-2 text-sm">
-        <div className="text-[#6b6b6b] text-xs font-medium">Day</div>
-        <div className="text-[#6b6b6b] text-xs font-medium">Closed</div>
-        <div className="text-[#6b6b6b] text-xs font-medium">Opens</div>
-        <div className="text-[#6b6b6b] text-xs font-medium">Closes</div>
-        {DAYS.map((day) => {
-          const hour = branches[bi].openingHours.find((h) => h.dayOfWeek === day.key);
-          return (
-            <div key={day.key} className="flex items-center gap-2">
-              <span className="text-[#ababab]">{day.label}</span>
-              <label className="flex items-center gap-1 ml-1">
-                <input
-                  type="checkbox"
-                  checked={hour.closed}
-                  onChange={() => toggleClosed(bi, day.key)}
-                  className="rounded bg-[#1a1a1a] border border-[#333] text-[#F6B100] focus:ring-0"
-                />
-                <span className="text-[#ababab] text-xs">{hour.closed ? "closed" : "open"}</span>
-              </label>
-              <input
-                type="time"
-                disabled={hour.closed}
-                value={hour.open}
-                onChange={(e) => setHour(bi, day.key, "open", e.target.value)}
-                className="bg-[#1a1a1a] text-white rounded px-2 py-1.5 outline-none border border-[#333] focus-within:border-[#525252] disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <input
-                type="time"
-                disabled={hour.closed}
-                value={hour.close}
-                onChange={(e) => setHour(bi, day.key, "close", e.target.value)}
-                className="bg-[#1a1a1a] text-white rounded px-2 py-1.5 outline-none border border-[#333] focus-within:border-[#525252] disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-            </div>
-          );
-        })}
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-lg overflow-hidden">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="bg-[#262626]">
+              <th className="px-4 py-3 text-[#6b6b6b] font-medium">Day</th>
+              <th className="px-4 py-3 text-[#6b6b6b] font-medium">Closed</th>
+              <th className="px-4 py-3 text-[#6b6b6b] font-medium">Opens</th>
+              <th className="px-4 py-3 text-[#6b6b6b] font-medium">Closes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {DAYS.map((day) => {
+              const hour = branches[bi].openingHours.find((h) => h.dayOfWeek === day.key);
+              return (
+                <tr key={day.key} className="border-b border-[#333] last:border-0">
+                  <td className="px-4 py-3 text-[#ababab]">{day.label}</td>
+                  <td className="px-4 py-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={hour.closed}
+                        onChange={() => toggleClosed(bi, day.key)}
+                        className="rounded bg-[#1a1a1a] border border-[#333] text-[#F6B100] focus:ring-0"
+                      />
+                      <span className="text-[#ababab] text-xs">{hour.closed ? "closed" : "open"}</span>
+                    </label>
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="time"
+                      disabled={hour.closed}
+                      value={hour.open}
+                      onChange={(e) => setHour(bi, day.key, "open", e.target.value)}
+                      className="w-full bg-[#1a1a1a] text-white rounded px-2 py-1.5 outline-none border border-[#333] focus-within:border-[#525252] disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="time"
+                      disabled={hour.closed}
+                      value={hour.close}
+                      onChange={(e) => setHour(bi, day.key, "close", e.target.value)}
+                      className="w-full bg-[#1a1a1a] text-white rounded px-2 py-1.5 outline-none border border-[#333] focus-within:border-[#525252] disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
