@@ -1,9 +1,13 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiShoppingBag, FiUsers, FiBox, FiLayers, FiCoffee, FiActivity, FiGrid } from "react-icons/fi";
 import { getOrders, getCategories, getDishes, getTables } from "../../https";
 import { computeMonthlyMetrics, computeOverallMetrics, formatCurrency } from "../../utils/orderMetrics";
 
 const Metrics = () => {
+  const [timeRange, setTimeRange] = useState("30d");
+
   const { data: ordersData } = useQuery({
     queryKey: ["orders"],
     queryFn: getOrders,
@@ -33,130 +37,193 @@ const Metrics = () => {
   const monthly = useMemo(() => computeMonthlyMetrics(orders), [orders]);
   const overall = useMemo(() => computeOverallMetrics(orders), [orders]);
 
-  const metricsData = [
+  const performanceCards = [
     {
-      title: "Revenue",
+      title: "Gross Revenue",
       value: `Rs ${formatCurrency(monthly.revenue.value)}`,
       percentage: `${monthly.revenue.percentage}%`,
-      color: "#025cca",
       isIncrease: monthly.revenue.percentage >= 0,
+      icon: <FiDollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+      badgeBg: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40",
+      accentBorder: "border-l-4 border-l-emerald-500",
+      helper: "vs previous month benchmark",
     },
     {
-      title: "Total Orders",
+      title: "Completed Orders",
       value: monthly.totalOrders.value,
       percentage: `${monthly.totalOrders.percentage}%`,
-      color: "#02ca3a",
       isIncrease: monthly.totalOrders.percentage >= 0,
+      icon: <FiShoppingBag className="w-4 h-4 text-sky-600 dark:text-sky-400" />,
+      badgeBg: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/40",
+      accentBorder: "border-l-4 border-l-sky-500",
+      helper: "all dine-in & online tickets",
     },
     {
       title: "Total Customers",
       value: monthly.totalCustomers.value,
       percentage: `${monthly.totalCustomers.percentage}%`,
-      color: "#f6b100",
       isIncrease: monthly.totalCustomers.percentage >= 0,
+      icon: <FiUsers className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+      badgeBg: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40",
+      accentBorder: "border-l-4 border-l-amber-500",
+      helper: "unique guests served",
     },
     {
-      title: "Items Sold",
+      title: "Total Items Sold",
       value: monthly.itemsSold.value,
       percentage: `${monthly.itemsSold.percentage}%`,
-      color: "#be3e3f",
       isIncrease: monthly.itemsSold.percentage >= 0,
+      icon: <FiBox className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />,
+      badgeBg: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/40",
+      accentBorder: "border-l-4 border-l-indigo-500",
+      helper: "food & beverage units",
     },
   ];
 
-  const itemsData = [
-    { title: "Total Categories", value: categories.length, color: "#5b45b0" },
-    { title: "Total Dishes", value: dishes.length, color: "#285430" },
-    { title: "Active Orders", value: overall.activeOrders, color: "#735f32" },
-    { title: "Total Tables", value: tables.length, color: "#7f167f" },
+  const inventorySummaryCards = [
+    {
+      title: "Active Menu Dishes",
+      value: dishes.length,
+      icon: <FiCoffee className="w-4 h-4 text-slate-700 dark:text-slate-300" />,
+      subtext: "available on counter",
+      actionText: "Manage Menu",
+      actionTab: "Menu",
+    },
+    {
+      title: "Live Kitchen Orders",
+      value: overall.activeOrders,
+      icon: <FiActivity className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+      subtext: "currently cooking / dispatch",
+      actionText: "View Orders",
+      actionTab: "Orders",
+    },
+    {
+      title: "Menu Categories",
+      value: categories.length,
+      icon: <FiLayers className="w-4 h-4 text-slate-700 dark:text-slate-300" />,
+      subtext: "catalog classification",
+      actionText: "View Categories",
+      actionTab: "Menu",
+    },
+    {
+      title: "Dine-in Floor Tables",
+      value: tables.length,
+      icon: <FiGrid className="w-4 h-4 text-slate-700 dark:text-slate-300" />,
+      subtext: "table stations mapped",
+      actionText: "Floor Layout",
+      actionTab: "table",
+    },
   ];
 
   return (
-    <div className="container mx-auto py-2 px-6 md:px-4">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4">
+      {/* Performance Section Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="font-semibold text-[#f5f5f5] text-xl">
-            Overall Performance
+          <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <span>Overall Sales & Revenue Performance</span>
           </h2>
-          <p className="text-sm text-[#ababab]">
-            Live revenue and order stats, updated as orders come in.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Real-time financial metrics, sales volume, and customer order counts
           </p>
         </div>
-        <button className="flex items-center gap-1 px-4 py-2 rounded-md text-[#f5f5f5] bg-[#1a1a1a]">
-          Last 1 Month
-          <svg
-            className="w-3 h-3"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth="4"
-          >
-            <path d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+
+        {/* Quick Range Filter Actions */}
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 self-start sm:self-auto">
+          {["today", "7d", "30d"].map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                timeRange === range
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              {range === "today" ? "Today" : range === "7d" ? "Last 7 Days" : "Last 30 Days"}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {metricsData.map((metric, index) => {
-          return (
+      {/* 4 Clean High-Contrast Performance Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {performanceCards.map((metric, index) => (
+          <div
+            key={index}
+            className={`pos-metric-card ${metric.accentBorder} flex flex-col justify-between`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {metric.title}
+                </span>
+                <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
+                  {metric.icon}
+                </span>
+              </div>
+              <div className="text-2xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {metric.value}
+              </div>
+            </div>
+
+            <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${metric.badgeBg}`}>
+                {metric.isIncrease ? <FiTrendingUp className="w-3 h-3" /> : <FiTrendingDown className="w-3 h-3" />}
+                {metric.percentage}
+              </span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate ml-2">
+                {metric.helper}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Operations & Inventory Summary Section */}
+      <div className="pt-1">
+        <div className="mb-3">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
+            Operational Inventory & Floor Status
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Key operational counts across live stations and products
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {inventorySummaryCards.map((item, index) => (
             <div
               key={index}
-              className="shadow-sm rounded-lg p-4"
-              style={{ backgroundColor: metric.color }}
+              className="pos-card p-4 hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col justify-between"
             >
-              <div className="flex justify-between items-center">
-                <p className="font-medium text-xs text-[#f5f5f5]">
-                  {metric.title}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    {item.title}
+                  </span>
+                  <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
+                    {item.icon}
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-slate-900 dark:text-white">
+                  {item.value}
+                </div>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  {item.subtext}
                 </p>
-                <div className="flex items-center gap-1">
-                  <svg
-                    className="w-3 h-3"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                    style={{ color: metric.isIncrease ? "#f5f5f5" : "red" }}
-                  >
-                    <path
-                      d={metric.isIncrease ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}
-                    />
-                  </svg>
-                  <p
-                    className="font-medium text-xs"
-                    style={{ color: metric.isIncrease ? "#f5f5f5" : "red" }}
-                  >
-                    {metric.percentage}
-                  </p>
-                </div>
               </div>
-              <p className="mt-1 font-semibold text-2xl text-[#f5f5f5]">
-                {metric.value}
-              </p>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 cursor-pointer">
+                  {item.actionText} →
+                </span>
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                  Active
+                </span>
+              </div>
             </div>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-col justify-between mt-12">
-        <div>
-          <h2 className="font-semibold text-[#f5f5f5] text-xl">
-            Item Details
-          </h2>
-          <p className="text-sm text-[#ababab]">
-            Current menu and order counts.
-          </p>
-        </div>
-
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {itemsData.map((item, index) => {
-            return (
-              <div key={index} className="shadow-sm rounded-lg p-4" style={{ backgroundColor: item.color }}>
-                <div className="flex justify-between items-center">
-                  <p className="font-medium text-xs text-[#f5f5f5]">{item.title}</p>
-                </div>
-                <p className="mt-1 font-semibold text-2xl text-[#f5f5f5]">{item.value}</p>
-              </div>
-            );
-          })}
+          ))}
         </div>
       </div>
     </div>
@@ -164,3 +231,4 @@ const Metrics = () => {
 };
 
 export default Metrics;
+

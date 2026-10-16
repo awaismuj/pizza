@@ -14,6 +14,7 @@ import { removeCustomer } from "../../redux/slices/customerSlice";
 import useTaxRate from "../../hooks/useTaxRate";
 import PendingReceipt from "./PendingReceipt";
 import KitchenSlip from "./KitchenSlip";
+import { useUITheme } from "../../context/UIThemeContext";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -32,6 +33,7 @@ function loadScript(src) {
 const Bill = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
+  const { isClean } = useUITheme();
 
   const customerData = useSelector((state) => state.customer);
   const cartData = useSelector((state) => state.cart);
@@ -241,73 +243,99 @@ const Bill = () => {
 
   return (
     <>
-      <div className="p-4 bg-slate-950/70 space-y-3">
-      {/* Financial Summary */}
-      <div className="space-y-1.5 text-xs text-slate-400">
-        <div className="flex items-center justify-between">
-          <span>Subtotal ({cartData.length} lines)</span>
-          <span className="text-white font-mono font-bold">Rs {total.toFixed(2)}</span>
+      <div
+        className={`p-4 space-y-3 transition duration-150 ${
+          isClean ? "bg-slate-50/80 border-t border-slate-200/90" : "bg-slate-950/70"
+        }`}
+      >
+        {/* Financial Summary */}
+        <div className={`space-y-1.5 text-xs ${isClean ? "text-slate-600 font-medium" : "text-slate-400"}`}>
+          <div className="flex items-center justify-between">
+            <span>Subtotal ({cartData.length} lines)</span>
+            <span className={`font-mono font-bold ${isClean ? "text-slate-900" : "text-white"}`}>
+              Rs {total.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Sales Tax ({taxRate}%)</span>
+            <span className={`font-mono font-bold ${isClean ? "text-slate-900" : "text-white"}`}>
+              Rs {tax.toFixed(2)}
+            </span>
+          </div>
+          <div
+            className={`flex items-center justify-between pt-2 border-t text-sm font-bold ${
+              isClean ? "border-slate-200 text-slate-900" : "border-slate-800 text-white"
+            }`}
+          >
+            <span className={isClean ? "text-slate-900 font-extrabold" : "text-amber-400"}>
+              Payable Total
+            </span>
+            <span
+              className={`font-mono text-base font-black ${
+                isClean ? "text-amber-600" : "text-amber-400"
+              }`}
+            >
+              Rs {totalPriceWithTax.toFixed(2)}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center justify-between">
-          <span>Sales Tax ({taxRate}%)</span>
-          <span className="text-white font-mono font-bold">Rs {tax.toFixed(2)}</span>
+
+        {/* Payment Method Selector */}
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("Cash")}
+            className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+              paymentMethod === "Cash"
+                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
+                : isClean
+                ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
+            }`}
+          >
+            <span>💵 Cash</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("Online")}
+            className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+              paymentMethod === "Online"
+                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
+                : isClean
+                ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
+            }`}
+          >
+            <span>💳 Online / Card</span>
+          </button>
         </div>
-        <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-sm font-bold text-white">
-          <span className="text-amber-400">Payable Total</span>
-          <span className="text-amber-400 font-mono text-base font-extrabold">
-            Rs {totalPriceWithTax.toFixed(2)}
-          </span>
+
+        {/* Action Buttons: Print Receipt & Place Order */}
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowPendingReceipt(true)}
+            disabled={cartData.length === 0}
+            className={`py-3 px-3 rounded-xl border font-bold text-xs transition disabled:opacity-40 ${
+              isClean
+                ? "border-slate-300 bg-white hover:bg-slate-100 text-slate-700 shadow-xs"
+                : "border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200"
+            }`}
+          >
+            🖨️ Print Slip
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePlaceOrder}
+            disabled={orderMutation.isPending || cartData.length === 0}
+            className="py-3 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition active:scale-95 disabled:opacity-40"
+          >
+            {orderMutation.isPending ? "Ringing In..." : "Complete Order →"}
+          </button>
         </div>
       </div>
-
-      {/* Payment Method Selector */}
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <button
-          type="button"
-          onClick={() => setPaymentMethod("Cash")}
-          className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
-            paymentMethod === "Cash"
-              ? "bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20 font-extrabold"
-              : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
-          }`}
-        >
-          <span>💵 Cash</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPaymentMethod("Online")}
-          className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
-            paymentMethod === "Online"
-              ? "bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20 font-extrabold"
-              : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
-          }`}
-        >
-          <span>💳 Online / Card</span>
-        </button>
-      </div>
-
-      {/* Action Buttons: Print Receipt & Place Order */}
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <button
-          type="button"
-          onClick={() => setShowPendingReceipt(true)}
-          disabled={cartData.length === 0}
-          className="py-3 px-3 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs transition disabled:opacity-40"
-        >
-          🖨️ Print Slip
-        </button>
-
-        <button
-          type="button"
-          onClick={handlePlaceOrder}
-          disabled={orderMutation.isPending || cartData.length === 0}
-          className="py-3 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 transition active:scale-95 disabled:opacity-40"
-        >
-          {orderMutation.isPending ? "Ringing In..." : "Complete Order →"}
-        </button>
-      </div>
-    </div>
 
       {showKitchenSlip && orderInfo && (
         <KitchenSlip orderInfo={orderInfo} onClose={() => setShowKitchenSlip(false)} />

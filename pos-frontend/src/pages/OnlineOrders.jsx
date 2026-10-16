@@ -11,6 +11,7 @@ import OrderStageTracker from "../components/orders/OrderStageTracker";
 import EditOrderModal from "../components/orders/EditOrderModal";
 import { NEXT_ACTION } from "../utils/orderStages";
 import { canEditOrder, canCancelOrder, canDeleteOrder } from "../utils/orderPermissions";
+import { useUITheme } from "../context/UIThemeContext";
 
 // The staff-facing flow for orders placed on genzpizza.online:
 //   Pending -> (Accept | Accept & Process | Cancel)
@@ -25,6 +26,8 @@ const TABS = [
 ];
 
 const OnlineOrders = () => {
+  const { isClean } = useUITheme();
+
   useEffect(() => {
     document.title = "POS | Online Orders";
   }, []);
@@ -100,14 +103,26 @@ const OnlineOrders = () => {
 
   return (
     <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden pb-20">
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-6">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl mb-6 transition duration-200 ${
+          isClean
+            ? "bg-white border border-slate-200/90 shadow-sm"
+            : "bg-slate-900/90 border border-slate-800 shadow-xl"
+        }`}
+      >
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
-            <h1 className="text-white text-xl sm:text-2xl font-extrabold tracking-tight">
+            <h1
+              className={`text-xl sm:text-2xl font-black tracking-tight ${
+                isClean ? "text-slate-900" : "text-white"
+              }`}
+            >
               Online Orders Dispatch Pipeline
             </h1>
-            <p className="text-xs text-slate-400">Incoming storefront delivery & takeaway orders</p>
+            <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+              Incoming storefront delivery & takeaway orders
+            </p>
           </div>
           <div className="ml-2">
             <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
@@ -115,7 +130,11 @@ const OnlineOrders = () => {
         </div>
 
         {/* Status Stage Tabs */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 overflow-x-auto scrollbar-hide">
+        <div
+          className={`flex items-center gap-1.5 p-1 rounded-2xl overflow-x-auto scrollbar-hide ${
+            isClean ? "bg-slate-100 border border-slate-200/90" : "bg-slate-950/80 border border-slate-800"
+          }`}
+        >
           {TABS.map((tab) => {
             const count = orders.filter((o) => o.orderStatus === tab.key).length;
             const isActive = activeTab === tab.key;
@@ -125,15 +144,21 @@ const OnlineOrders = () => {
                 onClick={() => setActiveTab(tab.key)}
                 className={`whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                   isActive
-                    ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                    ? "bg-amber-500 text-slate-950 shadow-sm font-black"
+                    : isClean
+                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                     : "text-slate-400 hover:text-white hover:bg-slate-800/60"
                 }`}
               >
                 <span>{tab.label}</span>
                 {count > 0 && (
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                      isActive ? "bg-slate-950/20 text-slate-950" : "bg-slate-800 text-slate-300"
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isActive
+                        ? "bg-slate-950/20 text-slate-950 font-black"
+                        : isClean
+                        ? "bg-white text-slate-800 shadow-xs"
+                        : "bg-slate-800 text-slate-300"
                     }`}
                   >
                     {count}
@@ -145,123 +170,132 @@ const OnlineOrders = () => {
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-4 px-2 min-[480px]:grid-cols-2 sm:px-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <div className="grid w-full grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 pb-24">
         {visibleOrders.length === 0 && (
-          <div className="col-span-full py-12 text-center rounded-2xl bg-slate-900/40 border border-slate-800/60 p-8">
-            <p className="text-slate-400 text-sm font-medium">No {activeTab} online orders at the moment.</p>
+          <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No {activeTab} online orders at the moment.</p>
           </div>
         )}
 
         {visibleOrders.map((order) => (
-          <div key={order._id} className="rounded-2xl bg-slate-900/95 border border-slate-800 hover:border-slate-700 p-4 shadow-xl flex flex-col justify-between transition">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-[#f5f5f5]">{order.customerDetails?.name}</h2>
-              <span className="text-xs text-[#ababab]">
-                {new Date(order.orderDate).toLocaleTimeString()}
-              </span>
-            </div>
-            <p className="text-xs text-[#ababab]">{order.customerDetails?.phone}</p>
-            {order.customerDetails?.address && (
-              <p className="mt-1 text-xs text-[#ababab]">{order.customerDetails.address}</p>
-            )}
-
-            <OrderStageTracker order={order} />
-
-            <ul className="mt-3 space-y-1 text-sm text-[#f5f5f5]">
-              {(order.items || []).map((item, idx) => (
-                <li key={idx} className="flex justify-between">
-                  <span>
-                    {item.quantity}x {item.name}
-                  </span>
-                  <span>Rs {(item.price * item.quantity).toFixed(2)}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-3 flex items-center justify-between border-t border-[#383838] pt-2">
-              <span className="text-sm text-[#ababab]">Total</span>
-              <span className="font-semibold text-[#f5f5f5]">
-                Rs {order.bills?.totalWithTax?.toFixed(2)}
-              </span>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {order.orderStatus === "Pending" && (
-                <>
-                  <button
-                    onClick={() => acceptAndProcess(order)}
-                    disabled={statusMutation.isPending}
-                    className="flex-1 rounded-lg bg-[#02ca3a] py-2 font-semibold text-[#1f1f1f] disabled:opacity-60"
-                  >
-                    Accept &amp; Process
-                  </button>
-                  <button
-                    onClick={() => setStatus(order, "Accepted")}
-                    disabled={statusMutation.isPending}
-                    className="flex-1 rounded-lg bg-[#2e4a40] py-2 font-semibold text-[#02ca3a] disabled:opacity-60"
-                  >
-                    Accept only
-                  </button>
-                </>
-              )}
-
-              {order.orderStatus !== "Pending" && NEXT_ACTION[order.orderStatus] && (
-                <button
-                  onClick={() => setStatus(order, NEXT_ACTION[order.orderStatus].to)}
-                  disabled={statusMutation.isPending}
-                  className="flex-1 rounded-lg bg-[#f6b100] py-2 font-semibold text-[#1f1f1f] disabled:opacity-60"
-                >
-                  {NEXT_ACTION[order.orderStatus].label}
-                </button>
-              )}
-
-              {/* Cancel/Edit are Cashier+Admin only; Delete is Admin only —
-                  same rule the server enforces, see utils/orderPermissions.js. */}
-              {!["Completed", "Cancelled"].includes(order.orderStatus) && canEditOrder(role) && (
-                <button
-                  onClick={() => setEditingOrder(order)}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100]"
-                >
-                  <FaPen size={12} /> Edit
-                </button>
-              )}
-
-              {!["Completed", "Cancelled"].includes(order.orderStatus) && canCancelOrder(role) && (
-                <button
-                  onClick={() => {
-                    if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
-                      setStatus(order, "Cancelled");
-                    }
-                  }}
-                  disabled={statusMutation.isPending}
-                  className="flex-1 rounded-lg bg-[#be3e3f] py-2 font-semibold text-[#f5f5f5] disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-              )}
-
-              {["Completed", "Cancelled"].includes(order.orderStatus) && (
-                <span
-                  className={`w-full rounded-lg py-2 text-center font-semibold ${
-                    order.orderStatus === "Completed"
-                      ? "bg-[#1f3f28] text-[#02ca3a]"
-                      : "bg-[#3f1f1f] text-[#be3e3f]"
-                  }`}
-                >
-                  {order.orderStatus}
+          <div
+            key={order._id}
+            className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 p-4 shadow-sm hover:shadow-md flex flex-col justify-between transition"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold text-slate-900 dark:text-white">{order.customerDetails?.name}</h2>
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                  {new Date(order.orderDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
+              </div>
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{order.customerDetails?.phone}</p>
+              {order.customerDetails?.address && (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-700/60">
+                  📍 {order.customerDetails.address}
+                </p>
               )}
+
+              <div className="my-2.5">
+                <OrderStageTracker order={order} />
+              </div>
+
+              <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-200 border-t border-slate-100 dark:border-slate-800 pt-2">
+                {(order.items || []).map((item, idx) => (
+                  <li key={idx} className="flex justify-between text-xs">
+                    <span className="font-medium">
+                      {item.quantity}x {item.name}
+                    </span>
+                    <span className="font-mono font-semibold">Rs {(item.price * item.quantity).toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {canDeleteOrder(role, order.orderStatus) && (
-              <button
-                onClick={() => handleDelete(order)}
-                disabled={deleteMutation.isPending}
-                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#3f1f1f] py-2 text-sm font-semibold text-[#e6402e] disabled:opacity-60"
-              >
-                <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete order"}
-              </button>
-            )}
+            <div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
+                <span className="font-black font-mono text-base text-amber-600 dark:text-amber-400">
+                  Rs {order.bills?.totalWithTax?.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {order.orderStatus === "Pending" && (
+                  <>
+                    <button
+                      onClick={() => acceptAndProcess(order)}
+                      disabled={statusMutation.isPending}
+                      className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 font-bold text-xs text-white shadow-sm transition disabled:opacity-60"
+                    >
+                      Accept &amp; Process
+                    </button>
+                    <button
+                      onClick={() => setStatus(order, "Accepted")}
+                      disabled={statusMutation.isPending}
+                      className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 py-2.5 font-bold text-xs text-slate-800 dark:text-slate-200 transition disabled:opacity-60"
+                    >
+                      Accept Only
+                    </button>
+                  </>
+                )}
+
+                {order.orderStatus !== "Pending" && NEXT_ACTION[order.orderStatus] && (
+                  <button
+                    onClick={() => setStatus(order, NEXT_ACTION[order.orderStatus].to)}
+                    disabled={statusMutation.isPending}
+                    className="flex-1 rounded-xl bg-amber-500 hover:bg-amber-400 py-2.5 font-black text-xs text-slate-950 shadow-sm transition disabled:opacity-60"
+                  >
+                    {NEXT_ACTION[order.orderStatus].label}
+                  </button>
+                )}
+
+                {!["Completed", "Cancelled"].includes(order.orderStatus) && canEditOrder(role) && (
+                  <button
+                    onClick={() => setEditingOrder(order)}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 transition"
+                  >
+                    <FaPen size={11} /> Edit
+                  </button>
+                )}
+
+                {!["Completed", "Cancelled"].includes(order.orderStatus) && canCancelOrder(role) && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
+                        setStatus(order, "Cancelled");
+                      }
+                    }}
+                    disabled={statusMutation.isPending}
+                    className="flex-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 transition disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                )}
+
+                {["Completed", "Cancelled"].includes(order.orderStatus) && (
+                  <span
+                    className={`w-full rounded-xl py-2 text-center text-xs font-bold ${
+                      order.orderStatus === "Completed"
+                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                        : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
+                    }`}
+                  >
+                    {order.orderStatus}
+                  </span>
+                )}
+              </div>
+
+              {canDeleteOrder(role, order.orderStatus) && (
+                <button
+                  onClick={() => handleDelete(order)}
+                  disabled={deleteMutation.isPending}
+                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 py-2 text-xs font-semibold text-slate-400 transition disabled:opacity-60"
+                >
+                  <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete Order"}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

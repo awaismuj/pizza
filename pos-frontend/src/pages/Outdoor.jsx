@@ -8,6 +8,7 @@ import MenuContainer from "../components/menu/MenuContainer";
 import Invoice from "../components/invoice/Invoice";
 import { addOrder, createOrderRazorpay, verifyPaymentRazorpay } from "../https";
 import useTaxRate from "../hooks/useTaxRate";
+import { useUITheme } from "../context/UIThemeContext";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -27,6 +28,7 @@ function loadScript(src) {
 // right before submitting. The bill prints automatically the moment the
 // order is created — no extra click needed.
 const Outdoor = () => {
+  const { isClean } = useUITheme();
   const queryClient = useQueryClient();
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
@@ -155,19 +157,22 @@ const Outdoor = () => {
   };
 
   return (
-    <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] lg:h-[calc(100vh-5rem)] overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row gap-3 pb-40 lg:pb-0">
-      {/* Left: menu - scrolls its own content on desktop; pb-28 clears the
-          fixed BottomNav so the last row of dishes is actually reachable. */}
-      <div className="w-full lg:flex-[3] lg:h-full lg:overflow-y-auto lg:pb-28">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-10">
-          <div className="flex items-center gap-4">
+    <section
+      className={`min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 pb-36 lg:pb-6 transition-colors ${
+        isClean ? "bg-transparent text-slate-900" : "bg-[#1f1f1f] text-slate-100"
+      }`}
+    >
+      {/* Left: menu */}
+      <div className="w-full lg:flex-[3] flex flex-col">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm mb-4">
+          <div className="flex items-center gap-3">
             <BackButton />
             <div>
-              <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                 Outdoor / Takeaway
               </h1>
-              <p className="text-xs text-[#ababab] font-medium">
-                No name or table needed — pick items and submit
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Fast counter takeaway — select items and complete in one tap
               </p>
             </div>
           </div>
@@ -176,103 +181,126 @@ const Outdoor = () => {
         <MenuContainer onAddToCart={handleAddToCart} />
       </div>
 
-      {/* Right: local cart + one-click submit. No explicit lg:h-full
-          (h-auto instead) so the flex row's default align-items:stretch
-          auto-computes the height - that's what makes lg:mb-36 actually
-          reserve real space instead of just pushing the panel past the
-          container's bottom. That reserved space is for the fixed
-          BottomNav *and* the WhatsApp button that floats above it (both
-          global, on every page) - without it, the Submit Order button ends
-          up rendered underneath them. */}
-      <div className="w-full lg:flex-[1] bg-[#1a1a1a] mx-3 mb-4 lg:mx-0 lg:mt-4 lg:mr-3 lg:mb-36 lg:h-auto rounded-lg pt-2 flex flex-col">
-        <div className="px-5 pt-3 pb-2">
-          <h1 className="text-lg text-[#f5f5f5] font-semibold tracking-wide">
-            🥡 Takeaway Order
-          </h1>
-          <p className="text-xs text-[#ababab] font-medium">
-            {cart.length} item{cart.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <hr className="border-[#2a2a2a] border-t-2" />
-
-        <div className="flex-1 overflow-y-auto px-5 py-3">
-          {cart.length === 0 ? (
-            <p className="text-[#5f5f5f] text-sm text-center mt-10">
-              No items yet — tap 🛒 on any menu item to add it here.
+      {/* Right: local cart + submit (Symmetrical, high-contrast, crystal-clear) */}
+      <div className="w-full lg:flex-[1.1] flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden h-fit">
+        <div className="p-4 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🥡</span> Takeaway Order
+            </h2>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+              {cart.length} item{cart.length === 1 ? "" : "s"} added
             </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {cart.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[#f5f5f5] text-sm font-medium truncate">
-                      {item.icon ? `${item.icon} ` : ""}
-                      {item.name} x{item.quantity}
-                    </p>
-                    <p className="text-[#ababab] text-xs">Rs {item.price.toFixed(2)}</p>
-                  </div>
-                  <button
-                    onClick={() => removeItem(item.id)}
-                    className="text-[#e05353] p-2 shrink-0"
-                    aria-label={`Remove ${item.name}`}
-                  >
-                    <FaTrash size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
+          </div>
+          {cart.length > 0 && (
+            <button
+              onClick={() => setCart([])}
+              className="text-xs font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 transition"
+            >
+              Clear Cart
+            </button>
           )}
         </div>
 
-        <hr className="border-[#2a2a2a] border-t-2" />
-
-        <div className="px-5 pt-3">
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs text-[#ababab] font-medium">Subtotal</p>
-            <h1 className="text-[#f5f5f5] text-md font-bold">Rs {total.toFixed(2)}</h1>
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-xs text-[#ababab] font-medium">Tax ({taxRate}%)</p>
-            <h1 className="text-[#f5f5f5] text-md font-bold">Rs {tax.toFixed(2)}</h1>
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-xs text-[#ababab] font-medium">Total</p>
-            <h1 className="text-[#f5f5f5] text-lg font-bold">Rs {totalWithTax.toFixed(2)}</h1>
-          </div>
+        <div className="max-h-[360px] overflow-y-auto p-4 space-y-3">
+          {cart.length === 0 ? (
+            <div className="py-12 text-center">
+              <span className="text-3xl block mb-2 opacity-60">🛒</span>
+              <p className="text-sm font-semibold text-slate-400 dark:text-slate-500">
+                Cart is empty
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                Tap the shopping cart button on any item to add.
+              </p>
+            </div>
+          ) : (
+            cart.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 transition"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {item.icon ? `${item.icon} ` : ""}
+                    {item.name}
+                  </p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+                    Qty: {item.quantity} · Rs {item.price.toFixed(2)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => removeItem(item.id)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
+                  aria-label={`Remove ${item.name}`}
+                >
+                  <FaTrash size={12} />
+                </button>
+              </div>
+            ))
+          )}
         </div>
 
-        <div className="flex items-center gap-3 px-5 mt-4">
-          <button
-            onClick={() => setPaymentMethod("Cash")}
-            className={`bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${
-              paymentMethod === "Cash" ? "bg-[#383737] text-[#f5f5f5]" : ""
-            }`}
-          >
-            💵 Cash
-          </button>
-          <button
-            onClick={() => setPaymentMethod("Online")}
-            className={`bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${
-              paymentMethod === "Online" ? "bg-[#383737] text-[#f5f5f5]" : ""
-            }`}
-          >
-            💳 Online
-          </button>
-        </div>
+        <div className="p-4 bg-slate-50/80 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span>Subtotal</span>
+            <span className="text-slate-800 dark:text-slate-200 font-mono font-bold">
+              Rs {total.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span>Tax ({taxRate}%)</span>
+            <span className="text-slate-800 dark:text-slate-200 font-mono font-bold">
+              Rs {tax.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+            <span className="text-sm font-black text-slate-900 dark:text-white">Payable Total</span>
+            <span className="text-lg font-black font-mono text-amber-600 dark:text-amber-400">
+              Rs {totalWithTax.toFixed(2)}
+            </span>
+          </div>
 
-        <div className="px-5 mt-4 mb-4">
-          <button
-            onClick={handleSubmit}
-            disabled={isProcessing || orderMutation.isPending || cart.length === 0}
-            className="bg-[#f6b100] px-4 py-4 w-full rounded-lg text-[#1f1f1f] font-bold text-lg disabled:opacity-60"
-          >
-            {isProcessing || orderMutation.isPending
-              ? "Submitting..."
-              : `Submit Order · Rs ${totalWithTax.toFixed(2)}`}
-          </button>
-          <p className="text-[10px] text-[#6b6b6b] text-center mt-2">
-            Bill prints automatically once the order is submitted.
-          </p>
+          {/* Payment Method Selector */}
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("Cash")}
+              className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+                paymentMethod === "Cash"
+                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <span>💵 Cash</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("Online")}
+              className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+                paymentMethod === "Online"
+                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <span>💳 Online</span>
+            </button>
+          </div>
+
+          {/* Submit Action */}
+          <div className="pt-2">
+            <button
+              onClick={handleSubmit}
+              disabled={isProcessing || orderMutation.isPending || cart.length === 0}
+              className="pos-btn-primary w-full py-3.5 text-sm font-black rounded-xl shadow-md shadow-amber-500/20 disabled:opacity-40"
+            >
+              {isProcessing || orderMutation.isPending
+                ? "Submitting Order..."
+                : `Submit Order · Rs ${totalWithTax.toFixed(2)}`}
+            </button>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-2 font-medium">
+              Receipt prints automatically once submitted.
+            </p>
+          </div>
         </div>
       </div>
 

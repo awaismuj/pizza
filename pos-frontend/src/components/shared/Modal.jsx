@@ -1,33 +1,40 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-
 
 const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+  const content = (
+    <div className="pos-modal-backdrop" onClick={onClose}>
       <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="bg-[#1a1a1a] rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center px-4 sm:px-6 py-4 border-b border-b-[#333] shrink-0">
-          <h2 className="text-lg sm:text-xl text-[#f5f5f5] font-semibold">{title}</h2>
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="pos-modal-card max-w-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 shrink-0 sticky top-0 z-10">
+          <h2 className="text-base sm:text-lg text-slate-900 dark:text-white font-extrabold tracking-tight">{title}</h2>
           <button
-            className="text-gray-500 text-2xl hover:text-gray-800 leading-none px-1"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-xl leading-none"
             onClick={onClose}
+            aria-label="Close modal"
           >
             &times;
           </button>
         </div>
-        <div className="p-4 sm:p-6 overflow-y-auto">
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1">
           {children}
         </div>
       </motion.div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(content, document.body) : content;
 };
 
 export default Modal;
+
+

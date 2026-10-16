@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -141,80 +142,86 @@ const NewOrderPopup = () => {
 
   const total = current.bills?.totalWithTax;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        className="w-full max-w-md overflow-hidden rounded-xl border border-[#f6b100] bg-[#1f1f1f] shadow-2xl"
-      >
-        <div className="flex items-center justify-between bg-[#f6b100] px-5 py-3">
-          <h2 className="text-lg font-bold text-[#1f1f1f]">New Online Order</h2>
-          {queue.length > 1 && (
-            <span className="rounded-full bg-[#1f1f1f]/20 px-2 py-0.5 text-xs font-semibold text-[#1f1f1f]">
-              +{queue.length - 1} more waiting
-            </span>
-          )}
-        </div>
-
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-[#f5f5f5]">{current.customerDetails?.name}</h3>
-            <span className="text-xs text-[#ababab]">
-              {new Date(current.orderDate).toLocaleTimeString()}
-            </span>
-          </div>
-          <p className="text-xs text-[#ababab]">{current.customerDetails?.phone}</p>
-          {current.customerDetails?.address && (
-            <p className="mt-1 text-xs text-[#ababab]">{current.customerDetails.address}</p>
-          )}
-
-          <ul className="mt-3 max-h-40 space-y-1 overflow-y-auto text-sm text-[#f5f5f5]">
-            {(current.items || []).map((item, idx) => (
-              <li key={idx} className="flex justify-between">
-                <span>
-                  {item.quantity}x {item.name}
-                </span>
-                <span>Rs {(item.price * item.quantity).toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-3 flex items-center justify-between border-t border-[#383838] pt-2">
-            <span className="text-sm text-[#ababab]">Total</span>
-            <span className="font-semibold text-[#f5f5f5]">
-              Rs {typeof total === "number" ? total.toFixed(2) : "-"}
-            </span>
+    return createPortal(
+      <div className="pos-modal-backdrop">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="pos-modal-card max-w-md p-6 border-amber-400 dark:border-amber-500 shadow-2xl"
+        >
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔔</span>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">New Online Order</h2>
+            </div>
+            {queue.length > 1 && (
+              <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-2.5 py-0.5 text-xs font-bold text-amber-800 dark:text-amber-300">
+                +{queue.length - 1} more waiting
+              </span>
+            )}
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              onClick={() => handleDecide("Cancelled")}
-              disabled={statusMutation.isPending}
-              className="flex-1 rounded-lg bg-[#be3e3f] py-3 font-semibold text-[#f5f5f5] disabled:opacity-60"
-            >
-              Decline
-            </button>
-            <button
-              onClick={() => handleDecide("Accepted")}
-              disabled={statusMutation.isPending}
-              className="flex-1 rounded-lg bg-[#2e4a40] py-3 font-semibold text-[#02ca3a] disabled:opacity-60"
-            >
-              Accept
-            </button>
-            <button
-              onClick={handleAcceptAndProcess}
-              disabled={statusMutation.isPending}
-              className="w-full rounded-lg bg-[#02ca3a] py-3 font-semibold text-[#1f1f1f] disabled:opacity-60"
-            >
-              Accept &amp; Send to Processing
-            </button>
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">{current.customerDetails?.name}</h3>
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                {new Date(current.orderDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{current.customerDetails?.phone}</p>
+            {current.customerDetails?.address && (
+              <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60">
+                📍 {current.customerDetails.address}
+              </p>
+            )}
+
+            <ul className="mt-3 max-h-36 space-y-1 overflow-y-auto pr-1 text-xs text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800 pt-2">
+              {(current.items || []).map((item, idx) => (
+                <li key={idx} className="flex justify-between py-0.5">
+                  <span className="font-medium">
+                    {item.quantity}x {item.name}
+                  </span>
+                  <span className="font-mono font-semibold">Rs {(item.price * item.quantity).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total</span>
+              <span className="font-black font-mono text-base text-amber-600 dark:text-amber-400">
+                Rs {typeof total === "number" ? total.toFixed(2) : "-"}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              <button
+                onClick={() => handleDecide("Cancelled")}
+                disabled={statusMutation.isPending}
+                className="flex-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 py-3 font-bold text-xs text-rose-600 dark:text-rose-400 transition disabled:opacity-60"
+              >
+                Decline
+              </button>
+              <button
+                onClick={() => handleDecide("Accepted")}
+                disabled={statusMutation.isPending}
+                className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 py-3 font-bold text-xs text-slate-800 dark:text-slate-200 transition disabled:opacity-60"
+              >
+                Accept Only
+              </button>
+              <button
+                onClick={handleAcceptAndProcess}
+                disabled={statusMutation.isPending}
+                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 font-black text-xs text-white shadow-md shadow-emerald-600/20 transition disabled:opacity-60"
+              >
+                Accept &amp; Send to Processing
+              </button>
+            </div>
           </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
+        </motion.div>
+      </div>,
+      document.body
+    );
+  };
 
 export default NewOrderPopup;

@@ -10,6 +10,7 @@ import { canEditOrder, canCancelOrder, canDeleteOrder } from "../../utils/orderP
 import OrderStageTracker from "./OrderStageTracker";
 import Invoice from "../invoice/Invoice";
 import EditOrderModal from "./EditOrderModal";
+import { useUITheme } from "../../context/UIThemeContext";
 
 // Orders finish on different final statuses depending on source (dine-in/
 // takeaway end at "Closed", online orders end at "Completed") — either one
@@ -19,6 +20,7 @@ const COMPLETION_STATUSES = ["Closed", "Completed"];
 
 const OrderCard = ({ order }) => {
   const queryClient = useQueryClient();
+  const { isClean } = useUITheme();
   const role = useSelector((state) => state.user.role);
   const isOnline = order.orderSource === "Online";
   const isTakeaway = !isOnline && !order.table;
@@ -78,19 +80,37 @@ const OrderCard = ({ order }) => {
   };
 
   return (
-    <div className="w-full bg-slate-900/95 border border-slate-800 hover:border-slate-700 p-4 rounded-2xl shadow-xl transition-all duration-200 flex flex-col justify-between">
+    <div
+      className={`w-full p-4 rounded-2xl transition-all duration-200 flex flex-col justify-between border ${
+        isClean
+          ? "bg-white border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-md"
+          : "bg-slate-900/95 border-slate-800 hover:border-slate-700 shadow-xl"
+      }`}
+    >
       <div>
         {/* Ticket Header */}
-        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-800/80">
+        <div
+          className={`flex items-start justify-between gap-3 pb-3 border-b ${
+            isClean ? "border-slate-100" : "border-slate-800/80"
+          }`}
+        >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-bold text-sm flex items-center justify-center shrink-0 shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
               {getAvatarName(order.customerDetails.name)}
             </div>
             <div className="min-w-0">
-              <h3 className="text-white text-base font-bold truncate leading-tight">
+              <h3
+                className={`text-base font-extrabold truncate leading-tight ${
+                  isClean ? "text-slate-900" : "text-white"
+                }`}
+              >
                 {order.customerDetails.name}
               </h3>
-              <p className="text-slate-400 text-xs mt-0.5 font-mono">
+              <p
+                className={`text-xs mt-0.5 font-mono ${
+                  isClean ? "text-slate-500 font-semibold" : "text-slate-400"
+                }`}
+              >
                 Order #{getOrderNumber(order)}
               </p>
             </div>
@@ -100,7 +120,7 @@ const OrderCard = ({ order }) => {
             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusPillClass(order.orderStatus)}`}>
               {STAGE_LABELS[order.orderStatus] || order.orderStatus}
             </span>
-            <span className="text-[11px] font-medium text-slate-400">
+            <span className={`text-[11px] font-semibold ${isClean ? "text-slate-600" : "text-slate-400"}`}>
               {isOnline ? "🌐 Online" : isTakeaway ? "🥡 Takeaway" : `🪑 Table ${order.table?.tableNo ?? "—"}`}
             </span>
           </div>
@@ -112,19 +132,39 @@ const OrderCard = ({ order }) => {
         </div>
 
         {/* Order Details & Items Count */}
-        <div className="flex justify-between items-center py-2 text-xs text-slate-400">
+        <div
+          className={`flex justify-between items-center py-2 text-xs ${
+            isClean ? "text-slate-500 font-medium" : "text-slate-400"
+          }`}
+        >
           <span>{formatDateAndTime(order.orderDate)}</span>
-          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-semibold">
+          <span
+            className={`px-2 py-0.5 rounded-md font-bold ${
+              isClean ? "bg-slate-100 text-slate-700" : "bg-slate-800 text-slate-300"
+            }`}
+          >
             {order.items.length} {order.items.length === 1 ? "Item" : "Items"}
           </span>
         </div>
 
         {/* Bill Total */}
-        <div className="flex items-center justify-between py-2 border-t border-slate-800/80 my-1">
-          <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">
+        <div
+          className={`flex items-center justify-between py-2 border-t my-1 ${
+            isClean ? "border-slate-100" : "border-slate-800/80"
+          }`}
+        >
+          <span
+            className={`text-xs uppercase tracking-wider font-bold ${
+              isClean ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Total Amount
           </span>
-          <span className="text-white text-base font-bold font-mono">
+          <span
+            className={`text-base font-black font-mono ${
+              isClean ? "text-slate-900" : "text-white"
+            }`}
+          >
             Rs {order.bills.totalWithTax.toFixed(2)}
           </span>
         </div>
@@ -132,12 +172,16 @@ const OrderCard = ({ order }) => {
 
       {/* Action Buttons */}
       {!isTerminal && (
-        <div className="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap gap-2">
+        <div
+          className={`mt-3 pt-3 border-t flex flex-wrap gap-2 ${
+            isClean ? "border-slate-100" : "border-slate-800/80"
+          }`}
+        >
           {next && (
             <button
               onClick={() => setStatus(next.to)}
               disabled={statusMutation.isPending}
-              className="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-md shadow-emerald-500/20 disabled:opacity-60 flex items-center justify-center gap-1"
+              className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition shadow-sm disabled:opacity-60 flex items-center justify-center gap-1"
             >
               <span>{next.label}</span>
               <span>→</span>
@@ -146,10 +190,14 @@ const OrderCard = ({ order }) => {
           {canEditOrder(role) && (
             <button
               onClick={() => setShowEditModal(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100]"
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-xs border transition ${
+                isClean
+                  ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"
+                  : "bg-[#2a2a2a] text-[#f6b100] border-transparent"
+              }`}
               aria-label="Edit order"
             >
-              <FaPen size={12} /> Edit
+              <FaPen size={11} /> Edit
             </button>
           )}
           {canCancelOrder(role) && (
@@ -160,7 +208,11 @@ const OrderCard = ({ order }) => {
                 }
               }}
               disabled={statusMutation.isPending}
-              className="rounded-lg bg-[#be3e3f] px-4 py-2 font-semibold text-[#f5f5f5] disabled:opacity-60"
+              className={`rounded-xl px-3 py-2 font-bold text-xs border transition disabled:opacity-60 ${
+                isClean
+                  ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
+                  : "bg-[#be3e3f] text-[#f5f5f5] border-transparent"
+              }`}
             >
               Cancel
             </button>
@@ -172,17 +224,16 @@ const OrderCard = ({ order }) => {
         <button
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#3f1f1f] py-2 text-sm font-semibold text-[#e6402e] disabled:opacity-60"
+          className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold border transition disabled:opacity-60 ${
+            isClean
+              ? "bg-rose-50/70 hover:bg-rose-100 text-rose-700 border-rose-200"
+              : "bg-[#3f1f1f] text-[#e6402e] border-transparent"
+          }`}
         >
           <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete order"}
         </button>
       )}
 
-      {/* Shown here, and only here — the moment the order is actually
-          marked complete, not when it was first created. It does not
-          auto-print: it just appears on screen so staff can look it over
-          and click "Print Receipt" if a copy is needed, or "Close" to
-          dismiss it without printing. */}
       {printOrder && (
         <Invoice orderInfo={printOrder} setShowInvoice={() => setPrintOrder(null)} />
       )}
@@ -193,3 +244,5 @@ const OrderCard = ({ order }) => {
 };
 
 export default OrderCard;
+
+

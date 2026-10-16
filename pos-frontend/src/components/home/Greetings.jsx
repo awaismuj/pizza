@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useUITheme } from "../../context/UIThemeContext";
 
 const Greetings = () => {
   const userData = useSelector(state => state.user);
+  const { isClean } = useUITheme();
   const [dateTime, setDateTime] = useState(new Date());
 
   useEffect(() => {
@@ -34,20 +36,42 @@ const Greetings = () => {
   return (
     <div className="flex flex-col gap-3 px-2 sm:px-4 md:flex-row md:items-center md:justify-between md:px-8">
       <div className="min-w-0">
-        <h1 className="text-white text-xl font-extrabold tracking-tight sm:text-2xl">
+        <h1
+          className={`text-xl font-black tracking-tight sm:text-2xl ${
+            isClean ? "text-slate-900" : "text-white"
+          }`}
+        >
           {greetingText}, {userData.name || "Shift Manager"}
         </h1>
-        <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+        <p
+          className={`text-xs sm:text-sm mt-0.5 ${
+            isClean ? "text-slate-600 font-medium" : "text-slate-400"
+          }`}
+        >
           Terminal ready. Monitor live sales, manage floor tables, and fulfill kitchen orders.
         </p>
       </div>
 
-      <div className="flex items-center gap-4 bg-slate-900/90 border border-slate-800 px-4 py-2.5 rounded-2xl shadow-md self-start md:self-auto">
+      <div
+        className={`flex items-center gap-4 px-4 py-2.5 rounded-2xl shadow-sm self-start md:self-auto transition-colors ${
+          isClean
+            ? "bg-white border border-slate-200/90 text-slate-800"
+            : "bg-slate-900/90 border border-slate-800 text-white"
+        }`}
+      >
         <div className="text-right">
-          <p className="text-white text-xl font-bold tracking-tight font-mono leading-none">
+          <p
+            className={`text-xl font-bold tracking-tight font-mono leading-none ${
+              isClean ? "text-slate-900" : "text-white"
+            }`}
+          >
             {formatTime(dateTime)}
           </p>
-          <p className="text-slate-400 text-[11px] font-medium mt-1">
+          <p
+            className={`text-[11px] font-semibold mt-1 ${
+              isClean ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             {formatDate(dateTime)}
           </p>
         </div>

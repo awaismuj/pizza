@@ -104,30 +104,30 @@ const EditOrderModal = ({ order, onClose }) => {
   return (
     <Modal isOpen onClose={onClose} title={`Edit order #${(order._id || "").slice(-6).toUpperCase()}`}>
       <div className="space-y-2">
-        {items.length === 0 && <p className="text-[#7a7a7a] text-sm">No items left — add one below, or close and cancel the order instead.</p>}
+        {items.length === 0 && <p className="text-slate-400 text-sm">No items left — add one below, or close and cancel the order instead.</p>}
         {items.map((it, index) => (
-          <div key={index} className="flex items-center justify-between gap-2 bg-[#111] rounded-lg px-3 py-2">
+          <div key={index} className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3.5 py-2.5">
             <div className="min-w-0 flex-1">
-              <p className="text-[#f5f5f5] text-sm font-medium truncate">
-                {it.isDeal && <span className="mr-1 rounded bg-[#f6b100] px-1 text-[10px] font-bold text-black">DEAL</span>}
+              <p className="text-slate-900 dark:text-white text-sm font-bold truncate">
+                {it.isDeal && <span className="mr-1.5 rounded-md bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-slate-950">DEAL</span>}
                 {it.name}
               </p>
-              <p className="text-[#7a7a7a] text-xs">Rs {(Number(it.price) || 0).toFixed(2)} each</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">Rs {(Number(it.price) || 0).toFixed(2)} each</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => updateQty(index, -1)}
-                className="w-7 h-7 rounded bg-[#262626] text-[#f5f5f5] flex items-center justify-center"
+                className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 flex items-center justify-center hover:bg-slate-300 transition"
                 aria-label="Decrease quantity"
               >
                 <FaMinus size={10} />
               </button>
-              <span className="w-6 text-center text-[#f5f5f5] text-sm">{it.quantity}</span>
+              <span className="w-6 text-center text-slate-900 dark:text-white font-bold text-sm">{it.quantity}</span>
               <button
                 type="button"
                 onClick={() => updateQty(index, 1)}
-                className="w-7 h-7 rounded bg-[#262626] text-[#f5f5f5] flex items-center justify-center"
+                className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 flex items-center justify-center hover:bg-slate-300 transition"
                 aria-label="Increase quantity"
               >
                 <FaPlus size={10} />
@@ -135,7 +135,7 @@ const EditOrderModal = ({ order, onClose }) => {
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="text-red-400 hover:text-red-300 px-1"
+                className="p-1.5 text-rose-500 hover:text-rose-700 transition"
                 aria-label="Remove item"
               >
                 <FaTrash size={13} />
@@ -149,13 +149,13 @@ const EditOrderModal = ({ order, onClose }) => {
         <select
           value={addDishId}
           onChange={(e) => setAddDishId(e.target.value)}
-          className="flex-1 bg-[#262626] text-white rounded-lg px-2 py-2 outline-none text-sm min-w-0"
+          className="pos-input flex-1 text-sm min-w-0"
         >
-          <option value="" className="bg-[#1f1f1f]">
+          <option value="">
             Add a dish…
           </option>
           {dishes.map((d) => (
-            <option key={d._id} value={d._id} className="bg-[#1f1f1f]">
+            <option key={d._id} value={d._id}>
               {d.name} {d.variants?.length ? `(from Rs ${d.price})` : `(Rs ${d.price})`}
             </option>
           ))}
@@ -164,23 +164,23 @@ const EditOrderModal = ({ order, onClose }) => {
           type="button"
           onClick={addDish}
           disabled={!addDishId}
-          className="rounded-lg bg-[#262626] hover:bg-[#333] text-[#f6b100] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          className="pos-btn-secondary"
         >
           Add
         </button>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-[#333] pt-3">
-        <span className="text-[#ababab] text-sm">New subtotal (before tax)</span>
-        <span className="text-[#f5f5f5] font-semibold">Rs {previewTotal.toFixed(2)}</span>
+      <div className="mt-4 flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-3">
+        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">New subtotal (before tax)</span>
+        <span className="text-slate-900 dark:text-white font-extrabold text-base">Rs {previewTotal.toFixed(2)}</span>
       </div>
-      <p className="text-[#7a7a7a] text-xs mt-1">Tax and the final total are recalculated automatically when you save.</p>
+      <p className="text-slate-400 text-xs mt-1">Tax and the final total are recalculated automatically when you save.</p>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-5 flex gap-2.5">
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 rounded-lg bg-[#262626] text-[#ababab] py-2.5 text-sm font-medium"
+          className="pos-btn-secondary flex-1 py-2.5 text-xs font-bold"
         >
           Cancel
         </button>
@@ -188,7 +188,7 @@ const EditOrderModal = ({ order, onClose }) => {
           type="button"
           onClick={handleSave}
           disabled={mutation.isPending}
-          className="flex-1 rounded-lg bg-yellow-400 text-gray-900 py-2.5 text-sm font-bold disabled:opacity-60"
+          className="pos-btn-primary flex-1 py-2.5 text-xs font-bold"
         >
           {mutation.isPending ? "Saving…" : "Save changes"}
         </button>

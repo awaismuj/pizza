@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setCustomer } from "../../redux/slices/customerSlice";
@@ -6,10 +7,12 @@ import { useQuery } from "@tanstack/react-query";
 import { getTables } from "../../https";
 import { MdTableBar, MdShoppingBag, MdClose, MdPerson, MdPhone } from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
+import { useUITheme } from "../../context/UIThemeContext";
 
 const ModernNewOrderModal = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { isClean } = useUITheme();
 
   const [orderType, setOrderType] = useState("dineIn"); // "dineIn" | "takeaway"
   const [name, setName] = useState("");
@@ -88,24 +91,45 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-[#0F172A] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+  const modalJSX = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto border transition-colors ${
+          isClean
+            ? "bg-white border-slate-200 text-slate-900"
+            : "bg-[#0F172A] border-slate-800 text-slate-100"
+        }`}
+      >
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/60">
+        <div
+          className={`flex items-center justify-between px-6 py-4 border-b ${
+            isClean ? "bg-slate-50 border-slate-200" : "bg-slate-900/60 border-slate-800"
+          }`}
+        >
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+            <div
+              className={`p-2 rounded-xl ${
+                isClean ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-amber-500/10 text-amber-400"
+              }`}
+            >
               <BiSolidDish size={22} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white leading-tight">Create New Order</h3>
-              <p className="text-xs text-slate-400">Tossdown POS Fast Checkout Flow</p>
+              <h3 className={`text-base font-extrabold leading-tight ${isClean ? "text-slate-900" : "text-white"}`}>
+                Create New Order
+              </h3>
+              <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+                Tossdown POS Fast Checkout Flow
+              </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className={`p-1.5 rounded-lg transition ${
+              isClean ? "text-slate-400 hover:text-slate-800 hover:bg-slate-100" : "text-slate-400 hover:text-white hover:bg-slate-800"
+            }`}
           >
             <MdClose size={20} />
           </button>
@@ -114,13 +138,19 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
         {/* Modal Body */}
         <div className="p-6 space-y-5 overflow-y-auto">
           {/* Order Type Toggle: Dine In vs Takeaway */}
-          <div className="grid grid-cols-2 gap-3 p-1 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div
+            className={`grid grid-cols-2 gap-3 p-1 rounded-xl border ${
+              isClean ? "bg-slate-100 border-slate-200" : "bg-slate-900/80 border-slate-800"
+            }`}
+          >
             <button
               type="button"
               onClick={() => setOrderType("dineIn")}
-              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-xs transition ${
+              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition ${
                 orderType === "dineIn"
-                  ? "bg-amber-500 text-slate-950 shadow-md font-bold"
+                  ? "bg-amber-500 text-slate-950 shadow-sm font-black"
+                  : isClean
+                  ? "text-slate-600 hover:text-slate-900"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -131,9 +161,11 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={() => setOrderType("takeaway")}
-              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-xs transition ${
+              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition ${
                 orderType === "takeaway"
-                  ? "bg-amber-500 text-slate-950 shadow-md font-bold"
+                  ? "bg-amber-500 text-slate-950 shadow-sm font-black"
+                  : isClean
+                  ? "text-slate-600 hover:text-slate-900"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -144,7 +176,7 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
 
           {/* Customer Name */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
               Customer Name
             </label>
             <div className="relative">
@@ -154,14 +186,18 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Walk-In Customer (or enter name)"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition outline-none ${
+                  isClean
+                    ? "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                    : "bg-slate-900 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500"
+                }`}
               />
             </div>
           </div>
 
           {/* Customer Phone */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
               Customer Phone
             </label>
             <div className="relative">
@@ -171,7 +207,11 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+923001234567"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition outline-none ${
+                  isClean
+                    ? "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                    : "bg-slate-900 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500"
+                }`}
               />
             </div>
           </div>
@@ -180,24 +220,36 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
             <>
               {/* Guest Count */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
                   Guest Count
                 </label>
-                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900 border border-slate-800">
+                <div
+                  className={`flex items-center justify-between p-2 rounded-xl border ${
+                    isClean ? "bg-slate-50 border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => setGuestCount((g) => Math.max(1, g - 1))}
-                    className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg flex items-center justify-center transition"
+                    className={`w-9 h-9 rounded-lg font-bold text-lg flex items-center justify-center transition border ${
+                      isClean
+                        ? "bg-white text-slate-800 border-slate-200 hover:bg-slate-100 shadow-xs"
+                        : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
+                    }`}
                   >
                     -
                   </button>
-                  <span className="text-sm font-bold text-white">
+                  <span className={`text-sm font-black ${isClean ? "text-slate-900" : "text-white"}`}>
                     {guestCount} {guestCount === 1 ? "Person" : "Persons"}
                   </span>
                   <button
                     type="button"
                     onClick={() => setGuestCount((g) => Math.min(20, g + 1))}
-                    className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-lg flex items-center justify-center transition"
+                    className={`w-9 h-9 rounded-lg font-bold text-lg flex items-center justify-center transition border ${
+                      isClean
+                        ? "bg-white text-slate-800 border-slate-200 hover:bg-slate-100 shadow-xs"
+                        : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
+                    }`}
                   >
                     +
                   </button>
@@ -206,7 +258,7 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
 
               {/* Direct Table Picker in Modal */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
                   Assign Table (Optional - Or select on floor plan)
                 </label>
                 <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 scrollbar-hide">
@@ -220,18 +272,22 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
                         className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
                           isSelected
                             ? "bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md shadow-amber-500/20"
+                            : isClean
+                            ? "bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-xs"
                             : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300"
                         }`}
                       >
                         <span className="text-xs font-bold leading-tight">
                           Table {table.tableNo}
                         </span>
-                        <span className="text-[10px] opacity-75">{table.seats} seats</span>
+                        <span className={`text-[10px] ${isClean ? "text-slate-500" : "opacity-75"}`}>
+                          {table.seats} seats
+                        </span>
                       </button>
                     );
                   })}
                   {availableTables.length === 0 && (
-                    <p className="col-span-full text-xs text-slate-500 py-2">
+                    <p className={`col-span-full text-xs py-2 ${isClean ? "text-slate-500" : "text-slate-500"}`}>
                       No tables currently available.
                     </p>
                   )}
@@ -242,11 +298,19 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-900/60">
+        <div
+          className={`flex items-center justify-end gap-3 px-6 py-4 border-t ${
+            isClean ? "bg-slate-50 border-slate-200" : "bg-slate-900/60 border-slate-800"
+          }`}
+        >
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-xs transition"
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition border ${
+              isClean
+                ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                : "border-slate-700 text-slate-300 hover:bg-slate-800"
+            }`}
           >
             Cancel
           </button>
@@ -254,7 +318,7 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={handleStartOrder}
-            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-lg shadow-amber-500/20 flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition shadow-md shadow-amber-500/20 flex items-center gap-2"
           >
             <span>Proceed to Menu</span>
             <span>&rarr;</span>
@@ -263,6 +327,8 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalJSX, document.body) : modalJSX;
 };
 
 export default ModernNewOrderModal;

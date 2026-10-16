@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { getAvatarName, getBgColor } from "../../utils"
+import { getAvatarName, getBgColor } from "../../utils";
 import { useDispatch } from "react-redux";
 import { updateTable as updateTableInCart } from "../../redux/slices/customerSlice";
 import { FaLongArrowAltRight } from "react-icons/fa";
@@ -10,11 +10,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import Modal from "../shared/Modal";
 import { updateTable as updateTableApi, deleteTable as deleteTableApi } from "../../https";
+import { useUITheme } from "../../context/UIThemeContext";
 
-const TableCard = ({id, name, status, initials, seats}) => {
+const TableCard = ({ id, name, status, initials, seats }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isClean } = useUITheme();
   const role = useSelector((state) => state.user.role);
   const isAdmin = String(role || "").toLowerCase() === "admin";
 
@@ -23,10 +25,10 @@ const TableCard = ({id, name, status, initials, seats}) => {
   const [draftSeats, setDraftSeats] = useState(seats);
 
   const handleClick = (name) => {
-    if(status === "Booked") return;
+    if (status === "Booked") return;
 
-    const table = { tableId: id, tableNo: name }
-    dispatch(updateTableInCart({table}))
+    const table = { tableId: id, tableNo: name };
+    dispatch(updateTableInCart({ table }));
     navigate(`/menu`);
   };
 
@@ -70,8 +72,6 @@ const TableCard = ({id, name, status, initials, seats}) => {
     updateMutation.mutate(payload);
   };
 
-  // One-click fix for the exact bug this modal exists to solve: a table
-  // stuck on "Booked" with no order actually attached to it anymore.
   const handleForceRelease = () => {
     updateMutation.mutate({ status: "Available" });
   };
@@ -91,8 +91,12 @@ const TableCard = ({id, name, status, initials, seats}) => {
     <div
       onClick={() => handleClick(name)}
       key={id}
-      className={`relative w-full rounded-2xl p-5 cursor-pointer transition-all duration-200 border shadow-lg group ${
-        isBooked
+      className={`relative w-full rounded-2xl p-5 cursor-pointer transition-all duration-200 border group ${
+        isClean
+          ? isBooked
+            ? "bg-white border-amber-300 shadow-sm hover:shadow-md"
+            : "bg-white border-slate-200/90 hover:border-amber-500/80 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+          : isBooked
           ? "bg-slate-900/90 border-slate-800 hover:border-slate-700 opacity-90"
           : "bg-slate-900/90 border-slate-800 hover:border-amber-500/60 hover:shadow-amber-500/10 hover:-translate-y-0.5"
       }`}
@@ -101,7 +105,11 @@ const TableCard = ({id, name, status, initials, seats}) => {
         <button
           onClick={openManage}
           aria-label={`Manage table ${name}`}
-          className="absolute top-4 right-4 z-10 text-slate-400 hover:text-amber-400 p-1.5 rounded-lg hover:bg-slate-800 transition"
+          className={`absolute top-4 right-4 z-10 p-1.5 rounded-lg transition ${
+            isClean
+              ? "text-slate-400 hover:text-amber-600 hover:bg-slate-100"
+              : "text-slate-400 hover:text-amber-400 hover:bg-slate-800"
+          }`}
           title="Configure table"
         >
           <FaGear size={15} />
@@ -111,10 +119,18 @@ const TableCard = ({id, name, status, initials, seats}) => {
       {/* Header: Table No & Status */}
       <div className="flex items-center justify-between pr-7 mb-4">
         <div>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <span
+            className={`text-[11px] font-bold uppercase tracking-wider ${
+              isClean ? "text-slate-500" : "text-slate-400"
+            }`}
+          >
             Station
           </span>
-          <h2 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-1.5">
+          <h2
+            className={`text-xl font-black tracking-tight flex items-center gap-1.5 ${
+              isClean ? "text-slate-900" : "text-white"
+            }`}
+          >
             Table {name}
           </h2>
         </div>
@@ -122,13 +138,23 @@ const TableCard = ({id, name, status, initials, seats}) => {
         <span
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
             isBooked
-              ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+              ? isClean
+                ? "bg-amber-50 text-amber-800 border-amber-300"
+                : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+              : isClean
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
               : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
           }`}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              isBooked ? "bg-amber-400" : "bg-emerald-400 animate-pulse"
+              isBooked
+                ? isClean
+                  ? "bg-amber-600"
+                  : "bg-amber-400"
+                : isClean
+                ? "bg-emerald-600 animate-pulse"
+                : "bg-emerald-400 animate-pulse"
             }`}
           ></span>
           {status}
@@ -138,26 +164,40 @@ const TableCard = ({id, name, status, initials, seats}) => {
       {/* Avatar & Guest initials */}
       <div className="flex flex-col items-center justify-center my-4 py-2">
         <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold text-white shadow-inner ring-2 ring-slate-800"
-          style={{ backgroundColor: initials ? getBgColor() : "#1E293B" }}
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold shadow-xs ring-2 ${
+            isClean ? "ring-slate-100 text-white" : "ring-slate-800 text-white"
+          }`}
+          style={{ backgroundColor: initials ? getBgColor() : isClean ? "#CBD5E1" : "#1E293B" }}
         >
           {getAvatarName(initials) || "—"}
         </div>
-        <p className="mt-2 text-xs font-medium text-slate-300 truncate max-w-[150px]">
+        <p
+          className={`mt-2 text-xs font-bold truncate max-w-[150px] ${
+            isClean ? "text-slate-700" : "text-slate-300"
+          }`}
+        >
           {initials || (isBooked ? "Occupied" : "Empty Table")}
         </p>
       </div>
 
       {/* Footer: Seats & Action CTA */}
-      <div className="flex items-center justify-between pt-3 border-t border-slate-800/80 text-xs text-slate-400">
+      <div
+        className={`flex items-center justify-between pt-3 border-t text-xs ${
+          isClean ? "border-slate-100 text-slate-500 font-medium" : "border-slate-800/80 text-slate-400"
+        }`}
+      >
         <span className="flex items-center gap-1">
-          Capacity: <strong className="text-slate-200">{seats} Seats</strong>
+          Capacity: <strong className={isClean ? "text-slate-800 font-bold" : "text-slate-200"}>{seats} Seats</strong>
         </span>
 
         <span
-          className={`font-semibold transition ${
+          className={`font-bold transition ${
             isBooked
-              ? "text-slate-500"
+              ? isClean
+                ? "text-slate-400"
+                : "text-slate-500"
+              : isClean
+              ? "text-amber-700 group-hover:translate-x-0.5"
               : "text-amber-400 group-hover:translate-x-0.5"
           }`}
         >

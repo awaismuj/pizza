@@ -318,61 +318,60 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] pb-14">
+    <div className="pos-page-container space-y-4">
       {/* Top Action Bar & Categorized Module Bar */}
-      <div className="container mx-auto px-4 sm:px-6 py-6 space-y-5">
-        {/* Header Title & Quick Create Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
-          <div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight">
-              Restaurant Management & Control Hub
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Configure menu, track inventory recipes, oversee staff & financial metrics
-            </p>
-          </div>
-
-          {isAdmin && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {buttons.map(({ label, icon, action }) => (
-                <button
-                  key={action}
-                  onClick={() => handleOpenModal(action)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs flex items-center gap-2 border border-slate-700/80 transition hover:border-amber-500/50 shadow-sm"
-                >
-                  <span className="text-amber-400">{icon}</span>
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-          )}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        <div>
+          <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
+            Restaurant Management & Control Hub
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Configure menu, track inventory recipes, oversee staff & financial metrics
+          </p>
         </div>
 
-        {/* Tab Pills - Sleek, scrollable, high-contrast module tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800">
-          {visibleTabs.map((tab) => {
-            const isActive = activeTab === tab;
-            return (
+        {isAdmin && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {buttons.map(({ label, icon, action }) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/80"
-                }`}
+                key={action}
+                onClick={() => handleOpenModal(action)}
+                className="pos-btn-secondary py-2"
               >
-                <span>{tab}</span>
+                <span className="text-amber-500">{icon}</span>
+                <span>{label}</span>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {activeTab === "Metrics" && <Metrics />}
-      {activeTab === "Orders" && <RecentOrders />}
-      {activeTab === "Payments" && <PaymentsOverview />}
-      {activeTab === "Tax" && <TaxManager />}
+      {/* Tab Pills - Sleek, scrollable, high-contrast module tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide p-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        {visibleTabs.map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
+                isActive
+                  ? "bg-amber-500 text-slate-950 shadow-xs font-black"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              }`}
+            >
+              <span>{tab}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Content Panes */}
+      <div className="pt-1">
+        {activeTab === "Metrics" && <Metrics />}
+        {activeTab === "Orders" && <RecentOrders />}
+        {activeTab === "Payments" && <PaymentsOverview />}
+        {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
@@ -804,6 +803,7 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+      </div>
 
       {isModalOpen && (
         <Modal action={modalAction} setIsModalOpen={setIsModalOpen} initialData={modalInitialData} />

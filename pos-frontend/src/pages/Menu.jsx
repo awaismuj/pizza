@@ -7,45 +7,59 @@ import CustomerInfo from "../components/menu/CustomerInfo";
 import CartInfo from "../components/menu/CartInfo";
 import Bill from "../components/menu/Bill";
 import { useSelector } from "react-redux";
+import { useUITheme } from "../context/UIThemeContext";
 
 const Menu = () => {
+  const { isClean } = useUITheme();
 
-    useEffect(() => {
-      document.title = "POS | Menu"
-    }, [])
+  useEffect(() => {
+    document.title = "POS | Menu";
+  }, []);
 
   const customerData = useSelector((state) => state.customer);
 
   return (
-    // `lg:overflow-hidden` here means neither side panel gets a free ride on
-    // page scroll at desktop widths - each one below is responsible for its
-    // own internal scrolling. Both used to skip that (no overflow-y-auto,
-    // no bottom clearance for the always-on fixed BottomNav), so on shorter
-    // 13-14" laptop screens the last row of dishes/table cards was simply
-    // clipped and unreachable - there was nothing to scroll.
-    // WhatsApp's floating button sits above the fixed BottomNav (not just
-    // on this page - it's global, in App.jsx), so bottom clearance has to
-    // cover both, not the nav bar alone. pb-24 was only clearing the nav.
-    <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] lg:h-[calc(100vh-5rem)] overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row gap-3 pb-40 lg:pb-0">
-      {/* Left Div - scrolls its own content on desktop; pb-28 clears the
-          fixed BottomNav so the last row of dishes is actually reachable. */}
-      <div className="w-full lg:flex-[3] lg:h-full lg:overflow-y-auto lg:pb-28">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-10">
-          <div className="flex items-center gap-4">
+    <section
+      className={`min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 pb-36 lg:pb-6 transition-colors ${
+        isClean ? "bg-transparent text-slate-900" : "bg-[#1f1f1f] text-slate-100"
+      }`}
+    >
+      {/* Left Div - Menu & Categories */}
+      <div className="w-full lg:flex-[3] flex flex-col">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm mb-4">
+          <div className="flex items-center gap-3">
             <BackButton />
-            <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
-              Menu
+            <h1
+              className={`text-xl sm:text-2xl font-black tracking-tight ${
+                isClean ? "text-slate-900" : "text-[#f5f5f5]"
+              }`}
+            >
+              Point of Sale Menu
             </h1>
           </div>
           <div className="flex items-center justify-around gap-4">
-            <div className="flex items-center gap-3 cursor-pointer">
-              <MdRestaurantMenu className="text-[#f5f5f5] text-4xl" />
+            <div className="flex items-center gap-3">
+              <div
+                className={`p-2 rounded-xl ${
+                  isClean ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-slate-800 text-amber-400"
+                }`}
+              >
+                <MdRestaurantMenu size={24} />
+              </div>
               <div className="flex flex-col items-start">
-                <h1 className="text-md text-[#f5f5f5] font-semibold tracking-wide">
-                  {customerData.customerName || "Customer Name"}
-                </h1>
-                <p className="text-xs text-[#ababab] font-medium">
-                  Table : {customerData.table?.tableNo || "N/A"}
+                <h2
+                  className={`text-sm font-extrabold tracking-wide leading-tight ${
+                    isClean ? "text-slate-900" : "text-[#f5f5f5]"
+                  }`}
+                >
+                  {customerData.customerName || "Walk-In Guest"}
+                </h2>
+                <p
+                  className={`text-xs font-semibold ${
+                    isClean ? "text-slate-500" : "text-[#ababab]"
+                  }`}
+                >
+                  Table: {customerData.table?.tableNo || "Counter / Takeaway"}
                 </p>
               </div>
             </div>
@@ -54,33 +68,22 @@ const Menu = () => {
 
         <MenuContainer />
       </div>
-      {/* Right Div - CustomerInfo and Bill (`shrink-0`) keep their natural
-          size, CartInfo is the only piece that grows/shrinks (`flex-1
-          min-h-0` inside it) to fill whatever's left - so it adapts to any
-          screen height with no magic number to re-tune. No explicit
-          lg:h-full (h-auto instead): the flex row's default
-          align-items:stretch auto-computes the right height so lg:mb-36
-          below is honored - an explicit height:100% would override stretch
-          and push the margin past the container's bottom instead of
-          reserving real space above it. lg:mb-36 is that reserved space:
-          room for the fixed BottomNav *and* the WhatsApp button that floats
-          above it (both are global, rendered on every page), so Bill's
-          buttons never end up under either one. lg:overflow-hidden keeps
-          this panel's own scroll (inside CartInfo) from doubling up with
-          the page's; on mobile this whole panel just flows with the page
-          as normal, and pb-40 on the outer section (below) does the same
-          BottomNav+WhatsApp clearance job there instead. */}
-      <div className="w-full lg:flex-[1] bg-[#1a1a1a] mx-3 mb-4 lg:mx-0 lg:mt-4 lg:mr-3 lg:mb-36 lg:h-auto flex flex-col lg:overflow-hidden rounded-lg pt-2">
+
+      {/* Right Div - Cart & Billing Checkout Panel */}
+      <div
+        className={`w-full lg:flex-[1.1] flex flex-col rounded-2xl border shadow-sm overflow-hidden h-fit transition-all ${
+          isClean
+            ? "bg-white border-slate-200/90 text-slate-800"
+            : "bg-[#1a1a1a] border-slate-800 text-white"
+        }`}
+      >
         <div className="shrink-0">
-          {/* Customer Info */}
           <CustomerInfo />
-          <hr className="border-[#2a2a2a] border-t-2" />
+          <hr className={isClean ? "border-slate-100" : "border-[#2a2a2a]"} />
         </div>
-        {/* Cart Items */}
         <CartInfo />
         <div className="shrink-0">
-          <hr className="border-[#2a2a2a] border-t-2" />
-          {/* Bills */}
+          <hr className={isClean ? "border-slate-100" : "border-[#2a2a2a]"} />
           <Bill />
         </div>
       </div>

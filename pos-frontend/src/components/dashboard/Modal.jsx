@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { IoMdClose } from "react-icons/io";
 import { FaUpload } from "react-icons/fa";
@@ -426,13 +427,13 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
       <select
         value={row.inventoryItem}
         onChange={(e) => onChange("inventoryItem", e.target.value)}
-        className="bg-[#2a2a2a] text-white rounded-lg px-2 py-2 outline-none flex-1 text-sm"
+        className="pos-input flex-1 text-sm py-2"
       >
-        <option value="" className="bg-[#1f1f1f]">
+        <option value="">
           Select item
         </option>
         {inventoryItems.map((inv) => (
-          <option key={inv._id} value={inv._id} className="bg-[#1f1f1f]">
+          <option key={inv._id} value={inv._id}>
             {inv.name} ({inv.quantity} {inv.unit} in stock)
           </option>
         ))}
@@ -444,13 +445,13 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
         placeholder="Qty"
         value={row.quantity}
         onChange={(e) => onChange("quantity", e.target.value)}
-        className="bg-[#2a2a2a] text-white rounded-lg px-2 py-2 outline-none w-20 text-sm"
+        className="pos-input w-20 text-sm py-2"
       />
-      <span className="text-[#ababab] text-sm w-12 truncate">
+      <span className="text-slate-500 dark:text-slate-400 text-xs w-12 truncate font-medium">
         {inventoryItems.find((i) => i._id === row.inventoryItem)?.unit || "items"}
       </span>
       {canRemove && (
-        <button type="button" onClick={onRemove} className="text-red-400 hover:text-red-500 px-2">
+        <button type="button" onClick={onRemove} className="text-rose-500 hover:text-rose-700 px-1 font-bold">
           ✕
         </button>
       )}
@@ -585,51 +586,48 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
     dishes: isEdit ? "Update Dish" : "Add Dish",
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  const modalContent = (
+    <div className="pos-modal-backdrop" onClick={handleCloseModal}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="bg-[#262626] p-6 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto"
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="pos-modal-card max-w-lg"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between item-center mb-4">
-          <h2 className="text-[#f5f5f5] text-xl font-semibold">{titleMap[action] || "Modal"}</h2>
-          <button onClick={handleCloseModal} className="text-[#f5f5f5] hover:text-red-500">
-            <IoMdClose size={24} />
+        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 shrink-0 sticky top-0 z-20">
+          <h2 className="text-slate-900 dark:text-white text-base sm:text-lg font-black tracking-tight">{titleMap[action] || "Modal"}</h2>
+          <button onClick={handleCloseModal} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <IoMdClose size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} id="modal-dashboard-form" className="p-6 overflow-y-auto space-y-4 flex-1">
           {action === "table" && (
             <>
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Table Number</label>
-                <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
-                  <input
-                    type="number"
-                    name="tableNo"
-                    value={formData.tableNo}
-                    onChange={handleInputChange}
-                    className="bg-transparent flex-1 text-white focus:outline-none"
-                    required
-                  />
-                </div>
+                <label className="pos-label">Table Number</label>
+                <input
+                  type="number"
+                  name="tableNo"
+                  value={formData.tableNo}
+                  onChange={handleInputChange}
+                  className="pos-input"
+                  required
+                />
               </div>
 
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Number of Seats</label>
-                <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
-                  <input
-                    type="number"
-                    name="seats"
-                    value={formData.seats}
-                    onChange={handleInputChange}
-                    className="bg-transparent flex-1 text-white focus:outline-none"
-                    required
-                  />
-                </div>
+                <label className="pos-label">Number of Seats</label>
+                <input
+                  type="number"
+                  name="seats"
+                  value={formData.seats}
+                  onChange={handleInputChange}
+                  className="pos-input"
+                  required
+                />
               </div>
             </>
           )}
@@ -637,43 +635,39 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
           {action === "category" && (
             <>
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Category Name</label>
-                <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="bg-transparent flex-1 text-white focus:outline-none"
-                    required
-                  />
-                </div>
+                <label className="pos-label">Category Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="pos-input"
+                  required
+                />
               </div>
 
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Description</label>
-                <div className="flex item-center rounded-lg p-2 px-3 bg-[#1f1f1f]">
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="bg-transparent w-full text-white focus:outline-none resize-none"
-                    rows={3}
-                  />
-                </div>
+                <label className="pos-label">Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className="pos-input resize-none"
+                  rows={3}
+                />
               </div>
 
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Category Icon</label>
+                <label className="pos-label">Category Icon</label>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-14 h-14 rounded-lg bg-[#1f1f1f] flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
                     {isUploadedImage(formData.icon) ? (
                       <img src={resolveImageUrl(formData.icon)} alt="Category icon" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl">{formData.icon || "🍽️"}</span>
                     )}
                   </div>
-                  <label className="flex items-center gap-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] cursor-pointer text-[#f5f5f5] px-4 py-3 rounded-lg text-sm font-medium">
+                  <label className="pos-btn-secondary cursor-pointer flex-1 py-3">
                     <FaUpload />
                     {uploadingIcon ? `Uploading${uploadPercent ? ` ${uploadPercent}%` : "..."}` : "Upload my own icon"}
                     <input
@@ -685,15 +679,17 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                     />
                   </label>
                 </div>
-                <p className="text-[#767676] text-xs mb-2">Or pick an emoji instead:</p>
+                <p className="text-slate-400 text-xs mb-2">Or pick an emoji instead:</p>
                 <div className="flex flex-wrap gap-2">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <button
                       type="button"
                       key={emoji}
                       onClick={() => setFormData((prev) => ({ ...prev, icon: emoji }))}
-                      className={`text-xl w-10 h-10 rounded-lg flex items-center justify-center ${
-                        formData.icon === emoji ? "bg-yellow-400" : "bg-[#1f1f1f] hover:bg-[#2a2a2a]"
+                      className={`text-xl w-10 h-10 rounded-xl flex items-center justify-center transition ${
+                        formData.icon === emoji
+                          ? "bg-amber-400 text-slate-950 ring-2 ring-amber-500 shadow-sm"
+                          : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
                       }`}
                     >
                       {emoji}
@@ -707,74 +703,63 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
           {action === "dishes" && (
             <>
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Dish Name</label>
-                <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="bg-transparent flex-1 text-white focus:outline-none"
-                    required
-                  />
-                </div>
+                <label className="pos-label">Dish Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="pos-input"
+                  required
+                />
               </div>
 
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Description (optional)</label>
-                <div className="rounded-lg p-3 px-4 bg-[#1f1f1f]">
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="bg-transparent w-full text-white focus:outline-none resize-none"
-                    rows={3}
-                    placeholder="Shown under the name on the storefront — e.g. &quot;Tender, spicy chicken fajita paired with a creamy ranch dressing.&quot;"
-                  />
-                </div>
+                <label className="pos-label">Description (optional)</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className="pos-input resize-none"
+                  rows={2}
+                  placeholder="Shown under the name on storefront"
+                />
               </div>
 
-              <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Price</label>
-                <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="pos-label">Price</label>
                   <input
                     type="number"
                     name="price"
                     value={formData.price}
                     onChange={handleInputChange}
-                    className="bg-transparent flex-1 text-white focus:outline-none"
+                    className="pos-input"
                     min="0"
                     step="0.01"
                     required
                   />
                 </div>
-                <p className="text-[#767676] text-xs mt-1">
-                  {formData.variants.length > 0
-                    ? "With size/crust options below, this is only shown as the \"from\" price before a size is picked."
-                    : "This is the actual selling price — what customers pay and what's charged on orders."}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Original Price (optional)</label>
-                <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+                <div>
+                  <label className="pos-label">Original Price (optional)</label>
                   <input
                     type="number"
                     name="originalPrice"
                     value={formData.originalPrice}
                     onChange={handleInputChange}
-                    className="bg-transparent flex-1 text-white focus:outline-none"
+                    className="pos-input"
                     min="0"
                     step="0.01"
-                    placeholder="e.g. 400 — shown crossed out as a discount"
+                    placeholder="e.g. 400"
                   />
                 </div>
-                <p className="text-[#767676] text-xs mt-1">
-                  Set this higher than Price to show a strike-through "was" price on the menu — e.g. Price 350 with
-                  Original Price 400 shows <span className="line-through">Rs 400.00</span> next to Rs 350.00. Leave
-                  blank or 0 to hide it.
-                </p>
               </div>
+
+              <p className="text-slate-400 text-xs mt-1">
+                Set this higher than Price to show a strike-through "was" price on the menu — e.g. Price 350 with
+                Original Price 400 shows <span className="line-through">Rs 400.00</span> next to Rs 350.00. Leave
+                blank or 0 to hide it.
+              </p>
 
               <div className="mt-3">
                 <div className="flex items-center justify-between">
@@ -799,20 +784,20 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                 )}
                 <div className="space-y-2">
                   {formData.variants.map((v, index) => (
-                    <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center bg-[#1f1f1f] rounded-lg p-2">
+                    <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2">
                       <input
                         type="text"
                         placeholder="Size (e.g. Small)"
                         value={v.size}
                         onChange={(e) => updateVariantRow(index, "size", e.target.value)}
-                        className="bg-[#141414] text-white text-sm rounded px-2 py-2 focus:outline-none min-w-0"
+                        className="pos-input py-1 px-2 text-xs"
                       />
                       <input
                         type="text"
                         placeholder="Crust (optional)"
                         value={v.crust}
                         onChange={(e) => updateVariantRow(index, "crust", e.target.value)}
-                        className="bg-[#141414] text-white text-sm rounded px-2 py-2 focus:outline-none min-w-0"
+                        className="pos-input py-1 px-2 text-xs"
                       />
                       <input
                         type="number"
@@ -821,7 +806,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                         step="0.01"
                         value={v.price}
                         onChange={(e) => updateVariantRow(index, "price", e.target.value)}
-                        className="bg-[#141414] text-white text-sm rounded px-2 py-2 focus:outline-none min-w-0"
+                        className="pos-input py-1 px-2 text-xs"
                       />
                       <input
                         type="number"
@@ -830,12 +815,12 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                         step="0.01"
                         value={v.originalPrice}
                         onChange={(e) => updateVariantRow(index, "originalPrice", e.target.value)}
-                        className="bg-[#141414] text-white text-sm rounded px-2 py-2 focus:outline-none min-w-0"
+                        className="pos-input py-1 px-2 text-xs"
                       />
                       <button
                         type="button"
                         onClick={() => removeVariantRow(index)}
-                        className="text-red-400 hover:text-red-300 px-2"
+                        className="text-rose-500 hover:text-rose-700 px-1 font-bold"
                         aria-label="Remove option"
                       >
                         ✕
@@ -846,30 +831,28 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               </div>
 
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Category</label>
-                <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleCategoryChange}
-                    className="bg-transparent flex-1 text-white focus:outline-none w-full"
-                    required
-                  >
-                    <option value="" className="bg-[#1f1f1f]">
-                      Select a category
+                <label className="pos-label">Category</label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleCategoryChange}
+                  className="pos-input"
+                  required
+                >
+                  <option value="">
+                    Select a category
+                  </option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
                     </option>
-                    {categories.map((cat) => (
-                      <option key={cat._id} value={cat._id} className="bg-[#1f1f1f]">
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  ))}
+                </select>
                 {categories.length === 0 && (
-                  <p className="text-yellow-400 text-xs mt-1">No categories yet — add a category first.</p>
+                  <p className="text-amber-500 text-xs mt-1">No categories yet — add a category first.</p>
                 )}
                 {!isEdit && /pizza/i.test(categories.find((c) => c._id === formData.category)?.name || "") && (
-                  <p className="text-[#767676] text-xs mt-1">
+                  <p className="text-slate-400 text-xs mt-1">
                     Pizza category selected — the usual ingredients (mayonnaise, cheese, maida, chicken, pizza sauce)
                     were prefilled below where they exist in Inventory.
                   </p>
@@ -877,15 +860,17 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               </div>
 
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Item Emoji</label>
+                <label className="pos-label">Item Emoji</label>
                 <div className="flex flex-wrap gap-2">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <button
                       type="button"
                       key={emoji}
                       onClick={() => setFormData((prev) => ({ ...prev, icon: emoji }))}
-                      className={`text-xl w-10 h-10 rounded-lg flex items-center justify-center ${
-                        formData.icon === emoji ? "bg-yellow-400" : "bg-[#1f1f1f] hover:bg-[#2a2a2a]"
+                      className={`text-xl w-10 h-10 rounded-xl flex items-center justify-center transition ${
+                        formData.icon === emoji
+                          ? "bg-amber-400 text-slate-950 ring-2 ring-amber-500 shadow-sm"
+                          : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
                       }`}
                     >
                       {emoji}
@@ -1221,17 +1206,23 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
             </>
           )}
 
+        </form>
+
+        <div className="px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 shrink-0 sticky bottom-0 z-20">
           <button
             type="submit"
+            form="modal-dashboard-form"
             disabled={mutation.isPending || uploadingImage || uploadingIcon}
-            className="w-full rounded-lg mt-6 mb-2 py-3 text-lg bg-yellow-400 text-gray-900 font-bold disabled:opacity-60"
+            className="pos-btn-primary w-full py-2.5 text-sm font-black shadow-sm disabled:opacity-50"
           >
             {mutation.isPending ? "Saving..." : submitLabelMap[action] || "Save"}
           </button>
-        </form>
+        </div>
       </motion.div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 };
 
 export default Modal;

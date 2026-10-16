@@ -6,16 +6,17 @@ import DeletedOrdersPanel from "../components/orders/DeletedOrdersPanel";
 import { useSelector } from "react-redux";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getOrders } from "../https/index";
-import { enqueueSnackbar } from "notistack"
+import { enqueueSnackbar } from "notistack";
+import { useUITheme } from "../context/UIThemeContext";
 
 const Orders = () => {
-
   const [status, setStatus] = useState("all");
+  const { isClean } = useUITheme();
   const role = useSelector((state) => state.user.role);
 
-    useEffect(() => {
-      document.title = "POS | Orders"
-    }, [])
+  useEffect(() => {
+    document.title = "POS | Orders";
+  }, []);
 
   const { data: resData, isError } = useQuery({
     queryKey: ["orders"],
@@ -23,16 +24,13 @@ const Orders = () => {
       return await getOrders();
     },
     placeholderData: keepPreviousData,
-    refetchInterval: 10000, // keep the board live without a manual refresh
-  })
+    refetchInterval: 10000,
+  });
 
-  if(isError) {
-    enqueueSnackbar("Something went wrong!", {variant: "error"})
+  if (isError) {
+    enqueueSnackbar("Something went wrong!", { variant: "error" });
   }
 
-  // This page is the dine-in board (table number, In Progress/Ready/Closed).
-  // Online (genzpizza.online) orders have their own dedicated view with the
-  // Accept/Preparing/Delivery flow — see the "Online Orders" tab.
   const dineInOrders = (resData?.data.data ?? []).filter((order) => order.orderSource !== "Online");
 
   const filteredOrders =
@@ -50,14 +48,26 @@ const Orders = () => {
 
   return (
     <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden pb-16">
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-6">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl mb-6 transition duration-200 ${
+          isClean
+            ? "bg-white border border-slate-200/90 shadow-sm"
+            : "bg-slate-900/90 border border-slate-800 shadow-xl"
+        }`}
+      >
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
-            <h1 className="text-white text-xl sm:text-2xl font-extrabold tracking-tight">
+            <h1
+              className={`text-xl sm:text-2xl font-black tracking-tight ${
+                isClean ? "text-slate-900" : "text-white"
+              }`}
+            >
               Kitchen & Dine-In Orders
             </h1>
-            <p className="text-xs text-slate-400">Live order pipeline & kitchen display station</p>
+            <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+              Live order pipeline & kitchen display station
+            </p>
           </div>
           <div className="ml-2">
             <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
@@ -65,7 +75,11 @@ const Orders = () => {
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 overflow-x-auto scrollbar-hide">
+        <div
+          className={`flex items-center gap-1.5 p-1 rounded-2xl overflow-x-auto scrollbar-hide ${
+            isClean ? "bg-slate-100 border border-slate-200/90" : "bg-slate-950/80 border border-slate-800"
+          }`}
+        >
           {[
             { key: "all", label: "All Orders", count: dineInOrders.length },
             { key: "progress", label: "In Kitchen", count: dineInOrders.filter((o) => o.orderStatus === "In Progress").length },
@@ -78,15 +92,21 @@ const Orders = () => {
               onClick={() => setStatus(tab.key)}
               className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                 status === tab.key
-                  ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                  ? "bg-amber-500 text-slate-950 shadow-sm font-black"
+                  : isClean
+                  ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                   : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
             >
               <span>{tab.label}</span>
               {tab.count > 0 && (
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                    status === tab.key ? "bg-slate-950/20 text-slate-950" : "bg-slate-800 text-slate-300"
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    status === tab.key
+                      ? "bg-slate-950/20 text-slate-950 font-black"
+                      : isClean
+                      ? "bg-white text-slate-800 shadow-xs"
+                      : "bg-slate-800 text-slate-300"
                   }`}
                 >
                   {tab.count}
@@ -97,14 +117,16 @@ const Orders = () => {
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 overflow-y-auto px-4 py-4 scrollbar-hide min-[480px]:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-        {
-          filteredOrders.length > 0 ? (
-            filteredOrders.map((order) => {
-              return <OrderCard key={order._id} order={order} />
-            })
-          ) : <p className="col-span-full text-gray-500">No orders available</p>
-        }
+      <div className="grid w-full grid-cols-1 gap-3.5 overflow-y-auto pb-24 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        {filteredOrders.length > 0 ? (
+          filteredOrders.map((order) => {
+            return <OrderCard key={order._id} order={order} />;
+          })
+        ) : (
+          <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8">
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No kitchen orders available for this filter.</p>
+          </div>
+        )}
       </div>
 
       <BottomNav />

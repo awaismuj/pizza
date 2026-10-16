@@ -5,13 +5,15 @@ import TableCard from "../components/tables/TableCard";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getTables } from "../https";
+import { useUITheme } from "../context/UIThemeContext";
 
 const Tables = () => {
   const [status, setStatus] = useState("all");
+  const { isClean } = useUITheme();
 
-    useEffect(() => {
-      document.title = "POS | Tables"
-    }, [])
+  useEffect(() => {
+    document.title = "POS | Tables";
+  }, []);
 
   const { data: resData, isError } = useQuery({
     queryKey: ["tables"],
@@ -41,29 +43,51 @@ const Tables = () => {
 
   return (
     <section className="min-h-[calc(100vh-5rem)] overflow-hidden flex flex-col pb-10">
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-6">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl mb-6 transition duration-200 ${
+          isClean
+            ? "bg-white border border-slate-200/90 shadow-sm"
+            : "bg-slate-900/90 border border-slate-800 shadow-xl"
+        }`}
+      >
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
-            <h1 className="text-white text-xl sm:text-2xl font-extrabold tracking-tight">
+            <h1
+              className={`text-xl sm:text-2xl font-black tracking-tight ${
+                isClean ? "text-slate-900" : "text-white"
+              }`}
+            >
               Floor Plan & Table Stations
             </h1>
-            <p className="text-xs text-slate-400">Select a table to assign order or tap gear to configure</p>
+            <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+              Select a table to assign order or tap gear to configure
+            </p>
           </div>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800">
+        <div
+          className={`flex items-center gap-1.5 p-1 rounded-2xl ${
+            isClean ? "bg-slate-100 border border-slate-200/90" : "bg-slate-950/80 border border-slate-800"
+          }`}
+        >
           <button
             onClick={() => setStatus("all")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
               status === "all"
-                ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                ? "bg-amber-500 text-slate-950 shadow-sm font-black"
+                : isClean
+                ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                 : "text-slate-400 hover:text-white"
             }`}
           >
             <span>All Stations</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-200">
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                isClean ? "bg-white text-slate-800 shadow-xs" : "bg-slate-800 text-slate-200"
+              }`}
+            >
               {tables.length}
             </span>
           </button>
@@ -72,12 +96,18 @@ const Tables = () => {
             onClick={() => setStatus("available")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
               status === "available"
-                ? "bg-emerald-500 text-slate-950 shadow-md font-extrabold"
+                ? "bg-emerald-600 text-white shadow-sm font-black"
+                : isClean
+                ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                 : "text-slate-400 hover:text-white"
             }`}
           >
             <span>Available</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-emerald-400 font-bold">
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                isClean ? "bg-white text-emerald-800 shadow-xs" : "bg-slate-800 text-emerald-400"
+              }`}
+            >
               {availableCount}
             </span>
           </button>
@@ -86,12 +116,18 @@ const Tables = () => {
             onClick={() => setStatus("booked")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
               status === "booked"
-                ? "bg-rose-500 text-white shadow-md font-extrabold"
+                ? "bg-rose-600 text-white shadow-sm font-black"
+                : isClean
+                ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
                 : "text-slate-400 hover:text-white"
             }`}
           >
             <span>Occupied</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-rose-400 font-bold">
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                isClean ? "bg-white text-rose-800 shadow-xs" : "bg-slate-800 text-rose-400"
+              }`}
+            >
               {bookedCount}
             </span>
           </button>
@@ -102,9 +138,11 @@ const Tables = () => {
           that floats above it (global, on every page) - pb-28 was only
           sized for the nav bar, so the last row of cards ended up hidden
           behind WhatsApp with no way to scroll past it. */}
-      <div className="grid grid-cols-1 gap-3 px-4 py-4 pb-40 flex-1 overflow-y-scroll scrollbar-hide sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-10 xl:grid-cols-5 xl:px-16">
+      <div className="grid grid-cols-1 gap-3.5 pb-40 flex-1 overflow-y-auto sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {visibleTables.length === 0 && (
-          <p className="col-span-full text-gray-500">No tables yet — add one from the Dashboard.</p>
+          <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8">
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No stations found for this filter.</p>
+          </div>
         )}
         {visibleTables.map((table) => {
           return (
