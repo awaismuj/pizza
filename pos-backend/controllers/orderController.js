@@ -361,7 +361,7 @@ const addPublicOrder = async (req, res, next) => {
       branch: resolvedBranch ? { branchId: resolvedBranch.branchId, name: resolvedBranch.name } : undefined,
       deliveryFee,
       fulfillmentEtaMinutes: eta,
-      fulfillmentNote,
+      fulfilmentNote,
       bills: {
         total,
         tax,
