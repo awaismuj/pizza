@@ -64,6 +64,7 @@ app.use("/api/dish", require("./routes/dishRoute"));
 app.use("/api/deal", require("./routes/dealRoute"));
 app.use("/api/hero-slide", require("./routes/heroSlideRoute"));
 app.use("/api/inventory", require("./routes/inventoryRoute"));
+app.use("/api/assets", require("./routes/assetRoute"));
 app.use("/api/expense", require("./routes/expenseRoute"));
 app.use("/api/profit", require("./routes/profitRoute"));
 app.use("/api/payment", require("./routes/paymentRoute"));
@@ -88,6 +89,10 @@ require("./services/dailyReportScheduler").startDailyReportScheduler();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).
 require("./services/staffAttendanceScheduler").startStaffAttendanceScheduler();
+
+// Posts closed-month asset depreciation. Each asset+period has a unique
+// ledger key, so multiple checks or server processes cannot double-post.
+require("./services/assetDepreciationScheduler").startAssetDepreciationScheduler();
 
 
 // Server

@@ -90,7 +90,7 @@ const Header = () => {
 
       {/* LOGGED USER DETAILS */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 lg:gap-3">
-        {userData.role === "Admin" && (
+        {["admin", "accountant", "asset manager", "read only"].includes(String(userData.role || "").toLowerCase()) && (
           <div
             onClick={() => navigate("/dashboard")}
             title="Dashboard"

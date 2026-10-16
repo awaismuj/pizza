@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js",
+    "test": "node --test",
     "migrate": "node scripts/migrate.js",
+    "migrate:asset-depreciation": "node scripts/migrate-asset-depreciation.js",
     "seed": "node scripts/seed.js",
     "seed:pizzaland": "node scripts/seedPizzaLandRecipes.js",
     "reset:sales": "node scripts/reset-sales.js",

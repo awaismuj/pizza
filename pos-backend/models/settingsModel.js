@@ -26,6 +26,10 @@ const settingsSchema = new mongoose.Schema(
         maxlength: 300,
       },
     },
+    assetAccounting: {
+      currency: { type: String, default: "PKR", match: /^[A-Z]{3}$/ },
+      financialYearStartMonth: { type: Number, default: 1, min: 1, max: 12 },
+    },
   },
   { timestamps: true }
 );
