@@ -8,6 +8,28 @@ const SETTINGS_KEY = "global";
 const publicShape = (settings) => ({
   taxRatePercent: settings.taxRatePercent,
   buildYourOwnDeal: normalizeByoConfig(settings.buildYourOwnDeal),
+  // Delivery / pickup fulfilment configuration. Public - no auth - because
+  // the online store (no login at all) must apply the same branch, zone, fee
+  // and opening-hour rules the POS admin configures here. Prices and
+  // eligibility are always re-validated and re-calculated server-side at
+  // checkout, so nothing the browser sends is trusted for money decisions.
+  deliveryFulfillment: {
+    timeZone: settings.deliveryFulfillment?.timeZone ?? "Asia/Karachi",
+    branches: (settings.deliveryFulfillment?.branches ?? []).map((b) => ({
+      branchId: b.branchId,
+      name: b.name,
+      address: b.address,
+      enabled: b.enabled,
+      pickupEnabled: b.pickupEnabled,
+      deliveryEnabled: b.deliveryEnabled,
+      preparationMinutes: b.preparationMinutes,
+      pickupInstructions: b.pickupInstructions,
+      deliveryRestrictionActive: b.deliveryRestrictionActive,
+      deliveryRestrictionMessage: b.deliveryRestrictionMessage,
+      openingHours: b.openingHours,
+      deliveryZones: b.deliveryZones,
+    })),
+  },
 });
 
 // Seeds from the old static env default (config.TAX_RATE_PERCENT) the very
@@ -42,7 +64,7 @@ const getSettings = async (req, res, next) => {
 // "apply everywhere".
 const updateSettings = async (req, res, next) => {
   try {
-    const { taxRatePercent, buildYourOwnDeal } = req.body;
+    const { taxRatePercent, buildYourOwnDeal, deliveryFulfillment } = req.body;
     const settings = await getOrCreateSettings();
     const messages = [];
 
@@ -82,6 +104,21 @@ const updateSettings = async (req, res, next) => {
 
       settings.buildYourOwnDeal = next_;
       messages.push("Build Your Own Deal updated!");
+    }
+
+    if (deliveryFulfillment !== undefined) {
+      if (!deliveryFulfillment || typeof deliveryFulfillment !== "object") {
+        return next(createHttpError(400, "Invalid delivery fulfilment settings."));
+      }
+      const nextFulfilment = { ...settings.deliveryFulfillment };
+      if (deliveryFulfillment.timeZone !== undefined) {
+        nextFulfilment.timeZone = String(deliveryFulfillment.timeZone).trim() || "Asia/Karachi";
+      }
+      if (Array.isArray(deliveryFulfillment.branches)) {
+        nextFulfilment.branches = deliveryFulfillment.branches;
+      }
+      settings.deliveryFulfillment = nextFulfilment;
+      messages.push("Delivery & pickup settings updated!");
     }
 
     if (messages.length === 0) {

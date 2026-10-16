@@ -1545,6 +1545,7 @@ select {
 }
 
 .gzp-field input,
+.gzp-field select,
 .gzp-field textarea {
   width: 100%;
   padding: 12px 14px;
@@ -1554,6 +1555,7 @@ select {
   outline: none;
   resize: vertical;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  color: inherit;
 }
 
 .gzp-field input:focus,
@@ -1596,6 +1598,134 @@ select {
   background: rgba(255, 93, 93, 0.09);
   color: var(--ember);
   font-size: 0.88rem;
+}
+
+/* ---------- Delivery / pickup choice ---------- */
+
+.gzp-fulfilment-panel {
+  margin: 6px 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--ink-900);
+}
+
+.gzp-fulfilment-legend {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--flour-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gzp-fulfilment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gzp-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--ink-900);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.gzp-choice:hover {
+  border-color: var(--ember);
+}
+
+.gzp-choice--selected {
+  border-color: var(--gold);
+  background: rgba(255, 200, 61, 0.10);
+  box-shadow: 0 0 0 3px rgba(255, 200, 61, 0.14);
+}
+
+.gzp-choice input {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--flour-faint);
+  background: var(--ink-900);
+  margin: 0;
+  flex: none;
+  cursor: pointer;
+}
+
+.gzp-choice input:checked {
+  border-color: var(--gold);
+  background: radial-gradient(circle, var(--gold) 40%, transparent 42%);
+}
+
+.gzp-choice input:disabled {
+  cursor: not-allowed;
+}
+
+.gzp-choice-icon {
+  flex: none;
+  color: var(--flour-faint);
+}
+
+.gzp-choice--selected .gzp-choice-icon {
+  color: var(--ember);
+}
+
+.gzp-choice--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gzp-choice-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gzp-choice-copy b {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--flour);
+}
+
+.gzp-choice-copy span {
+  font-size: 0.82rem;
+  color: var(--flour-faint);
+}
+
+.gzp-choice-meta {
+  font-size: 0.82rem;
+  color: var(--flour-dim);
+  white-space: nowrap;
+}
+
+.gzp-choice--selected .gzp-choice-meta {
+  color: var(--ember);
+  font-weight: 700;
+}
+
+.gzp-choice-eta {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--basil);
+  white-space: nowrap;
+}
+
+.gzp-fulfilment-hint {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: rgba(37, 37, 37, 0.06);
+  font-size: 0.84rem;
+  color: var(--flour-dim);
 }
 
 .gzp-error-banner {
@@ -2335,6 +2465,14 @@ const IconTruck = (props) => (
   </svg>
 );
 
+const IconStore = (props) => (
+  <svg {...iconProps} {...props}>
+    <path d="M2 14 12 2 22 14" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="4" y="14" width="16" height="8" fill="none" stroke="currentColor" strokeWidth="1.8" rx="1" />
+    <rect x="10" y="18" width="4" height="4" fill="none" stroke="currentColor" strokeWidth="1.8" rx="1" />
+  </svg>
+);
+
 const IconHeart = ({ filled, ...props }) => (
   <svg {...iconProps} strokeWidth={2} fill={filled ? "currentColor" : "none"} {...props}>
     <path d="M12 20.5s-7.3-4.6-9.9-9.1C.5 8 1.9 4.6 5.1 3.6c2-.6 4.1.1 5.4 1.8l1.5 2 1.5-2c1.3-1.7 3.4-2.4 5.4-1.8 3.2 1 4.6 4.4 3 7.8-2.6 4.5-9.9 9.1-9.9 9.1Z" />
@@ -2774,6 +2912,90 @@ function App() {
   const orderStillActive = order && !["Completed", "Closed", "Cancelled"].includes(order.orderStatus);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
 
+  /* Delivery vs pickup fulfilment, powered by the same Settings document the
+     POS admin configures (branches, zones, fees, opening hours). */
+  const [fulfilmentConfig, setFulfilmentConfig] = useState(null);
+  const [fulfilment, setFulfilment] = useState({
+    type: "delivery",
+    branch: null,
+    zone: null,
+    address: "",
+    fee: 0,
+    eta: null,
+    note: "Cash on delivery — pay the rider when the food arrives.",
+  });
+  const [fulfilmentError, setFulfilmentError] = useState("");
+  const fulfilmentInteracted = useRef(false);
+
+  const minutesFor = (value) => {
+    const parts = String(value || "").split(":").map(Number);
+    return parts.length === 2 ? parts[0] * 60 + parts[1] : 0;
+  };
+
+  // First enabled delivery zone whose area name appears in the text (or the
+  // other way round), so "Gojra city" matches zone "Gojra" and vice versa.
+  const matchZoneForAddress = (address, branches) => {
+    const text = String(address || "").toLowerCase().trim();
+    if (!text) return null;
+    for (const b of branches) {
+      if (!b.enabled || !b.deliveryEnabled || b.deliveryRestrictionActive) continue;
+      for (const z of b.deliveryZones || []) {
+        if (!z.enabled) continue;
+        const area = String(z.area || "").toLowerCase().trim();
+        if (area && (text.includes(area) || area.includes(text))) return { branch: b, zone: z };
+      }
+    }
+    return null;
+  };
+
+  const defaultFulfilment = (config, keepAddress) => {
+    const branches = config.branches || [];
+    const timeZone = config.timeZone || "Asia/Karachi";
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone }));
+    const weekday = now.getDay();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const isOpen = (b) => {
+      const hours = b.openingHours || [];
+      if (hours.length === 0) return true;
+      const today = hours.find((h) => h.dayOfWeek === weekday);
+      if (!today || today.closed) return false;
+      return nowMinutes >= minutesFor(today.open) && nowMinutes < minutesFor(today.close);
+    };
+    const deliveryOpen = branches.some(
+      (b) => b.enabled && b.deliveryEnabled && !b.deliveryRestrictionActive && isOpen(b) && (b.deliveryZones || []).some((z) => z.enabled)
+    );
+    const pickupOpen = branches.some((b) => b.enabled && b.pickupEnabled && isOpen(b));
+    const type = deliveryOpen ? "delivery" : pickupOpen ? "pickup" : null;
+    if (!type) return { type: null, branch: null, zone: null, address: keepAddress, fee: 0, eta: null, note: "" };
+    if (type === "delivery") {
+      const b = branches.find(
+        (x) => x.enabled && x.deliveryEnabled && !x.deliveryRestrictionActive && isOpen(x) && (x.deliveryZones || []).some((z) => z.enabled)
+      );
+      const z = b ? (b.deliveryZones || []).find((z) => z.enabled) : null;
+      const prep = b ? b.preparationMinutes ?? 25 : 25;
+      return {
+        type: "delivery",
+        branch: b ?? null,
+        zone: z ?? null,
+        address: keepAddress,
+        fee: z ? Number(z.fee || 0) : 0,
+        eta: b && z ? prep + (z.estimatedDeliveryMinutes ?? 30) : null,
+        note: "Cash on delivery — pay the rider when the food arrives.",
+      };
+    }
+    const b = branches.find((x) => x.enabled && x.pickupEnabled && isOpen(x));
+    return {
+      type: "pickup",
+      branch: b ?? null,
+      zone: null,
+      address: keepAddress,
+      fee: 0,
+      eta: b ? b.preparationMinutes ?? 25 : null,
+      note: b ? b.pickupInstructions || "" : "",
+    };
+  };
+
+
   const [activeSection, setActiveSection] = useState(DEALS_SECTION_ID);
 
   // Trackpad-scroll hover fix. On laptop trackpads, scrolling doesn't move
@@ -2883,6 +3105,7 @@ function App() {
         const liveTaxRate = settingsRes?.data?.taxRatePercent;
         if (typeof liveTaxRate === "number") setTaxRatePercent(liveTaxRate);
         if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
+        if (settingsRes?.data?.data?.deliveryFulfillment) setFulfilmentConfig(settingsRes.data.data.deliveryFulfillment);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -2890,6 +3113,73 @@ function App() {
       }
     })();
   }, []);
+
+  // Suggest the sensible default fulfilment method the first time live
+  // settings arrive (delivery if an open branch delivers, else pickup),
+  // without overriding a choice the customer has already made.
+  useEffect(() => {
+    if (!fulfilmentConfig || fulfilmentInteracted.current) return;
+    setFulfilment(defaultFulfilment(fulfilmentConfig, fulfilment.address));
+  }, [fulfilmentConfig]);
+
+  const setFulfilmentType = (type) => {
+    fulfilmentInteracted.current = true;
+    setFulfilmentError("");
+    setFulfilment((current) => {
+      if (current.type === type && (type !== "delivery" || current.zone || !form.address.trim())) return current;
+      const config = fulfilmentConfig;
+      if (!config) {
+        return {
+          ...current,
+          type,
+          zone: null,
+          fee: 0,
+          note: type === "delivery" ? "Cash on delivery — pay the rider when the food arrives." : "",
+        };
+      }
+      return defaultFulfilment(config, current.address);
+    });
+  };
+
+  const setFulfilmentBranch = (branchId) => {
+    fulfilmentInteracted.current = true;
+    setFulfilmentError("");
+    setFulfilment((current) => {
+      const b = (fulfilmentConfig?.branches || []).find((x) => String(x.branchId) === String(branchId)) ?? null;
+      return {
+        ...current,
+        type: "pickup",
+        branch: b,
+        eta: b ? b.preparationMinutes ?? 25 : null,
+        note: b ? b.pickupInstructions || "" : "",
+      };
+    });
+  };
+
+  // Keep the delivery zone/fee/ETA in sync with the typed address. The server
+  // re-validates this at checkout, so the browser can't trick its way to free
+  // delivery by typing a random address.
+  useEffect(() => {
+    if (!fulfilment || fulfilment.type !== "delivery") return;
+    // Keep the default zone until the customer actually types an address.
+    if (!String(form.address || "").trim()) return;
+    const match = matchZoneForAddress(form.address, fulfilmentConfig?.branches || []);
+    const b = match?.branch ?? null;
+    const z = match?.zone ?? null;
+    if (!match && form.address.trim()) {
+      setFulfilmentError("We don't deliver to this area yet - enter another address, or choose pickup.");
+    } else if (match) {
+      setFulfilmentError("");
+    }
+    setFulfilment((f) => ({
+      ...f,
+      branch: b,
+      zone: z,
+      fee: z ? Number(z.fee || 0) : 0,
+      eta: b && z ? (b.preparationMinutes ?? 25) + (z.estimatedDeliveryMinutes ?? 30) : null,
+    }));
+  }, [fulfilment?.type, form.address, fulfilmentConfig]);
+
 
   // Poll order status once an order has been placed / is being tracked.
   useEffect(() => {
@@ -3080,6 +3370,12 @@ function App() {
   const tax = (subtotal * taxRatePercent) / 100;
   const total = subtotal + tax;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
+
+  // Delivery fee comes from the matched zone and is added to the total the
+  // customer sees; the server recalculates it from the same settings at
+  // checkout so the charged amount always matches.
+  const deliveryFee = fulfilment?.type === "delivery" ? Number(fulfilment.fee || 0) : 0;
+  const grandTotal = total + deliveryFee;
 
   const showToast = useCallback((message, duration = 2000) => {
     setToast(message);
@@ -3376,6 +3672,30 @@ function App() {
       return;
     }
 
+    if (!fulfilment || fulfilment.type === null) {
+      setError("This restaurant isn't taking delivery or pickup orders right now - please call us.");
+      return;
+    }
+
+    if (fulfilment.type === "delivery") {
+      if (!form.address.trim()) {
+        setError("Please enter your delivery address.");
+        return;
+      }
+      if (!fulfilment.zone) {
+        setError("We don't deliver to this area yet - enter another address, or switch to pickup.");
+        return;
+      }
+      const minOrder = Number(fulfilment.zone?.minimumOrder || 0);
+      if (minOrder > 0 && subtotal < minOrder) {
+        setError(`Minimum order for delivery to this area is Rs ${minOrder}. Add Rs ${minOrder - subtotal} more to your cart.`);
+        return;
+      }
+    } else if (!fulfilment.branch) {
+      setError("Please choose a branch for pickup.");
+      return;
+    }
+
     setPlacing(true);
     setError("");
 
@@ -3383,7 +3703,13 @@ function App() {
       const res = await placeOrder({
         customerName: form.name,
         customerPhone: form.phone,
-        address: form.address,
+        address: fulfilment.type === "delivery" ? form.address : "",
+        deliveryType: fulfilment.type,
+        branchId: fulfilment.branch?.branchId,
+        branchName: fulfilment.branch?.name,
+        deliveryFee: fulfilment.type === "delivery" ? fulfilment.fee : 0,
+        etaMinutes: fulfilment.eta,
+        fulfillmentNote: fulfilment.note,
         items: cartLines.map((l) =>
           l.type === "deal"
             ? { dealId: l.item._id, quantity: l.qty, dealSelections: l.dealSelections || undefined }
@@ -3692,19 +4018,43 @@ function App() {
                     <span>−{formatRs(order.bills.discount)}</span>
                   </div>
                 )}
+                {order.deliveryType && (
+                  <div className="gzp-order-line">
+                    <span>
+                      {order.deliveryType === "delivery"
+                        ? "Home Delivery"
+                        : `Pickup — ${order.branch?.name || "Restaurant"}`}
+                    </span>
+                    <span>
+                      {order.deliveryType === "delivery"
+                        ? order.deliveryFee > 0
+                          ? `Delivery ${formatRs(order.deliveryFee)}`
+                          : "Free delivery"
+                        : "Free pickup"}
+                    </span>
+                  </div>
+                )}
                 <div className="gzp-grand">
-                  <span>Pay on delivery</span>
+                  <span>{order.deliveryType === "pickup" ? "Total to pay" : "Pay on delivery"}</span>
                   <span>{formatRs(order.bills?.totalWithTax || 0)}</span>
                 </div>
               </div>
             </div>
 
-            {order.customerDetails?.address && (
+            {order.deliveryType === "delivery" && order.customerDetails?.address && (
               <div className="gzp-panel">
                 <h3>Delivering to</h3>
                 <p style={{ margin: 0, color: "var(--flour-dim)", fontSize: "0.93rem" }}>
                   {order.customerDetails.address}
                 </p>
+              </div>
+            )}
+            {order.deliveryType === "pickup" && order.branch && (
+              <div className="gzp-panel">
+                <h3>Pickup at {order.branch.name}</h3>
+                {order.fulfillmentNote && (
+                  <p style={{ margin: 0, color: "var(--flour-dim)", fontSize: "0.93rem" }}>{order.fulfillmentNote}</p>
+                )}
               </div>
             )}
 
@@ -4490,7 +4840,7 @@ function App() {
                     disabled={byoBlocked}
                     type="button"
                   >
-                    Add delivery details
+                    Continue to checkout
                   </button>
                   {byoBlocked && (
                     <button
@@ -4532,8 +4882,95 @@ function App() {
               >
                 <IconChevron dir="left" />
               </button>
-              <h2>Where should we send it?</h2>
+              <h2>How would you like your order?</h2>
             </div>
+
+            <div className="gzp-fulfilment-panel">
+              <p className="gzp-fulfilment-legend">How would you like your order?</p>
+              <div className="gzp-fulfilment-options" role="radiogroup" aria-label="Fulfilment method">
+                <label
+                  className={`gzp-choice ${fulfilment.type === "delivery" ? "gzp-choice--selected" : ""}${
+                    fulfilment.type === null || !fulfilmentConfig ? " gzp-choice--disabled" : ""
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="gzp-fulfilment"
+                    value="delivery"
+                    checked={fulfilment.type === "delivery"}
+                    onChange={() => setFulfilmentType("delivery")}
+                    disabled={fulfilment.type === null || !fulfilmentConfig}
+                    aria-label={
+                      fulfilment.type === null || !fulfilmentConfig
+                        ? "Delivery unavailable right now"
+                        : "Home Delivery"
+                    }
+                  />
+                  <IconTruck className="gzp-choice-icon" />
+                  <div className="gzp-choice-copy">
+                    <b>Home Delivery</b>
+                    <span>Delivered to your door</span>
+                    {fulfilment.type === "delivery" && (
+                      <span className="gzp-choice-meta">
+                        {fulfilment.zone
+                          ? `${fulfilment.fee > 0 ? `Delivery ${formatRs(fulfilment.fee)}` : "Free delivery"}`
+                          : "Delivery — not available in this area"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="gzp-choice-eta">
+                    {fulfilment.type === "delivery" && fulfilment.eta
+                      ? `Ready ~${fulfilment.branch?.preparationMinutes ?? 25} min · Delivery ~${fulfilment.eta} min`
+                      : null}
+                  </div>
+                </label>
+
+                <label
+                  className={`gzp-choice ${fulfilment.type === "pickup" ? "gzp-choice--selected" : ""}${
+                    fulfilment.type === null || !fulfilmentConfig ? " gzp-choice--disabled" : ""
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="gzp-fulfilment"
+                    value="pickup"
+                    checked={fulfilment.type === "pickup"}
+                    onChange={() => setFulfilmentType("pickup")}
+                    disabled={fulfilment.type === null || !fulfilmentConfig}
+                    aria-label={fulfilment.type === null || !fulfilmentConfig ? "Pickup unavailable right now" : "Pickup from Restaurant"}
+                  />
+                  <IconStore className="gzp-choice-icon" />
+                  <div className="gzp-choice-copy">
+                    <b>Pickup from Restaurant</b>
+                    <span>Collect at the counter</span>
+                    {fulfilment.type === "pickup" && fulfilment.branch && (
+                      <span className="gzp-choice-meta">{fulfilment.branch.name}</span>
+                    )}
+                  </div>
+                  <div className="gzp-choice-eta">
+                    {fulfilment.type === "pickup" && fulfilment.eta ? `Ready ~${fulfilment.eta} min` : null}
+                  </div>
+                </label>
+              </div>
+              {fulfilment.type === null && (
+                <p className="gzp-error">No delivery or pickup branches are configured right now - please call the restaurant.</p>
+              )}
+              {fulfilmentError && <p className="gzp-error">{fulfilmentError}</p>}
+            </div>
+            {fulfilmentConfig && (
+              <p className="gzp-fulfilment-hint">
+                {fulfilment.type === "delivery" && fulfilment.zone && (
+                  <>
+                    Minimum order for this area: <b>{formatRs(fulfilment.zone.minimumOrder)}</b>{" "}
+                    {fulfilment.zone.estimatedDeliveryMinutes > 0 && (
+                      <>
+                         · Ready in ~{fulfilment.eta} min
+                      </>
+                    )}
+                  </>
+                )}
+              </p>
+            )}
 
             <form onSubmit={handleCheckout} style={{ display: "contents" }}>
               <div className="gzp-sheet-body">
@@ -4569,23 +5006,55 @@ function App() {
                     />
                   </label>
 
-                  <label className="gzp-field">
-                    <span>Delivery address</span>
-                    <textarea
-                      required
-                      rows={3}
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      placeholder="House or flat number, street, area, nearest landmark"
-                    />
-                  </label>
+                  {fulfilment.type === "delivery" && (
+                    <label className="gzp-field">
+                      <span>Delivery address</span>
+                      <textarea
+                        required
+                        rows={3}
+                        value={form.address}
+                        onChange={(e) => setForm({ ...form, address: e.target.value })}
+                        placeholder="House or flat number, street, area, nearest landmark"
+                      />
+                    </label>
+                  )}
+                  {fulfilment.type === "pickup" && fulfilmentConfig && (
+                    <label className="gzp-field">
+                      <span>Pickup branch</span>
+                      <select
+                        value={fulfilment.branch?.branchId || ""}
+                        onChange={(e) => setFulfilmentBranch(e.target.value)}
+                      >
+                        <option value="">Choose a branch</option>
+                        {(fulfilmentConfig.branches || [])
+                          .filter((b) => b.enabled && b.pickupEnabled)
+                          .map((b) => (
+                            <option key={b.branchId} value={b.branchId}>
+                              {b.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  )}
 
                   <p className="gzp-note">
-                    <IconTruck />
-                    <span>
-                      <b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this
-                      number if we can't find the address.
-                    </span>
+                    {fulfilment.type === "pickup" ? (
+                      <>
+                        <IconStore />
+                        <span>
+                          <b>Pickup from {fulfilment.branch?.name || "the restaurant"}.</b>{" "}
+                          {fulfilment.note || "Please show your order number at the counter."}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <IconTruck />
+                        <span>
+                          <b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this
+                          number if we can't find the address.
+                        </span>
+                      </>
+                    )}
                   </p>
 
                   {error && <p className="gzp-error">{error}</p>}
@@ -4594,15 +5063,34 @@ function App() {
 
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
+                  <div>
+                    <span>Subtotal</span>
+                    <span>{formatRs(subtotal)}</span>
+                  </div>
+                  {fulfilment.type === "delivery" ? (
+                    <div>
+                      <span>Delivery</span>
+                      <span>{fulfilment.fee > 0 ? formatRs(fulfilment.fee) : "Free"}</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span>Pickup</span>
+                      <span>Free</span>
+                    </div>
+                  )}
+                  <div>
+                    <span>Tax</span>
+                    <span>{formatRs(tax)}</span>
+                  </div>
                   <div className="gzp-grand">
                     <span>Total to pay</span>
-                    <span>{formatRs(total)}</span>
+                    <span>{formatRs(grandTotal)}</span>
                   </div>
                 </div>
                 <button
                   type="submit"
                   className="gzp-btn gzp-btn-primary gzp-btn-block"
-                  disabled={placing}
+                  disabled={placing || !fulfilment || fulfilment.type === null}
                 >
                   {placing ? "Sending to the kitchen…" : "Place order"}
                 </button>
