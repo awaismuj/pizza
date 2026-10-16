@@ -15,6 +15,7 @@ import ProfitExpenses from "../components/dashboard/ProfitExpenses";
 import PaymentsOverview from "../components/dashboard/PaymentsOverview";
 import TaxManager from "../components/dashboard/TaxManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
+import FulfillmentManager from "../components/dashboard/FulfillmentManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
 import MusicPlayer from "../components/shared/MusicPlayer";
@@ -41,7 +42,7 @@ const buttons = [
   { label: "Add Dishes", icon: <BiSolidDish />, action: "dishes" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
+const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Delivery & Pickup", "Music", "Assets"];
 const assetRoles = ["admin", "accountant", "asset manager", "read only"];
 const staffRoles = ["admin", "cashier", "hr manager", "payroll manager", "accountant"];
 
@@ -366,6 +367,7 @@ const Dashboard = () => {
       {activeTab === "Orders" && <RecentOrders />}
       {activeTab === "Payments" && <PaymentsOverview />}
       {activeTab === "Tax" && <TaxManager />}
+      {activeTab === "Delivery & Pickup" && <FulfillmentManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && canSeeStaff && <StaffManagement />}
       {activeTab === "Music" && <MusicPlayer variant="manager" />}

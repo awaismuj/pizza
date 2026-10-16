@@ -85,6 +85,7 @@ const orderSchema = new mongoose.Schema({
         discount: { type: Number, default: 0 },
         discountPercent: { type: Number, default: 0 },
         discountLabel: { type: String, default: "" },
+        deliveryFee: { type: Number, default: 0 },
     },
     items: [],
     table: { type: mongoose.Schema.Types.ObjectId, ref: "Table" },
@@ -99,7 +100,22 @@ const orderSchema = new mongoose.Schema({
     paymentData: {
         razorpay_order_id: String,
         razorpay_payment_id: String
-    }
+    },
+    // Fulfilment method chosen by the customer on the online store
+    // ("delivery" or "pickup"). Eligibility, fees and ETAs are always
+    // re-validated server-side from Settings, so the website and the POS
+    // share one consistent rule set.
+    deliveryType: { type: String, enum: ["delivery", "pickup"], default: "delivery" },
+    // Branch the order is assigned to (pickup branch, or the branch whose
+    // delivery zone covers the delivery address).
+    branch: {
+        branchId: { type: String, trim: true, maxlength: 60 },
+        name: { type: String, trim: true, maxlength: 100 },
+    },
+    deliveryFee: { type: Number, default: 0, min: 0 },
+    // Promise shown to the customer at checkout: prep (+ delivery) minutes.
+    fulfillmentEtaMinutes: { type: Number, min: 0 },
+    fulfillmentNote: { type: String, trim: true, maxlength: 300 },
 }, { timestamps : true } );
 
 orderSchema.statics.ORDER_STATUSES = ORDER_STATUSES;
