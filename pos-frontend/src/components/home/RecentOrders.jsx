@@ -5,7 +5,10 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getOrders } from "../../https/index";
 
+import { useNavigate } from "react-router-dom";
+
 const RecentOrders = () => {
+  const navigate = useNavigate();
   const { data: resData, isError } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
@@ -20,14 +23,20 @@ const RecentOrders = () => {
 
   return (
     <div className="mt-6 px-2 sm:px-4 md:px-8">
-      <div className="w-full rounded-lg bg-[#1a1a1a] min-h-[420px]">
-        <div className="flex items-center justify-between px-4 py-4 sm:px-6">
-          <h1 className="text-base font-semibold tracking-wide text-[#f5f5f5] sm:text-lg">
-            Recent Orders
-          </h1>
-          <a href="" className="text-sm font-semibold text-[#025cca]">
-            View all
-          </a>
+      <div className="w-full rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl min-h-[420px] p-2 sm:p-4">
+        <div className="flex items-center justify-between px-3 py-3 sm:px-4">
+          <div>
+            <h2 className="text-base font-bold tracking-tight text-white sm:text-lg">
+              Live Order Activity
+            </h2>
+            <p className="text-xs text-slate-400">Recent Dine-In and Online transactions</p>
+          </div>
+          <button
+            onClick={() => navigate("/orders")}
+            className="text-xs font-bold text-amber-400 hover:text-amber-300 transition px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30"
+          >
+            Open Orders Board →
+          </button>
         </div>
 
         <div className="mx-4 flex items-center gap-3 rounded-[15px] bg-[#1f1f1f] px-4 py-3 sm:mx-6 sm:px-6">

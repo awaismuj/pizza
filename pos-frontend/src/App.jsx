@@ -11,94 +11,110 @@ import NewOrderPopup from "./components/shared/NewOrderPopup";
 import LowStockAlert from "./components/shared/LowStockAlert";
 import WhatsAppButton from "./components/shared/WhatsAppButton";
 import MusicPlayerProvider from "./components/shared/MusicPlayerProvider";
+import { UIThemeProvider, useUITheme } from "./context/UIThemeContext";
+import ModernLayout from "./components/modern/ModernLayout";
 import { useSelector } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import useScrollHoverFix from "./hooks/useScrollHoverFix";
-import FullScreenLoader from "./components/shared/FullScreenLoader"
+import FullScreenLoader from "./components/shared/FullScreenLoader";
+
+function AppRoutes() {
+  const { isAuth } = useSelector((state) => state.user);
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <ProtectedRoutes>
+            <Home />
+          </ProtectedRoutes>
+        }
+      />
+      <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
+      <Route
+        path="/orders"
+        element={
+          <ProtectedRoutes>
+            <Orders />
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/tables"
+        element={
+          <ProtectedRoutes>
+            <Tables />
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/menu"
+        element={
+          <ProtectedRoutes>
+            <Menu />
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/outdoor"
+        element={
+          <ProtectedRoutes>
+            <Outdoor />
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoutes>
+            <AdminRoute>
+              <Dashboard />
+            </AdminRoute>
+          </ProtectedRoutes>
+        }
+      />
+      <Route
+        path="/online-orders"
+        element={
+          <ProtectedRoutes>
+            <OnlineOrders />
+          </ProtectedRoutes>
+        }
+      />
+      <Route path="*" element={<div className="p-10 text-center text-slate-400">Page Not Found</div>} />
+    </Routes>
+  );
+}
 
 function Layout() {
   const isLoading = useLoadData();
   useScrollHoverFix();
   const location = useLocation();
   const hideHeaderRoutes = ["/auth"];
-  // The floating WhatsApp button is fixed near the bottom-right of every
-  // page - but on /menu that's exactly where the Cash/Online/Print
-  // Receipt/Place Order row sits, so it was floating on top of and
-  // partially hiding those buttons. Support inquiries aren't the point of
-  // that screen anyway, so it's simplest to just not show it there.
   const hideWhatsAppRoutes = ["/menu"];
-  const { isAuth } = useSelector(state => state.user);
+  const { isAuth } = useSelector((state) => state.user);
+  const { isModern } = useUITheme();
 
-  if(isLoading) return <FullScreenLoader />
+  if (isLoading) return <FullScreenLoader />;
 
+  // Modern Tossdown Restaurant Management Layout
+  if (isModern && location.pathname !== "/auth" && isAuth) {
+    return (
+      <ModernLayout>
+        <AppRoutes />
+      </ModernLayout>
+    );
+  }
+
+  // Classic Layout (Revertable at any time)
   return (
     <>
       {!hideHeaderRoutes.includes(location.pathname) && <Header />}
       {isAuth && <NewOrderPopup />}
       {isAuth && <LowStockAlert />}
       {!hideWhatsAppRoutes.includes(location.pathname) && <WhatsAppButton />}
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoutes>
-              <Home />
-            </ProtectedRoutes>
-          }
-        />
-        <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
-        <Route
-          path="/orders"
-          element={
-            <ProtectedRoutes>
-              <Orders />
-            </ProtectedRoutes>
-          }
-        />
-        <Route
-          path="/tables"
-          element={
-            <ProtectedRoutes>
-              <Tables />
-            </ProtectedRoutes>
-          }
-        />
-        <Route
-          path="/menu"
-          element={
-            <ProtectedRoutes>
-              <Menu />
-            </ProtectedRoutes>
-          }
-        />
-        <Route
-          path="/outdoor"
-          element={
-            <ProtectedRoutes>
-              <Outdoor />
-            </ProtectedRoutes>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoutes>
-              <AdminRoute>
-                <Dashboard />
-              </AdminRoute>
-            </ProtectedRoutes>
-          }
-        />
-        <Route
-          path="/online-orders"
-          element={
-            <ProtectedRoutes>
-              <OnlineOrders />
-            </ProtectedRoutes>
-          }
-        />
-        <Route path="*" element={<div>Not Found</div>} />
-      </Routes>
+      <AppRoutes />
     </>
   );
 }
@@ -126,9 +142,11 @@ function AdminRoute({ children }) {
 function App() {
   return (
     <Router>
-      <MusicPlayerProvider>
-        <Layout />
-      </MusicPlayerProvider>
+      <UIThemeProvider>
+        <MusicPlayerProvider>
+          <Layout />
+        </MusicPlayerProvider>
+      </UIThemeProvider>
     </Router>
   );
 }

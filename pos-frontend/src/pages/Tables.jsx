@@ -30,33 +30,70 @@ const Tables = () => {
   const tables = resData?.data?.data ?? [];
 
   const visibleTables =
-    status === "booked" ? tables.filter((table) => table.status === "Booked") : tables;
+    status === "booked"
+      ? tables.filter((table) => table.status === "Booked")
+      : status === "available"
+      ? tables.filter((table) => table.status !== "Booked")
+      : tables;
+
+  const bookedCount = tables.filter((t) => t.status === "Booked").length;
+  const availableCount = tables.filter((t) => t.status !== "Booked").length;
 
   return (
-    <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-10">
-        <div className="flex items-center gap-4">
+    <section className="min-h-[calc(100vh-5rem)] overflow-hidden flex flex-col pb-10">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-6">
+        <div className="flex items-center gap-3">
           <BackButton />
-          <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
-            Tables
-          </h1>
+          <div>
+            <h1 className="text-white text-xl sm:text-2xl font-extrabold tracking-tight">
+              Floor Plan & Table Stations
+            </h1>
+            <p className="text-xs text-slate-400">Select a table to assign order or tap gear to configure</p>
+          </div>
         </div>
-        <div className="flex items-center justify-around gap-4">
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800">
           <button
             onClick={() => setStatus("all")}
-            className={`text-[#ababab] text-lg ${
-              status === "all" && "bg-[#383838] rounded-lg px-5 py-2"
-            }  rounded-lg px-5 py-2 font-semibold`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              status === "all"
+                ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                : "text-slate-400 hover:text-white"
+            }`}
           >
-            All
+            <span>All Stations</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-200">
+              {tables.length}
+            </span>
           </button>
+
+          <button
+            onClick={() => setStatus("available")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              status === "available"
+                ? "bg-emerald-500 text-slate-950 shadow-md font-extrabold"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <span>Available</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-emerald-400 font-bold">
+              {availableCount}
+            </span>
+          </button>
+
           <button
             onClick={() => setStatus("booked")}
-            className={`text-[#ababab] text-lg ${
-              status === "booked" && "bg-[#383838] rounded-lg px-5 py-2"
-            }  rounded-lg px-5 py-2 font-semibold`}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              status === "booked"
+                ? "bg-rose-500 text-white shadow-md font-extrabold"
+                : "text-slate-400 hover:text-white"
+            }`}
           >
-            Booked
+            <span>Occupied</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-rose-400 font-bold">
+              {bookedCount}
+            </span>
           </button>
         </div>
       </div>

@@ -318,36 +318,51 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
-      <div className="container mx-auto flex items-center justify-between py-14 px-6 md:px-4 flex-wrap gap-4">
-        {isAdmin && <div className="flex items-center gap-3 flex-wrap">
-          {buttons.map(({ label, icon, action }) => {
-            return (
-              <button
-                key={action}
-                onClick={() => handleOpenModal(action)}
-                className="bg-[#1a1a1a] hover:bg-[#262626] px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2"
-              >
-                {label} {icon}
-              </button>
-            );
-          })}
-        </div>}
+    <div className="min-h-[calc(100vh-5rem)] pb-14">
+      {/* Top Action Bar & Categorized Module Bar */}
+      <div className="container mx-auto px-4 sm:px-6 py-6 space-y-5">
+        {/* Header Title & Quick Create Buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
+          <div>
+            <h2 className="text-xl font-extrabold text-white tracking-tight">
+              Restaurant Management & Control Hub
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Configure menu, track inventory recipes, oversee staff & financial metrics
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+          {isAdmin && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {buttons.map(({ label, icon, action }) => (
+                <button
+                  key={action}
+                  onClick={() => handleOpenModal(action)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs flex items-center gap-2 border border-slate-700/80 transition hover:border-amber-500/50 shadow-sm"
+                >
+                  <span className="text-amber-400">{icon}</span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tab Pills - Sleek, scrollable, high-contrast module tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800">
           {visibleTabs.map((tab) => {
+            const isActive = activeTab === tab;
             return (
               <button
                 key={tab}
-                className={`
-                px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2 ${
-                  activeTab === tab
-                    ? "bg-[#262626]"
-                    : "bg-[#1a1a1a] hover:bg-[#262626]"
-                }`}
                 onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
+                  isActive
+                    ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/80"
+                }`}
               >
-                {tab}
+                <span>{tab}</span>
               </button>
             );
           })}

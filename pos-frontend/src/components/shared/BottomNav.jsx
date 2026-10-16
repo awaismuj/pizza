@@ -6,8 +6,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Modal from "./Modal";
 import { useDispatch } from "react-redux";
 import { setCustomer } from "../../redux/slices/customerSlice";
+import { useUITheme } from "../../context/UIThemeContext";
 
 const BottomNav = () => {
+  const { isModern } = useUITheme();
+  if (isModern) return null;
+
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();

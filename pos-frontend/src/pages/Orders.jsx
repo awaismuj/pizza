@@ -49,32 +49,49 @@ const Orders = () => {
       : dineInOrders;
 
   return (
-    <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] overflow-x-hidden pb-24">
-      <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-10">
-        <div className="flex items-center gap-4">
+    <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden pb-16">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-6">
+        <div className="flex items-center gap-3">
           <BackButton />
-          <h1 className="text-[#f5f5f5] text-xl sm:text-2xl font-bold tracking-wider">
-            Orders
-          </h1>
-          <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
+          <div>
+            <h1 className="text-white text-xl sm:text-2xl font-extrabold tracking-tight">
+              Kitchen & Dine-In Orders
+            </h1>
+            <p className="text-xs text-slate-400">Live order pipeline & kitchen display station</p>
+          </div>
+          <div className="ml-2">
+            <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 overflow-x-auto scrollbar-hide">
           {[
-            { key: "all", label: "All", count: dineInOrders.length },
-            { key: "progress", label: "Processing", count: dineInOrders.filter((o) => o.orderStatus === "In Progress").length },
-            { key: "ready", label: "Ready", count: dineInOrders.filter((o) => o.orderStatus === "Ready").length },
-            { key: "completed", label: "Completed", count: dineInOrders.filter((o) => o.orderStatus === "Closed").length },
+            { key: "all", label: "All Orders", count: dineInOrders.length },
+            { key: "progress", label: "In Kitchen", count: dineInOrders.filter((o) => o.orderStatus === "In Progress").length },
+            { key: "ready", label: "Ready to Serve", count: dineInOrders.filter((o) => o.orderStatus === "Ready").length },
+            { key: "completed", label: "Closed / Paid", count: dineInOrders.filter((o) => o.orderStatus === "Closed").length },
             { key: "cancelled", label: "Cancelled", count: dineInOrders.filter((o) => o.orderStatus === "Cancelled").length },
           ].map((tab) => (
             <button
               key={tab.key}
               onClick={() => setStatus(tab.key)}
-              className={`text-[#ababab] text-sm sm:text-lg rounded-lg px-3 sm:px-5 py-2 font-semibold ${
-                status === tab.key ? "bg-[#383838] text-[#f5f5f5]" : ""
+              className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
+                status === tab.key
+                  ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
               }`}
             >
-              {tab.label}
-              {tab.count > 0 && <span className="ml-1 text-xs opacity-80">({tab.count})</span>}
+              <span>{tab.label}</span>
+              {tab.count > 0 && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    status === tab.key ? "bg-slate-950/20 text-slate-950" : "bg-slate-800 text-slate-300"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>

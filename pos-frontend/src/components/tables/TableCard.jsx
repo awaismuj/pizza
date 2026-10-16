@@ -85,27 +85,85 @@ const TableCard = ({id, name, status, initials, seats}) => {
     deleteMutation.mutate();
   };
 
+  const isBooked = status === "Booked";
+
   return (
-    <div onClick={() => handleClick(name)} key={id} className="relative w-full hover:bg-[#2c2c2c] bg-[#262626] p-4 rounded-lg cursor-pointer">
+    <div
+      onClick={() => handleClick(name)}
+      key={id}
+      className={`relative w-full rounded-2xl p-5 cursor-pointer transition-all duration-200 border shadow-lg group ${
+        isBooked
+          ? "bg-slate-900/90 border-slate-800 hover:border-slate-700 opacity-90"
+          : "bg-slate-900/90 border-slate-800 hover:border-amber-500/60 hover:shadow-amber-500/10 hover:-translate-y-0.5"
+      }`}
+    >
       {isAdmin && (
         <button
           onClick={openManage}
           aria-label={`Manage table ${name}`}
-          className="absolute top-3 right-3 z-10 text-[#ababab] hover:text-[#f6b100] p-1.5 rounded-full hover:bg-[#1f1f1f]"
+          className="absolute top-4 right-4 z-10 text-slate-400 hover:text-amber-400 p-1.5 rounded-lg hover:bg-slate-800 transition"
+          title="Configure table"
         >
-          <FaGear size={16} />
+          <FaGear size={15} />
         </button>
       )}
-      <div className="flex items-center justify-between px-1 pr-6">
-        <h1 className="text-[#f5f5f5] text-xl font-semibold">Table <FaLongArrowAltRight className="text-[#ababab] ml-2 inline" /> {name}</h1>
-        <p className={`${status === "Booked" ? "text-green-600 bg-[#2e4a40]" : "bg-[#664a04] text-white"} px-2 py-1 rounded-lg`}>
+
+      {/* Header: Table No & Status */}
+      <div className="flex items-center justify-between pr-7 mb-4">
+        <div>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Station
+          </span>
+          <h2 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-1.5">
+            Table {name}
+          </h2>
+        </div>
+
+        <span
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+            isBooked
+              ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              isBooked ? "bg-amber-400" : "bg-emerald-400 animate-pulse"
+            }`}
+          ></span>
           {status}
+        </span>
+      </div>
+
+      {/* Avatar & Guest initials */}
+      <div className="flex flex-col items-center justify-center my-4 py-2">
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold text-white shadow-inner ring-2 ring-slate-800"
+          style={{ backgroundColor: initials ? getBgColor() : "#1E293B" }}
+        >
+          {getAvatarName(initials) || "—"}
+        </div>
+        <p className="mt-2 text-xs font-medium text-slate-300 truncate max-w-[150px]">
+          {initials || (isBooked ? "Occupied" : "Empty Table")}
         </p>
       </div>
-      <div className="flex items-center justify-center mt-5 mb-8">
-        <h1 className={`text-white rounded-full p-5 text-xl`} style={{backgroundColor : initials ? getBgColor() : "#1f1f1f"}} >{getAvatarName(initials) || "N/A"}</h1>
+
+      {/* Footer: Seats & Action CTA */}
+      <div className="flex items-center justify-between pt-3 border-t border-slate-800/80 text-xs text-slate-400">
+        <span className="flex items-center gap-1">
+          Capacity: <strong className="text-slate-200">{seats} Seats</strong>
+        </span>
+
+        <span
+          className={`font-semibold transition ${
+            isBooked
+              ? "text-slate-500"
+              : "text-amber-400 group-hover:translate-x-0.5"
+          }`}
+        >
+          {isBooked ? "In Service" : "Take Order →"}
+        </span>
       </div>
-      <p className="text-[#ababab] text-xs">Seats: <span className="text-[#f5f5f5]">{seats}</span></p>
 
       {isAdmin && (
         <Modal isOpen={isManageOpen} onClose={() => setIsManageOpen(false)} title={`Manage Table ${name}`}>

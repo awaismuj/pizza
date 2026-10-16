@@ -36,33 +36,44 @@ const CartInfo = () => {
         ref={scrolLRef}
       >
         {cartData.length === 0 ? (
-          <p className="text-[#ababab] text-sm flex justify-center items-center h-full">Your cart is empty. Start adding items!</p>
-        ) : cartData.map((item) => {
-          return (
-            <div key={item.id} className="bg-[#1f1f1f] rounded-lg px-4 py-4 mb-2">
-              <div className="flex items-center justify-between">
-                <h1 className="text-[#ababab] font-semibold tracling-wide text-md">
-                  {item.icon ? `${item.icon} ` : ""}{item.name}
-                </h1>
-                <p className="text-[#ababab] font-semibold">x{item.quantity}</p>
-              </div>
-              <div className="flex items-center justify-between mt-3">
-                <div className="flex items-center gap-3">
-                  <RiDeleteBin2Fill
-                    onClick={() => handleRemove(item.id)}
-                    className="text-[#ababab] cursor-pointer"
-                    size={20}
-                  />
-                  <FaNotesMedical
-                    className="text-[#ababab] cursor-pointer"
-                    size={20}
-                  />
+          <p className="text-slate-500 text-xs flex justify-center items-center h-full py-8">
+            Cart is empty. Click dishes to add.
+          </p>
+        ) : (
+          cartData.map((item) => {
+            return (
+              <div
+                key={item.id}
+                className="bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-3 mb-2 shadow-sm flex flex-col gap-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-white font-bold text-xs leading-tight truncate">
+                    {item.icon ? `${item.icon} ` : ""}
+                    {item.name}
+                  </h4>
+                  <span className="text-amber-400 font-extrabold text-xs shrink-0 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                    ×{item.quantity}
+                  </span>
                 </div>
-                <p className="text-[#f5f5f5] text-md font-bold">Rs {item.price}</p>
+
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(item.id)}
+                    className="text-slate-400 hover:text-rose-400 transition p-1"
+                    title="Remove item"
+                  >
+                    <RiDeleteBin2Fill size={16} />
+                  </button>
+
+                  <p className="text-white font-bold font-mono text-xs">
+                    Rs {(item.price * item.quantity).toFixed(0)}
+                  </p>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );

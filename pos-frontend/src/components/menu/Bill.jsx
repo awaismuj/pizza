@@ -241,61 +241,73 @@ const Bill = () => {
 
   return (
     <>
-      <div className="flex items-center justify-between px-5 mt-2">
-        <p className="text-xs text-[#ababab] font-medium mt-2">
-          Items({cartData.length})
-        </p>
-        <h1 className="text-[#f5f5f5] text-md font-bold">
-          Rs {total.toFixed(2)}
-        </h1>
+      <div className="p-4 bg-slate-950/70 space-y-3">
+      {/* Financial Summary */}
+      <div className="space-y-1.5 text-xs text-slate-400">
+        <div className="flex items-center justify-between">
+          <span>Subtotal ({cartData.length} lines)</span>
+          <span className="text-white font-mono font-bold">Rs {total.toFixed(2)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Sales Tax ({taxRate}%)</span>
+          <span className="text-white font-mono font-bold">Rs {tax.toFixed(2)}</span>
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-sm font-bold text-white">
+          <span className="text-amber-400">Payable Total</span>
+          <span className="text-amber-400 font-mono text-base font-extrabold">
+            Rs {totalPriceWithTax.toFixed(2)}
+          </span>
+        </div>
       </div>
-      <div className="flex items-center justify-between px-5 mt-2">
-        <p className="text-xs text-[#ababab] font-medium mt-2">Tax({taxRate}%)</p>
-        <h1 className="text-[#f5f5f5] text-md font-bold">Rs {tax.toFixed(2)}</h1>
-      </div>
-      <div className="flex items-center justify-between px-5 mt-2">
-        <p className="text-xs text-[#ababab] font-medium mt-2">
-          Total With Tax
-        </p>
-        <h1 className="text-[#f5f5f5] text-md font-bold">
-          Rs {totalPriceWithTax.toFixed(2)}
-        </h1>
-      </div>
-      <div className="flex items-center gap-3 px-5 mt-4">
+
+      {/* Payment Method Selector */}
+      <div className="grid grid-cols-2 gap-2 pt-2">
         <button
+          type="button"
           onClick={() => setPaymentMethod("Cash")}
-          className={`bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${
-            paymentMethod === "Cash" ? "bg-[#383737]" : ""
+          className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+            paymentMethod === "Cash"
+              ? "bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20 font-extrabold"
+              : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
           }`}
         >
-          Cash
+          <span>💵 Cash</span>
         </button>
+
         <button
+          type="button"
           onClick={() => setPaymentMethod("Online")}
-          className={`bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${
-            paymentMethod === "Online" ? "bg-[#383737]" : ""
+          className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+            paymentMethod === "Online"
+              ? "bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20 font-extrabold"
+              : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
           }`}
         >
-          Online
+          <span>💳 Online / Card</span>
         </button>
       </div>
 
-      <div className="flex items-center gap-3 px-5 mt-4">
+      {/* Action Buttons: Print Receipt & Place Order */}
+      <div className="grid grid-cols-2 gap-2 pt-2">
         <button
+          type="button"
           onClick={() => setShowPendingReceipt(true)}
           disabled={cartData.length === 0}
-          className="bg-[#025cca] px-4 py-3 w-full rounded-lg text-[#f5f5f5] font-semibold text-lg disabled:opacity-60"
+          className="py-3 px-3 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs transition disabled:opacity-40"
         >
-          Print Receipt
+          🖨️ Print Slip
         </button>
+
         <button
+          type="button"
           onClick={handlePlaceOrder}
           disabled={orderMutation.isPending || cartData.length === 0}
-          className="bg-[#f6b100] px-4 py-3 w-full rounded-lg text-[#1f1f1f] font-semibold text-lg disabled:opacity-60"
+          className="py-3 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg shadow-amber-500/20 transition active:scale-95 disabled:opacity-40"
         >
-          {orderMutation.isPending ? "Placing Order..." : "Place Order"}
+          {orderMutation.isPending ? "Ringing In..." : "Complete Order →"}
         </button>
       </div>
+    </div>
 
       {showKitchenSlip && orderInfo && (
         <KitchenSlip orderInfo={orderInfo} onClose={() => setShowKitchenSlip(false)} />

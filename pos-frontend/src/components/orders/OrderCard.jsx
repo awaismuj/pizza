@@ -78,64 +78,69 @@ const OrderCard = ({ order }) => {
   };
 
   return (
-    <div className="w-full max-w-[500px] bg-[#262626] p-4 rounded-lg mb-4">
-      <div className="flex items-center gap-5">
-        <button className="bg-[#f6b100] p-3 text-xl font-bold rounded-lg">
-          {getAvatarName(order.customerDetails.name)}
-        </button>
-        <div className="flex items-center justify-between w-[100%]">
-          <div className="flex flex-col items-start gap-1">
-            <h1 className="text-[#f5f5f5] text-lg font-semibold tracking-wide">
-              {order.customerDetails.name}
-            </h1>
-            <p className="text-[#ababab] text-sm">
-              #{getOrderNumber(order)} /{" "}
-              {isOnline ? "Online delivery" : isTakeaway ? "Outdoor / Takeaway" : "Dine in"}
-            </p>
-            {isOnline ? (
-              <p className="text-[#025cca] text-sm">🌐 Online order</p>
-            ) : isTakeaway ? (
-              <p className="text-[#f6b100] text-sm">🥡 Takeaway</p>
-            ) : (
-              <p className="text-[#ababab] text-sm">
-                Table <FaLongArrowAltRight className="text-[#ababab] ml-2 inline" /> {order.table?.tableNo ?? "—"}
+    <div className="w-full bg-slate-900/95 border border-slate-800 hover:border-slate-700 p-4 rounded-2xl shadow-xl transition-all duration-200 flex flex-col justify-between">
+      <div>
+        {/* Ticket Header */}
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-800/80">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-bold text-sm flex items-center justify-center shrink-0 shadow-md">
+              {getAvatarName(order.customerDetails.name)}
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-white text-base font-bold truncate leading-tight">
+                {order.customerDetails.name}
+              </h3>
+              <p className="text-slate-400 text-xs mt-0.5 font-mono">
+                Order #{getOrderNumber(order)}
               </p>
-            )}
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <p className={`px-2 py-1 rounded-lg text-sm font-semibold ${statusPillClass(order.orderStatus)}`}>
+
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusPillClass(order.orderStatus)}`}>
               {STAGE_LABELS[order.orderStatus] || order.orderStatus}
-            </p>
+            </span>
+            <span className="text-[11px] font-medium text-slate-400">
+              {isOnline ? "🌐 Online" : isTakeaway ? "🥡 Takeaway" : `🪑 Table ${order.table?.tableNo ?? "—"}`}
+            </span>
           </div>
+        </div>
+
+        {/* Stage-by-stage progress tracker */}
+        <div className="py-2">
+          <OrderStageTracker order={order} />
+        </div>
+
+        {/* Order Details & Items Count */}
+        <div className="flex justify-between items-center py-2 text-xs text-slate-400">
+          <span>{formatDateAndTime(order.orderDate)}</span>
+          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-semibold">
+            {order.items.length} {order.items.length === 1 ? "Item" : "Items"}
+          </span>
+        </div>
+
+        {/* Bill Total */}
+        <div className="flex items-center justify-between py-2 border-t border-slate-800/80 my-1">
+          <span className="text-xs uppercase tracking-wider font-semibold text-slate-400">
+            Total Amount
+          </span>
+          <span className="text-white text-base font-bold font-mono">
+            Rs {order.bills.totalWithTax.toFixed(2)}
+          </span>
         </div>
       </div>
 
-      {/* Stage-by-stage progress: Processing -> Ready -> Completed */}
-      <OrderStageTracker order={order} />
-
-      <div className="flex justify-between items-center mt-4 text-[#ababab]">
-        <p>{formatDateAndTime(order.orderDate)}</p>
-        <p>{order.items.length} Items</p>
-      </div>
-      <hr className="w-full mt-4 border-t-1 border-gray-500" />
-      <div className="flex items-center justify-between mt-4">
-        <h1 className="text-[#f5f5f5] text-lg font-semibold">Total</h1>
-        <p className="text-[#f5f5f5] text-lg font-semibold">Rs {order.bills.totalWithTax.toFixed(2)}</p>
-      </div>
-
-      {/* Action buttons: move the order to its next stage, edit its items,
-          cancel it, or (Admin only) delete it outright. Edit/Cancel are
-          Cashier+Admin; Delete is Admin only — same rule the server
-          enforces, see utils/orderPermissions.js. */}
+      {/* Action Buttons */}
       {!isTerminal && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap gap-2">
           {next && (
             <button
               onClick={() => setStatus(next.to)}
               disabled={statusMutation.isPending}
-              className="flex-1 rounded-lg bg-[#02ca3a] py-2 font-semibold text-[#1f1f1f] disabled:opacity-60"
+              className="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-md shadow-emerald-500/20 disabled:opacity-60 flex items-center justify-center gap-1"
             >
-              {next.label}
+              <span>{next.label}</span>
+              <span>→</span>
             </button>
           )}
           {canEditOrder(role) && (

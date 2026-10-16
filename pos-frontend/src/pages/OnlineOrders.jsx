@@ -99,45 +99,61 @@ const OnlineOrders = () => {
   };
 
   return (
-    <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] overflow-x-hidden pb-40">
-      <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-10">
-        <div className="flex items-center gap-4">
+    <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden pb-20">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl mb-6">
+        <div className="flex items-center gap-3">
           <BackButton />
-          <h1 className="text-[#f5f5f5] text-xl sm:text-2xl font-bold tracking-wider">
-            Online Orders
-          </h1>
-          <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
+          <div>
+            <h1 className="text-white text-xl sm:text-2xl font-extrabold tracking-tight">
+              Online Orders Dispatch Pipeline
+            </h1>
+            <p className="text-xs text-slate-400">Incoming storefront delivery & takeaway orders</p>
+          </div>
+          <div className="ml-2">
+            <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
+          </div>
+        </div>
+
+        {/* Status Stage Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-950/80 border border-slate-800 overflow-x-auto scrollbar-hide">
+          {TABS.map((tab) => {
+            const count = orders.filter((o) => o.orderStatus === tab.key).length;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  isActive
+                    ? "bg-amber-500 text-slate-950 shadow-md font-extrabold"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <span>{tab.label}</span>
+                {count > 0 && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                      isActive ? "bg-slate-950/20 text-slate-950" : "bg-slate-800 text-slate-300"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Wraps to as many rows as needed on narrow screens instead of
-          relying on the person discovering a horizontal scroll - a row
-          that just gets cut off mid-label ("Ready to Deli...") reads as
-          broken even though it technically scrolled. */}
-      <div className="flex flex-wrap gap-2 px-4 pb-2 sm:px-10">
-        {TABS.map((tab) => {
-          const count = orders.filter((o) => o.orderStatus === tab.key).length;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs sm:px-4 sm:text-sm font-semibold ${
-                activeTab === tab.key ? "bg-[#383838] text-[#f5f5f5]" : "text-[#ababab]"
-              }`}
-            >
-              {tab.label} {count > 0 && `(${count})`}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 px-4 py-4 min-[480px]:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-4 px-2 min-[480px]:grid-cols-2 sm:px-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {visibleOrders.length === 0 && (
-          <p className="col-span-full text-gray-500">No orders here yet.</p>
+          <div className="col-span-full py-12 text-center rounded-2xl bg-slate-900/40 border border-slate-800/60 p-8">
+            <p className="text-slate-400 text-sm font-medium">No {activeTab} online orders at the moment.</p>
+          </div>
         )}
 
         {visibleOrders.map((order) => (
-          <div key={order._id} className="rounded-lg bg-[#262626] p-4">
+          <div key={order._id} className="rounded-2xl bg-slate-900/95 border border-slate-800 hover:border-slate-700 p-4 shadow-xl flex flex-col justify-between transition">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-[#f5f5f5]">{order.customerDetails?.name}</h2>
               <span className="text-xs text-[#ababab]">

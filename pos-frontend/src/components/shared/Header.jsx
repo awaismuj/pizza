@@ -13,6 +13,7 @@ import { MdDashboard, MdDeliveryDining, MdReceiptLong } from "react-icons/md";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import ExpenseQuickAdd from "./ExpenseQuickAdd";
 import MusicPlayer from "./MusicPlayer";
+import { useUITheme } from "../../context/UIThemeContext";
 
 const Header = () => {
   const userData = useSelector((state) => state.user);
@@ -47,6 +48,8 @@ const Header = () => {
     logoutMutation.mutate();
   };
 
+  const { toggleUiMode } = useUITheme();
+
   return (
     // Every icon here (dashboard, online, bell, expenses, user card) can be
     // visible at the same time, so this row needs to shrink gracefully
@@ -75,6 +78,18 @@ const Header = () => {
           </h1>
         </button>
         <MusicPlayer variant="compact" canManage={String(userData.role || "").toLowerCase() === "admin"} />
+      </div>
+
+      {/* Switch to Modern UI Button */}
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={toggleUiMode}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition shadow-sm"
+          title="Switch to Modern Tossdown Restaurant UI"
+        >
+          <span>✨ Modern Tossdown UI</span>
+        </button>
       </div>
 
       {/* SEARCH - only where there's real room for it, so it never competes
