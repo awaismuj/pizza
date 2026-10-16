@@ -59,3 +59,15 @@ export const lookupOrderByPhone = (phone) =>
 // an accurate estimate before checkout; the amount actually charged is
 // always recalculated server-side from this same setting.
 export const getPublicSettings = () => request("/api/settings");
+
+// Approved customer reviews for the storefront homepage.
+export const getPublicReviews = () => request("/api/reviews/public");
+
+// Submit a new customer review (no login required). Server validates name,
+// rating (1-5), and review text, and rejects duplicates for the same
+// customer + product.
+export const addReview = (payload) =>
+  request("/api/reviews/public", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });

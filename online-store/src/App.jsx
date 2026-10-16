@@ -9,6 +9,8 @@ import {
   cancelOrder,
   lookupOrderByPhone,
   getPublicSettings,
+  getPublicReviews,
+  addReview,
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
@@ -440,6 +442,29 @@ select {
 .gzp-btn-ghost:hover {
   border-color: rgba(37, 37, 37, 0.32);
   background: var(--ink-800);
+}
+
+.gzp-btn-outline {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--flour);
+}
+
+.gzp-btn-outline:hover {
+  border-color: var(--flour);
+  background: var(--ink-800);
+}
+
+.gzp-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
 }
 
 .gzp-btn-block {
@@ -2283,6 +2308,255 @@ textarea::placeholder {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------- Reviews section ---------- */
+
+.gzp-reviews-section {
+  padding: 56px 0 80px;
+  background: var(--ink-900);
+}
+
+.gzp-reviews-section .gzp-shell {
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.gzp-reviews-header {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 40px;
+  text-align: left;
+}
+
+@media (min-width: 768px) {
+  .gzp-reviews-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+.gzp-reviews-intro h2 {
+  font-family: "Archivo", "Hanken Grotesk", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 8px;
+  color: var(--flour);
+}
+
+.gzp-reviews-intro p {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--flour-dim);
+}
+
+.gzp-reviews-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gzp-stats-rating {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.gzp-stats-average {
+  font-family: "Archivo", "Hanken Grotesk", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--flour);
+  line-height: 1;
+}
+
+.gzp-stats-stars {
+  display: flex;
+  gap: 4px;
+  color: var(--gold);
+}
+
+.gzp-stats-count {
+  font-size: 1rem;
+  color: var(--flour-dim);
+}
+
+.gzp-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.gzp-review-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--ink-850);
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gzp-review-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.gzp-review-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 480px) {
+  .gzp-review-head {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.gzp-review-head > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gzp-review-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--flour);
+}
+
+.gzp-review-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--basil);
+  background: rgba(26, 158, 86, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+}
+
+.gzp-review-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (min-width: 480px) {
+  .gzp-review-meta {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+}
+
+.gzp-review-stars {
+  display: flex;
+  gap: 4px;
+  color: var(--gold);
+}
+
+.gzp-review-product {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ember);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gzp-review-date {
+  font-size: 0.8rem;
+  color: var(--flour-faint);
+}
+
+.gzp-review-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--flour);
+}
+
+.gzp-reviews-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.gzp-empty-reviews {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  color: var(--flour-dim);
+}
+
+.gzp-rating-picker {
+  display: flex;
+  direction: rtl;
+  gap: 6px;
+  justify-content: center;
+}
+
+.gzp-star-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #ccc;
+  transition: transform 0.1s ease;
+}
+
+.gzp-star-btn:hover,
+.gzp-star-btn.is-active {
+  color: var(--gold);
+}
+
+.gzp-star-btn:active {
+  transform: scale(0.9);
+}
+
+.gzp-star-btn svg {
+  display: block;
+}
+
+.gzp-review-form-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.gzp-review-success {
+  color: var(--basil);
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .gzp-reviews-section {
+    padding: 40px 0 60px;
+  }
+  .gzp-reviews-grid {
+    grid-template-columns: 1fr;
+  }
+}
 `;
 
 // Injected once, on first import, so the stylesheet is in place before the
@@ -2473,6 +2747,36 @@ const IconStore = (props) => (
   </svg>
 );
 
+const IconStar = ({ filled = false, size = 20, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={filled ? "var(--gold)" : "none"}
+    stroke="var(--flour-dim)"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+const IconCheck = (props) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="var(--basil)"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
 const IconHeart = ({ filled, ...props }) => (
   <svg {...iconProps} strokeWidth={2} fill={filled ? "currentColor" : "none"} {...props}>
     <path d="M12 20.5s-7.3-4.6-9.9-9.1C.5 8 1.9 4.6 5.1 3.6c2-.6 4.1.1 5.4 1.8l1.5 2 1.5-2c1.3-1.7 3.4-2.4 5.4-1.8 3.2 1 4.6 4.4 3 7.8-2.6 4.5-9.9 9.1-9.9 9.1Z" />
@@ -2896,6 +3200,21 @@ function App() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  /* ---------- Customer reviews ---------- */
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [avgRating, setAvgRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [newReview, setNewReview] = useState({
+    customerName: "",
+    rating: 5,
+    reviewText: "",
+    productName: "",
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitMessage, setReviewSubmitMessage] = useState({ type: "", text: "" });
   const [placing, setPlacing] = useState(false);
   const [refreshingStatus, setRefreshingStatus] = useState(false);
 
@@ -3126,6 +3445,24 @@ function App() {
         if (typeof liveTaxRate === "number") setTaxRatePercent(liveTaxRate);
         if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
         if (settingsRes?.data?.deliveryFulfillment) setFulfilmentConfig(settingsRes.data.deliveryFulfillment);
+
+        // Load approved reviews for the reviews section.
+        try {
+          setReviewsLoading(true);
+          const reviewsRes = await getPublicReviews();
+          const allReviews = reviewsRes.data || [];
+          setReviews(allReviews);
+          if (allReviews.length > 0) {
+            const sum = allReviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+            setAvgRating(Math.round((sum / allReviews.length) * 10) / 10);
+            setReviewCount(allReviews.length);
+          }
+        } catch (revErr) {
+          // Reviews failing to load should never block the menu.
+          console.warn("Could not load reviews:", revErr.message);
+        } finally {
+          setReviewsLoading(false);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -3311,6 +3648,7 @@ function App() {
   const navItems = useMemo(() => {
     const items = sections.map((s) => ({ id: s.id, name: s.name }));
     if (deals.length > 0) items.unshift({ id: DEALS_SECTION_ID, name: "Deals" });
+    items.push({ id: "reviews", name: "Reviews" });
     return items;
   }, [sections, deals]);
 
@@ -3806,6 +4144,46 @@ function App() {
     }
   };
 
+  /* ---------- Review submission ---------- */
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    setReviewSubmitMessage({ type: "", text: "" });
+
+    if (!newReview.customerName || newReview.customerName.trim().length < 2) {
+      setReviewSubmitMessage({ type: "error", text: "Please enter your name (2+ characters)." });
+      return;
+    }
+    if (!newReview.reviewText || newReview.reviewText.trim().length < 5) {
+      setReviewSubmitMessage({ type: "error", text: "Please write your review (5+ characters)." });
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      await addReview({
+        customerName: newReview.customerName.trim(),
+        rating: newReview.rating,
+        reviewText: newReview.reviewText.trim(),
+        productName: newReview.productName ? newReview.productName.trim() : "",
+      });
+      setReviewSubmitMessage({
+        type: "success",
+        text: "Thanks! Your review is awaiting moderation and will appear once approved.",
+      });
+      setNewReview({ customerName: "", rating: 5, reviewText: "", productName: "" });
+      // Refresh the approved reviews list so new ones show once approved.
+      // (Newly submitted reviews are pending, so they won't appear until staff approves them.)
+    } catch (err) {
+      setReviewSubmitMessage({
+        type: "error",
+        text: err.message || "Could not submit review. Please try again.",
+      });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const refreshStatus = async () => {
     if (!orderId || refreshingStatus) return;
     setRefreshingStatus(true);
@@ -4136,6 +4514,197 @@ function App() {
 
   /* ---------------- Menu view ---------------- */
 
+  /* ---------- Review components ---------- */
+
+  const starsFor = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(i <= Math.round(rating));
+    }
+    return stars;
+  };
+
+  const formatReviewDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  };
+
+  const ReviewCard = ({ review }) => (
+    <article className="gzp-review-card" role="listitem">
+      <div className="gzp-review-head">
+        <div>
+          <span className="gzp-review-name">{review.customerName}</span>
+          {review.verified && (
+            <span className="gzp-review-verified" aria-label="Verified purchase">
+              <IconCheck /> <span className="gzp-visually-hidden">Verified purchase</span>
+            </span>
+          )}
+        </div>
+        <div className="gzp-review-meta">
+          <div className="gzp-review-stars" aria-label={`Rating of ${review.rating} out of 5 stars`}>
+            {starsFor(review.rating).map((filled, i) => (
+              <IconStar key={i} filled={filled} size={18} />
+            ))}
+          </div>
+          {review.productName && (
+            <span className="gzp-review-product">{review.productName}</span>
+          )}
+          <span className="gzp-review-date">{formatReviewDate(review.createdAt)}</span>
+        </div>
+      </div>
+      <p className="gzp-review-text">{review.reviewText}</p>
+    </article>
+  );
+
+  const ReviewForm = () => (
+    <div className="gzp-sheet-overlay" onClick={() => setReviewFormOpen(false)}>
+      <div className="gzp-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Leave a review">
+        <div className="gzp-sheet-head">
+          <h2>Leave a Review</h2>
+          <button className="gzp-icon-btn" onClick={() => setReviewFormOpen(false)} aria-label="Close" type="button">
+            ✕
+          </button>
+        </div>
+        <div className="gzp-sheet-body">
+          {reviewSubmitMessage.type && (
+            <p
+              className={`gzp-error ${reviewSubmitMessage.type === "success" ? "gzp-review-success" : ""}`}
+              role="status"
+              aria-live="polite"
+            >
+              {reviewSubmitMessage.text}
+            </p>
+          )}
+          <form onSubmit={handleSubmitReview} className="gzp-review-form">
+            <div className="gzp-form">
+              <label className="gzp-field">
+                <span>Your name or nickname</span>
+                <input
+                  required
+                  type="text"
+                  maxLength={60}
+                  value={newReview.customerName}
+                  onChange={(e) => setNewReview({ ...newReview, customerName: e.target.value })}
+                  placeholder="e.g. Ayesha"
+                />
+              </label>
+              <label className="gzp-field">
+                <span>Your rating</span>
+                <div className="gzp-rating-picker" role="radiogroup" aria-label="Select your rating">
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      role="radio"
+                      aria-checked={newReview.rating === star}
+                      aria-label={`${star} star${star === 1 ? "" : "s"}`}
+                      className={`gzp-star-btn${newReview.rating === star ? " is-active" : ""}`}
+                      onClick={() => setNewReview({ ...newReview, rating: star })}
+                    >
+                      <IconStar filled={newReview.rating >= star} size={24} />
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <label className="gzp-field">
+                <span>Your review</span>
+                <textarea
+                  required
+                  maxLength={1000}
+                  value={newReview.reviewText}
+                  onChange={(e) => setNewReview({ ...newReview, reviewText: e.target.value })}
+                  rows={4}
+                  placeholder="Tell us what you loved about your order…"
+                />
+              </label>
+              <label className="gzp-field">
+                <span>Product (optional)</span>
+                <input
+                  type="text"
+                  maxLength={120}
+                  value={newReview.productName}
+                  onChange={(e) => setNewReview({ ...newReview, productName: e.target.value })}
+                  placeholder="e.g. Large Pepperoni Pizza"
+                />
+              </label>
+            </div>
+            <div className="gzp-review-form-foot">
+              <button
+                type="button"
+                className="gzp-btn gzp-btn-ghost"
+                onClick={() => setReviewFormOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="gzp-btn gzp-btn-primary"
+                disabled={submittingReview}
+              >
+                {submittingReview ? "Sending…" : "Submit review"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ReviewsSection = () => (
+    <section className="gzp-section gzp-reviews-section" id="section-reviews" aria-label="Customer reviews">
+      <div className="gzp-shell">
+        <div className="gzp-reviews-header">
+          <div className="gzp-reviews-intro">
+            <h2>Loved by Pizza Lovers</h2>
+            <p>See what our customers have to say.</p>
+          </div>
+          {reviewCount > 0 && (
+            <div className="gzp-reviews-stats">
+              <div className="gzp-stats-rating">
+                <span className="gzp-stats-average">{avgRating.toFixed(1)}</span>
+                <div className="gzp-stats-stars" aria-hidden="true">
+                  {starsFor(avgRating).map((filled, i) => (
+                    <IconStar key={i} filled={filled} size={16} />
+                  ))}
+                </div>
+                <span className="gzp-stats-count">({reviewCount} review{reviewCount === 1 ? "" : "s"})</span>
+              </div>
+              <button
+                className="gzp-btn gzp-btn-ghost"
+                onClick={() => setReviewFormOpen(true)}
+              >
+                Write a review
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="gzp-reviews-grid">
+          {reviews.length > 0 ? (
+            <ul role="list">
+              {reviews.map((review) => (
+                <ReviewCard key={review._id} review={review} />
+              ))}
+            </ul>
+          ) : (
+            <div className="gzp-empty gzp-empty-reviews">
+              <p>No reviews yet. Be the first to share your experience.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="gzp-reviews-foot">
+          <a
+            href="#section-reviews"
+            className="gzp-btn gzp-btn-outline"
+          >
+            Read All Reviews
+          </a>
+        </div>
+      </div>
+    </section>
+  );
 
   return (
     <div className="gzp-app">
@@ -4178,6 +4747,9 @@ function App() {
           }}
         />
       </section>
+
+      {/* ---- Customer reviews section ---- */}
+      <ReviewsSection />
 
       {/* ---- Sticky category nav ---- */}
       {!loading && navItems.length > 0 && (
