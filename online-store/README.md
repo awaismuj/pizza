@@ -8,12 +8,37 @@ endpoints:
 - `GET  /api/dish/public`
 - `POST /api/order/public/checkout`
 - `GET  /api/order/public/:id`
+- `GET  /api/settings` — live tax rate plus the delivery/fulfilment
+  configuration shared with the POS: `deliveryFulfillment.timeZone` and
+  `deliveryFulfillment.branches[]` (each with `branchId`, `name`,
+  `address`, `enabled`, `pickupEnabled`, `deliveryEnabled`,
+  `preparationMinutes`, `pickupInstructions`, `deliveryRestrictionActive`,
+  `deliveryRestrictionMessage`, `openingHours[]` and `deliveryZones[]` with
+  `area`, `fee`, `minimumOrder`, `estimatedDeliveryMinutes`, `enabled`).
 
 Orders placed here land in the POS's normal orders collection with
 `orderSource: "Online"` and `orderStatus: "Pending"`, and show up in the
 POS's **Online Orders** tab (`/online-orders`) for staff to Accept/Cancel
 and move through Preparing → Ready to Deliver → Completed. This app polls
 `/api/order/public/:id` every 8s so the customer sees live status updates.
+
+## Delivery & pickup
+
+Before checking out the customer chooses how to receive the order:
+
+- **Home Delivery** — the typed address is matched against the configured
+  delivery zones; the zone's delivery fee, minimum order and estimated
+  delivery minutes are shown and added to the total.
+- **Pickup from Restaurant** — the customer picks an eligible branch and
+  sees its prep estimate and pickup instructions.
+
+The selected method, branch, delivery fee and ETA are sent with the order
+(`deliveryType`, `branchId`, `deliveryFee`, `etaMinutes`,
+`fulfillmentNote`) and stored on the order, so the POS and the website
+apply the same fulfilment rules from the same backend settings. Fees and
+eligibility are always re-validated and re-calculated server-side at
+checkout; unsupported areas, closed branches, temporary delivery
+restrictions and minimum order values are blocked with clear messages.
 
 ## Local setup
 
