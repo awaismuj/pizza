@@ -3134,19 +3134,37 @@ function App() {
   const setFulfilmentType = (type) => {
     fulfilmentInteracted.current = true;
     setFulfilmentError("");
+    const config = fulfilmentConfig;
     setFulfilment((current) => {
-      if (current.type === type && (type !== "delivery" || current.zone || !form.address.trim())) return current;
-      const config = fulfilmentConfig;
       if (!config) {
+        return { ...current, type, zone: null, fee: 0, eta: null, note: "" };
+      }
+      if (type === "pickup") {
+        const b = (config.branches || []).find((x) => x.enabled && x.pickupEnabled);
         return {
           ...current,
-          type,
+          type: "pickup",
+          branch: b ?? null,
           zone: null,
           fee: 0,
-          note: type === "delivery" ? "Cash on delivery — pay the rider when the food arrives." : "",
+          eta: b ? b.preparationMinutes ?? 25 : null,
+          note: b ? b.pickupInstructions || "" : "",
         };
       }
-      return defaultFulfilment(config, current.address);
+      // Delivery: set type and let the address-matching useEffect resolve the zone/fee/ETA
+      const b = (config.branches || []).find(
+        (x) => x.enabled && x.deliveryEnabled && !x.deliveryRestrictionActive && (x.deliveryZones || []).some((z) => z.enabled)
+      );
+      const z = b ? (b.deliveryZones || []).find((z) => z.enabled) : null;
+      return {
+        ...current,
+        type: "delivery",
+        branch: b ?? null,
+        zone: z ?? null,
+        fee: z ? Number(z.fee || 0) : 0,
+        eta: b && z ? (b.preparationMinutes ?? 25) + (z.estimatedDeliveryMinutes ?? 30) : null,
+        note: "Cash on delivery — pay the rider when the food arrives.",
+      };
     });
   };
 
@@ -4903,7 +4921,7 @@ function App() {
               <div className="gzp-fulfilment-options" role="radiogroup" aria-label="Fulfilment method">
                 <label
                   className={`gzp-choice ${fulfilment.type === "delivery" ? "gzp-choice--selected" : ""}${
-                    fulfilment.type === null || !fulfilmentConfig ? " gzp-choice--disabled" : ""
+                    !fulfilmentConfig ? " gzp-choice--disabled" : ""
                   }`}
                 >
                   <input
@@ -4912,11 +4930,9 @@ function App() {
                     value="delivery"
                     checked={fulfilment.type === "delivery"}
                     onChange={() => setFulfilmentType("delivery")}
-                    disabled={fulfilment.type === null || !fulfilmentConfig}
+                    disabled={!fulfilmentConfig}
                     aria-label={
-                      fulfilment.type === null || !fulfilmentConfig
-                        ? "Delivery unavailable right now"
-                        : "Home Delivery"
+                      !fulfilmentConfig ? "Delivery unavailable right now" : "Home Delivery"
                     }
                   />
                   <IconTruck className="gzp-choice-icon" />
@@ -4942,7 +4958,7 @@ function App() {
 
                 <label
                   className={`gzp-choice ${fulfilment.type === "pickup" ? "gzp-choice--selected" : ""}${
-                    fulfilment.type === null || !fulfilmentConfig ? " gzp-choice--disabled" : ""
+                    !fulfilmentConfig ? " gzp-choice--disabled" : ""
                   }`}
                 >
                   <input
@@ -4951,8 +4967,8 @@ function App() {
                     value="pickup"
                     checked={fulfilment.type === "pickup"}
                     onChange={() => setFulfilmentType("pickup")}
-                    disabled={fulfilment.type === null || !fulfilmentConfig}
-                    aria-label={fulfilment.type === null || !fulfilmentConfig ? "Pickup unavailable right now" : "Pickup from Restaurant"}
+                    disabled={!fulfilmentConfig}
+                    aria-label={!fulfilmentConfig ? "Pickup unavailable right now" : "Pickup from Restaurant"}
                   />
                   <IconStore className="gzp-choice-icon" />
                   <div className="gzp-choice-copy">
@@ -4996,7 +5012,7 @@ function App() {
                       required
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      placeholder="Who's the rider asking for?"
+                      placeholder="Awais Younas"
                     />
                   </label>
 
@@ -5052,25 +5068,23 @@ function App() {
                     </label>
                   )}
 
-                  <p className="gzp-note">
-                    {fulfilment.type === "pickup" ? (
-                      <>
-                        <IconStore />
-                        <span>
-                          <b>Pickup from {fulfilment.branch?.name || "the restaurant"}.</b>{" "}
-                          {fulfilment.note || "Please show your order number at the counter."}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <IconTruck />
-                        <span>
-                          <b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this
-                          number if we can't find the address.
-                        </span>
-                      </>
-                    )}
-                  </p>
+                  {fulfilment.type === "pickup" && fulfilment.branch && (
+                    <p className="gzp-note">
+                      <IconStore />
+                      <span>
+                        <b>Pickup from {fulfilment.branch.name}.</b>{" "}
+                        {fulfilment.note || "Please show your order number at the counter."}
+                      </span>
+                    </p>
+                  )}
+                  {fulfilment.type === "delivery" && (
+                    <p className="gzp-note">
+                      <IconTruck />
+                      <span>
+                        <b>Cash on delivery.</b> Pay the rider when the food arrives.
+                      </span>
+                    </p>
+                  )}
 
                   {error && <p className="gzp-error">{error}</p>}
                 </div>
