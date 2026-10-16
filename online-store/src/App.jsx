@@ -2549,6 +2549,109 @@ textarea::placeholder {
   margin-bottom: 12px;
 }
 
+/* ---------- All reviews page ---------- */
+
+.gzp-all-reviews-page {
+  padding: 26px 0 120px;
+}
+
+.gzp-all-reviews-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+
+.gzp-all-reviews-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gzp-all-reviews-intro h2 {
+  font-weight: 800;
+  font-variation-settings: "wdth" 114;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: -0.03em;
+}
+
+.gzp-all-reviews-intro p {
+  color: var(--flour-dim);
+  font-size: 0.95rem;
+}
+
+.gzp-all-reviews-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.gzp-all-reviews-average {
+  font-family: "Archivo", sans-serif;
+  font-variation-settings: "wdth" 108;
+  font-weight: 800;
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+  color: var(--flour);
+}
+
+.gzp-all-reviews-stars {
+  display: flex;
+  gap: 4px;
+  color: var(--gold);
+}
+
+.gzp-all-reviews-count {
+  color: var(--flour-faint);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.gzp-all-reviews-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+@media (min-width: 720px) {
+  .gzp-all-reviews-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .gzp-all-reviews-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.gzp-all-reviews-foot {
+  margin-top: 34px;
+  display: flex;
+  justify-content: center;
+}
+
+.gzp-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  color: var(--flour-dim);
+  text-align: center;
+}
+
+.gzp-empty p {
+  margin: 0;
+  font-size: 1rem;
+}
+
 @media (max-width: 640px) {
   .gzp-reviews-section {
     padding: 40px 0 60px;
@@ -3215,6 +3318,7 @@ function App() {
   });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSubmitMessage, setReviewSubmitMessage] = useState({ type: "", text: "" });
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [refreshingStatus, setRefreshingStatus] = useState(false);
 
@@ -4530,8 +4634,11 @@ function App() {
     return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   };
 
-  const ReviewCard = ({ review }) => (
-    <article className="gzp-review-card" role="listitem">
+  const ReviewCard = ({ review, size = "small" }) => (
+    <article
+      className={`gzp-review-card gzp-review-card--${size}`}
+      role="listitem"
+    >
       <div className="gzp-review-head">
         <div>
           <span className="gzp-review-name">{review.customerName}</span>
@@ -4544,7 +4651,7 @@ function App() {
         <div className="gzp-review-meta">
           <div className="gzp-review-stars" aria-label={`Rating of ${review.rating} out of 5 stars`}>
             {starsFor(review.rating).map((filled, i) => (
-              <IconStar key={i} filled={filled} size={18} />
+              <IconStar key={i} filled={filled} size={size === "large" ? 22 : 18} />
             ))}
           </div>
           {review.productName && (
@@ -4651,6 +4758,68 @@ function App() {
     </div>
   );
 
+  /* ---------- All Reviews (full-page view) ---------- */
+
+  const AllReviewsPage = () => (
+    <section className="gzp-all-reviews-page" aria-label="All customer reviews">
+      <div className="gzp-shell">
+        <div className="gzp-all-reviews-header">
+          <button
+            className="gzp-btn gzp-btn-ghost"
+            onClick={() => setShowAllReviews(false)}
+            aria-label="Back to homepage"
+          >
+            ← Back
+          </button>
+          <div className="gzp-all-reviews-intro">
+            <h2>Loved by Pizza Lovers</h2>
+            <p>See what our customers have to say.</p>
+          </div>
+          {reviewCount > 0 && (
+            <div className="gzp-all-reviews-stats">
+              <span className="gzp-all-reviews-average">{avgRating.toFixed(1)}</span>
+              <div className="gzp-all-reviews-stars" aria-hidden="true">
+                {starsFor(avgRating).map((filled, i) => (
+                  <IconStar key={i} filled={filled} size={32} />
+                ))}
+              </div>
+              <span className="gzp-all-reviews-count">
+                {reviewCount} review{reviewCount === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="gzp-all-reviews-grid">
+          {reviews.length > 0 ? (
+            <ul role="list">
+              {reviews.map((review) => (
+                <ReviewCard key={review._id} review={review} size="large" />
+              ))}
+            </ul>
+          ) : (
+            <div className="gzp-empty gzp-empty-reviews">
+              <p>No reviews yet. Be the first to share your experience.</p>
+            </div>
+          )}
+        </div>
+
+        {reviewCount > 0 && (
+          <div className="gzp-all-reviews-foot">
+            <button
+              className="gzp-btn gzp-btn-primary"
+              onClick={() => setReviewFormOpen(true)}
+            >
+              Write a review
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
+  /* ---------- Reviews Section (homepage) ---------- */
+
   const ReviewsSection = () => (
     <section className="gzp-section gzp-reviews-section" id="section-reviews" aria-label="Customer reviews">
       <div className="gzp-shell">
@@ -4659,32 +4828,30 @@ function App() {
             <h2>Loved by Pizza Lovers</h2>
             <p>See what our customers have to say.</p>
           </div>
-          <div className="gzp-reviews-stats">
-            {reviewCount > 0 && (
-              <div className="gzp-stats-rating">
-                <span className="gzp-stats-average">{avgRating.toFixed(1)}</span>
-                <div className="gzp-stats-stars" aria-hidden="true">
-                  {starsFor(avgRating).map((filled, i) => (
-                    <IconStar key={i} filled={filled} size={16} />
-                  ))}
-                </div>
-                <span className="gzp-stats-count">({reviewCount} review{reviewCount === 1 ? "" : "s"})</span>
+          {reviewCount > 0 && (
+            <div className="gzp-reviews-stats">
+              <span className="gzp-stats-average">{avgRating.toFixed(1)}</span>
+              <div className="gzp-stats-stars" aria-hidden="true">
+                {starsFor(avgRating).map((filled, i) => (
+                  <IconStar key={i} filled={filled} size={20} />
+                ))}
               </div>
-            )}
-            <button
-              className="gzp-btn gzp-btn-ghost"
-              onClick={() => setReviewFormOpen(true)}
-            >
-              Write a review
-            </button>
-          </div>
+              <span className="gzp-stats-count">{reviewCount} review{reviewCount === 1 ? "" : "s"}</span>
+            </div>
+          )}
+          <button
+            className="gzp-btn gzp-btn-ghost"
+            onClick={() => setReviewFormOpen(true)}
+          >
+            Write a review
+          </button>
         </div>
 
         <div className="gzp-reviews-grid">
           {reviews.length > 0 ? (
             <ul role="list">
               {reviews.map((review) => (
-                <ReviewCard key={review._id} review={review} />
+                <ReviewCard key={review._id} review={review} size="small" />
               ))}
             </ul>
           ) : (
@@ -4695,12 +4862,12 @@ function App() {
         </div>
 
         <div className="gzp-reviews-foot">
-          <a
-            href="#section-reviews"
+          <button
             className="gzp-btn gzp-btn-outline"
+            onClick={() => setShowAllReviews(true)}
           >
             Read All Reviews
-          </a>
+          </button>
         </div>
       </div>
     </section>
@@ -5782,6 +5949,12 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* ---- Write a review sheet ---- */}
+      {reviewFormOpen && <ReviewForm />}
+
+      {/* ---- All reviews page ---- */}
+      {showAllReviews && <AllReviewsPage />}
     </div>
   );
 }
