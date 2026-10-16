@@ -3114,7 +3114,7 @@ function App() {
         const liveTaxRate = settingsRes?.data?.taxRatePercent;
         if (typeof liveTaxRate === "number") setTaxRatePercent(liveTaxRate);
         if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
-        if (settingsRes?.data?.data?.deliveryFulfillment) setFulfilmentConfig(settingsRes.data.data.deliveryFulfillment);
+        if (settingsRes?.data?.deliveryFulfillment) setFulfilmentConfig(settingsRes.data.deliveryFulfillment);
       } catch (err) {
         setError(err.message);
       } finally {
