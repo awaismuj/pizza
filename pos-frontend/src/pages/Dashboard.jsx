@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { MdTableBar, MdCategory } from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,8 @@ import PaymentsOverview from "../components/dashboard/PaymentsOverview";
 import TaxManager from "../components/dashboard/TaxManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
+import AssetManagement from "../components/dashboard/AssetManagement";
+import MusicPlayer from "../components/shared/MusicPlayer";
 import {
   getCategories,
   getDishes,
@@ -38,10 +41,14 @@ const buttons = [
   { label: "Add Dishes", icon: <BiSolidDish />, action: "dishes" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax"];
+const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
+const assetRoles = ["admin", "accountant", "asset manager", "read only"];
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
+  const role = useSelector((state) => state.user.role);
+  const isAdmin = String(role || "").toLowerCase() === "admin";
+  const visibleTabs = isAdmin ? tabs : ["Assets"];
 
   useEffect(() => {
     document.title = "POS | Admin Dashboard";
@@ -54,10 +61,10 @@ const Dashboard = () => {
   // low-stock popup's "Restock now" button).
   const [searchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(tabs.includes(requestedTab) ? requestedTab : "Metrics");
+  const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
   useEffect(() => {
-    if (tabs.includes(requestedTab)) setActiveTab(requestedTab);
-  }, [requestedTab]);
+    setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
+  }, [requestedTab, isAdmin]);
   const [restockAmounts, setRestockAmounts] = useState({});
   const [categorySearch, setCategorySearch] = useState("");
   const [dishSearch, setDishSearch] = useState("");
@@ -66,12 +73,14 @@ const Dashboard = () => {
     queryKey: ["categories"],
     queryFn: getCategories,
     placeholderData: keepPreviousData,
+    enabled: isAdmin,
   });
 
   const { data: dishesData } = useQuery({
     queryKey: ["dishes"],
     queryFn: getDishes,
     placeholderData: keepPreviousData,
+    enabled: isAdmin,
   });
 
   const { data: inventoryData } = useQuery({
@@ -79,6 +88,7 @@ const Dashboard = () => {
     queryFn: getInventoryItems,
     placeholderData: keepPreviousData,
     refetchInterval: 15000, // stock changes with every order
+    enabled: isAdmin,
   });
 
   const categories = categoriesData?.data?.data ?? [];
@@ -310,7 +320,7 @@ const Dashboard = () => {
   return (
     <div className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
       <div className="container mx-auto flex items-center justify-between py-14 px-6 md:px-4 flex-wrap gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
+        {isAdmin && <div className="flex items-center gap-3 flex-wrap">
           {buttons.map(({ label, icon, action }) => {
             return (
               <button
@@ -322,10 +332,10 @@ const Dashboard = () => {
               </button>
             );
           })}
-        </div>
+        </div>}
 
         <div className="flex items-center gap-3 flex-wrap">
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             return (
               <button
                 key={tab}
@@ -350,6 +360,8 @@ const Dashboard = () => {
       {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}
+      {activeTab === "Music" && <MusicPlayer variant="manager" />}
+      {activeTab === "Assets" && assetRoles.includes(String(role || "").toLowerCase()) && <AssetManagement role={role} />}
       {activeTab === "Menu" && (
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -73,6 +73,13 @@ const updateSettings = async (req, res, next) => {
         next_[field] = v;
       }
 
+      if (buildYourOwnDeal.description !== undefined) {
+        if (typeof buildYourOwnDeal.description !== "string" || buildYourOwnDeal.description.length > 300) {
+          return next(createHttpError(400, "The deal description must be text no longer than 300 characters."));
+        }
+        next_.description = buildYourOwnDeal.description;
+      }
+
       settings.buildYourOwnDeal = next_;
       messages.push("Build Your Own Deal updated!");
     }

@@ -11,7 +11,15 @@ import { getSettings, updateSettings } from "../../https";
 // and the server re-checks them on every order, so changing a number here
 // takes effect on the very next order without a redeploy.
 
-const DEFAULTS = { enabled: true, minItems: 3, discount3: 15, discount4: 17, discount5Plus: 20 };
+const DEFAULTS = {
+  enabled: true,
+  minItems: 3,
+  discount3: 15,
+  discount4: 17,
+  discount5Plus: 20,
+  description:
+    "Pick any 3 or more items from our menu — pizzas, burgers, wings, drinks, anything. The more you add, the more you save. No codes, the discount applies automatically.",
+};
 
 const TIERS = [
   { field: "discount3", title: "3 items", hint: "Minimum to unlock the deal", icon: "🍕" },
@@ -24,6 +32,7 @@ const toDraft = (cfg) => ({
   discount3: String(cfg.discount3),
   discount4: String(cfg.discount4),
   discount5Plus: String(cfg.discount5Plus),
+  description: cfg.description,
 });
 
 const validPercent = (v) => {
@@ -49,7 +58,7 @@ const BuildYourOwnManager = () => {
   useEffect(() => {
     if (loaded) setDraft(toDraft(live));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, live.enabled, live.discount3, live.discount4, live.discount5Plus]);
+  }, [loaded, live.enabled, live.discount3, live.discount4, live.discount5Plus, live.description]);
 
   const saveMutation = useMutation({
     mutationFn: (payload) => updateSettings({ buildYourOwnDeal: payload }),
@@ -69,7 +78,8 @@ const BuildYourOwnManager = () => {
   const allValid = TIERS.every((t) => validPercent(draft[t.field]));
   const unchanged =
     draft.enabled === live.enabled &&
-    TIERS.every((t) => Number(draft[t.field]) === live[t.field]);
+    TIERS.every((t) => Number(draft[t.field]) === live[t.field]) &&
+    draft.description === live.description;
 
   const handleSave = () => {
     if (!allValid) {
@@ -81,6 +91,7 @@ const BuildYourOwnManager = () => {
       discount3: Number(draft.discount3),
       discount4: Number(draft.discount4),
       discount5Plus: Number(draft.discount5Plus),
+      description: draft.description,
     });
   };
 
@@ -133,6 +144,24 @@ const BuildYourOwnManager = () => {
           <p className="text-[#ababab]">Loading current discounts…</p>
         ) : (
           <>
+            <div className="mb-5">
+              <label htmlFor="byo-description" className="block text-[#f5f5f5] font-semibold mb-2">
+                Storefront description
+              </label>
+              <textarea
+                id="byo-description"
+                maxLength={300}
+                rows={3}
+                value={draft.description}
+                onChange={(e) => setField("description", e.target.value)}
+                aria-describedby="byo-description-help"
+                className="w-full resize-y rounded-lg border border-[#444] bg-[#1a1a1a] px-3 py-2 text-white outline-none focus:border-[#F6B100]"
+              />
+              <p id="byo-description-help" className="text-[#7a7a7a] text-xs mt-1">
+                Shown below the Build Your Own Deal heading on the online store. {draft.description.length}/300
+                characters.
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {TIERS.map((t) => {
                 const ok = validPercent(draft[t.field]);

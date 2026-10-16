@@ -135,10 +135,11 @@ This does the following:
 
 ```bash
 npm run migrate
+npm run migrate:asset-depreciation
 npm run seed
 ```
 
-Both commands trigger the same database bootstrap process. `seed` is useful when you want to create the initial admin account and default data only.
+`migrate` runs the database bootstrap process. Run `migrate:asset-depreciation` when deploying asset management to create its depreciation ledger indexes. `seed` is useful when you want to create the initial admin account and default data only.
 
 ### Default admin user
 
