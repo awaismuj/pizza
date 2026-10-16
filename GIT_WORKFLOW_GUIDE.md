@@ -33,27 +33,20 @@ git commit -m "feat: complete modern POS UI overhaul, uniform padding and modals
 
 ---
 
-## 3. Add Your Personal GitHub Remote & Push
+## 3. Your Personal GitHub Remote is Configured & Pushed
 
-Add your personal repository as a new remote named `personal` so Awais's repository stays intact as `origin`:
+Your personal repository is registered as `personal`:
+- **Personal Repo**: `https://github.com/dopper95/genz-pizza.git`
+- **Awais Repo (`origin`)**: `https://github.com/awaismuj/pizza.git`
 
+Your latest code has already been pushed to `personal/main`!
+
+Whenever you make more changes while working, simply run:
 ```bash
-# Add your personal repo (replace with your actual GitHub repo URL)
-git remote add personal https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-
-# Verify both remotes are registered
-git remote -v
-
-# Push your main branch to your personal repository
-git push -u personal main
+git add .
+git commit -m "your commit message"
+git push personal main
 ```
-
-> **Note:** Whenever you make new changes while working on the project, simply run:
-> ```bash
-> git add .
-> git commit -m "your commit message"
-> git push personal main
-> ```
 
 ---
 
