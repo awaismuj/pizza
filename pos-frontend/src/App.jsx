@@ -127,11 +127,11 @@ ProtectedRoutes.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-// Dashboard (inventory, menu, profit...) is admin-only. Cashiers/waiters who
-// type the URL are sent back home instead of seeing admin tools.
+// General POS administration is still Admin-only. Asset roles are allowed
+// through to the Dashboard route, where only their Assets tab is exposed.
 function AdminRoute({ children }) {
   const { role } = useSelector((state) => state.user);
-  if (String(role || "").toLowerCase() !== "admin") {
+  if (!["admin", "accountant", "asset manager", "read only"].includes(String(role || "").toLowerCase())) {
     return <Navigate to="/" replace />;
   }
 

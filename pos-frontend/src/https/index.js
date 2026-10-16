@@ -193,3 +193,35 @@ export const addStaffAdjustment = (data) => axiosWrapper.post("/api/staff/adjust
 export const deleteStaffAdjustment = (id) => axiosWrapper.delete(`/api/staff/adjustment/${id}`);
 export const setStaffSalaryPaid = (data) => axiosWrapper.put("/api/staff/salary/paid", data);
 export const sendStaffSlips = (data) => axiosWrapper.post("/api/staff/salary/slips", data);
+
+// Business asset management
+export const getAssets = (params) => axiosWrapper.get("/api/assets", { params });
+export const getAsset = (id) => axiosWrapper.get(`/api/assets/${id}`);
+export const getAssetDashboard = () => axiosWrapper.get("/api/assets/dashboard");
+export const getAssetSettings = () => axiosWrapper.get("/api/assets/settings");
+export const updateAssetSettings = (data) => axiosWrapper.put("/api/assets/settings", data);
+export const createAsset = (data) => axiosWrapper.post("/api/assets", data);
+export const updateAsset = ({ assetId, ...data }) => axiosWrapper.put(`/api/assets/${assetId}`, data);
+export const setAssetArchiveStatus = ({ assetId, status }) => axiosWrapper.patch(`/api/assets/${assetId}/archive`, { status });
+export const transferAsset = ({ assetId, ...data }) => axiosWrapper.post(`/api/assets/${assetId}/assignment`, data);
+export const updateAssetValuation = ({ assetId, ...data }) => axiosWrapper.post(`/api/assets/${assetId}/valuation`, data);
+export const addAssetAdjustment = ({ assetId, ...data }) => axiosWrapper.post(`/api/assets/${assetId}/adjustment`, data);
+export const addAssetMaintenance = ({ assetId, ...data }) => axiosWrapper.post(`/api/assets/${assetId}/maintenance`, data);
+export const updateAssetMaintenance = ({ assetId, maintenanceId, ...data }) =>
+  axiosWrapper.patch(`/api/assets/${assetId}/maintenance/${maintenanceId}`, data);
+export const recordAssetUsage = ({ assetId, ...data }) => axiosWrapper.post(`/api/assets/${assetId}/usage`, data);
+export const disposeAsset = ({ assetId, ...data }) => axiosWrapper.post(`/api/assets/${assetId}/disposal`, data);
+export const getAssetDepreciation = (assetId) => axiosWrapper.get(`/api/assets/${assetId}/depreciation`);
+export const runAssetDepreciation = (data) => axiosWrapper.post("/api/assets/depreciation/run", data);
+export const exportAssetReport = (params) =>
+  axiosWrapper.get("/api/assets/reports/export", { params, responseType: "blob" });
+export const uploadAssetDocument = (file) => {
+  const formData = new FormData();
+  formData.append("document", file);
+  return axiosWrapper.post("/api/assets/documents", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 60000,
+  });
+};
+export const downloadAssetDocument = (filename) =>
+  axiosWrapper.get(`/api/assets/documents/${encodeURIComponent(filename)}`, { responseType: "blob" });
