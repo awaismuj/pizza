@@ -71,6 +71,7 @@ app.use("/api/payment", require("./routes/paymentRoute"));
 app.use("/api/upload", require("./routes/uploadRoute"));
 app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
+app.use("/api/reviews", require("./routes/reviewRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
 app.use("/api/music", require("./routes/musicRoute"));
 
