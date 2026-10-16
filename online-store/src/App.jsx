@@ -2957,6 +2957,17 @@ function App() {
     return areas;
   };
 
+  // Find a branch whose name appears in the typed address (e.g. "Lahore" in
+  // "house no 1, Lahore"). Used to auto-select the nearest pickup branch when
+  // no delivery zone matches the address.
+  const findBranchByNameInAddress = (address, branches) => {
+    const text = String(address || "").toLowerCase().trim();
+    if (!text) return null;
+    return (
+      branches.find((b) => b.enabled && b.name && text.includes(String(b.name).toLowerCase().trim())) ?? null
+    );
+  };
+
   const defaultFulfilment = (config, keepAddress) => {
     const branches = config.branches || [];
     const timeZone = config.timeZone || "Asia/Karachi";
@@ -3151,8 +3162,10 @@ function App() {
           note: b ? b.pickupInstructions || "" : "",
         };
       }
-      // Delivery: set type and let the address-matching useEffect resolve the zone/fee/ETA
-      const b = (config.branches || []).find(
+      // Delivery: if the typed address mentions a branch name, prefer that branch.
+      // Otherwise fall back to the first branch with enabled delivery zones.
+      const branchByName = findBranchByNameInAddress(current.address, config.branches || []);
+      const b = branchByName ?? (config.branches || []).find(
         (x) => x.enabled && x.deliveryEnabled && !x.deliveryRestrictionActive && (x.deliveryZones || []).some((z) => z.enabled)
       );
       const z = b ? (b.deliveryZones || []).find((z) => z.enabled) : null;
@@ -3193,7 +3206,25 @@ function App() {
     const match = matchZoneForAddress(form.address, fulfilmentConfig?.branches || []);
     const b = match?.branch ?? null;
     const z = match?.zone ?? null;
+
+    // If no delivery zone matches the address but the address contains a
+    // branch name (e.g. "Lahore" in "house no 1, Lahore"), auto-switch to
+    // pickup from that branch so the customer can still place their order.
     if (!match && form.address.trim()) {
+      const branchByName = findBranchByNameInAddress(form.address, fulfilmentConfig?.branches || []);
+      if (branchByName && branchByName.pickupEnabled) {
+        setFulfilmentError("");
+        setFulfilment((f) => ({
+          ...f,
+          type: "pickup",
+          branch: branchByName,
+          zone: null,
+          fee: 0,
+          eta: branchByName.preparationMinutes ?? 25,
+          note: branchByName.pickupInstructions || "",
+        }));
+        return;
+      }
       const areas = getAvailableDeliveryAreas(fulfilmentConfig);
       const areasText = areas.length ? ` Available areas: ${areas.join(", ")}.` : "";
       setFulfilmentError(`We don't deliver to this area yet - enter another address, or choose pickup.${areasText}`);
