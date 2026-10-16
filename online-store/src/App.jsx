@@ -4914,12 +4914,14 @@ function App() {
                       <span className="gzp-choice-meta">
                         {fulfilment.zone
                           ? `${fulfilment.fee > 0 ? `Delivery ${formatRs(fulfilment.fee)}` : "Free delivery"}`
-                          : "Delivery — not available in this area"}
+                          : form.address.trim()
+                            ? "Delivery — not available in this area"
+                            : "Enter your address"}
                       </span>
                     )}
                   </div>
                   <div className="gzp-choice-eta">
-                    {fulfilment.type === "delivery" && fulfilment.eta
+                    {fulfilment.type === "delivery" && fulfilment.zone && fulfilment.eta
                       ? `Ready ~${fulfilment.branch?.preparationMinutes ?? 25} min · Delivery ~${fulfilment.eta} min`
                       : null}
                   </div>
