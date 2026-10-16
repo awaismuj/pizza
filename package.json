@@ -1,0 +1,14 @@
+{
+  "name": "genz-pizza-land-pos",
+  "version": "1.0.0",
+  "description": "GenZ Pizza Land POS & Storefront workspace",
+  "scripts": {
+    "dev": "node dev.js",
+    "mongo": "npm --prefix pos-backend run mongo",
+    "db:setup": "npm --prefix pos-backend run db:setup",
+    "seed": "npm --prefix pos-backend run seed:pizzaland",
+    "dev:backend": "npm --prefix pos-backend run dev",
+    "dev:pos": "npm --prefix pos-frontend run dev",
+    "dev:store": "npm --prefix online-store run dev"
+  }
+}
