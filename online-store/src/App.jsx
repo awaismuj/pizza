@@ -2948,6 +2948,15 @@ function App() {
     return null;
   };
 
+  // Collect all enabled delivery-zone area names so the frontend can tell the
+  // customer which areas are supported when their address doesn't match.
+  const getAvailableDeliveryAreas = (config) => {
+    const areas = config?.branches
+      ?.flatMap((b) => (b.deliveryZones || []).filter((z) => z.enabled).map((z) => z.area))
+      .filter(Boolean) || [];
+    return areas;
+  };
+
   const defaultFulfilment = (config, keepAddress) => {
     const branches = config.branches || [];
     const timeZone = config.timeZone || "Asia/Karachi";
@@ -3167,7 +3176,9 @@ function App() {
     const b = match?.branch ?? null;
     const z = match?.zone ?? null;
     if (!match && form.address.trim()) {
-      setFulfilmentError("We don't deliver to this area yet - enter another address, or choose pickup.");
+      const areas = getAvailableDeliveryAreas(fulfilmentConfig);
+      const areasText = areas.length ? ` Available areas: ${areas.join(", ")}.` : "";
+      setFulfilmentError(`We don't deliver to this area yet - enter another address, or choose pickup.${areasText}`);
     } else if (match) {
       setFulfilmentError("");
     }
@@ -3683,7 +3694,9 @@ function App() {
         return;
       }
       if (!fulfilment.zone) {
-        setError("We don't deliver to this area yet - enter another address, or switch to pickup.");
+        const areas = getAvailableDeliveryAreas(fulfilmentConfig);
+        const areasText = areas.length ? ` Available areas: ${areas.join(", ")}.` : "";
+        setError(`We don't deliver to this area yet - enter another address, or switch to pickup.${areasText}`);
         return;
       }
       const minOrder = Number(fulfilment.zone?.minimumOrder || 0);
