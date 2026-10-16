@@ -363,25 +363,34 @@ const FulfillmentManager = () => {
           const restricted = b.deliveryRestrictionActive;
           return (
             <div key={b.branchId || bi} className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 sm:p-5 mb-5">
-              <div className="flex flex-wrap items-start gap-3 mb-3">
-                <input
-                  value={b.branchId}
-                  onChange={(e) => setBranch(bi, "branchId", e.target.value)}
-                  placeholder="Branch ID (e.g. gojra-main)"
-                  className="bg-transparent text-white outline-none sm:w-40"
-                />
-                <input
-                  value={b.name}
-                  onChange={(e) => setBranch(bi, "name", e.target.value)}
-                  placeholder="Branch name"
-                  className="bg-transparent text-white outline-none flex-1 min-w-0"
-                />
-                <input
-                  value={b.address}
-                  onChange={(e) => setBranch(bi, "address", e.target.value)}
-                  placeholder="Street address"
-                  className="bg-transparent text-white outline-none flex-1 min-w-0"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div>
+                  <label className="block text-[#ababab] mb-1 text-xs font-medium">Branch ID</label>
+                  <input
+                    value={b.branchId}
+                    onChange={(e) => setBranch(bi, "branchId", e.target.value)}
+                    placeholder="e.g. gojra-main"
+                    className="w-full bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none border border-[#333] focus-within:border-[#525252] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#ababab] mb-1 text-xs font-medium">Branch name</label>
+                  <input
+                    value={b.name}
+                    onChange={(e) => setBranch(bi, "name", e.target.value)}
+                    placeholder="e.g. Gojra Main Road"
+                    className="w-full bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none border border-[#333] focus-within:border-[#525252] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#ababab] mb-1 text-xs font-medium">Street address</label>
+                  <input
+                    value={b.address}
+                    onChange={(e) => setBranch(bi, "address", e.target.value)}
+                    placeholder="e.g. 123 Main Street, Gojra"
+                    className="w-full bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none border border-[#333] focus-within:border-[#525252] text-sm"
+                  />
+                </div>
               </div>
               <div className="flex flex-wrap gap-4 mb-4">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
