@@ -4659,8 +4659,8 @@ function App() {
             <h2>Loved by Pizza Lovers</h2>
             <p>See what our customers have to say.</p>
           </div>
-          {reviewCount > 0 && (
-            <div className="gzp-reviews-stats">
+          <div className="gzp-reviews-stats">
+            {reviewCount > 0 && (
               <div className="gzp-stats-rating">
                 <span className="gzp-stats-average">{avgRating.toFixed(1)}</span>
                 <div className="gzp-stats-stars" aria-hidden="true">
@@ -4670,14 +4670,14 @@ function App() {
                 </div>
                 <span className="gzp-stats-count">({reviewCount} review{reviewCount === 1 ? "" : "s"})</span>
               </div>
-              <button
-                className="gzp-btn gzp-btn-ghost"
-                onClick={() => setReviewFormOpen(true)}
-              >
-                Write a review
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              className="gzp-btn gzp-btn-ghost"
+              onClick={() => setReviewFormOpen(true)}
+            >
+              Write a review
+            </button>
+          </div>
         </div>
 
         <div className="gzp-reviews-grid">
