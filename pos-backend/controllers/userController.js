@@ -10,7 +10,11 @@ const register = async (req, res, next) => {
     try {
 
         const { name, phone, email, password, role } = req.body;
-        const allowedRoles = ["Waiter", "Cashier", "Admin", "Accountant", "Asset Manager", "Read Only"];
+        const allowedRoles = [
+            "Waiter", "Cashier", "Admin", "Accountant", "Asset Manager", "Read Only",
+            "HR Manager", "Payroll Manager",
+            "Employee",
+        ];
 
         if(!name || !phone || !email || !password || !role){
             const error = createHttpError(400, "All fields are required!");

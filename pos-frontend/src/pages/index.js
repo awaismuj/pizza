@@ -6,3 +6,4 @@ export { default as Menu } from './Menu.jsx'
 export { default as Outdoor } from './Outdoor.jsx'
 export { default as Dashboard } from "./Dashboard.jsx"
 export { default as OnlineOrders } from "./OnlineOrders.jsx"
+export { default as EmployeePortal } from "./EmployeePortal.jsx"

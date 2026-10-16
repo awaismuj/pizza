@@ -7,6 +7,7 @@
     "start": "node app.js",
     "test": "node --test",
     "migrate": "node scripts/migrate.js",
+    "migrate:staff-hr": "node scripts/migrate-staff-hr.js",
     "migrate:asset-depreciation": "node scripts/migrate-asset-depreciation.js",
     "seed": "node scripts/seed.js",
     "seed:pizzaland": "node scripts/seedPizzaLandRecipes.js",

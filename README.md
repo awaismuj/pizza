@@ -135,11 +135,18 @@ This does the following:
 
 ```bash
 npm run migrate
+npm run migrate:staff-hr
 npm run migrate:asset-depreciation
 npm run seed
 ```
 
 `migrate` runs the database bootstrap process. Run `migrate:asset-depreciation` when deploying asset management to create its depreciation ledger indexes. `seed` is useful when you want to create the initial admin account and default data only.
+
+Run `migrate:staff-hr` once before using HR/payroll in an existing database. It creates employee IDs and HR indexes, and records legacy salary values as effective from the migration date because earlier salary history cannot be reconstructed. It also creates the private HR document, leave accrual, loan repayment, and report audit indexes.
+
+The HR/payroll workspace covers employee profiles, shift-aware attendance and assignment history, employee self-service, private HR documents, leave requests and monthly accrual/carry-forward, approved overtime, fixed-interest-free staff loans, payroll previews and approval/finalization, payment tracking, payslips, and filtered employee/attendance/leave/overtime/payroll/payment reports. Reports export to CSV, Excel-compatible SpreadsheetML `.xls`, and PDF. HR document files are kept in MongoDB and are available only through authenticated, role-checked routes; do not expose them through the public `/uploads` path.
+
+Payroll tax and statutory contributions remain configurable rates rather than jurisdiction-certified legal calculations. Configure and review these rules with a qualified accountant before production payroll; the application deliberately warns and does not invent missing rates. Formal onboarding/offboarding checklists, push notifications, biometric integrations, and jurisdiction-specific compliance calculations still require additional implementation and validation. Email notifications require configured SMTP; they are queued and retried by the HR scheduler.
 
 ### Default admin user
 

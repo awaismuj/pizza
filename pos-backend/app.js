@@ -89,6 +89,7 @@ require("./services/dailyReportScheduler").startDailyReportScheduler();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).
 require("./services/staffAttendanceScheduler").startStaffAttendanceScheduler();
+require("./services/staffHrScheduler").startStaffHrScheduler();
 
 // Posts closed-month asset depreciation. Each asset+period has a unique
 // ledger key, so multiple checks or server processes cannot double-post.
