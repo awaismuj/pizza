@@ -43,12 +43,19 @@ const buttons = [
 
 const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
 const assetRoles = ["admin", "accountant", "asset manager", "read only"];
+const staffRoles = ["admin", "cashier", "hr manager", "payroll manager", "accountant"];
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const role = useSelector((state) => state.user.role);
   const isAdmin = String(role || "").toLowerCase() === "admin";
-  const visibleTabs = isAdmin ? tabs : ["Assets"];
+  const canSeeStaff = staffRoles.includes(String(role || "").toLowerCase());
+  const visibleTabs = isAdmin
+    ? tabs
+    : [
+      ...(canSeeStaff ? ["Staff"] : []),
+      ...(assetRoles.includes(String(role || "").toLowerCase()) ? ["Assets"] : []),
+    ];
 
   useEffect(() => {
     document.title = "POS | Admin Dashboard";
@@ -61,10 +68,11 @@ const Dashboard = () => {
   // low-stock popup's "Restock now" button).
   const [searchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
+  const defaultTab = isAdmin ? "Metrics" : visibleTabs[0] || "Metrics";
+  const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
   useEffect(() => {
-    setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
-  }, [requestedTab, isAdmin]);
+    setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
+  }, [requestedTab, defaultTab]);
   const [restockAmounts, setRestockAmounts] = useState({});
   const [categorySearch, setCategorySearch] = useState("");
   const [dishSearch, setDishSearch] = useState("");
@@ -359,7 +367,7 @@ const Dashboard = () => {
       {activeTab === "Payments" && <PaymentsOverview />}
       {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
-      {activeTab === "Staff" && <StaffManagement />}
+      {activeTab === "Staff" && canSeeStaff && <StaffManagement />}
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
       {activeTab === "Assets" && assetRoles.includes(String(role || "").toLowerCase()) && <AssetManagement role={role} />}
       {activeTab === "Menu" && (
