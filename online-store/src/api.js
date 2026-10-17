@@ -1,6 +1,12 @@
 // Talks to the same backend the POS uses (apipos.muscatfood.com), just
 // through the public, no-login endpoints.
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const DEFAULT_BACKEND_URL = "https://apipos.muscatfood.com";
+const BACKEND_URL = (() => {
+  const runtimeOverride =
+    typeof window !== "undefined" ? window.__BACKEND_URL__ : undefined;
+  const configuredUrl = runtimeOverride || import.meta.env.VITE_BACKEND_URL || DEFAULT_BACKEND_URL;
+  return configuredUrl.replace(/\/+$/, "");
+})();
 
 async function request(path, options = {}) {
   let res;

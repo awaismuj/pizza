@@ -4,7 +4,13 @@
 // (they're separate domains/deployments) — so it has to be turned into an
 // absolute URL before it's used in an <img src>. A full http(s) URL (e.g. an
 // external image host) or an empty value is returned unchanged.
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const DEFAULT_BACKEND_URL = "https://apipos.muscatfood.com";
+const BACKEND_URL = (() => {
+  const runtimeOverride =
+    typeof window !== "undefined" ? window.__BACKEND_URL__ : undefined;
+  const configuredUrl = runtimeOverride || import.meta.env.VITE_BACKEND_URL || DEFAULT_BACKEND_URL;
+  return configuredUrl.replace(/\/+$/, "");
+})();
 
 export const resolveImageUrl = (value) => {
   if (!value) return "";

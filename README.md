@@ -38,7 +38,8 @@ A full-featured **GenZ Pizza Land POS System** built using the **MERN Stack** to
 
 ## ⚙️ Environment Setup
 
-This project uses two environment files:
+Each app loads its own environment file; a single `.env` in the repository
+root is not shared automatically:
 
 ### 1) Backend environment file
 Create a file named `.env` inside the `pos-backend` folder:
@@ -82,7 +83,19 @@ Create a file named `.env` inside the `online-store` folder:
 VITE_BACKEND_URL=http://localhost:3000
 ```
 
-> These files are intentionally ignored by Git through each folder's `.gitignore` file, so real secrets are not pushed to the repository.
+For production builds, set `VITE_BACKEND_URL` to
+`https://apipos.muscatfood.com` in both frontend apps. Vite reads these
+variables when the dev server starts or when `npm run build` runs; changing
+an env file does not update an already-built or deployed site. Restart the
+dev server or rebuild and redeploy after changing a frontend env file.
+
+Vite loads `.env.local` with higher priority than `.env`. In the POS frontend,
+set `VITE_POS_DEMO=false` in `.env.local` to use the backend instead of the
+read-only demo API adapter.
+
+Runtime `.env` files are ignored by Git. Commit only the `.env.example`
+templates; do not put credentials in frontend env files because `VITE_`
+variables are included in browser code.
 
 ---
 
@@ -93,8 +106,11 @@ Run these commands from the project root:
 ```bash
 cp pos-backend/.env.example pos-backend/.env
 cp pos-frontend/.env.example pos-frontend/.env
+cp online-store/.env.example online-store/.env
 
-# Edit the .env files and fill in your MongoDB, JWT, and frontend URLs
+# Set VITE_BACKEND_URL to http://localhost:3000 to use the local backend.
+# For the POS frontend, set VITE_POS_DEMO=false in pos-frontend/.env.local.
+# Edit pos-backend/.env with your MongoDB URI and a unique JWT_SECRET.
 ```
 
 Then install dependencies:
