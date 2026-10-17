@@ -96,41 +96,41 @@ const download = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
-const inputClass = "w-full rounded-lg border border-[#383838] bg-[#171717] px-3 py-2.5 text-sm text-white outline-none focus:border-[#f6b100]";
+const inputClass = "w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500 font-medium transition";
 const Field = ({ label, children, className = "" }) => (
-  <label className={`block min-w-0 text-sm text-[#c8c8c8] ${className}`}>
-    <span className="mb-1.5 block">{label}</span>
+  <label className={`block min-w-0 text-xs text-slate-600 dark:text-slate-400 font-bold ${className}`}>
+    <span className="mb-1 block uppercase tracking-wider text-[10px]">{label}</span>
     {children}
   </label>
 );
 const SummaryCard = ({ label, value, detail }) => (
-  <div className="rounded-xl border border-[#363636] bg-[#252525] p-4">
-    <p className="text-xs font-medium uppercase tracking-wide text-[#999]">{label}</p>
-    <p className="mt-2 text-xl font-bold text-white">{value}</p>
-    {detail && <p className="mt-1 text-xs text-[#888]">{detail}</p>}
+  <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">{label}</p>
+    <p className="mt-1 text-xl font-black text-slate-900 dark:text-white">{value}</p>
+    {detail && <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{detail}</p>}
   </div>
 );
 
 const ChartList = ({ title, items, formatValue }) => {
   const max = Math.max(1, ...items.map((item) => item.value));
   return (
-    <section className="rounded-xl border border-[#363636] bg-[#252525] p-4">
-      <h3 className="mb-4 font-semibold text-white">{title}</h3>
+    <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+      <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
       {items.length ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {items.slice(0, 8).map((item) => (
             <div key={item.label}>
               <div className="mb-1 flex justify-between gap-3 text-xs">
-                <span className="truncate text-[#ccc]">{item.label}</span>
-                <span className="shrink-0 text-[#999]">{formatValue(item.value)}</span>
+                <span className="truncate text-slate-700 dark:text-slate-300 font-medium">{item.label}</span>
+                <span className="shrink-0 text-slate-500 font-bold">{formatValue(item.value)}</span>
               </div>
-              <div className="h-2 overflow-hidden rounded bg-[#171717]">
-                <div className="h-full rounded bg-[#f6b100]" style={{ width: `${Math.max(3, (item.value / max) * 100)}%` }} />
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.max(3, (item.value / max) * 100)}%` }} />
               </div>
             </div>
           ))}
         </div>
-      ) : <p className="text-sm text-[#888]">No asset data yet.</p>}
+      ) : <p className="text-xs text-slate-400">No asset data yet.</p>}
     </section>
   );
 };
@@ -451,45 +451,45 @@ const AssetManagement = ({ role }) => {
   const activityMutating = Object.values(actionMutations).some((mutation) => mutation.isPending);
 
   return (
-    <main className="container mx-auto space-y-6 px-4 pb-10 sm:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+    <main className="container mx-auto space-y-6 px-0 pb-10">
+      <header className="flex flex-wrap items-end justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#f6b100]">Finance & operations</p>
-          <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">Business Assets</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[#999]">
-            Asset register, monthly depreciation, maintenance, custody, valuation, and disposal history.
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Fixed Asset Control</p>
+          <h1 className="mt-0.5 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">Enterprise Asset Register</h1>
+          <p className="mt-1 max-w-2xl text-xs text-slate-500 dark:text-slate-400">
+            Lifecycle tracking, straight-line depreciation, scheduled maintenance, and disposal ledger.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {financeAccess && (
             <>
-              <button type="button" onClick={() => openAction("depreciation")} className="rounded-lg border border-[#454545] px-4 py-2 text-sm font-medium text-white hover:bg-[#303030]">
-                Post depreciation
+              <button type="button" onClick={() => openAction("depreciation")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-amber-500 transition">
+                Post Depreciation
               </button>
-              <button type="button" onClick={() => openAction("settings")} className="rounded-lg border border-[#454545] px-4 py-2 text-sm font-medium text-white hover:bg-[#303030]">
-                Accounting settings
+              <button type="button" onClick={() => openAction("settings")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-amber-500 transition">
+                Accounting Settings
               </button>
             </>
           )}
           {financeAccess && (
-            <button type="button" onClick={openCreate} className="rounded-lg bg-[#f6b100] px-4 py-2 text-sm font-bold text-[#191919] hover:bg-yellow-500">
-              + Register asset
+            <button type="button" onClick={openCreate} className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-950 shadow-sm transition active:scale-95">
+              + Register Asset
             </button>
           )}
         </div>
       </header>
 
       {(dashboardError || assetsError) && (
-        <p role="alert" className="rounded-lg border border-red-700 bg-red-950/50 p-3 text-sm text-red-200">
+        <p role="alert" className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 p-3.5 text-xs font-semibold text-rose-700 dark:text-rose-300">
           {dashboardError?.response?.data?.message || assetsError?.response?.data?.message || "Asset data could not be loaded."}
         </p>
       )}
       {dashboard?.maintenanceAlerts?.length > 0 && (
-        <section className="rounded-xl border border-amber-700/50 bg-amber-950/25 p-4">
-          <h2 className="font-semibold text-amber-200">Maintenance due soon</h2>
-          <ul className="mt-2 space-y-1 text-sm text-amber-100/80">
+        <section className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/30 p-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Maintenance due soon</h2>
+          <ul className="mt-2 space-y-1.5 text-xs font-medium text-amber-900 dark:text-amber-200">
             {dashboard.maintenanceAlerts.slice(0, 5).map((entry, index) => (
-              <li key={`${entry.description}-${index}`}>{entry.type}: {entry.description} — {dateText(entry.scheduledAt)}</li>
+              <li key={`${entry.description}-${index}`}>• {entry.type}: {entry.description} — {dateText(entry.scheduledAt)}</li>
             ))}
           </ul>
         </section>
@@ -530,11 +530,11 @@ const AssetManagement = ({ role }) => {
       )}
 
       {financeAccess && (
-        <section className="rounded-xl border border-[#363636] bg-[#252525] p-4">
+        <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="font-semibold text-white">Asset reports</h2>
-              <p className="mt-1 text-xs text-[#888]">Exports use the filters selected below. Excel export is SpreadsheetML (.xls).</p>
+              <h2 className="font-bold text-slate-900 dark:text-white text-sm">Asset Reports Export</h2>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Exports use the filters selected below. Excel export is SpreadsheetML (.xls).</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <select aria-label="Report type" value={reportType} onChange={(event) => setReportType(event.target.value)} className={`${inputClass} w-auto`}>
@@ -551,7 +551,7 @@ const AssetManagement = ({ role }) => {
                 <option value="annual-summary">Financial-year summary</option>
               </select>
               {["csv", "xls", "pdf"].map((format) => (
-                <button key={format} type="button" disabled={reportMutation.isPending} onClick={() => openReport(format)} className="rounded-lg border border-[#454545] px-3 py-2 text-xs font-semibold uppercase text-white hover:bg-[#303030] disabled:opacity-50">
+                <button key={format} type="button" disabled={reportMutation.isPending} onClick={() => openReport(format)} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-bold uppercase text-slate-800 dark:text-white transition disabled:opacity-50">
                   {format === "xls" ? "Excel" : format}
                 </button>
               ))}
@@ -560,12 +560,12 @@ const AssetManagement = ({ role }) => {
         </section>
       )}
 
-      <section className="overflow-hidden rounded-xl border border-[#363636] bg-[#252525]">
-        <div className="border-b border-[#363636] p-4">
+      <section className="overflow-hidden rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="border-b border-slate-200/90 dark:border-slate-800 p-4">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold text-white">Asset register</h2>
-              <p className="mt-1 text-xs text-[#888]">{pagination?.total ?? 0} total records · PKR/currency: {currency}</p>
+              <h2 className="font-bold text-slate-900 dark:text-white text-sm">Asset Register</h2>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{pagination?.total ?? 0} total records · Currency: {currency}</p>
             </div>
             <label className="min-w-[200px] flex-1 sm:max-w-xs">
               <span className="sr-only">Search assets</span>
@@ -607,36 +607,36 @@ const AssetManagement = ({ role }) => {
           </div>
         </div>
 
-        {assetsLoading ? <p className="p-6 text-sm text-[#999]">Loading asset register…</p> : assets.length === 0 ? (
+        {assetsLoading ? <p className="p-6 text-xs text-slate-400">Loading asset register…</p> : assets.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="font-medium text-white">No assets match these filters.</p>
-            {financeAccess && <button type="button" onClick={openCreate} className="mt-3 text-sm font-semibold text-[#f6b100]">Register the first asset</button>}
+            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">No assets match these filters.</p>
+            {financeAccess && <button type="button" onClick={openCreate} className="mt-2 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline">Register the first asset</button>}
           </div>
         ) : (
-          <div className="divide-y divide-[#363636]">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {assets.map((asset) => (
-              <article key={asset._id} className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+              <article key={asset._id} className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#171717] text-xl">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-amber-500/10 text-amber-500 text-lg font-bold">
                     {asset.image ? <img src={resolveImageUrl(asset.image)} alt="" className="h-full w-full object-cover" /> : "▣"}
                   </div>
                   <div className="min-w-0">
-                    <button type="button" onClick={() => setSelectedId(asset._id)} className="truncate text-left font-semibold text-white hover:text-[#f6b100]">
+                    <button type="button" onClick={() => setSelectedId(asset._id)} className="truncate text-left font-bold text-xs text-slate-900 dark:text-white hover:text-amber-500 transition">
                       {asset.name}
                     </button>
-                    <p className="text-xs text-[#888]">{asset.assetId} · {asset.category} · {asset.serialNumber || "No serial"}</p>
-                    <p className="mt-1 text-xs text-[#999]">{asset.department || "No department"} · {asset.location || "No location"} · {asset.assignedEmployeeName || "Unassigned"}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{asset.assetId} · {asset.category} · {asset.serialNumber || "No serial"}</p>
+                    <p className="text-[10px] text-slate-400">{asset.department || "No dept"} · {asset.location || "No location"} · {asset.assignedEmployeeName || "Unassigned"}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  {financeAccess && <div className="min-w-24 text-sm"><span className="block text-[10px] uppercase text-[#777]">Book value</span><span className="font-semibold text-white">{money(asset.currentBookValue, currency)}</span></div>}
-                  {financeAccess && <div className="min-w-24 text-sm"><span className="block text-[10px] uppercase text-[#777]">Market value</span><span className="font-semibold text-white">{money(asset.currentMarketValue, currency)}</span></div>}
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${asset.status === "Active" ? "bg-green-950 text-green-300" : asset.status === "Archived" ? "bg-amber-950 text-amber-300" : "bg-[#333] text-[#bbb]"}`}>{asset.status}</span>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => setSelectedId(asset._id)} className="rounded-md border border-[#454545] px-3 py-2 text-xs text-white hover:bg-[#303030]">Details</button>
-                    {managementAccess && !asset.disposal && <button type="button" onClick={() => openEdit(asset)} className="rounded-md border border-[#454545] px-3 py-2 text-xs text-white hover:bg-[#303030]">Edit</button>}
+                  {financeAccess && <div className="min-w-20 text-xs"><span className="block text-[10px] uppercase font-bold text-slate-400">Book value</span><span className="font-bold text-slate-900 dark:text-white">{money(asset.currentBookValue, currency)}</span></div>}
+                  {financeAccess && <div className="min-w-20 text-xs"><span className="block text-[10px] uppercase font-bold text-slate-400">Market value</span><span className="font-bold text-slate-900 dark:text-white">{money(asset.currentMarketValue, currency)}</span></div>}
+                  <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${asset.status === "Active" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : asset.status === "Archived" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"}`}>{asset.status}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" onClick={() => setSelectedId(asset._id)} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-amber-500 transition">Details</button>
+                    {managementAccess && !asset.disposal && <button type="button" onClick={() => openEdit(asset)} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-amber-500 transition">Edit</button>}
                     {managementAccess && !asset.disposal && (
-                      <button type="button" onClick={() => archiveMutation.mutate({ assetId: asset._id, status: asset.status === "Archived" ? "Active" : "Archived" })} className="rounded-md border border-[#454545] px-3 py-2 text-xs text-white hover:bg-[#303030]">
+                      <button type="button" onClick={() => archiveMutation.mutate({ assetId: asset._id, status: asset.status === "Archived" ? "Active" : "Archived" })} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-amber-500 transition">
                         {asset.status === "Archived" ? "Reactivate" : "Archive"}
                       </button>
                     )}
@@ -656,15 +656,15 @@ const AssetManagement = ({ role }) => {
       </section>
 
       {selectedAsset && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 p-3 py-8 sm:p-6">
-          <section role="dialog" aria-modal="true" aria-labelledby="asset-detail-title" className="w-full max-w-4xl rounded-2xl border border-[#404040] bg-[#202020] p-5 shadow-2xl sm:p-7">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 py-8 sm:p-6">
+          <section role="dialog" aria-modal="true" aria-labelledby="asset-detail-title" className="w-full max-w-4xl rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xl sm:p-7 text-slate-800 dark:text-slate-100">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-[#f6b100]">{selectedAsset.assetId}</p>
-                <h2 id="asset-detail-title" className="mt-1 text-2xl font-bold text-white">{selectedAsset.name}</h2>
-                <p className="mt-1 text-sm text-[#999]">{selectedAsset.category} · {displayMethod(selectedAsset.depreciationMethod)}</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400">{selectedAsset.assetId}</p>
+                <h2 id="asset-detail-title" className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{selectedAsset.name}</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{selectedAsset.category} · {displayMethod(selectedAsset.depreciationMethod)}</p>
               </div>
-              <button type="button" onClick={() => setSelectedId("")} aria-label="Close asset details" className="rounded-lg border border-[#454545] px-3 py-2 text-white">Close</button>
+              <button type="button" onClick={() => setSelectedId("")} aria-label="Close asset details" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Close</button>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard label="Status / condition" value={`${selectedAsset.status} · ${selectedAsset.condition}`} />
@@ -673,8 +673,8 @@ const AssetManagement = ({ role }) => {
               <SummaryCard label="Maintenance total" value={money(selectedAsset.totalMaintenanceCost, currency)} />
             </div>
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <section className="rounded-xl bg-[#292929] p-4">
-                <h3 className="mb-3 font-semibold text-white">Asset details</h3>
+              <section className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
+                <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Asset details</h3>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                   {[
                     ["Brand / model", [selectedAsset.brand, selectedAsset.model].filter(Boolean).join(" ") || "—"],
@@ -687,80 +687,80 @@ const AssetManagement = ({ role }) => {
                     ["Warranty expiry", dateText(selectedAsset.warrantyExpiry)],
                     ["Department / location", `${selectedAsset.department || "—"} / ${selectedAsset.location || "—"}`],
                     ["Assigned to", selectedAsset.assignedEmployeeName || "Unassigned"],
-                  ].map(([label, value]) => <div key={label}><dt className="text-xs text-[#888]">{label}</dt><dd className="mt-0.5 text-white">{value}</dd></div>)}
+                  ].map(([label, value]) => <div key={label}><dt className="text-xs text-slate-400 dark:text-slate-500 font-medium">{label}</dt><dd className="mt-0.5 text-slate-800 dark:text-slate-200 font-medium">{value}</dd></div>)}
                 </dl>
-                {selectedAsset.description && <p className="mt-3 text-sm text-[#bbb]">{selectedAsset.description}</p>}
+                {selectedAsset.description && <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{selectedAsset.description}</p>}
                 {selectedAsset.attachments?.length > 0 && (
                   <div className="mt-4">
-                    <p className="mb-2 text-xs uppercase text-[#888]">Invoices and documents</p>
-                    {selectedAsset.attachments.map((file) => <button key={file.filename} type="button" onClick={() => handleDocumentDownload(file.filename)} className="mr-2 mb-2 rounded border border-[#454545] px-2 py-1 text-xs text-[#f6b100]">{file.name}</button>)}
+                    <p className="mb-2 text-xs uppercase text-slate-400 dark:text-slate-500 font-semibold tracking-wider">Invoices and documents</p>
+                    {selectedAsset.attachments.map((file) => <button key={file.filename} type="button" onClick={() => handleDocumentDownload(file.filename)} className="mr-2 mb-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:border-amber-500 transition">{file.name}</button>)}
                   </div>
                 )}
               </section>
-              <section className="rounded-xl bg-[#292929] p-4">
-                <h3 className="mb-3 font-semibold text-white">Asset history</h3>
+              <section className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
+                <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Asset history</h3>
                 <div className="max-h-72 space-y-2 overflow-y-auto">
                   {[...(selectedAsset.auditHistory || [])].reverse().map((entry, index) => (
-                    <div key={`${entry.action}-${entry.occurredAt}-${index}`} className="border-l-2 border-[#f6b100] pl-3 text-sm">
-                      <p className="text-white">{entry.action}</p>
-                      <p className="text-xs text-[#888]">{dateText(entry.occurredAt)} · {entry.actorName} ({entry.actorRole})</p>
+                    <div key={`${entry.action}-${entry.occurredAt}-${index}`} className="border-l-2 border-amber-500 pl-3 text-sm">
+                      <p className="text-slate-800 dark:text-slate-200 font-medium">{entry.action}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">{dateText(entry.occurredAt)} · {entry.actorName} ({entry.actorRole})</p>
                     </div>
                   ))}
-                  {!selectedAsset.auditHistory?.length && <p className="text-sm text-[#888]">No history recorded.</p>}
+                  {!selectedAsset.auditHistory?.length && <p className="text-sm text-slate-400">No history recorded.</p>}
                 </div>
               </section>
             </div>
             {financeAccess && (
-              <section className="mt-5 rounded-xl bg-[#292929] p-4">
-                <h3 className="mb-3 font-semibold text-white">Valuation & accounting adjustment history</h3>
+              <section className="mt-5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
+                <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Valuation & accounting adjustment history</h3>
                 <div className="max-h-52 space-y-2 overflow-y-auto text-sm">
                   {(selectedAsset.valuationHistory || []).slice().reverse().map((entry) => (
-                    <div key={entry._id}><p className="text-white">Manual market value · {money(entry.value, currency)}</p><p className="text-xs text-[#888]">{dateText(entry.valuedAt)} · {entry.note || "No source note"}</p></div>
+                    <div key={entry._id}><p className="text-slate-800 dark:text-slate-200 font-medium">Manual market value · {money(entry.value, currency)}</p><p className="text-xs text-slate-400">{dateText(entry.valuedAt)} · {entry.note || "No source note"}</p></div>
                   ))}
                   {(selectedAsset.valueAdjustments || []).slice().reverse().map((entry, index) => (
-                    <div key={`${entry.type}-${entry.effectiveAt}-${index}`}><p className="text-white">{entry.type} · {money(entry.amount, currency)}</p><p className="text-xs text-[#888]">{dateText(entry.effectiveAt)} · {entry.reason}</p></div>
+                    <div key={`${entry.type}-${entry.effectiveAt}-${index}`}><p className="text-slate-800 dark:text-slate-200 font-medium">{entry.type} · {money(entry.amount, currency)}</p><p className="text-xs text-slate-400">{dateText(entry.effectiveAt)} · {entry.reason}</p></div>
                   ))}
-                  {!selectedAsset.valuationHistory?.length && !selectedAsset.valueAdjustments?.length && <p className="text-sm text-[#888]">No market valuations or accounting adjustments recorded.</p>}
+                  {!selectedAsset.valuationHistory?.length && !selectedAsset.valueAdjustments?.length && <p className="text-sm text-slate-400">No market valuations or accounting adjustments recorded.</p>}
                 </div>
               </section>
             )}
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <section className="rounded-xl bg-[#292929] p-4">
-                <h3 className="mb-3 font-semibold text-white">Depreciation history</h3>
+              <section className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
+                <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Depreciation history</h3>
                 <div className="max-h-52 overflow-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="text-[#888]"><tr><th className="py-2">Period</th><th>Opening</th><th>Depreciation</th><th>Closing</th></tr></thead>
-                    <tbody className="text-[#ddd]">{depreciationRows.map((row) => <tr key={row._id} className="border-t border-[#3b3b3b]"><td className="py-2">{row.period}</td><td>{money(row.openingBookValue, currency)}</td><td>{money(row.depreciation, currency)}</td><td>{money(row.closingBookValue, currency)}</td></tr>)}</tbody>
+                    <thead className="text-slate-400 border-b border-slate-200 dark:border-slate-700"><tr><th className="py-2">Period</th><th>Opening</th><th>Depreciation</th><th>Closing</th></tr></thead>
+                    <tbody className="text-slate-700 dark:text-slate-200 divide-y divide-slate-100 dark:divide-slate-800">{depreciationRows.map((row) => <tr key={row._id}><td className="py-2 font-medium">{row.period}</td><td>{money(row.openingBookValue, currency)}</td><td>{money(row.depreciation, currency)}</td><td>{money(row.closingBookValue, currency)}</td></tr>)}</tbody>
                   </table>
-                  {!depreciationRows.length && <p className="text-sm text-[#888]">No depreciation entries posted yet.</p>}
+                  {!depreciationRows.length && <p className="text-sm text-slate-400">No depreciation entries posted yet.</p>}
                 </div>
               </section>
-              <section className="rounded-xl bg-[#292929] p-4">
-                <h3 className="mb-3 font-semibold text-white">Maintenance & transfers</h3>
+              <section className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
+                <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Maintenance & transfers</h3>
                 <div className="max-h-52 space-y-3 overflow-y-auto text-sm">
                   {(selectedAsset.maintenanceHistory || []).slice().reverse().map((entry) => (
-                    <div key={entry._id} className="border-b border-[#3b3b3b] pb-2">
-                      <p className="text-white">{entry.type}: {entry.description}</p>
-                      <p className="text-xs text-[#888]">{entry.status} · {dateText(entry.completedAt || entry.scheduledAt)} · {money(entry.cost, currency)}</p>
+                    <div key={entry._id} className="border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <p className="text-slate-800 dark:text-slate-200 font-medium">{entry.type}: {entry.description}</p>
+                      <p className="text-xs text-slate-400">{entry.status} · {dateText(entry.completedAt || entry.scheduledAt)} · {money(entry.cost, currency)}</p>
                       {managementAccess && entry.status === "Scheduled" && <div className="mt-2 flex gap-2">
-                        <button type="button" disabled={actionMutations.maintenanceStatus.isPending} onClick={() => actionMutations.maintenanceStatus.mutate({ assetId: selectedId, maintenanceId: entry._id, status: "Completed", completedAt: TODAY })} className="rounded border border-green-800 px-2 py-1 text-xs text-green-300">Mark complete</button>
-                        <button type="button" disabled={actionMutations.maintenanceStatus.isPending} onClick={() => actionMutations.maintenanceStatus.mutate({ assetId: selectedId, maintenanceId: entry._id, status: "Cancelled" })} className="rounded border border-[#454545] px-2 py-1 text-xs text-[#aaa]">Cancel</button>
+                        <button type="button" disabled={actionMutations.maintenanceStatus.isPending} onClick={() => actionMutations.maintenanceStatus.mutate({ assetId: selectedId, maintenanceId: entry._id, status: "Completed", completedAt: TODAY })} className="rounded-lg border border-emerald-300 dark:border-emerald-800 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition">Mark complete</button>
+                        <button type="button" disabled={actionMutations.maintenanceStatus.isPending} onClick={() => actionMutations.maintenanceStatus.mutate({ assetId: selectedId, maintenanceId: entry._id, status: "Cancelled" })} className="rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition">Cancel</button>
                       </div>}
                     </div>
                   ))}
-                  {(selectedAsset.assignmentHistory || []).slice().reverse().map((entry) => <div key={entry._id}><p className="text-white">{entry.employeeName || "Unassigned"} · {entry.department || "No department"} · {entry.location || "No location"}</p><p className="text-xs text-[#888]">{dateText(entry.assignedAt)}{entry.returnedAt ? ` – returned ${dateText(entry.returnedAt)}` : " · current assignment"}</p></div>)}
-                  {!selectedAsset.maintenanceHistory?.length && !selectedAsset.assignmentHistory?.length && <p className="text-sm text-[#888]">No maintenance or assignment history.</p>}
+                  {(selectedAsset.assignmentHistory || []).slice().reverse().map((entry) => <div key={entry._id}><p className="text-slate-800 dark:text-slate-200 font-medium">{entry.employeeName || "Unassigned"} · {entry.department || "No department"} · {entry.location || "No location"}</p><p className="text-xs text-slate-400">{dateText(entry.assignedAt)}{entry.returnedAt ? ` – returned ${dateText(entry.returnedAt)}` : " · current assignment"}</p></div>)}
+                  {!selectedAsset.maintenanceHistory?.length && !selectedAsset.assignmentHistory?.length && <p className="text-sm text-slate-400">No maintenance or assignment history.</p>}
                 </div>
               </section>
             </div>
             {managementAccess && !selectedAsset.disposal && (
               <div className="mt-5 flex flex-wrap gap-2">
-                <button type="button" onClick={() => openAction("assignment")} className="rounded-lg border border-[#454545] px-3 py-2 text-sm text-white">Assign / transfer</button>
-                <button type="button" onClick={() => openAction("maintenance")} className="rounded-lg border border-[#454545] px-3 py-2 text-sm text-white">Maintenance</button>
-                {selectedAsset.depreciationMethod === "UnitsOfProduction" && <button type="button" onClick={() => openAction("usage")} className="rounded-lg border border-[#454545] px-3 py-2 text-sm text-white">Record usage</button>}
-                {financeAccess && <button type="button" onClick={() => openAction("valuation")} className="rounded-lg border border-[#454545] px-3 py-2 text-sm text-white">Update market value</button>}
-                {financeAccess && <button type="button" onClick={() => openAction("adjustment")} className="rounded-lg border border-[#454545] px-3 py-2 text-sm text-white">Impairment / revaluation</button>}
-                {financeAccess && <button type="button" onClick={() => openAction("disposal")} className="rounded-lg bg-red-800 px-3 py-2 text-sm font-semibold text-white">Dispose / sell</button>}
+                <button type="button" onClick={() => openAction("assignment")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Assign / transfer</button>
+                <button type="button" onClick={() => openAction("maintenance")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Maintenance</button>
+                {selectedAsset.depreciationMethod === "UnitsOfProduction" && <button type="button" onClick={() => openAction("usage")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Record usage</button>}
+                {financeAccess && <button type="button" onClick={() => openAction("valuation")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Update market value</button>}
+                {financeAccess && <button type="button" onClick={() => openAction("adjustment")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Impairment / revaluation</button>}
+                {financeAccess && <button type="button" onClick={() => openAction("disposal")} className="rounded-xl bg-rose-600 hover:bg-rose-500 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition">Dispose / sell</button>}
               </div>
             )}
           </section>
@@ -768,10 +768,10 @@ const AssetManagement = ({ role }) => {
       )}
 
       {dialog && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/75 p-3 py-8 sm:p-6">
-          <section role="dialog" aria-modal="true" aria-labelledby="asset-dialog-title" className="w-full max-w-3xl rounded-2xl border border-[#404040] bg-[#202020] p-5 shadow-2xl sm:p-7">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 py-8 sm:p-6">
+          <section role="dialog" aria-modal="true" aria-labelledby="asset-dialog-title" className="w-full max-w-3xl rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xl sm:p-7 text-slate-800 dark:text-slate-100">
             <div className="mb-5 flex items-center justify-between gap-3">
-              <h2 id="asset-dialog-title" className="text-xl font-bold text-white">
+              <h2 id="asset-dialog-title" className="text-xl font-bold text-slate-900 dark:text-white">
                 {dialog === "asset" ? (editingId ? "Edit asset details" : "Register a business asset") : ({
                   assignment: "Assign or transfer asset",
                   valuation: "Record current market value",
@@ -783,7 +783,7 @@ const AssetManagement = ({ role }) => {
                   settings: "Asset accounting settings",
                 }[dialog])}
               </h2>
-              <button type="button" onClick={() => setDialog("")} aria-label="Close form" className="rounded-lg border border-[#454545] px-3 py-2 text-white">Close</button>
+              <button type="button" onClick={() => setDialog("")} aria-label="Close form" className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Close</button>
             </div>
             {dialog === "asset" ? (
               <form onSubmit={handleAssetSave} className="space-y-5">
@@ -799,7 +799,7 @@ const AssetManagement = ({ role }) => {
                     <Field label="Depreciation start date *"><input required type="date" value={form.depreciationStartDate} onChange={(event) => updateForm("depreciationStartDate", event.target.value)} className={inputClass} /></Field>
                     <Field label="Purchase price *"><input required min="0" step="0.01" type="number" value={form.purchasePrice} onChange={(event) => updateForm("purchasePrice", event.target.value)} className={inputClass} /></Field>
                     <Field label="Additional purchase costs"><input min="0" step="0.01" type="number" value={form.additionalCosts} onChange={(event) => updateForm("additionalCosts", event.target.value)} className={inputClass} /></Field>
-                    <Field label="Total acquisition cost"><input readOnly value={money(acquisitionCost, currency)} className={`${inputClass} text-[#aaa]`} /></Field>
+                    <Field label="Total acquisition cost"><input readOnly value={money(acquisitionCost, currency)} className={`${inputClass} text-slate-400`} /></Field>
                   </>}
                   <Field label="Supplier"><input value={form.supplier} onChange={(event) => updateForm("supplier", event.target.value)} className={inputClass} /></Field>
                   <Field label="Invoice number"><input value={form.invoiceNumber} onChange={(event) => updateForm("invoiceNumber", event.target.value)} className={inputClass} /></Field>
@@ -818,14 +818,14 @@ const AssetManagement = ({ role }) => {
                     </>}
                   </>}
                   {financeAccess && !editingId && <Field label="Initial estimated market value (optional)"><input min="0" step="0.01" type="number" value={form.marketValue ?? ""} onChange={(event) => updateForm("marketValue", event.target.value)} className={inputClass} /></Field>}
-                  <Field label="Asset image"><input type="file" accept="image/*" onChange={(event) => handleImageUpload(event.target.files?.[0])} className={`${inputClass} file:mr-3 file:rounded file:border-0 file:bg-[#383838] file:px-2 file:py-1`} /></Field>
-                  <Field label="Invoice / supporting documents (PDF, JPEG, PNG, WebP)"><input type="file" multiple accept=".pdf,image/jpeg,image/png,image/webp" onChange={(event) => addDocuments(event.target.files)} className={`${inputClass} file:mr-3 file:rounded file:border-0 file:bg-[#383838] file:px-2 file:py-1`} /></Field>
+                  <Field label="Asset image"><input type="file" accept="image/*" onChange={(event) => handleImageUpload(event.target.files?.[0])} className={`${inputClass} file:mr-3 file:rounded file:border-0 file:bg-slate-200 dark:file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:font-semibold`} /></Field>
+                  <Field label="Invoice / supporting documents (PDF, JPEG, PNG, WebP)"><input type="file" multiple accept=".pdf,image/jpeg,image/png,image/webp" onChange={(event) => addDocuments(event.target.files)} className={`${inputClass} file:mr-3 file:rounded file:border-0 file:bg-slate-200 dark:file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:font-semibold`} /></Field>
                 </div>
                 <Field label="Asset description"><textarea rows={3} maxLength={2000} value={form.description} onChange={(event) => updateForm("description", event.target.value)} className={inputClass} /></Field>
-                {documentFiles.length > 0 && <p className="text-xs text-[#aaa]">Uploaded documents: {documentFiles.map((file) => file.name).join(", ")}</p>}
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setDialog("")} className="rounded-lg border border-[#454545] px-4 py-2 text-sm text-white">Cancel</button>
-                  <button type="submit" disabled={uploading || createMutation.isPending || updateMutation.isPending} className="rounded-lg bg-[#f6b100] px-5 py-2 font-bold text-[#171717] disabled:opacity-50">
+                {documentFiles.length > 0 && <p className="text-xs text-slate-500">Uploaded documents: {documentFiles.map((file) => file.name).join(", ")}</p>}
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button type="button" onClick={() => setDialog("")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Cancel</button>
+                  <button type="submit" disabled={uploading || createMutation.isPending || updateMutation.isPending} className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2 text-xs font-bold text-slate-950 disabled:opacity-50 shadow-xs transition">
                     {uploading ? "Uploading documents…" : createMutation.isPending || updateMutation.isPending ? "Saving…" : editingId ? "Save changes" : "Register asset"}
                   </button>
                 </div>
@@ -842,7 +842,7 @@ const AssetManagement = ({ role }) => {
                   <Field label="Transfer note"><textarea rows={2} value={dialogForm.note || ""} onChange={(event) => updateDialogForm("note", event.target.value)} className={inputClass} /></Field>
                 </>}
                 {dialog === "valuation" && <>
-                  <p className="text-sm text-[#999]">Market values are manually entered estimates and are not calculated from depreciation.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Market values are manually entered estimates and are not calculated from depreciation.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label={`Estimated market value (${currency}) *`}><input required min="0" step="0.01" type="number" value={dialogForm.value} onChange={(event) => updateDialogForm("value", event.target.value)} className={inputClass} /></Field>
                     <Field label="Valuation date"><input required type="date" value={dialogForm.valuedAt} onChange={(event) => updateDialogForm("valuedAt", event.target.value)} className={inputClass} /></Field>
@@ -850,7 +850,7 @@ const AssetManagement = ({ role }) => {
                   <Field label="Source / valuation note"><textarea rows={2} value={dialogForm.note || ""} onChange={(event) => updateDialogForm("note", event.target.value)} className={inputClass} /></Field>
                 </>}
                 {dialog === "adjustment" && <>
-                  <p className="text-sm text-[#999]">The original acquisition cost and posted depreciation are never overwritten. This adjustment is a separate audited accounting entry and affects book value and future depreciation only.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">The original acquisition cost and posted depreciation are never overwritten. This adjustment is a separate audited accounting entry and affects book value and future depreciation only.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Adjustment type"><select value={dialogForm.type || "Impairment"} onChange={(event) => updateDialogForm("type", event.target.value)} className={inputClass}><option>Impairment</option><option>Revaluation</option><option>Acquisition correction</option></select></Field>
                     <Field label={`Adjustment amount (+/- ${currency})`}><input required step="0.01" type="number" value={dialogForm.amount || ""} onChange={(event) => updateDialogForm("amount", event.target.value)} className={inputClass} /></Field>
@@ -871,7 +871,7 @@ const AssetManagement = ({ role }) => {
                   <Field label="Repair description *"><textarea required rows={3} value={dialogForm.description || ""} onChange={(event) => updateDialogForm("description", event.target.value)} className={inputClass} /></Field>
                 </>}
                 {dialog === "usage" && <>
-                  <p className="text-sm text-[#999]">Enter actual usage for the month. Monthly depreciation is calculated from the asset&apos;s lifetime estimated usage.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Enter actual usage for the month. Monthly depreciation is calculated from the asset&apos;s lifetime estimated usage.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Usage period"><input required type="month" value={dialogForm.period} onChange={(event) => updateDialogForm("period", event.target.value)} className={inputClass} /></Field>
                     <Field label={`Actual usage (${selectedAsset?.usageUnit || "units"})`}><input required min="0" step="0.01" type="number" value={dialogForm.units} onChange={(event) => updateDialogForm("units", event.target.value)} className={inputClass} /></Field>
@@ -885,10 +885,10 @@ const AssetManagement = ({ role }) => {
                     <Field label={`Selling expenses (${currency})`}><input min="0" step="0.01" type="number" value={dialogForm.sellingExpenses} onChange={(event) => updateDialogForm("sellingExpenses", event.target.value)} className={inputClass} /></Field>
                   </div>
                   <Field label="Disposal note"><textarea rows={2} value={dialogForm.note || ""} onChange={(event) => updateDialogForm("note", event.target.value)} className={inputClass} /></Field>
-                  <p className="text-sm text-[#e5c36a]">Gain / loss is calculated on the server as net sale proceeds less book value on the disposal date. Posting disposal stops future depreciation.</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Gain / loss is calculated on the server as net sale proceeds less book value on the disposal date. Posting disposal stops future depreciation.</p>
                 </>}
                 {dialog === "depreciation" && <>
-                  <p className="text-sm text-[#999]">Post a completed period only. Each asset/period is unique, so repeated scheduler runs cannot create duplicate depreciation entries. Units-of-production assets without usage recorded are skipped.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Post a completed period only. Each asset/period is unique, so repeated scheduler runs cannot create duplicate depreciation entries. Units-of-production assets without usage recorded are skipped.</p>
                   <Field label="Financial period"><input required type="month" max={PREVIOUS_MONTH} value={dialogForm.period} onChange={(event) => updateDialogForm("period", event.target.value)} className={inputClass} /></Field>
                 </>}
                 {dialog === "settings" && <>
@@ -896,11 +896,11 @@ const AssetManagement = ({ role }) => {
                     <Field label="Currency (ISO 4217)"><input required maxLength={3} pattern="[A-Za-z]{3}" value={dialogForm.currency || ""} onChange={(event) => updateDialogForm("currency", event.target.value.toUpperCase())} className={inputClass} /></Field>
                     <Field label="Financial year start month"><select value={dialogForm.financialYearStartMonth} onChange={(event) => updateDialogForm("financialYearStartMonth", Number(event.target.value))} className={inputClass}>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Date(2025, index, 1).toLocaleString(undefined, { month: "long" })}</option>)}</select></Field>
                   </div>
-                  <p className="text-xs text-[#888]">The accounting period is calendar-monthly; this setting controls reporting year boundaries and currency presentation only.</p>
+                  <p className="text-xs text-slate-400">The accounting period is calendar-monthly; this setting controls reporting year boundaries and currency presentation only.</p>
                 </>}
-                <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setDialog("")} className="rounded-lg border border-[#454545] px-4 py-2 text-sm text-white">Cancel</button>
-                  <button type="submit" disabled={activityMutating} className={`rounded-lg px-5 py-2 font-bold text-[#171717] disabled:opacity-50 ${dialog === "disposal" ? "bg-red-400" : "bg-[#f6b100]"}`}>
+                <div className="flex justify-end gap-2.5 pt-2">
+                  <button type="button" onClick={() => setDialog("")} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">Cancel</button>
+                  <button type="submit" disabled={activityMutating} className={`rounded-xl px-5 py-2 text-xs font-bold text-slate-950 disabled:opacity-50 shadow-xs transition ${dialog === "disposal" ? "bg-rose-500 hover:bg-rose-400 text-white" : "bg-amber-500 hover:bg-amber-400"}`}>
                     {activityMutating ? "Saving…" : dialog === "depreciation" ? "Post depreciation" : dialog === "disposal" ? "Confirm disposal" : "Save"}
                   </button>
                 </div>

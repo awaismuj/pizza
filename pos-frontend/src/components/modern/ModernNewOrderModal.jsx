@@ -120,7 +120,7 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
                 Create New Order
               </h3>
               <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
-                Tossdown POS Fast Checkout Flow
+                Quick Billing & Kitchen Flow
               </p>
             </div>
           </div>

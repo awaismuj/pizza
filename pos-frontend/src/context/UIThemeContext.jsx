@@ -3,12 +3,12 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 const UIThemeContext = createContext();
 
 export const UIThemeProvider = ({ children }) => {
-  // Default to modern Tossdown UI, persist choice in localStorage
+  // Default to modern POS UI, persist choice in localStorage
   const [uiMode, setUiMode] = useState(() => {
     return localStorage.getItem("genz_pos_ui_mode") || "modern";
   });
 
-  // Default to "clean" (Toast / Tossdown high-contrast restaurant standard)
+  // Default to clean high-contrast restaurant standard
   const [colorTheme, setColorTheme] = useState(() => {
     return localStorage.getItem("genz_pos_color_theme") || "clean";
   });

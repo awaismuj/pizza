@@ -120,10 +120,10 @@ const Metrics = () => {
       {/* Performance Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <span>Overall Sales & Revenue Performance</span>
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
             Real-time financial metrics, sales volume, and customer order counts
           </p>
         </div>
@@ -134,9 +134,9 @@ const Metrics = () => {
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
                 timeRange === range
-                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
+                  ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
@@ -155,14 +155,14 @@ const Metrics = () => {
           >
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   {metric.title}
                 </span>
                 <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
                   {metric.icon}
                 </span>
               </div>
-              <div className="text-2xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                 {metric.value}
               </div>
             </div>
@@ -172,7 +172,7 @@ const Metrics = () => {
                 {metric.isIncrease ? <FiTrendingUp className="w-3 h-3" /> : <FiTrendingDown className="w-3 h-3" />}
                 {metric.percentage}
               </span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate ml-2">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal truncate ml-2">
                 {metric.helper}
               </span>
             </div>
@@ -186,7 +186,7 @@ const Metrics = () => {
           <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
             Operational Inventory & Floor Status
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
             Key operational counts across live stations and products
           </p>
         </div>
@@ -199,17 +199,17 @@ const Metrics = () => {
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                     {item.title}
                   </span>
                   <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
                     {item.icon}
                   </span>
                 </div>
-                <div className="text-2xl font-black text-slate-900 dark:text-white">
+                <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                   {item.value}
                 </div>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
                   {item.subtext}
                 </p>
               </div>

@@ -8,25 +8,13 @@ import { getCategories, getDishes, getDeals } from "../../https";
 import { addItems } from "../../redux/slices/cartSlice";
 import { resolveImageUrl } from "../../utils";
 import { useUITheme } from "../../context/UIThemeContext";
+import { FoodIcon } from "../../utils/foodIcons";
 
-// A category icon is either an emoji or an uploaded photo (a path like
-// "/uploads/fries-123.jpg"). Photos must be drawn as an <img>; printing the
-// value as text is what showed the raw path next to the category name.
-const isImageIcon = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
-
-const MenuIcon = ({ icon }) =>
-  isImageIcon(icon) ? (
-    <img
-      src={resolveImageUrl(icon)}
-      alt=""
-      className="mr-1 inline-block h-7 w-7 rounded-md object-cover align-middle"
-      onError={(e) => {
-        e.currentTarget.style.display = "none";
-      }}
-    />
-  ) : (
-    <>{icon}</>
-  );
+const MenuIcon = ({ icon }) => (
+  <span className="inline-flex items-center justify-center mr-1.5 align-middle shrink-0">
+    <FoodIcon icon={icon} size={18} />
+  </span>
+);
 
 const palette = ["#b73e3e", "#5b45b0", "#7f167f", "#735f32", "#1d2569", "#285430", "#b73e3e", "#5b45b0"];
 
@@ -323,12 +311,14 @@ const MenuContainer = ({ onAddToCart }) => {
         <div className="flex items-start justify-between w-full gap-2">
           <div className="min-w-0 flex-1">
             <h3
-              className={`text-sm sm:text-base font-extrabold line-clamp-2 break-words leading-tight ${
+              className={`text-sm sm:text-base font-bold line-clamp-2 break-words leading-tight flex items-center ${
                 isClean ? "text-slate-900" : "text-white"
               }`}
             >
-              {item.icon ? `${item.icon} ` : ""}
-              {item.name}
+              <span className="inline-flex items-center justify-center mr-1.5 align-middle shrink-0">
+                <FoodIcon icon={item.icon} size={16} />
+              </span>
+              <span>{item.name}</span>
               {item.isDeal && (
                 <span className="ml-2 align-middle text-[10px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-full shadow-xs">
                   DEAL
@@ -466,25 +456,22 @@ const MenuContainer = ({ onAddToCart }) => {
 
   return (
     <>
-      {/* Search — matches by name anywhere on the menu (deals included),
-          regardless of which category tab is currently open, so staff don't
-          have to hunt for which tab an item lives in. */}
       {/* Search Bar */}
-      <div className="px-4 sm:px-6 lg:px-10 pt-4">
+      <div className="w-full mb-3">
         <div
-          className={`flex items-center gap-2.5 rounded-2xl px-4 py-3 shadow-sm transition ${
+          className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 shadow-xs transition ${
             isClean
               ? "bg-white border border-slate-200/90 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20"
               : "bg-slate-900/90 border border-slate-800 focus-within:border-amber-500/60 shadow-md"
           }`}
         >
-          <FaSearch className={isClean ? "text-slate-400 shrink-0" : "text-slate-400 shrink-0"} size={16} />
+          <FaSearch className={isClean ? "text-slate-400 shrink-0" : "text-slate-500 shrink-0"} size={15} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             type="text"
             placeholder="Search menu dishes, pizza, burgers, deals…"
-            className={`bg-transparent flex-1 text-sm outline-none ${
+            className={`bg-transparent flex-1 text-xs sm:text-sm outline-none ${
               isClean ? "text-slate-900 placeholder:text-slate-400" : "text-white placeholder:text-slate-500"
             }`}
           />
@@ -494,16 +481,16 @@ const MenuContainer = ({ onAddToCart }) => {
               className={`shrink-0 ${isClean ? "text-slate-400 hover:text-slate-700" : "text-slate-400 hover:text-white"}`}
               aria-label="Clear search"
             >
-              <FaTimes size={14} />
+              <FaTimes size={13} />
             </button>
           )}
         </div>
       </div>
 
       {searchResults ? (
-        <div className="px-4 sm:px-6 lg:px-10 pt-4">
+        <div className="w-full">
           <p
-            className={`text-xs font-bold uppercase tracking-wider mb-3 ${
+            className={`text-xs font-bold uppercase tracking-wider mb-2.5 ${
               isClean ? "text-slate-500" : "text-slate-400"
             }`}
           >
@@ -511,24 +498,24 @@ const MenuContainer = ({ onAddToCart }) => {
               ? `No items match "${search}"`
               : `${searchResults.length} result${searchResults.length === 1 ? "" : "s"} for "${search}"`}
           </p>
-          <div className="grid grid-cols-2 gap-4 w-full sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 w-full sm:grid-cols-3 xl:grid-cols-4">
             {searchResults.map(renderItemCard)}
           </div>
         </div>
       ) : (
         <>
           {/* Category Tabs */}
-          <div className="grid grid-cols-2 gap-3 px-4 py-4 w-full sm:gap-3.5 sm:grid-cols-3 sm:px-6 lg:grid-cols-4 lg:px-10">
+          <div className="grid grid-cols-2 gap-2.5 w-full sm:grid-cols-3 xl:grid-cols-4 mb-3">
             {dynamicMenus.map((menu) => {
               const isSelected = selected?.id === menu.id;
               return (
                 <div
                   key={menu.id}
-                  className={`flex flex-col items-start justify-between gap-2 p-3 sm:p-4 rounded-2xl cursor-pointer transition-all duration-150 border min-h-[85px] sm:min-h-[95px] ${
+                  className={`flex flex-col items-start justify-between gap-1.5 p-3 rounded-2xl cursor-pointer transition-all duration-150 border min-h-[75px] sm:min-h-[85px] ${
                     isSelected
                       ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-bold"
                       : isClean
-                      ? "bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-xs hover:bg-slate-50"
+                      ? "bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-xs hover:bg-slate-50/80"
                       : "bg-slate-900/90 text-slate-200 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 shadow-md"
                   }`}
                   onClick={() => {
@@ -539,23 +526,23 @@ const MenuContainer = ({ onAddToCart }) => {
                 >
                   <div className="flex items-start justify-between w-full gap-2">
                     <h3
-                      className={`text-sm sm:text-base font-extrabold line-clamp-2 break-words min-w-0 flex-1 leading-tight ${
+                      className={`text-xs sm:text-sm font-extrabold line-clamp-2 break-words min-w-0 flex-1 leading-tight ${
                         isSelected ? "text-slate-950" : isClean ? "text-slate-900" : "text-white"
                       }`}
                     >
                       <MenuIcon icon={menu.icon} /> {menu.name}
                     </h3>
                     {isSelected && (
-                      <GrRadialSelected className="text-slate-950 shrink-0 mt-0.5" size={17} />
+                      <GrRadialSelected className="text-slate-950 shrink-0 mt-0.5" size={15} />
                     )}
                   </div>
                   <p
-                    className={`text-xs font-semibold ${
+                    className={`text-[11px] font-semibold ${
                       isSelected
-                        ? "text-slate-900"
+                        ? "text-slate-900/80"
                         : isClean
-                        ? "text-slate-500"
-                        : "text-slate-400"
+                        ? "text-slate-400"
+                        : "text-slate-500"
                     }`}
                   >
                     {menu.items.length} {menu.items.length === 1 ? "Item" : "Items"}
@@ -565,9 +552,10 @@ const MenuContainer = ({ onAddToCart }) => {
             })}
           </div>
 
-          <hr className={`mt-4 ${isClean ? "border-slate-200 border-t" : "border-[#2a2a2a] border-t-2"}`} />
+          <div className="w-full my-2 border-t border-slate-200/80 dark:border-slate-800/80" />
 
-          <div className="grid grid-cols-2 gap-3 px-4 py-4 w-full sm:gap-4 sm:grid-cols-3 sm:px-6 lg:grid-cols-4 lg:px-10">
+          {/* Dishes Grid */}
+          <div className="grid grid-cols-2 gap-2.5 w-full sm:grid-cols-3 xl:grid-cols-4 pt-1">
             {selected?.items.map(renderItemCard)}
           </div>
         </>

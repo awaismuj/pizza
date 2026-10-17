@@ -19,49 +19,57 @@ const Menu = () => {
   const customerData = useSelector((state) => state.customer);
 
   return (
-    <section
-      className={`min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 pb-36 lg:pb-6 transition-colors ${
-        isClean ? "bg-transparent text-slate-900" : "bg-[#1f1f1f] text-slate-100"
-      }`}
-    >
+    <section className="min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-3 pb-32 lg:pb-4 transition-colors">
       {/* Left Div - Menu & Categories */}
-      <div className="w-full lg:flex-[3] flex flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm mb-4">
+      <div className="w-full lg:flex-[3] flex flex-col min-w-0">
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border shadow-xs mb-3 transition-colors ${
+            isClean
+              ? "bg-white border-slate-200/90 text-slate-900"
+              : "bg-slate-900/90 border-slate-800 text-white"
+          }`}
+        >
           <div className="flex items-center gap-3">
             <BackButton />
-            <h1
-              className={`text-xl sm:text-2xl font-black tracking-tight ${
-                isClean ? "text-slate-900" : "text-[#f5f5f5]"
-              }`}
-            >
-              Point of Sale Menu
-            </h1>
-          </div>
-          <div className="flex items-center justify-around gap-4">
-            <div className="flex items-center gap-3">
-              <div
-                className={`p-2 rounded-xl ${
-                  isClean ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-slate-800 text-amber-400"
+            <div>
+              <h1
+                className={`text-lg sm:text-xl font-black tracking-tight leading-none ${
+                  isClean ? "text-slate-900" : "text-white"
                 }`}
               >
-                <MdRestaurantMenu size={24} />
-              </div>
-              <div className="flex flex-col items-start">
-                <h2
-                  className={`text-sm font-extrabold tracking-wide leading-tight ${
-                    isClean ? "text-slate-900" : "text-[#f5f5f5]"
-                  }`}
-                >
-                  {customerData.customerName || "Walk-In Guest"}
-                </h2>
-                <p
-                  className={`text-xs font-semibold ${
-                    isClean ? "text-slate-500" : "text-[#ababab]"
-                  }`}
-                >
-                  Table: {customerData.table?.tableNo || "Counter / Takeaway"}
-                </p>
-              </div>
+                Point of Sale Menu
+              </h1>
+              <p className={`text-[11px] mt-0.5 ${isClean ? "text-slate-400" : "text-slate-500"}`}>
+                Browse categories and add dishes to order
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div
+              className={`p-2 rounded-xl flex items-center justify-center ${
+                isClean
+                  ? "bg-amber-50 text-amber-600 border border-amber-200/70"
+                  : "bg-slate-800 text-amber-400 border border-slate-700/60"
+              }`}
+            >
+              <MdRestaurantMenu size={20} />
+            </div>
+            <div className="flex flex-col items-start">
+              <h2
+                className={`text-xs sm:text-sm font-extrabold tracking-wide leading-tight ${
+                  isClean ? "text-slate-900" : "text-white"
+                }`}
+              >
+                {customerData.customerName || "Walk-In Guest"}
+              </h2>
+              <p
+                className={`text-[11px] font-semibold mt-0.5 ${
+                  isClean ? "text-slate-500" : "text-slate-400"
+                }`}
+              >
+                Table: {customerData.table?.tableNo || "Counter / Takeaway"}
+              </p>
             </div>
           </div>
         </div>
@@ -71,19 +79,19 @@ const Menu = () => {
 
       {/* Right Div - Cart & Billing Checkout Panel */}
       <div
-        className={`w-full lg:flex-[1.1] flex flex-col rounded-2xl border shadow-sm overflow-hidden h-fit transition-all ${
+        className={`w-full lg:flex-[1.1] flex flex-col rounded-2xl border shadow-xs overflow-hidden h-fit transition-all ${
           isClean
-            ? "bg-white border-slate-200/90 text-slate-800"
-            : "bg-[#1a1a1a] border-slate-800 text-white"
+            ? "bg-white border-slate-200/90 text-slate-900"
+            : "bg-slate-900/90 border-slate-800 text-white"
         }`}
       >
         <div className="shrink-0">
           <CustomerInfo />
-          <hr className={isClean ? "border-slate-100" : "border-[#2a2a2a]"} />
+          <hr className={isClean ? "border-slate-100" : "border-slate-800/80"} />
         </div>
         <CartInfo />
         <div className="shrink-0">
-          <hr className={isClean ? "border-slate-100" : "border-[#2a2a2a]"} />
+          <hr className={isClean ? "border-slate-100" : "border-slate-800/80"} />
           <Bill />
         </div>
       </div>

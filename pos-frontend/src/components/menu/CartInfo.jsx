@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { RiDeleteBin2Fill } from "react-icons/ri";
+import { MdShoppingCart } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import { removeItem } from "../../redux/slices/cartSlice";
 import OrderSearch from "./OrderSearch";
@@ -41,8 +42,10 @@ const CartInfo = () => {
         ref={scrolLRef}
       >
         {cartData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-10 text-center">
-            <span className="text-3xl mb-2">🛒</span>
+          <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-2">
+              <MdShoppingCart size={24} />
+            </div>
             <p className={isClean ? "text-slate-400 text-xs font-semibold" : "text-slate-500 text-xs"}>
               Cart is empty. Click dishes to add.
             </p>

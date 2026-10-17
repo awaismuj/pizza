@@ -102,25 +102,25 @@ const OnlineOrders = () => {
   };
 
   return (
-    <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden pb-20">
+    <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden pb-8">
       <div
-        className={`flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl mb-6 transition duration-200 ${
+        className={`flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl mb-3 transition duration-200 ${
           isClean
-            ? "bg-white border border-slate-200/90 shadow-sm"
-            : "bg-slate-900/90 border border-slate-800 shadow-xl"
+            ? "bg-white border border-slate-200/90 shadow-xs"
+            : "bg-slate-900/90 border border-slate-800 shadow-md"
         }`}
       >
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
             <h1
-              className={`text-xl sm:text-2xl font-black tracking-tight ${
+              className={`text-lg sm:text-xl font-black tracking-tight leading-none ${
                 isClean ? "text-slate-900" : "text-white"
               }`}
             >
               Online Orders Dispatch Pipeline
             </h1>
-            <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+            <p className={`text-[11px] mt-0.5 ${isClean ? "text-slate-400" : "text-slate-500"}`}>
               Incoming storefront delivery & takeaway orders
             </p>
           </div>

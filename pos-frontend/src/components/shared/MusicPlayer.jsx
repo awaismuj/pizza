@@ -65,48 +65,53 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
 
   if (variant === "compact") {
     return (
-      <div className="flex min-w-0 shrink-0 items-center gap-0.5 rounded-xl border border-red-500/40 bg-[#251010] p-1 text-red-100 sm:gap-1">
-        <FaMusic aria-hidden="true" className="mx-1 hidden text-red-400 sm:block" />
-        <button
-          type="button"
-          onClick={skipBack}
-          aria-label="Previous song"
-          title="Previous song"
-          className="rounded-lg p-2 transition hover:bg-white/10"
-        >
-          <FaStepBackward size={12} />
-        </button>
-        <button
-          type="button"
-          onClick={togglePlayback}
-          aria-label={isPlaying ? "Pause music" : "Play music"}
-          title={currentTrack?.title || "Play music"}
-          className="rounded-lg p-2 text-red-400 transition hover:bg-white/10"
-        >
-          {isPlaying ? <FaPause size={13} /> : <FaPlay size={13} />}
-        </button>
-        <button
-          type="button"
-          onClick={skipForward}
-          aria-label="Next song"
-          title="Next song"
-          className="rounded-lg p-2 transition hover:bg-white/10"
-        >
-          <FaStepForward size={12} />
-        </button>
-        {canManage && (
+      <div className="flex min-w-0 shrink-0 items-center justify-between gap-0.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-1 text-slate-700 dark:text-slate-300 shadow-xs sm:gap-1">
+        <div className="flex items-center gap-0.5">
+          <FaMusic aria-hidden="true" className="mx-1.5 hidden text-amber-500 sm:block text-xs" />
           <button
             type="button"
-            onClick={() => navigate("/dashboard?tab=Music")}
-            aria-label="Manage store music"
-            title="Manage store music"
-            className="ml-0.5 rounded-lg bg-red-700 px-2.5 py-2 text-xs font-bold text-white transition hover:bg-red-600"
+            onClick={skipBack}
+            aria-label="Previous song"
+            title="Previous song"
+            className="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
           >
-            <span className="hidden sm:inline">Music</span>
-            <FaMusic aria-hidden="true" className="sm:hidden" />
+            <FaStepBackward size={11} />
           </button>
-        )}
-        {isPlaying && <span className="mr-1 h-2 w-2 animate-pulse rounded-full bg-red-500" aria-label="Playing" />}
+          <button
+            type="button"
+            onClick={togglePlayback}
+            aria-label={isPlaying ? "Pause music" : "Play music"}
+            title={currentTrack?.title || "Play music"}
+            className="rounded-lg p-1.5 text-amber-500 transition hover:bg-amber-500/10"
+          >
+            {isPlaying ? <FaPause size={12} /> : <FaPlay size={12} />}
+          </button>
+          <button
+            type="button"
+            onClick={skipForward}
+            aria-label="Next song"
+            title="Next song"
+            className="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+          >
+            <FaStepForward size={11} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {isPlaying && <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-label="Playing" />}
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard?tab=Music")}
+              aria-label="Manage store music"
+              title="Manage store music"
+              className="rounded-lg bg-amber-500 px-2 py-1 text-[11px] font-bold text-slate-950 transition hover:bg-amber-400"
+            >
+              <span className="hidden sm:inline">Music</span>
+              <FaMusic aria-hidden="true" className="sm:hidden text-xs" />
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -128,27 +133,31 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
   };
 
   return (
-    <section aria-label="POS music playlist manager" className="mx-auto w-full max-w-5xl px-4 pb-8 sm:px-6">
-      <div className="rounded-2xl border border-red-950 bg-[#111] p-4 text-white shadow-xl shadow-black/20 sm:p-6">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <span className="rounded-xl bg-red-950 p-3 text-red-400"><FaMusic size={20} /></span>
+    <section aria-label="POS music playlist manager" className="mx-auto w-full max-w-5xl px-2 pb-8 sm:px-4">
+      <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-7 text-slate-800 dark:text-slate-100 shadow-xs">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-5">
+          <div className="flex items-start gap-3.5">
+            <span className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-amber-600 dark:text-amber-400">
+              <FaMusic size={22} />
+            </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-400">Store music</p>
-              <h2 className="text-xl font-bold sm:text-2xl">Playlist manager</h2>
-              <p className="mt-1 max-w-xl text-sm text-gray-400">Add your shared songs and control music playing across the POS.</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Store Music</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white sm:text-2xl">Playlist Manager</h2>
+              <p className="mt-1 max-w-xl text-sm text-slate-500 dark:text-slate-400">
+                Add shared tracks and control background ambiance across all POS stations.
+              </p>
             </div>
           </div>
-          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400">
-            {tracks.length} {tracks.length === 1 ? "song" : "songs"}
+          <span className="rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+            {tracks.length} {tracks.length === 1 ? "track" : "tracks"}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)]">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)]">
           <div className="space-y-4">
-            <div className="rounded-xl border border-white/10 bg-[#191919] p-4">
-              <label className="mb-2 block text-sm font-semibold text-gray-200" htmlFor="music-drive-folder">
-                Google Drive music folder
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4 sm:p-5">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300" htmlFor="music-drive-folder">
+                Google Drive Music Folder
               </label>
               <div className="flex gap-2">
                 <input
@@ -157,7 +166,7 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
                   value={settings.folderUrl}
                   onChange={(event) => updateFolderUrl(event.target.value.trim())}
                   placeholder="Paste shared folder link"
-                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#202020] px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                  className="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition"
                 />
                 <button
                   type="button"
@@ -165,25 +174,25 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
                   disabled={!isValidFolderUrl(settings.folderUrl)}
                   title="Open your Drive folder to upload songs"
                   aria-label="Open Google Drive folder"
-                  className="shrink-0 rounded-lg bg-red-700 px-4 text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="shrink-0 rounded-xl bg-amber-500 px-4 text-slate-950 font-bold transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40 shadow-xs flex items-center justify-center"
                 >
-                  <FaFolderOpen />
+                  <FaFolderOpen size={16} />
                 </button>
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-gray-400">
-                Upload songs to this folder, then add each song below using its file share link. Set each file to “Anyone with the link”.
+              <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                Upload songs to this Google Drive folder, then add each track below using its shareable link. Set files to <strong className="font-semibold text-slate-700 dark:text-slate-200">"Anyone with the link"</strong>.
               </p>
             </div>
 
-            <form onSubmit={submitTrack} className="space-y-3 rounded-xl border border-white/10 bg-[#191919] p-4">
-              <h3 className="text-sm font-bold text-gray-200">Add a song</h3>
+            <form onSubmit={submitTrack} className="space-y-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4 sm:p-5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Add a Track</h3>
               <input
                 value={titleInput}
                 onChange={(event) => setTitleInput(event.target.value)}
                 maxLength={80}
-                placeholder="Song name"
-                aria-label="Song name"
-                className="w-full rounded-lg border border-white/10 bg-[#101010] px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-red-500 focus:outline-none"
+                placeholder="Song title (e.g. Chill Pizza Beats)"
+                aria-label="Song title"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition"
               />
               <input
                 type="url"
@@ -191,40 +200,49 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
                 onChange={(event) => setFileUrlInput(event.target.value)}
                 placeholder="Google Drive song share link"
                 aria-label="Google Drive song share link"
-                className="w-full rounded-lg border border-white/10 bg-[#101010] px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-red-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition"
               />
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-red-700 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-400 active:scale-[0.99] shadow-xs"
               >
-                <FaPlus aria-hidden="true" /> Add to playlist
+                <FaPlus aria-hidden="true" size={13} /> Add to playlist
               </button>
             </form>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-[#191919] p-4">
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4 sm:p-5 flex flex-col">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-bold text-gray-200">Playlist</h3>
-              <span className="text-xs text-gray-500">{tracks.length} {tracks.length === 1 ? "song" : "songs"}</span>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Playlist Queue</h3>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{tracks.length} {tracks.length === 1 ? "track" : "tracks"}</span>
             </div>
             {tracks.length > 0 ? (
-              <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
+              <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1 flex-1">
                 {tracks.map((track, index) => (
-                  <li key={track.id} className={`flex min-w-0 items-center gap-2 rounded-lg px-2 ${track.id === currentTrack?.id ? "bg-red-950/70" : "hover:bg-white/5"}`}>
+                  <li
+                    key={track.id}
+                    className={`flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 transition ${
+                      track.id === currentTrack?.id
+                        ? "bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 font-semibold"
+                        : "bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200"
+                    }`}
+                  >
                     <button
                       type="button"
                       onClick={() => playTrack(index)}
                       aria-label={`Play ${track.title}`}
-                      className="min-w-0 flex-1 truncate py-3 text-left text-sm text-gray-100"
+                      className="min-w-0 flex-1 truncate text-left text-sm py-1"
                     >
-                      <span className="mr-2 text-red-400">{track.id === currentTrack?.id && isPlaying ? "♫" : `${index + 1}.`}</span>
+                      <span className="mr-2 text-amber-600 dark:text-amber-400 font-bold">
+                        {track.id === currentTrack?.id && isPlaying ? "♫" : `${index + 1}.`}
+                      </span>
                       {track.title}
                     </button>
                     <button
                       type="button"
                       onClick={() => removeTrack(index)}
                       aria-label={`Remove ${track.title}`}
-                      className="rounded p-2 text-gray-400 transition hover:bg-red-950 hover:text-red-300"
+                      className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
                     >
                       <FaTrash size={12} />
                     </button>
@@ -232,16 +250,20 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
                 ))}
               </ul>
             ) : (
-              <p className="rounded-lg border border-dashed border-white/10 px-3 py-8 text-center text-sm text-gray-500">
-                Add your first song to build the playlist.
-              </p>
+              <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-slate-700 px-4 py-10 text-center">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Add your first track using the form on the left to start building your store playlist.
+                </p>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl bg-[#1b1b1b] p-4 sm:p-5">
-          <p className="truncate text-center text-sm font-semibold text-white">{currentTrack?.title || "No song selected"}</p>
-          <div className="mt-2 flex items-center gap-2 text-[11px] tabular-nums text-gray-400">
+        <div className="mt-5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 p-5">
+          <p className="truncate text-center text-sm font-bold text-slate-900 dark:text-white">
+            {currentTrack?.title || "No song selected"}
+          </p>
+          <div className="mt-3 flex items-center gap-3 text-xs tabular-nums text-slate-500 dark:text-slate-400">
             <span>{formatTime(currentTime)}</span>
             <input
               type="range"
@@ -256,47 +278,61 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
               }}
               disabled={!currentTrack || !duration}
               aria-label="Song progress"
-              className="h-1.5 min-w-0 flex-1 cursor-pointer accent-red-500 disabled:cursor-not-allowed"
+              className="h-2 min-w-0 flex-1 cursor-pointer accent-amber-500 disabled:cursor-not-allowed"
             />
             <span>{formatTime(duration)}</span>
           </div>
 
-          <div className="mt-3 flex items-center justify-center gap-3 sm:gap-6">
+          <div className="mt-4 flex items-center justify-center gap-4 sm:gap-6">
             <button
               type="button"
               onClick={() => setIsShuffling((enabled) => !enabled)}
               aria-label={isShuffling ? "Disable shuffle" : "Enable shuffle"}
               aria-pressed={isShuffling}
-              className={`rounded-full p-2 transition hover:bg-white/10 ${isShuffling ? "text-red-400" : "text-gray-400"}`}
+              className={`rounded-full p-2.5 transition hover:bg-slate-200/70 dark:hover:bg-slate-700 ${
+                isShuffling ? "text-amber-500 font-bold" : "text-slate-400 dark:text-slate-500"
+              }`}
             >
-              <FaRandom />
+              <FaRandom size={15} />
             </button>
-            <button type="button" onClick={skipBack} aria-label="Previous song" className="rounded-full p-2 text-gray-100 transition hover:bg-white/10">
-              <FaStepBackward />
+            <button
+              type="button"
+              onClick={skipBack}
+              aria-label="Previous song"
+              className="rounded-full p-2.5 text-slate-700 dark:text-slate-200 transition hover:bg-slate-200/70 dark:hover:bg-slate-700"
+            >
+              <FaStepBackward size={16} />
             </button>
             <button
               type="button"
               onClick={togglePlayback}
               aria-label={isPlaying ? "Pause music" : "Play music"}
-              className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-red-500 bg-red-700 text-lg text-white shadow-lg shadow-red-950/50 transition hover:scale-105 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-slate-950 text-base font-bold shadow-md shadow-amber-500/25 transition hover:scale-105 hover:bg-amber-400 active:scale-95"
             >
-              {isPlaying ? <FaPause /> : <FaPlay className="ml-0.5" />}
+              {isPlaying ? <FaPause size={16} /> : <FaPlay size={16} className="ml-0.5" />}
             </button>
-            <button type="button" onClick={skipForward} aria-label="Next song" className="rounded-full p-2 text-gray-100 transition hover:bg-white/10">
-              <FaStepForward />
+            <button
+              type="button"
+              onClick={skipForward}
+              aria-label="Next song"
+              className="rounded-full p-2.5 text-slate-700 dark:text-slate-200 transition hover:bg-slate-200/70 dark:hover:bg-slate-700"
+            >
+              <FaStepForward size={16} />
             </button>
             <button
               type="button"
               onClick={() => setRepeatPlaylist((enabled) => !enabled)}
               aria-label={repeatPlaylist ? "Disable playlist repeat" : "Enable playlist repeat"}
               aria-pressed={repeatPlaylist}
-              className={`rounded-full p-2 transition hover:bg-white/10 ${repeatPlaylist ? "text-red-400" : "text-gray-400"}`}
+              className={`rounded-full p-2.5 transition hover:bg-slate-200/70 dark:hover:bg-slate-700 ${
+                repeatPlaylist ? "text-amber-500 font-bold" : "text-slate-400 dark:text-slate-500"
+              }`}
             >
-              <FaRedo />
+              <FaRedo size={15} />
             </button>
           </div>
-          <div className="mx-auto mt-3 flex max-w-xs items-center gap-2 px-2 text-gray-400">
-            <FaVolumeUp aria-hidden="true" size={13} />
+          <div className="mx-auto mt-4 flex max-w-xs items-center gap-2.5 px-2 text-slate-400 dark:text-slate-500">
+            <FaVolumeUp aria-hidden="true" size={14} />
             <input
               type="range"
               min="0"
@@ -305,15 +341,19 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
               value={volume}
               onChange={(event) => setVolume(Number(event.target.value))}
               aria-label="Volume"
-              className="h-1.5 w-full cursor-pointer accent-red-500"
+              className="h-2 w-full cursor-pointer accent-amber-500"
             />
           </div>
         </div>
 
-        {message && <p role="alert" className="mt-3 rounded-lg bg-red-950/80 px-3 py-2 text-sm leading-relaxed text-red-200">{message}</p>}
-        <p className="mt-3 flex items-start gap-1 text-xs text-gray-500">
-          <FaExternalLinkAlt aria-hidden="true" className="mt-0.5 shrink-0" />
-          <span>Drive must allow link access. Playlist settings are saved only in this browser. If Drive will not stream a file, host the audio on your site instead.</span>
+        {message && (
+          <p role="alert" className="mt-4 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3.5 py-2.5 text-xs font-medium leading-relaxed text-amber-700 dark:text-amber-300">
+            {message}
+          </p>
+        )}
+        <p className="mt-4 flex items-start gap-1.5 text-xs text-slate-400 dark:text-slate-500">
+          <FaExternalLinkAlt aria-hidden="true" className="mt-0.5 shrink-0" size={11} />
+          <span>Google Drive must allow link access ("Anyone with the link can view"). Settings are remembered locally. If Google Drive will not stream a track, direct audio hosting is recommended.</span>
         </p>
       </div>
     </section>

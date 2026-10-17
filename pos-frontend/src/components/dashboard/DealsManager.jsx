@@ -13,14 +13,12 @@ import {
   getCategories,
 } from "../../https";
 import { resolveImageUrl } from "../../utils";
+import FoodIcon from "../../utils/foodIcons";
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// One-tap presets for the schedules staff actually use ("Sunday Special",
-// "Friday Deal", "Daily Deal", weekend deals) — they can still fine-tune
-// with the individual day checkboxes below if needed.
 const DAY_PRESETS = [
   { label: "Every day", days: [] },
   { label: "Sunday", days: [0] },
@@ -28,14 +26,23 @@ const DAY_PRESETS = [
   { label: "Weekend (Sat+Sun)", days: [0, 6] },
 ];
 
-const EMOJI_OPTIONS = ["🔥", "🍕", "🍔", "🍗", "🥤", "🎉", "💥", "⭐", "🕒"];
+const DEAL_ICON_OPTIONS = [
+  { id: "deal", label: "Special Deal" },
+  { id: "pizza", label: "Pizza" },
+  { id: "burger", label: "Burger" },
+  { id: "chicken", label: "Chicken / Wings" },
+  { id: "beverage", label: "Drinks" },
+  { id: "combo", label: "Combo Feast" },
+  { id: "discount", label: "Big Discount" },
+  { id: "dessert", label: "Dessert & Sweet" },
+];
 
 const defaultDealForm = {
   name: "",
   badge: "",
   description: "",
   image: "",
-  icon: "🔥",
+  icon: "deal",
   price: "",
   originalPrice: "",
   items: [{ label: "", quantity: 1, dishId: "", size: "", crust: "", customizable: false, allowedCategories: [] }],
@@ -45,9 +52,6 @@ const defaultDealForm = {
   isActive: true,
 };
 
-// `dishId` comes back from the server populated (an object with `_id`) on
-// edit, but plain when the form is building a fresh submission — normalize
-// both to a plain string id for the <select>.
 const dishIdOf = (value) => {
   if (!value) return "";
   return typeof value === "object" ? String(value._id || "") : String(value);
@@ -61,7 +65,7 @@ const buildFormFromDeal = (deal) => ({
   badge: deal?.badge ?? "",
   description: deal?.description ?? "",
   image: deal?.image ?? "",
-  icon: deal?.icon || "🔥",
+  icon: deal?.icon || "deal",
   price: deal?.price ?? "",
   originalPrice: deal?.originalPrice || "",
   items: deal?.items?.length
@@ -100,9 +104,6 @@ const DealsManager = () => {
   });
   const deals = dealsData?.data?.data ?? [];
 
-  // Menu dishes, for linking a deal's bundle items to real inventory-tracked
-  // dishes ("1 Medium Pizza" -> the actual "Medium Pizza" dish) so selling
-  // the deal deducts stock the same way selling that dish on its own would.
   const { data: dishesData } = useQuery({
     queryKey: ["dishes"],
     queryFn: getDishes,
@@ -111,9 +112,6 @@ const DealsManager = () => {
   const dishes = dishesData?.data?.data ?? [];
   const dishById = new Map(dishes.map((d) => [String(d._id), d]));
 
-  // Menu categories, so a customer-customizable item (e.g. "the pizza slot")
-  // can be restricted to the categories that actually are pizzas, e.g.
-  // "Traditional" + "Gen-Z Special".
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
     queryFn: getCategories,
@@ -139,7 +137,7 @@ const DealsManager = () => {
     mutationFn: addDeal,
     onSuccess: () => {
       queryClient.invalidateQueries(["deals"]);
-      enqueueSnackbar("Deal added! It'll show up on the storefront on its scheduled days.", { variant: "success" });
+      enqueueSnackbar("Deal created successfully!", { variant: "success" });
       resetForm();
     },
     onError: (error) => {
@@ -151,7 +149,7 @@ const DealsManager = () => {
     mutationFn: updateDeal,
     onSuccess: () => {
       queryClient.invalidateQueries(["deals"]);
-      enqueueSnackbar("Deal updated!", { variant: "success" });
+      enqueueSnackbar("Deal updated successfully!", { variant: "success" });
       resetForm();
     },
     onError: (error) => {
@@ -224,8 +222,6 @@ const DealsManager = () => {
     });
   };
 
-  // Picking a dish from the link dropdown also fills in the label (if it's
-  // still empty) so staff don't have to type the name twice.
   const linkItemToDish = (index, dishId) => {
     setForm((prev) => {
       const items = [...prev.items];
@@ -295,119 +291,168 @@ const DealsManager = () => {
   const saving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-4 sm:gap-6">
       {/* ---- Form ---- */}
-      <div className="bg-[#262626] rounded-lg p-5">
-        <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">
-          {editingDeal ? `Edit Deal — ${editingDeal.name}` : "Add New Deal"}
-        </h3>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-slate-900 dark:text-white text-base sm:text-lg font-bold tracking-tight">
+              {editingDeal ? `Edit Deal: ${editingDeal.name}` : "Create Promotional Deal"}
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs">
+              Configure bundle combos, dynamic schedules, and automatic stock deduction
+            </p>
+          </div>
+          {editingDeal && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
-              placeholder="Deal name (e.g. Sunday Special Deal)"
-            />
-            <input
-              value={form.badge}
-              onChange={(e) => setForm({ ...form, badge: e.target.value })}
-              className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
-              placeholder="Badge text (e.g. SUNDAY SPECIAL)"
-            />
-            <input
-              type="number"
-              min="0"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-              className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
-              placeholder="Bundle price (Rs)"
-            />
-            <input
-              type="number"
-              min="0"
-              value={form.originalPrice}
-              onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
-              className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
-              placeholder="Original price (optional, shown struck-through)"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                Deal Title *
+              </label>
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 transition"
+                placeholder="e.g. Sunday Family Feast"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                Badge Tag (optional)
+              </label>
+              <input
+                value={form.badge}
+                onChange={(e) => setForm({ ...form, badge: e.target.value })}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 transition"
+                placeholder="e.g. SUNDAY SPECIAL / SAVE 25%"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                Bundle Price (Rs) *
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 transition font-bold"
+                placeholder="e.g. 1999"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                Original Price (optional)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={form.originalPrice}
+                onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 transition"
+                placeholder="Strikethrough original price (e.g. 2600)"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              Short Description
+            </label>
+            <textarea
+              rows="2"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 transition"
+              placeholder="Crisp description of items in this deal..."
             />
           </div>
 
-          <textarea
-            rows="2"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none w-full"
-            placeholder="Short description (optional)"
-          />
-
           {/* Items included in the bundle */}
-          <div>
-            <label className="text-[#ababab] text-sm mb-2 block">Items included in the deal</label>
-            <p className="text-[#7a7a7a] text-xs mb-2">
-              Link an item to a menu dish so selling the deal deducts that dish's stock automatically. Unlinked
-              items still deduct stock if their text matches a dish name (e.g. typing "Burger").
+          <div className="pt-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Included Items & Stock Deductions
+              </label>
+              <button
+                type="button"
+                onClick={addItemRow}
+                className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline"
+              >
+                <FaPlus size={10} /> Add Item
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
+              Link items to real catalog dishes so inventory stock is automatically decremented upon checkout.
             </p>
-            <div className="space-y-2">
+
+            <div className="space-y-2.5">
               {form.items.map((item, idx) => {
                 const linkedDish = item.dishId ? dishById.get(item.dishId) : null;
                 return (
-                  <div key={idx} className="bg-[#1a1a1a] rounded-lg p-2 space-y-2">
-                    <div className="flex gap-2">
+                  <div key={idx} className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70 rounded-xl p-3 space-y-2">
+                    <div className="flex gap-2 items-center">
                       <input
                         value={item.label}
                         onChange={(e) => updateItemRow(idx, "label", e.target.value)}
-                        className="flex-1 bg-[#262626] text-white rounded px-3 py-2 outline-none"
-                        placeholder="e.g. 1 Medium Pizza"
+                        className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-1.5 text-xs outline-none focus:border-amber-500"
+                        placeholder="e.g. 1 Medium Pizza or 1.5L Coke"
                       />
                       <input
                         type="number"
                         min="1"
                         value={item.quantity}
                         onChange={(e) => updateItemRow(idx, "quantity", e.target.value)}
-                        className="w-20 bg-[#262626] text-white rounded px-3 py-2 outline-none"
+                        className="w-16 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2 py-1.5 text-xs outline-none text-center font-bold"
+                        title="Quantity"
                       />
                       <button
                         type="button"
                         onClick={() => removeItemRow(idx)}
-                        className="text-red-400 hover:text-red-300 px-2"
-                        aria-label="Remove item"
+                        className="text-rose-500 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                        title="Remove item"
                       >
-                        <FaTrash />
+                        <FaTrash size={12} />
                       </button>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <select
                         value={item.dishId || ""}
                         onChange={(e) => linkItemToDish(idx, e.target.value)}
-                        className="flex-1 bg-[#262626] text-[#ababab] rounded px-3 py-1.5 outline-none text-xs"
+                        className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 outline-none text-xs"
                       >
-                        <option value="">Not linked — text only (no auto stock match)</option>
+                        <option value="">Text only (no auto stock deduction)</option>
                         {dishes.map((d) => (
                           <option key={d._id} value={d._id}>
-                            {d.name}
-                            {d.isInventoryTracked ? "" : " (stock not tracked)"}
+                            {d.name} {d.isInventoryTracked ? "· (Stock Tracked)" : ""}
                           </option>
                         ))}
                       </select>
                       {linkedDish && (
                         <span
-                          className={`shrink-0 px-2 py-1 rounded text-[10px] font-semibold ${
+                          className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             linkedDish.isInventoryTracked
-                              ? "bg-green-600/20 text-green-300"
-                              : "bg-yellow-600/20 text-yellow-300"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                           }`}
                         >
-                          {linkedDish.isInventoryTracked ? "Deducts stock" : "Stock not tracked"}
+                          {linkedDish.isInventoryTracked ? "Deducts stock" : "Untracked dish"}
                         </span>
                       )}
                     </div>
 
-                    {/* Size/crust: which exact variant of the linked dish this
-                        slot deducts stock for (e.g. the Medium Traditional
-                        Pizza's own recipe, not the Small one's). Only shown
-                        once a dish with variants is linked. */}
                     {linkedDish?.variants?.length > 0 && !item.customizable && (
                       <div className="flex gap-2">
                         <select
@@ -416,9 +461,9 @@ const DealsManager = () => {
                             updateItemRow(idx, "size", e.target.value);
                             updateItemRow(idx, "crust", "");
                           }}
-                          className="flex-1 bg-[#262626] text-[#ababab] rounded px-3 py-1.5 outline-none text-xs"
+                          className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 outline-none text-xs"
                         >
-                          <option value="">Size…</option>
+                          <option value="">Select recipe size…</option>
                           {[...new Set(linkedDish.variants.map((v) => v.size))].map((s) => (
                             <option key={s} value={s}>
                               {s}
@@ -429,9 +474,9 @@ const DealsManager = () => {
                           <select
                             value={item.crust || ""}
                             onChange={(e) => updateItemRow(idx, "crust", e.target.value)}
-                            className="flex-1 bg-[#262626] text-[#ababab] rounded px-3 py-1.5 outline-none text-xs"
+                            className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-1.5 outline-none text-xs"
                           >
-                            <option value="">Crust…</option>
+                            <option value="">Select crust…</option>
                             {linkedDish.variants
                               .filter((v) => v.size === item.size && v.crust)
                               .map((v) => (
@@ -444,25 +489,20 @@ const DealsManager = () => {
                       </div>
                     )}
 
-                    {/* Customer-customizable: the online customer picks the
-                        category (flavour family), the exact flavour (dish)
-                        and the size themselves at checkout — e.g. a "pizza"
-                        slot that could be any Traditional or Gen-Z Special
-                        flavour, any size. The dish/size above just become
-                        the fallback if nothing else applies. */}
-                    <label className="flex items-center gap-2 text-xs text-[#ababab]">
+                    <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 pt-0.5 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={item.customizable}
                         onChange={(e) => updateItemRow(idx, "customizable", e.target.checked)}
+                        className="rounded accent-amber-500"
                       />
-                      Let the customer choose the category, flavour and size for this item
+                      <span>Customer chooses flavour on online checkout (e.g. any pizza flavour)</span>
                     </label>
 
                     {item.customizable && (
-                      <div className="bg-[#111] rounded p-2">
-                        <p className="text-[10px] text-[#7a7a7a] mb-1.5">
-                          Categories the customer can pick a flavour from:
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-2.5 border border-slate-200 dark:border-slate-700">
+                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+                          Allowed Flavour Categories:
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {categories.map((c) => (
@@ -470,150 +510,130 @@ const DealsManager = () => {
                               type="button"
                               key={c._id}
                               onClick={() => toggleItemCategory(idx, c._id)}
-                              className={`px-2 py-1 rounded text-[10px] font-semibold ${
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
                                 (item.allowedCategories || []).includes(c._id)
-                                  ? "bg-[#f6b100] text-[#1f1f1f]"
-                                  : "bg-[#262626] text-[#ababab]"
+                                  ? "bg-amber-500 text-slate-950 shadow-xs"
+                                  : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                               }`}
                             >
                               {c.name}
                             </button>
                           ))}
                         </div>
-                        {(item.allowedCategories || []).length === 0 && (
-                          <p className="text-[10px] text-yellow-400 mt-1.5">
-                            Pick at least one category, or customers won't see any choices.
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
-            <button
-              type="button"
-              onClick={addItemRow}
-              className="mt-2 flex items-center gap-2 text-sm text-[#f6b100] hover:text-[#ffca3a]"
-            >
-              <FaPlus /> Add item
-            </button>
           </div>
 
           {/* Schedule */}
-          <div>
-            <label className="text-[#ababab] text-sm mb-2 block">Available on</label>
-            <div className="flex flex-wrap gap-2 mb-2">
+          <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800">
+            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+              Availability Schedule
+            </label>
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
               {DAY_PRESETS.map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
                   onClick={() => applyPreset(preset.days)}
-                  className="bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-1.5 rounded-full text-xs"
+                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1 rounded-lg text-xs font-semibold transition"
                 >
                   {preset.label}
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {DAY_LABELS.map((label, idx) => (
                 <button
                   type="button"
                   key={label}
                   onClick={() => toggleDayCheckbox(idx)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold border transition ${
                     form.daysOfWeek.includes(idx)
-                      ? "bg-[#f6b100] text-[#1a1a1a] border-[#f6b100]"
-                      : "bg-transparent text-[#ababab] border-[#3a3a3a]"
+                      ? "bg-amber-500 border-amber-500 text-slate-950 shadow-xs"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400"
                   }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <p className="text-[#7a7a7a] text-xs mt-1">
-              No days selected = shown every day ("Daily Deal").
+            <p className="text-slate-400 text-[10px] mt-1.5">
+              Empty days = visible all week ("Daily Deal").
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Image & Vector Icon */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/80 dark:border-slate-800">
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">Starts at (optional)</label>
-              <input
-                type="time"
-                value={form.startTime}
-                onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none w-full"
-              />
-            </div>
-            <div>
-              <label className="text-[#ababab] text-sm mb-1 block">Expires at (optional)</label>
-              <input
-                type="time"
-                value={form.endTime}
-                onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none w-full"
-              />
-            </div>
-          </div>
-
-          {/* Image + icon */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-            <div>
-              <label className="text-[#ababab] text-sm mb-1 block">Deal image</label>
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
+                Deal Photo
+              </label>
               <div className="flex items-center gap-3">
                 {form.image && (
                   <img
                     src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
-                    alt="Deal"
-                    className="w-14 h-14 rounded object-cover border border-[#3a3a3a]"
+                    alt="Deal preview"
+                    className="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
                   />
                 )}
-                <label className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded cursor-pointer text-sm">
-                  <FaUpload /> {uploadingImage ? "Uploading…" : "Upload"}
+                <label className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white px-3.5 py-2 rounded-xl cursor-pointer text-xs font-bold transition border border-slate-200 dark:border-slate-700">
+                  <FaUpload size={12} /> {uploadingImage ? "Uploading…" : "Upload Image"}
                   <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
             </div>
+
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">Fallback icon (shown if no image)</label>
-              <div className="flex flex-wrap gap-2">
-                {EMOJI_OPTIONS.map((emoji) => (
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
+                Vector Badge Icon
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {DEAL_ICON_OPTIONS.map((opt) => (
                   <button
                     type="button"
-                    key={emoji}
-                    onClick={() => setForm({ ...form, icon: emoji })}
-                    className={`text-xl px-2 py-1 rounded ${form.icon === emoji ? "bg-[#f6b100]" : "bg-[#1a1a1a]"}`}
+                    key={opt.id}
+                    onClick={() => setForm({ ...form, icon: opt.id })}
+                    className={`w-9 h-9 rounded-xl border flex items-center justify-center transition ${
+                      form.icon === opt.id
+                        ? "bg-amber-500 border-amber-500 text-slate-950 shadow-xs"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-amber-500"
+                    }`}
+                    title={opt.label}
                   >
-                    {emoji}
+                    <FoodIcon icon={opt.id} className="text-base" />
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-[#ababab] text-sm">
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer pt-1">
             <input
               type="checkbox"
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+              className="rounded accent-amber-500"
             />
-            Active (visible on storefront when in schedule)
+            <span>Active & published on customer storefront</span>
           </label>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 pt-2">
             <button
               type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-sm transition active:scale-95 disabled:opacity-50"
               disabled={saving}
             >
-              {saving ? "Saving…" : editingDeal ? "Update Deal" : "Save Deal"}
+              {saving ? "Saving…" : editingDeal ? "Update Deal" : "Create Deal"}
             </button>
             {editingDeal && (
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-xs font-bold transition"
               >
                 Cancel
               </button>
@@ -622,69 +642,98 @@ const DealsManager = () => {
         </form>
       </div>
 
-      {/* ---- List ---- */}
-      <div className="bg-[#262626] rounded-lg p-5">
-        <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">All Deals</h3>
-        <div className="space-y-3">
-          {isLoading && <p className="text-[#ababab]">Loading deals…</p>}
-          {!isLoading && deals.length === 0 && <p className="text-[#ababab]">No deals yet — create your first one.</p>}
+      {/* ---- All Deals List ---- */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-900 dark:text-white text-base sm:text-lg font-bold tracking-tight">
+            Active Promotional Catalog
+          </h3>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+            {deals.length} Deal{deals.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
+          {isLoading && <p className="text-slate-400 text-xs">Loading promotional deals…</p>}
+          {!isLoading && deals.length === 0 && (
+            <p className="text-slate-400 text-xs py-8 text-center">
+              No active deals. Build your first promotion above!
+            </p>
+          )}
+
           {deals.map((deal) => (
-            <div key={deal._id} className="rounded-lg bg-[#1a1a1a] p-3">
+            <div
+              key={deal._id}
+              className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70 p-3.5 transition hover:shadow-xs"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-3 min-w-0">
                   {deal.image ? (
                     <img
                       src={isUploadedImage(deal.image) ? resolveImageUrl(deal.image) : deal.image}
                       alt={deal.name}
-                      className="w-12 h-12 rounded object-cover border border-[#3a3a3a] shrink-0"
+                      className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded bg-[#262626] flex items-center justify-center text-xl shrink-0">
-                      {deal.icon || "🔥"}
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                      <FoodIcon icon={deal.icon || "deal"} className="text-2xl" />
                     </div>
                   )}
+
                   <div className="min-w-0">
-                    <p className="text-[#f5f5f5] font-medium truncate">
-                      {deal.badge && <span className="text-[#f6b100] mr-1">[{deal.badge}]</span>}
+                    <p className="text-slate-900 dark:text-white font-bold text-xs truncate">
+                      {deal.badge && (
+                        <span className="text-amber-600 dark:text-amber-400 mr-1.5 uppercase tracking-wider text-[10px] font-black">
+                          [{deal.badge}]
+                        </span>
+                      )}
                       {deal.name}
                     </p>
-                    <p className="text-[#ababab] text-xs">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold mt-0.5">
                       Rs {deal.price}
-                      {deal.originalPrice > deal.price ? ` (was Rs ${deal.originalPrice})` : ""} · {scheduleSummary(deal)}
+                      {deal.originalPrice > deal.price ? (
+                        <span className="line-through text-slate-400 dark:text-slate-500 ml-1 font-normal text-[11px]">
+                          Rs {deal.originalPrice}
+                        </span>
+                      ) : null}{" "}
+                      · <span className="font-normal">{scheduleSummary(deal)}</span>
                     </p>
                     {deal.items?.length > 0 && (
-                      <p className="text-[#7a7a7a] text-[11px] mt-0.5">
+                      <p className="text-slate-400 text-[11px] mt-0.5">
                         {deal.items.length} item{deal.items.length > 1 ? "s" : ""} ·{" "}
-                        {deal.items.filter((it) => it.dishId).length} linked to stock
+                        {deal.items.filter((it) => it.dishId).length} recipe linked
                       </p>
                     )}
                   </div>
                 </div>
+
                 <span
-                  className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
                     deal.isLiveNow
-                      ? "bg-green-600/20 text-green-300"
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                       : deal.isActive
-                        ? "bg-yellow-600/20 text-yellow-300"
-                        : "bg-red-600/20 text-red-300"
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                   }`}
                 >
-                  {deal.isLiveNow ? "Live now" : deal.isActive ? "Scheduled" : "Inactive"}
+                  {deal.isLiveNow ? "Live Now" : deal.isActive ? "Scheduled" : "Inactive"}
                 </span>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-200/70 dark:border-slate-700/60">
                 <button
                   onClick={() => toggleMutation.mutate(deal._id)}
-                  className={`px-3 py-1.5 rounded text-sm text-white ${
-                    deal.isActive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    deal.isActive
+                      ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200"
+                      : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black"
                   }`}
                 >
                   {deal.isActive ? "Deactivate" : "Activate"}
                 </button>
                 <button
                   onClick={() => startEdit(deal)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-sm"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1 rounded-lg text-xs transition"
                 >
                   Edit
                 </button>
@@ -694,7 +743,7 @@ const DealsManager = () => {
                       deleteMutation.mutate(deal._id);
                     }
                   }}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-sm"
+                  className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold px-2.5 py-1 rounded-lg text-xs transition"
                 >
                   Delete
                 </button>

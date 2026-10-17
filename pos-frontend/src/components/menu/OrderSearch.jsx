@@ -49,32 +49,32 @@ const OrderSearch = () => {
   return (
     <div className="px-4 pt-3 relative">
       <div
-        className={`flex items-center gap-2 rounded-xl px-3 py-2 transition ${
+        className={`flex items-center gap-2 rounded-xl px-3 py-2 transition border ${
           isClean
-            ? "bg-slate-50 border border-slate-200 text-slate-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500"
-            : "bg-[#1f1f1f] focus-within:ring-1 focus-within:ring-[#f6b100]"
+            ? "bg-slate-50 border-slate-200 text-slate-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500"
+            : "bg-slate-800/80 border-slate-700 text-white focus-within:border-amber-500/80 focus-within:ring-1 focus-within:ring-amber-500/30"
         }`}
       >
-        <FaSearch className={isClean ? "text-slate-400 text-sm shrink-0" : "text-[#767676] text-sm shrink-0"} />
+        <FaSearch className={isClean ? "text-slate-400 text-xs shrink-0" : "text-slate-400 text-xs shrink-0"} />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search order # / mobile / name"
-          className={`bg-transparent flex-1 text-sm outline-none min-w-0 ${
-            isClean ? "text-slate-900 placeholder:text-slate-400" : "text-white placeholder:text-[#767676]"
+          className={`bg-transparent flex-1 text-xs outline-none min-w-0 ${
+            isClean ? "text-slate-900 placeholder:text-slate-400" : "text-white placeholder:text-slate-500"
           }`}
         />
       </div>
 
       {query.trim() && (
         <div
-          className={`absolute z-20 left-4 right-4 mt-1 rounded-xl shadow-xl max-h-64 overflow-y-auto ${
-            isClean ? "bg-white border border-slate-200" : "bg-[#1f1f1f] border border-[#2a2a2a]"
+          className={`absolute z-20 left-4 right-4 mt-1 rounded-xl shadow-xl max-h-64 overflow-y-auto border ${
+            isClean ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
           }`}
         >
           {results.length === 0 ? (
-            <p className={`text-xs px-3 py-3 ${isClean ? "text-slate-400" : "text-[#767676]"}`}>
+            <p className={`text-xs px-3 py-3 ${isClean ? "text-slate-400" : "text-slate-400"}`}>
               No matching orders.
             </p>
           ) : (
@@ -89,22 +89,22 @@ const OrderSearch = () => {
                   type="button"
                   onClick={() => handleSelect(order)}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-left transition ${
-                    isClean ? "hover:bg-slate-50 text-slate-900" : "hover:bg-[#2a2a2a] text-[#f5f5f5]"
+                    isClean ? "hover:bg-slate-50 text-slate-900" : "hover:bg-slate-800 text-slate-100"
                   }`}
                 >
-                  <span className="bg-amber-500 text-slate-950 font-black rounded-lg w-8 h-8 flex items-center justify-center text-xs shrink-0">
+                  <span className="bg-amber-500 text-slate-950 font-black rounded-lg w-7 h-7 flex items-center justify-center text-xs shrink-0">
                     {getAvatarName(order.customerDetails?.name) || "?"}
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className={`block text-xs font-bold truncate ${isClean ? "text-slate-900" : "text-[#f5f5f5]"}`}>
+                    <span className={`block text-xs font-bold truncate ${isClean ? "text-slate-900" : "text-white"}`}>
                       {order.customerDetails?.name || "Walk-in Customer"}
                     </span>
-                    <span className={`block text-[11px] truncate ${isClean ? "text-slate-500" : "text-[#ababab]"}`}>
+                    <span className={`block text-[10px] truncate ${isClean ? "text-slate-500" : "text-slate-400"}`}>
                       #{orderId} / {isOnline ? "Online" : isTakeaway ? "Takeaway" : "Dine in"}
                       {order.customerDetails?.phone ? ` · ${order.customerDetails.phone}` : ""}
                     </span>
                   </span>
-                  <span className={`text-xs font-bold font-mono shrink-0 ${isClean ? "text-slate-900" : "text-[#ababab]"}`}>
+                  <span className={`text-xs font-bold font-mono shrink-0 ${isClean ? "text-slate-900" : "text-slate-300"}`}>
                     Rs {order.bills?.totalWithTax?.toFixed(0) ?? "0"}
                   </span>
                 </button>

@@ -15,6 +15,7 @@ import useTaxRate from "../../hooks/useTaxRate";
 import PendingReceipt from "./PendingReceipt";
 import KitchenSlip from "./KitchenSlip";
 import { useUITheme } from "../../context/UIThemeContext";
+import { MdAttachMoney, MdCreditCard, MdPrint } from "react-icons/md";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -285,7 +286,7 @@ const Bill = () => {
           <button
             type="button"
             onClick={() => setPaymentMethod("Cash")}
-            className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
               paymentMethod === "Cash"
                 ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
                 : isClean
@@ -293,13 +294,14 @@ const Bill = () => {
                 : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
             }`}
           >
-            <span>💵 Cash</span>
+            <MdAttachMoney size={16} />
+            <span>Cash</span>
           </button>
 
           <button
             type="button"
             onClick={() => setPaymentMethod("Online")}
-            className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
               paymentMethod === "Online"
                 ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
                 : isClean
@@ -307,7 +309,8 @@ const Bill = () => {
                 : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
             }`}
           >
-            <span>💳 Online / Card</span>
+            <MdCreditCard size={16} />
+            <span>Online / Card</span>
           </button>
         </div>
 
@@ -317,13 +320,14 @@ const Bill = () => {
             type="button"
             onClick={() => setShowPendingReceipt(true)}
             disabled={cartData.length === 0}
-            className={`py-3 px-3 rounded-xl border font-bold text-xs transition disabled:opacity-40 ${
+            className={`py-2.5 px-3 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40 ${
               isClean
                 ? "border-slate-300 bg-white hover:bg-slate-100 text-slate-700 shadow-xs"
                 : "border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200"
             }`}
           >
-            🖨️ Print Slip
+            <MdPrint size={16} />
+            <span>Print Slip</span>
           </button>
 
           <button

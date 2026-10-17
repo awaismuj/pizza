@@ -27,10 +27,10 @@ const ModernLayout = ({ children }) => {
   return (
     <div
       className={`min-h-screen flex overflow-x-hidden font-sans transition-colors duration-200 ${
-        isClean ? "bg-[#F1F5F9] text-slate-900" : "bg-[#0B0F19] text-slate-100"
+        isClean ? "bg-[#F8FAFC] text-slate-900" : "bg-[#0B0F19] text-slate-100"
       }`}
     >
-      {/* Tossdown Navigation Sidebar */}
+      {/* POS Navigation Sidebar */}
       <ModernSidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
@@ -47,9 +47,9 @@ const ModernLayout = ({ children }) => {
         {/* Top Header */}
         <ModernHeader collapsed={collapsed} />
 
-        {/* Page Content Container (Uniform symmetrical padding across all tabs) */}
-        <main className="flex-1 mt-14 px-3 sm:px-5 lg:px-6 py-4 overflow-y-auto">
-          <div className="w-full max-w-[1600px] mx-auto">
+        {/* Page Content Container - Streamlined compact padding to maximize screen utilization */}
+        <main className="flex-1 mt-16 px-2 sm:px-3 lg:px-4 py-3 overflow-y-auto">
+          <div className="w-full max-w-[1920px] mx-auto">
             {children}
           </div>
         </main>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaTrash } from "react-icons/fa";
+import { MdTakeoutDining, MdShoppingCart, MdAttachMoney, MdCreditCard } from "react-icons/md";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import MenuContainer from "../components/menu/MenuContainer";
@@ -9,6 +10,7 @@ import Invoice from "../components/invoice/Invoice";
 import { addOrder, createOrderRazorpay, verifyPaymentRazorpay } from "../https";
 import useTaxRate from "../hooks/useTaxRate";
 import { useUITheme } from "../context/UIThemeContext";
+import { FoodIcon } from "../utils/foodIcons";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -157,21 +159,17 @@ const Outdoor = () => {
   };
 
   return (
-    <section
-      className={`min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-4 pb-36 lg:pb-6 transition-colors ${
-        isClean ? "bg-transparent text-slate-900" : "bg-[#1f1f1f] text-slate-100"
-      }`}
-    >
+    <section className="min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-3 pb-32 lg:pb-4 transition-colors">
       {/* Left: menu */}
-      <div className="w-full lg:flex-[3] flex flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm mb-4">
+      <div className="w-full lg:flex-[3] flex flex-col min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs mb-3">
           <div className="flex items-center gap-3">
             <BackButton />
             <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
                 Outdoor / Takeaway
               </h1>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
                 Fast counter takeaway — select items and complete in one tap
               </p>
             </div>
@@ -182,13 +180,14 @@ const Outdoor = () => {
       </div>
 
       {/* Right: local cart + submit (Symmetrical, high-contrast, crystal-clear) */}
-      <div className="w-full lg:flex-[1.1] flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden h-fit">
-        <div className="p-4 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <div className="w-full lg:flex-[1.1] flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden h-fit">
+        <div className="p-3.5 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              <span>🥡</span> Takeaway Order
+            <h2 className="text-sm font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <MdTakeoutDining size={18} className="text-amber-500" />
+              <span>Takeaway Order</span>
             </h2>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
               {cart.length} item{cart.length === 1 ? "" : "s"} added
             </p>
           </div>
@@ -205,8 +204,10 @@ const Outdoor = () => {
         <div className="max-h-[360px] overflow-y-auto p-4 space-y-3">
           {cart.length === 0 ? (
             <div className="py-12 text-center">
-              <span className="text-3xl block mb-2 opacity-60">🛒</span>
-              <p className="text-sm font-semibold text-slate-400 dark:text-slate-500">
+              <span className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 inline-flex items-center justify-center mb-2 shadow-xs">
+                <MdShoppingCart size={28} />
+              </span>
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
                 Cart is empty
               </p>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
@@ -220,9 +221,11 @@ const Outdoor = () => {
                 className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 transition"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                    {item.icon ? `${item.icon} ` : ""}
-                    {item.name}
+                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate flex items-center">
+                    <span className="inline-flex items-center justify-center mr-1.5 align-middle shrink-0">
+                      <FoodIcon icon={item.icon} size={15} />
+                    </span>
+                    <span>{item.name}</span>
                   </p>
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
                     Qty: {item.quantity} · Rs {item.price.toFixed(2)}
@@ -265,24 +268,26 @@ const Outdoor = () => {
             <button
               type="button"
               onClick={() => setPaymentMethod("Cash")}
-              className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
                 paymentMethod === "Cash"
                   ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
                   : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
-              <span>💵 Cash</span>
+              <MdAttachMoney size={16} />
+              <span>Cash</span>
             </button>
             <button
               type="button"
               onClick={() => setPaymentMethod("Online")}
-              className={`py-2.5 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
                 paymentMethod === "Online"
                   ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
                   : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
-              <span>💳 Online</span>
+              <MdCreditCard size={16} />
+              <span>Online</span>
             </button>
           </div>
 

@@ -29,9 +29,6 @@ const buildFormFromSlide = (slide) => ({
   isActive: slide?.isActive ?? true,
 });
 
-// Lets staff upload the full-width photos that play in the storefront's
-// homepage slider, and control their order, on/off state, and optional
-// tap-through link — no code changes needed to swap them out.
 const HeroSliderManager = () => {
   const queryClient = useQueryClient();
 
@@ -62,7 +59,7 @@ const HeroSliderManager = () => {
     mutationFn: addHeroSlide,
     onSuccess: () => {
       invalidate();
-      enqueueSnackbar("Slide added! It'll show up in the homepage slider.", { variant: "success" });
+      enqueueSnackbar("Slide added successfully!", { variant: "success" });
       resetForm();
     },
     onError: (error) => {
@@ -74,7 +71,7 @@ const HeroSliderManager = () => {
     mutationFn: updateHeroSlide,
     onSuccess: () => {
       invalidate();
-      enqueueSnackbar("Slide updated!", { variant: "success" });
+      enqueueSnackbar("Slide updated successfully!", { variant: "success" });
       resetForm();
     },
     onError: (error) => {
@@ -156,80 +153,86 @@ const HeroSliderManager = () => {
   const saving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       {/* ---- Form ---- */}
-      <div className="bg-[#262626] rounded-lg p-5">
-        <h3 className="text-[#f5f5f5] text-xl font-semibold mb-1">
-          {editingSlide ? "Edit Slide" : "Add Slide"}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <h3 className="text-slate-900 dark:text-white text-base sm:text-lg font-bold tracking-tight mb-1">
+          {editingSlide ? "Edit Storefront Banner" : "Add Storefront Banner"}
         </h3>
-        <p className="text-[#ababab] text-sm mb-4">
-          These photos play full-width, one after another, at the top of the storefront —
-          upload whatever you want customers to see first.
+        <p className="text-slate-500 dark:text-slate-400 text-xs mb-4">
+          Full-width interactive showcase banners displayed prominently on the public web storefront.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-[#ababab] text-sm mb-1 block">Slide image</label>
+            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
+              Banner Photo *
+            </label>
             <div className="flex items-center gap-3">
               {form.image && (
                 <img
                   src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
                   alt="Slide preview"
-                  className="w-24 h-16 rounded object-cover border border-[#3a3a3a]"
+                  className="w-24 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
                 />
               )}
-              <label className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded cursor-pointer text-sm">
-                <FaUpload /> {uploadingImage ? "Uploading…" : "Upload"}
+              <label className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white px-3.5 py-2 rounded-xl cursor-pointer text-xs font-bold transition border border-slate-200 dark:border-slate-700">
+                <FaUpload size={12} /> {uploadingImage ? "Uploading…" : "Upload Photo"}
                 <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" className="hidden" onChange={handleImageUpload} />
               </label>
             </div>
-            <p className="text-[#7a7a7a] text-xs mt-1">
-              Wide photos work best (roughly 16:7) — they'll be cropped to fill the banner.
+            <p className="text-slate-400 text-[11px] mt-1.5">
+              Recommended ratio: 16:7 widescreen for desktop and mobile displays.
             </p>
           </div>
 
           <div>
-            <label className="text-[#ababab] text-sm mb-1 block">Link when tapped (optional)</label>
+            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+              Tap-through Link (optional)
+            </label>
             <input
               value={form.link}
               onChange={(e) => setForm({ ...form, link: e.target.value })}
-              className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none w-full"
-              placeholder="https://... (leave blank to just scroll to the menu)"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 transition"
+              placeholder="e.g. https://... or /menu"
             />
           </div>
 
           <div>
-            <label className="text-[#ababab] text-sm mb-1 block">Alt text (optional, for accessibility)</label>
+            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+              Accessibility Alt Text
+            </label>
             <input
               value={form.altText}
               onChange={(e) => setForm({ ...form, altText: e.target.value })}
-              className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none w-full"
-              placeholder="e.g. Friday Deal — Rs 1,550"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 transition"
+              placeholder="e.g. Weekend Big Deal — Rs 1,499"
             />
           </div>
 
-          <label className="flex items-center gap-2 text-[#ababab] text-sm">
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer pt-1">
             <input
               type="checkbox"
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+              className="rounded accent-amber-500"
             />
-            Active (visible on storefront)
+            <span>Active & published on live storefront</span>
           </label>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 pt-2">
             <button
               type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-sm transition active:scale-95 disabled:opacity-50"
               disabled={saving}
             >
-              {saving ? "Saving…" : editingSlide ? "Update Slide" : "Add Slide"}
+              {saving ? "Saving…" : editingSlide ? "Update Slide" : "Publish Slide"}
             </button>
             {editingSlide && (
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-xs font-bold transition"
               >
                 Cancel
               </button>
@@ -238,83 +241,97 @@ const HeroSliderManager = () => {
         </form>
       </div>
 
-      {/* ---- List ---- */}
-      <div className="bg-[#262626] rounded-lg p-5">
-        <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">
-          Slider Order ({slides.length})
-        </h3>
-        <div className="space-y-3">
-          {isLoading && <p className="text-[#ababab]">Loading slides…</p>}
+      {/* ---- Slides List ---- */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-slate-900 dark:text-white text-base sm:text-lg font-bold tracking-tight">
+            Banner Playback Sequence ({slides.length})
+          </h3>
+        </div>
+
+        <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
+          {isLoading && <p className="text-slate-400 text-xs">Loading banners…</p>}
           {!isLoading && slides.length === 0 && (
-            <p className="text-[#ababab]">
-              No slides yet — upload your first one and it'll appear on the storefront right away.
+            <p className="text-slate-400 text-xs py-8 text-center">
+              No banner slides uploaded yet. Add your first hero slide on the left!
             </p>
           )}
+
           {slides.map((slide, index) => (
-            <div key={slide._id} className="rounded-lg bg-[#1a1a1a] p-3">
+            <div
+              key={slide._id}
+              className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70 p-3.5 transition hover:shadow-xs"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-3 min-w-0">
                   <img
                     src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
                     alt={slide.altText || ""}
-                    className="w-16 h-12 rounded object-cover border border-[#3a3a3a] shrink-0"
+                    className="w-18 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                   />
                   <div className="min-w-0">
-                    <p className="text-[#f5f5f5] font-medium truncate">
-                      {slide.altText || `Slide ${index + 1}`}
+                    <p className="text-slate-900 dark:text-white font-bold text-xs truncate">
+                      {slide.altText || `Slide #${index + 1}`}
                     </p>
                     {slide.link && (
-                      <p className="text-[#ababab] text-xs truncate">Links to: {slide.link}</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-[11px] truncate mt-0.5">
+                        Link: {slide.link}
+                      </p>
                     )}
                   </div>
                 </div>
+
                 <span
-                  className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${
-                    slide.isActive ? "bg-green-600/20 text-green-300" : "bg-red-600/20 text-red-300"
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                    slide.isActive
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                   }`}
                 >
                   {slide.isActive ? "Active" : "Inactive"}
                 </span>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-200/70 dark:border-slate-700/60">
                 <button
                   onClick={() => moveSlide(index, -1)}
                   disabled={index === 0}
-                  className="bg-[#333] hover:bg-[#444] disabled:opacity-30 disabled:cursor-not-allowed text-white px-2.5 py-1.5 rounded text-sm"
-                  aria-label="Move up"
+                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-800 dark:text-white px-2.5 py-1.5 rounded-lg text-xs"
+                  title="Move Up"
                 >
-                  <FaArrowUp />
+                  <FaArrowUp size={10} />
                 </button>
                 <button
                   onClick={() => moveSlide(index, 1)}
                   disabled={index === slides.length - 1}
-                  className="bg-[#333] hover:bg-[#444] disabled:opacity-30 disabled:cursor-not-allowed text-white px-2.5 py-1.5 rounded text-sm"
-                  aria-label="Move down"
+                  className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-800 dark:text-white px-2.5 py-1.5 rounded-lg text-xs"
+                  title="Move Down"
                 >
-                  <FaArrowDown />
+                  <FaArrowDown size={10} />
                 </button>
                 <button
                   onClick={() => toggleMutation.mutate(slide._id)}
-                  className={`px-3 py-1.5 rounded text-sm text-white ${
-                    slide.isActive ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    slide.isActive
+                      ? "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200"
+                      : "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black"
                   }`}
                 >
                   {slide.isActive ? "Deactivate" : "Activate"}
                 </button>
                 <button
                   onClick={() => startEdit(slide)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-sm"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1 rounded-lg text-xs transition"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => {
-                    if (window.confirm("Delete this slide?")) {
+                    if (window.confirm("Delete this banner slide?")) {
                       deleteMutation.mutate(slide._id);
                     }
                   }}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-sm"
+                  className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold px-2.5 py-1 rounded-lg text-xs transition"
                 >
                   Delete
                 </button>

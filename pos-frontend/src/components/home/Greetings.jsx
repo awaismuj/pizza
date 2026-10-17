@@ -34,7 +34,7 @@ const Greetings = () => {
       : "Good Evening";
 
   return (
-    <div className="flex flex-col gap-3 px-2 sm:px-4 md:flex-row md:items-center md:justify-between md:px-8">
+    <div className="flex flex-col gap-3 px-0 md:flex-row md:items-center md:justify-between mb-1">
       <div className="min-w-0">
         <h1
           className={`text-xl font-black tracking-tight sm:text-2xl ${

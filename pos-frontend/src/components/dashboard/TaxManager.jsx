@@ -58,19 +58,21 @@ const TaxManager = () => {
   const presets = [0, 5, 10, 16, 17];
 
   return (
-    <div className="container mx-auto px-6">
-      <div className="max-w-xl bg-[#262626] rounded-lg p-5 sm:p-6">
-        <h3 className="text-[#f5f5f5] text-xl font-semibold mb-1">Tax rate</h3>
-        <p className="text-[#ababab] text-sm mb-6">
-          Applied automatically to dine-in, outdoor and online orders — set it once here.
+    <div className="pb-10 max-w-xl">
+      <div className="pos-card p-5 sm:p-6">
+        <h3 className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold tracking-tight mb-1">Tax Rate Setting</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-6">
+          Applied automatically to dine-in, takeaway and online store checkouts.
         </p>
 
         {isLoading ? (
-          <p className="text-[#ababab]">Loading current rate…</p>
+          <p className="text-slate-400 text-sm">Loading current tax rate…</p>
         ) : (
           <>
-            <label className="block text-[#ababab] mb-2 text-sm font-medium">Tax percentage</label>
-            <div className="flex items-center gap-3 rounded-lg bg-[#1a1a1a] px-4 py-3 border border-[#333] focus-within:border-[#525252]">
+            <label className="block text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider mb-2">
+              Tax Percentage
+            </label>
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 px-4 py-2.5 border border-slate-200 dark:border-slate-700 focus-within:border-amber-500 focus-within:bg-white dark:focus-within:bg-slate-800 transition">
               <input
                 type="number"
                 min="0"
@@ -78,10 +80,10 @@ const TaxManager = () => {
                 inputMode="decimal"
                 value={draftRate}
                 onChange={(e) => setDraftRate(e.target.value)}
-                className="flex-1 min-w-0 bg-transparent text-white text-lg outline-none"
+                className="flex-1 min-w-0 bg-transparent text-slate-900 dark:text-white text-lg font-bold outline-none"
                 placeholder="e.g. 16"
               />
-              <span className="text-[#ababab] font-semibold">%</span>
+              <span className="text-slate-400 font-bold">%</span>
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4">
@@ -90,8 +92,10 @@ const TaxManager = () => {
                   key={p}
                   type="button"
                   onClick={() => setDraftRate(String(p))}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                    parsed === p ? "bg-[#F6B100] text-[#1f1f1f]" : "bg-[#1a1a1a] text-[#ababab] hover:bg-[#333]"
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition ${
+                    parsed === p
+                      ? "bg-amber-500 border-amber-500 text-slate-950 shadow-xs"
+                      : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   {p}%
@@ -102,14 +106,14 @@ const TaxManager = () => {
             <button
               onClick={handleSave}
               disabled={!isValid || isUnchanged || updateMutation.isPending}
-              className="w-full sm:w-auto mt-6 bg-[#F6B100] text-[#1f1f1f] font-semibold rounded-lg px-8 py-3 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto mt-6 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl px-7 py-3 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed text-xs uppercase tracking-wider"
             >
-              {updateMutation.isPending ? "Saving…" : "Save tax rate"}
+              {updateMutation.isPending ? "Saving Tax Rate…" : "Save Tax Rate"}
             </button>
 
             {typeof currentTaxRate === "number" && (
-              <p className="text-[#ababab] text-xs mt-3">
-                Currently live: <span className="text-[#f5f5f5] font-medium">{currentTaxRate}%</span>
+              <p className="text-slate-400 text-xs mt-3">
+                Currently live: <span className="text-slate-800 dark:text-slate-200 font-bold">{currentTaxRate}%</span>
               </p>
             )}
           </>
