@@ -42,25 +42,25 @@ const Tables = () => {
   const availableCount = tables.filter((t) => t.status !== "Booked").length;
 
   return (
-    <section className="min-h-[calc(100vh-5rem)] overflow-hidden flex flex-col pb-10">
+    <section className="min-h-[calc(100vh-5rem)] overflow-hidden flex flex-col pb-6">
       <div
-        className={`flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl mb-6 transition duration-200 ${
+        className={`flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl mb-3 transition duration-200 ${
           isClean
-            ? "bg-white border border-slate-200/90 shadow-sm"
-            : "bg-slate-900/90 border border-slate-800 shadow-xl"
+            ? "bg-white border border-slate-200/90 shadow-xs"
+            : "bg-slate-900/90 border border-slate-800 shadow-md"
         }`}
       >
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
             <h1
-              className={`text-xl sm:text-2xl font-black tracking-tight ${
+              className={`text-lg sm:text-xl font-black tracking-tight leading-none ${
                 isClean ? "text-slate-900" : "text-white"
               }`}
             >
               Floor Plan & Table Stations
             </h1>
-            <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+            <p className={`text-[11px] mt-0.5 ${isClean ? "text-slate-400" : "text-slate-500"}`}>
               Select a table to assign order or tap gear to configure
             </p>
           </div>
@@ -138,7 +138,7 @@ const Tables = () => {
           that floats above it (global, on every page) - pb-28 was only
           sized for the nav bar, so the last row of cards ended up hidden
           behind WhatsApp with no way to scroll past it. */}
-      <div className="grid grid-cols-1 gap-3.5 pb-40 flex-1 overflow-y-auto sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 pb-32 flex-1 overflow-y-auto sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {visibleTables.length === 0 && (
           <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8">
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No stations found for this filter.</p>

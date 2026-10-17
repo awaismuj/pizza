@@ -1,32 +1,37 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { GrUpdate } from "react-icons/gr";
+import { FaSearch, FaHistory } from "react-icons/fa";
+import { MdLanguage, MdTakeoutDining, MdTableBar } from "react-icons/md";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getOrders, updateOrderStatus } from "../../https/index";
 import { formatDateAndTime, getOrderNumber } from "../../utils";
+import { useUITheme } from "../../context/UIThemeContext";
+import { statusPillClass, STAGE_LABELS } from "../../utils/orderStages";
 
 const RecentOrders = () => {
   const queryClient = useQueryClient();
-  const handleStatusChange = ({orderId, orderStatus}) => {
-    orderStatusUpdateMutation.mutate({orderId, orderStatus});
-  };
+  const { isClean } = useUITheme();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const orderStatusUpdateMutation = useMutation({
-    mutationFn: ({orderId, orderStatus}) => updateOrderStatus({orderId, orderStatus}),
-    onSuccess: (data) => {
+    mutationFn: ({ orderId, orderStatus }) => updateOrderStatus({ orderId, orderStatus }),
+    onSuccess: () => {
       enqueueSnackbar("Order status updated successfully!", { variant: "success" });
-      queryClient.invalidateQueries(["orders"]); // Refresh order list
-      // A status change (e.g. Cancelled) can change whether this order
-      // counts as revenue now, so Profit needs to know too.
+      queryClient.invalidateQueries(["orders"]);
       queryClient.invalidateQueries(["dailyProfit"]);
       queryClient.invalidateQueries(["monthlyProfit"]);
     },
     onError: () => {
       enqueueSnackbar("Failed to update order status!", { variant: "error" });
-    }
-  })
+    },
+  });
 
-  const { data: resData, isError } = useQuery({
+  const handleStatusChange = ({ orderId, orderStatus }) => {
+    orderStatusUpdateMutation.mutate({ orderId, orderStatus });
+  };
+
+  const { data: resData, isError, isLoading } = useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
       return await getOrders();
@@ -35,145 +40,186 @@ const RecentOrders = () => {
   });
 
   if (isError) {
-    enqueueSnackbar("Something went wrong!", { variant: "error" });
+    enqueueSnackbar("Something went wrong loading orders!", { variant: "error" });
   }
 
   const orders = resData?.data?.data ?? [];
 
-  // Shared between the mobile card and the desktop table so the two views
-  // can never drift out of sync with each other.
+  const filteredOrders = useMemo(() => {
+    if (!searchTerm.trim()) return orders;
+    const q = searchTerm.toLowerCase();
+    return orders.filter((o) => {
+      const orderNum = String(getOrderNumber(o)).toLowerCase();
+      const name = (o.customerDetails?.name || "").toLowerCase();
+      const phone = (o.customerDetails?.phone || "").toLowerCase();
+      const status = (o.orderStatus || "").toLowerCase();
+      return orderNum.includes(q) || name.includes(q) || phone.includes(q) || status.includes(q);
+    });
+  }, [orders, searchTerm]);
+
   const renderTableWhere = (order, isOnline) =>
-    isOnline
-      ? "🌐 Online"
-      : order.table?.tableNo
-      ? `Table - ${order.table.tableNo}`
-      : "🥡 Takeaway";
+    isOnline ? (
+      <span className="inline-flex items-center gap-1.5 text-sky-600 dark:text-sky-400 font-semibold text-xs">
+        <MdLanguage size={14} /> Online
+      </span>
+    ) : order.table?.tableNo ? (
+      <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+        <MdTableBar size={14} /> Table {order.table.tableNo}
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold text-xs">
+        <MdTakeoutDining size={14} /> Takeaway
+      </span>
+    );
 
   const renderStatus = (order, isOnline) =>
     isOnline ? (
-      // Online orders go through a longer status flow
-      // (Pending → Accepted → Preparing → ...) managed from
-      // the dedicated Online Orders page, so this column is
-      // read-only here to avoid conflicting updates.
       <span
-        className={`inline-block rounded-lg border p-2 text-sm ${
-          order.orderStatus === "Cancelled"
-            ? "border-red-500 text-red-500"
-            : order.orderStatus === "Completed"
-            ? "border-green-500 text-green-500"
-            : "border-yellow-500 text-yellow-500"
-        }`}
+        className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold border ${statusPillClass(
+          order.orderStatus
+        )}`}
       >
-        {order.orderStatus}
+        {STAGE_LABELS[order.orderStatus] || order.orderStatus}
       </span>
     ) : (
       <select
-        className={`bg-[#1a1a1a] text-[#f5f5f5] border border-gray-500 p-2 rounded-lg focus:outline-none ${
-          order.orderStatus === "Ready"
-            ? "text-green-500"
-           : order.orderStatus === "Closed" || order.orderStatus === "Cancelled"
-           ? "text-red-500"
-           : "text-yellow-500"
-       }`}
-       value={order.orderStatus}
-       onChange={(e) => handleStatusChange({orderId: order._id, orderStatus: e.target.value})}
+        className={`text-xs font-bold rounded-xl px-2.5 py-1.5 border outline-none transition cursor-pointer ${
+          isClean
+            ? "bg-slate-50 border-slate-200 text-slate-800 hover:bg-white focus:border-amber-500"
+            : "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-750 focus:border-amber-500"
+        }`}
+        value={order.orderStatus}
+        onChange={(e) => handleStatusChange({ orderId: order._id, orderStatus: e.target.value })}
       >
-       <option className="text-yellow-500" value="In Progress">
-         In Progress
-       </option>
-       <option className="text-green-500" value="Ready">
-         Ready
-       </option>
-       <option className="text-red-500" value="Closed">
-         Closed
-       </option>
-       <option className="text-red-500" value="Cancelled">
-         Cancelled
-       </option>
+        <option value="In Progress">In Progress</option>
+        <option value="Ready">Ready</option>
+        <option value="Closed">Closed</option>
+        <option value="Cancelled">Cancelled</option>
       </select>
     );
 
   return (
-    <div className="container mx-auto bg-[#262626] p-4 rounded-lg">
-      <h2 className="text-[#f5f5f5] text-xl font-semibold mb-4">
-        Recent Orders
-      </h2>
+    <div className="pos-card p-5 sm:p-6 w-full">
+      {/* Header & Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <span>Orders Ledger & Audit Log</span>
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Full transactional records of all dine-in, takeaway, and online deliveries
+          </p>
+        </div>
 
-      {orders.length === 0 && (
-        <p className="p-4 text-[#ababab]">No orders yet.</p>
-      )}
-
-      {/* Mobile / tablet (below md): one self-contained card per order, so
-          nothing needs a sideways scroll to be read - every field for an
-          order is stacked in the same card instead of split across
-          off-screen table columns. */}
-      <div className="grid grid-cols-1 gap-3 md:hidden">
-        {orders.map((order, index) => {
-          const isOnline = order.orderSource === "Online";
-          return (
-            <div
-              key={order._id || index}
-              className="rounded-lg border border-[#3a3a3a] bg-[#1f1f1f] p-3 text-[#f5f5f5]"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold">#{getOrderNumber(order)}</p>
-                  <p className="text-sm text-[#ababab]">{order.customerDetails?.name}</p>
-                </div>
-                <div className="shrink-0">{renderStatus(order, isOnline)}</div>
-              </div>
-
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-[#ababab]">
-                <p className="col-span-2">{formatDateAndTime(order.orderDate)}</p>
-                <p>{order.items?.length ?? 0} Items</p>
-                <p>{renderTableWhere(order, isOnline)}</p>
-                <p className="text-[#f5f5f5]">Rs {order.bills?.totalWithTax}</p>
-                <p>{order.paymentMethod}</p>
-              </div>
-            </div>
-          );
-        })}
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-3.5 py-2 border border-slate-200 dark:border-slate-700 w-full sm:w-72 shadow-xs">
+          <FaSearch className="text-slate-400 text-xs shrink-0" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by order #, customer, status…"
+            className="bg-transparent text-slate-900 dark:text-white text-xs outline-none w-full placeholder:text-slate-400"
+          />
+        </div>
       </div>
 
-      {/* Desktop (md and up): the original full table, unchanged. */}
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-left text-[#f5f5f5]">
-          <thead className="bg-[#333] text-[#ababab]">
-            <tr>
-              <th className="p-3">Order ID</th>
-              <th className="p-3">Customer</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Date & Time</th>
-              <th className="p-3">Items</th>
-              <th className="p-3">Table No</th>
-              <th className="p-3">Total</th>
-              <th className="p-3 text-center">Payment Method</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order, index) => {
+      {isLoading ? (
+        <div className="p-8 text-center text-slate-400 text-xs">Loading orders ledger…</div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="p-12 text-center text-slate-400">
+          <FaHistory size={28} className="mx-auto mb-2 opacity-40 text-amber-500" />
+          <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+            {searchTerm ? `No orders match "${searchTerm}"` : "No orders recorded yet."}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card List */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {filteredOrders.map((order, index) => {
               const isOnline = order.orderSource === "Online";
               return (
-                <tr
+                <div
                   key={order._id || index}
-                  className="border-b border-gray-600 hover:bg-[#333]"
+                  className="rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/60 p-4 transition shadow-xs"
                 >
-                  <td className="p-4">#{getOrderNumber(order)}</td>
-                  <td className="p-4">{order.customerDetails?.name}</td>
-                  <td className="p-4">{renderStatus(order, isOnline)}</td>
-                  <td className="p-4">{formatDateAndTime(order.orderDate)}</td>
-                  <td className="p-4">{order.items?.length ?? 0} Items</td>
-                  <td className="p-4">{renderTableWhere(order, isOnline)}</td>
-                  <td className="p-4">Rs {order.bills?.totalWithTax}</td>
-                  <td className="p-4">
-                    {order.paymentMethod}
-                  </td>
-                </tr>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-mono font-bold text-slate-900 dark:text-white text-sm">
+                        #{getOrderNumber(order)}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {order.customerDetails?.name || "Walk-in Guest"}
+                      </p>
+                    </div>
+                    <div className="shrink-0">{renderStatus(order, isOnline)}</div>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700/60 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="col-span-2">{formatDateAndTime(order.orderDate)}</p>
+                    <p>{order.items?.length ?? 0} Items</p>
+                    <p>{renderTableWhere(order, isOnline)}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">
+                      Rs {order.bills?.totalWithTax?.toFixed(2)}
+                    </p>
+                    <p>{order.paymentMethod || "Cash"}</p>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/80">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100 dark:bg-slate-800/90 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="py-3 px-3.5">Order ID</th>
+                  <th className="py-3 px-3.5">Customer</th>
+                  <th className="py-3 px-3.5">Status</th>
+                  <th className="py-3 px-3.5">Date & Time</th>
+                  <th className="py-3 px-3.5">Items</th>
+                  <th className="py-3 px-3.5">Origin</th>
+                  <th className="py-3 px-3.5">Total Amount</th>
+                  <th className="py-3 px-3.5 text-center">Payment</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                {filteredOrders.map((order, index) => {
+                  const isOnline = order.orderSource === "Online";
+                  return (
+                    <tr
+                      key={order._id || index}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td className="py-3 px-3.5 font-mono font-bold text-slate-900 dark:text-white">
+                        #{getOrderNumber(order)}
+                      </td>
+                      <td className="py-3 px-3.5 font-semibold text-slate-800 dark:text-slate-200">
+                        {order.customerDetails?.name || "Walk-in Guest"}
+                      </td>
+                      <td className="py-3 px-3.5">{renderStatus(order, isOnline)}</td>
+                      <td className="py-3 px-3.5 text-slate-500">{formatDateAndTime(order.orderDate)}</td>
+                      <td className="py-3 px-3.5 font-medium">
+                        {order.items?.length ?? 0} {order.items?.length === 1 ? "item" : "items"}
+                      </td>
+                      <td className="py-3 px-3.5">{renderTableWhere(order, isOnline)}</td>
+                      <td className="py-3 px-3.5 font-bold font-mono text-slate-900 dark:text-white">
+                        Rs {order.bills?.totalWithTax?.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-3.5 text-center">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 font-semibold text-[11px] text-slate-600 dark:text-slate-300">
+                          {order.paymentMethod || "Cash"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 };

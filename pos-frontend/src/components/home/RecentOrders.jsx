@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { FaSearch } from "react-icons/fa";
+import { MdReceiptLong } from "react-icons/md";
 import OrderList from "./OrderList";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
@@ -38,7 +39,7 @@ const RecentOrders = () => {
   }, [allOrders, searchTerm]);
 
   return (
-    <div className="mt-6 px-2 sm:px-4 md:px-8">
+    <div className="mt-3 px-0 w-full">
       <div
         className={`w-full rounded-2xl min-h-[420px] p-2 sm:p-5 transition duration-200 ${
           isClean
@@ -75,17 +76,17 @@ const RecentOrders = () => {
           className={`mx-3 sm:mx-4 flex items-center gap-3 rounded-xl px-4 py-3 transition focus-within:ring-2 focus-within:ring-amber-500/30 ${
             isClean
               ? "bg-slate-50 border border-slate-200/90 text-slate-800 focus-within:bg-white focus-within:border-amber-500"
-              : "bg-[#1f1f1f] text-[#f5f5f5]"
+              : "bg-slate-900 border border-slate-800 text-slate-100 focus-within:border-amber-500"
           }`}
         >
-          <FaSearch className={isClean ? "text-slate-400" : "text-[#f5f5f5]"} />
+          <FaSearch className={isClean ? "text-slate-400" : "text-slate-400"} />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search recent orders by customer, phone, or #"
             className={`w-full text-sm outline-none bg-transparent ${
-              isClean ? "text-slate-900 placeholder:text-slate-400" : "text-[#f5f5f5] placeholder:text-[#8a8a8a]"
+              isClean ? "text-slate-900 placeholder:text-slate-400" : "text-slate-100 placeholder:text-slate-500"
             }`}
           />
         </div>
@@ -97,8 +98,10 @@ const RecentOrders = () => {
             })
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="text-3xl mb-2">📋</span>
-              <p className={isClean ? "text-slate-500 font-medium text-sm" : "text-gray-500 text-sm"}>
+              <span className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mb-2">
+                <MdReceiptLong size={32} />
+              </span>
+              <p className={isClean ? "text-slate-500 font-medium text-sm" : "text-slate-400 text-sm"}>
                 {searchTerm ? `No orders matching "${searchTerm}"` : "No orders available"}
               </p>
             </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import { MdLanguage } from "react-icons/md";
 import { getAvatarName } from "../../utils/index";
 import { STAGE_LABELS, statusPillClass } from "../../utils/orderStages";
 import { useUITheme } from "../../context/UIThemeContext";
@@ -44,7 +45,8 @@ const OrderList = ({ order }) => {
                   : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
               }`}
             >
-              🌐 Online
+              <MdLanguage size={12} />
+              <span>Online</span>
             </span>
           ) : (
             <span

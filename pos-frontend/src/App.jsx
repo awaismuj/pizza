@@ -98,7 +98,7 @@ function Layout() {
 
   if (isLoading) return <FullScreenLoader />;
 
-  // Modern Tossdown Restaurant Management Layout
+  // Modern POS Restaurant Management Layout
   if (isModern && location.pathname !== "/auth" && isAuth) {
     return (
       <ModernLayout>

@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getSettings, updateSettings } from "../../https";
 
+import { MdLocalPizza, MdLunchDining, MdLocalFireDepartment } from "react-icons/md";
+
 // Dashboard > Build Your Own.
 //
 // The customer builds their own deal on the online store: pick at least 3
@@ -22,9 +24,9 @@ const DEFAULTS = {
 };
 
 const TIERS = [
-  { field: "discount3", title: "3 items", hint: "Minimum to unlock the deal", icon: "🍕" },
-  { field: "discount4", title: "4 items", hint: "Exactly four items", icon: "🍔" },
-  { field: "discount5Plus", title: "5+ items", hint: "Five or more items", icon: "🔥" },
+  { field: "discount3", title: "3 items", hint: "Minimum to unlock deal", icon: MdLocalPizza },
+  { field: "discount4", title: "4 items", hint: "Exactly four items", icon: MdLunchDining },
+  { field: "discount5Plus", title: "5+ items", hint: "Five or more items", icon: MdLocalFireDepartment },
 ];
 
 const toDraft = (cfg) => ({
@@ -104,13 +106,13 @@ const BuildYourOwnManager = () => {
   const exampleSaved = Math.round((exampleBase * examplePct) / 100);
 
   return (
-    <div className="container mx-auto px-6 pb-10">
-      <div className="max-w-2xl bg-[#262626] rounded-lg p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4 mb-1">
+    <div className="pb-10 max-w-3xl">
+      <div className="pos-card p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4 mb-2">
           <div>
-            <h3 className="text-[#f5f5f5] text-xl font-semibold">Build Your Own Deal</h3>
-            <p className="text-[#ababab] text-sm mt-1">
-              Customers pick any <b className="text-[#f5f5f5]">{live.minItems}+ items</b> from the menu and save
+            <h3 className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold tracking-tight">Build Your Own Deal</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
+              Customers pick any <b className="text-slate-800 dark:text-slate-200">{live.minItems}+ items</b> from the menu and save
               more the more they add. Set the discount for each size below.
             </p>
           </div>
@@ -121,31 +123,31 @@ const BuildYourOwnManager = () => {
             role="switch"
             aria-checked={draft.enabled}
             onClick={() => setField("enabled", !draft.enabled)}
-            className={`shrink-0 relative w-14 h-8 rounded-full transition-colors ${
-              draft.enabled ? "bg-[#02ca3a]" : "bg-[#444]"
+            className={`shrink-0 relative w-12 h-6 sm:w-14 sm:h-7 rounded-full transition-colors ${
+              draft.enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
             }`}
             title={draft.enabled ? "Switched on — tap to turn off" : "Switched off — tap to turn on"}
           >
             <span
-              className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white transition-transform ${
-                draft.enabled ? "translate-x-6" : ""
+              className={`absolute top-0.5 left-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white shadow-sm transition-transform ${
+                draft.enabled ? "translate-x-6 sm:translate-x-7" : ""
               }`}
             />
           </button>
         </div>
 
-        <p className={`text-xs mb-5 ${draft.enabled ? "text-[#02ca3a]" : "text-[#f6b100]"}`}>
+        <p className={`text-xs mb-5 font-semibold ${draft.enabled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
           {draft.enabled
-            ? "ON — the “Build your own deal” section is visible on the online store."
-            : "OFF — the section is hidden and the discount is not given."}
+            ? "● ACTIVE — Visible and usable by customers on the online store."
+            : "○ INACTIVE — Deal is hidden and discounts are disabled."}
         </p>
 
         {isLoading ? (
-          <p className="text-[#ababab]">Loading current discounts…</p>
+          <p className="text-slate-400 text-sm">Loading current discounts…</p>
         ) : (
           <>
             <div className="mb-5">
-              <label htmlFor="byo-description" className="block text-[#f5f5f5] font-semibold mb-2">
+              <label htmlFor="byo-description" className="block text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider mb-2">
                 Storefront description
               </label>
               <textarea
@@ -155,9 +157,9 @@ const BuildYourOwnManager = () => {
                 value={draft.description}
                 onChange={(e) => setField("description", e.target.value)}
                 aria-describedby="byo-description-help"
-                className="w-full resize-y rounded-lg border border-[#444] bg-[#1a1a1a] px-3 py-2 text-white outline-none focus:border-[#F6B100]"
+                className="w-full resize-y rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2.5 text-slate-900 dark:text-white text-sm outline-none focus:border-amber-500 focus:bg-white dark:focus:bg-slate-800 transition"
               />
-              <p id="byo-description-help" className="text-[#7a7a7a] text-xs mt-1">
+              <p id="byo-description-help" className="text-slate-400 text-xs mt-1">
                 Shown below the Build Your Own Deal heading on the online store. {draft.description.length}/300
                 characters.
               </p>
@@ -165,19 +167,22 @@ const BuildYourOwnManager = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {TIERS.map((t) => {
                 const ok = validPercent(draft[t.field]);
+                const IconComponent = t.icon;
                 return (
                   <div
                     key={t.field}
-                    className={`rounded-lg bg-[#1a1a1a] p-4 border ${
-                      ok ? "border-[#333] focus-within:border-[#F6B100]" : "border-[#be3e3f]"
+                    className={`rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4 border transition ${
+                      ok ? "border-slate-200 dark:border-slate-700/80 focus-within:border-amber-500" : "border-rose-400"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl" aria-hidden="true">{t.icon}</span>
-                      <span className="text-[#f5f5f5] font-semibold">{t.title}</span>
+                      <span className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+                        <IconComponent size={18} />
+                      </span>
+                      <span className="text-slate-900 dark:text-white font-bold text-sm">{t.title}</span>
                     </div>
-                    <p className="text-[#7a7a7a] text-xs mb-3">{t.hint}</p>
-                    <div className="flex items-center gap-2 rounded-lg bg-[#262626] px-3 py-2">
+                    <p className="text-slate-400 text-xs mb-3">{t.hint}</p>
+                    <div className="flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 shadow-xs">
                       <input
                         type="number"
                         min="0"
@@ -187,35 +192,35 @@ const BuildYourOwnManager = () => {
                         value={draft[t.field]}
                         onChange={(e) => setField(t.field, e.target.value)}
                         aria-label={`Discount percent for ${t.title}`}
-                        className="flex-1 min-w-0 bg-transparent text-white text-xl font-semibold outline-none"
+                        className="flex-1 min-w-0 bg-transparent text-slate-900 dark:text-white text-lg font-black outline-none"
                       />
-                      <span className="text-[#ababab] font-semibold">%</span>
+                      <span className="text-slate-400 font-bold">%</span>
                     </div>
-                    <p className="text-[#7a7a7a] text-xs mt-2">
-                      Live now: <span className="text-[#f5f5f5]">{live[t.field]}%</span>
+                    <p className="text-slate-400 text-[11px] mt-2">
+                      Live now: <span className="text-slate-700 dark:text-slate-200 font-bold">{live[t.field]}%</span>
                     </p>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-5 rounded-lg bg-[#1a1a1a] border border-dashed border-[#444] p-4 text-sm text-[#ababab]">
-              <p className="text-[#f5f5f5] font-medium mb-1">Quick check</p>
+            <div className="mt-5 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50 p-4 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+              <p className="text-amber-800 dark:text-amber-400 font-bold mb-1">Quick sanity check</p>
               A customer who builds a deal of {exampleItems} items worth Rs {exampleBase.toLocaleString()} gets{" "}
-              <b className="text-[#F6B100]">{examplePct}% off</b> — they save{" "}
-              <b className="text-[#f5f5f5]">Rs {exampleSaved.toLocaleString()}</b> and pay{" "}
-              <b className="text-[#f5f5f5]">Rs {(exampleBase - exampleSaved).toLocaleString()}</b> before tax.
+              <b className="text-amber-600 dark:text-amber-400">{examplePct}% off</b> — they save{" "}
+              <b className="text-slate-900 dark:text-white">Rs {exampleSaved.toLocaleString()}</b> and pay{" "}
+              <b className="text-slate-900 dark:text-white">Rs {(exampleBase - exampleSaved).toLocaleString()}</b> before tax.
             </div>
 
             <button
               onClick={handleSave}
               disabled={!allValid || unchanged || saveMutation.isPending}
-              className="w-full sm:w-auto mt-6 bg-[#F6B100] text-[#1f1f1f] font-semibold rounded-lg px-8 py-3 hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto mt-6 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl px-7 py-3 transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed text-xs uppercase tracking-wider"
             >
-              {saveMutation.isPending ? "Saving…" : "Save changes"}
+              {saveMutation.isPending ? "Saving Changes…" : "Save Changes"}
             </button>
-            <p className="text-[#7a7a7a] text-xs mt-3">
-              Changes apply to the next order. The discount is worked out on the server, so it can't be edited by customers.
+            <p className="text-slate-400 text-xs mt-2.5">
+              Changes apply immediately to next orders.
             </p>
           </>
         )}

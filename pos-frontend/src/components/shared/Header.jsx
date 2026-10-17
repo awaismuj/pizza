@@ -86,9 +86,9 @@ const Header = () => {
           type="button"
           onClick={toggleUiMode}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition shadow-sm"
-          title="Switch to Modern Tossdown Restaurant UI"
+          title="Switch to Modern Restaurant UI"
         >
-          <span>✨ Modern Tossdown UI</span>
+          <span>✨ Modern POS UI</span>
         </button>
       </div>
 

@@ -51,85 +51,92 @@ const Register = ({setIsRegister}) => {
 
   return (
     <div>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-[#ababab] mb-2 text-sm font-medium">
-            Employee Name
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            Employee Full Name
           </label>
-          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+          <div className="flex items-center rounded-xl px-4 py-3 bg-slate-900/90 border border-slate-800 focus-within:border-amber-500 transition shadow-inner">
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Enter employee name"
-              className="bg-transparent flex-1 text-white focus:outline-none"
+              placeholder="e.g. John Doe"
+              className="bg-transparent flex-1 text-white text-sm focus:outline-none placeholder-slate-500"
               required
             />
           </div>
         </div>
+
         <div>
-          <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
             Employee Email
           </label>
-          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+          <div className="flex items-center rounded-xl px-4 py-3 bg-slate-900/90 border border-slate-800 focus-within:border-amber-500 transition shadow-inner">
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter employee email"
-              className="bg-transparent flex-1 text-white focus:outline-none"
+              placeholder="e.g. employee@genzpizza.com"
+              className="bg-transparent flex-1 text-white text-sm focus:outline-none placeholder-slate-500"
               required
             />
           </div>
         </div>
+
         <div>
-          <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
-            Employee Phone
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            Phone Number
           </label>
-          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+          <div className="flex items-center rounded-xl px-4 py-3 bg-slate-900/90 border border-slate-800 focus-within:border-amber-500 transition shadow-inner">
             <input
-              type="number"
+              type="tel"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="Enter employee phone"
-              className="bg-transparent flex-1 text-white focus:outline-none"
+              placeholder="e.g. +923001234567"
+              className="bg-transparent flex-1 text-white text-sm focus:outline-none placeholder-slate-500"
               required
             />
           </div>
         </div>
+
         <div>
-          <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
             Password
           </label>
-          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+          <div className="flex items-center rounded-xl px-4 py-3 bg-slate-900/90 border border-slate-800 focus-within:border-amber-500 transition shadow-inner">
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Enter password"
-              className="bg-transparent flex-1 text-white focus:outline-none"
+              placeholder="••••••••"
+              className="bg-transparent flex-1 text-white text-sm focus:outline-none placeholder-slate-500"
               required
             />
           </div>
         </div>
+
         <div>
-          <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
-            Choose your role
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            Choose Assigned Role
           </label>
 
-          <div className="flex flex-wrap items-center gap-3 mt-4">
+          <div className="grid grid-cols-3 gap-2 mt-2">
             {["Waiter", "Cashier", "Admin", "Accountant", "Asset Manager", "Read Only"].map((role) => {
+              const isSelected = formData.role === role;
               return (
                 <button
                   key={role}
                   type="button"
                   onClick={() => handleRoleSelection(role)}
-                  className={`bg-[#1f1f1f] px-4 py-3 flex-1 min-w-[90px] rounded-lg text-[#ababab] ${
-                    formData.role === role ? "bg-indigo-700" : ""
+                  className={`px-3 py-2 rounded-xl text-xs font-bold border transition ${
+                    isSelected
+                      ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm"
+                      : "bg-slate-900/80 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-800"
                   }`}
                 >
                   {role}
@@ -141,9 +148,10 @@ const Register = ({setIsRegister}) => {
 
         <button
           type="submit"
-          className="w-full rounded-lg mt-6 py-3 text-lg bg-yellow-400 text-gray-900 font-bold"
+          disabled={registerMutation.isPending}
+          className="w-full rounded-xl mt-6 py-3.5 text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold shadow-lg shadow-amber-500/20 transition active:scale-[0.99] disabled:opacity-60"
         >
-          Sign up
+          {registerMutation.isPending ? "Creating Account..." : "Register Employee"}
         </button>
       </form>
     </div>

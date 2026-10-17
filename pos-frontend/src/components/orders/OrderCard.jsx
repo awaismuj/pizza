@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 import { FaLongArrowAltRight, FaPen, FaTrash } from "react-icons/fa";
+import { MdLanguage, MdTakeoutDining, MdTableBar } from "react-icons/md";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { enqueueSnackbar } from "notistack";
@@ -120,9 +120,24 @@ const OrderCard = ({ order }) => {
             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusPillClass(order.orderStatus)}`}>
               {STAGE_LABELS[order.orderStatus] || order.orderStatus}
             </span>
-            <span className={`text-[11px] font-semibold ${isClean ? "text-slate-600" : "text-slate-400"}`}>
-              {isOnline ? "🌐 Online" : isTakeaway ? "🥡 Takeaway" : `🪑 Table ${order.table?.tableNo ?? "—"}`}
-            </span>
+            <div className={`flex items-center gap-1 text-[11px] font-semibold ${isClean ? "text-slate-600" : "text-slate-400"}`}>
+              {isOnline ? (
+                <>
+                  <MdLanguage size={13} className="text-sky-500" />
+                  <span>Online</span>
+                </>
+              ) : isTakeaway ? (
+                <>
+                  <MdTakeoutDining size={13} className="text-amber-500" />
+                  <span>Takeaway</span>
+                </>
+              ) : (
+                <>
+                  <MdTableBar size={13} className="text-emerald-500" />
+                  <span>Table {order.table?.tableNo ?? "—"}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -193,7 +208,7 @@ const OrderCard = ({ order }) => {
               className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-xs border transition ${
                 isClean
                   ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"
-                  : "bg-[#2a2a2a] text-[#f6b100] border-transparent"
+                  : "bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700"
               }`}
               aria-label="Edit order"
             >
@@ -211,7 +226,7 @@ const OrderCard = ({ order }) => {
               className={`rounded-xl px-3 py-2 font-bold text-xs border transition disabled:opacity-60 ${
                 isClean
                   ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
-                  : "bg-[#be3e3f] text-[#f5f5f5] border-transparent"
+                  : "bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border-rose-800"
               }`}
             >
               Cancel
@@ -227,7 +242,7 @@ const OrderCard = ({ order }) => {
           className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold border transition disabled:opacity-60 ${
             isClean
               ? "bg-rose-50/70 hover:bg-rose-100 text-rose-700 border-rose-200"
-              : "bg-[#3f1f1f] text-[#e6402e] border-transparent"
+              : "bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border-rose-900/60"
           }`}
         >
           <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete order"}

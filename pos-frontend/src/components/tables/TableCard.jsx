@@ -209,18 +209,28 @@ const TableCard = ({ id, name, status, initials, seats }) => {
         <Modal isOpen={isManageOpen} onClose={() => setIsManageOpen(false)} title={`Manage Table ${name}`}>
           <div onClick={(e) => e.stopPropagation()} className="flex flex-col gap-4">
             {status === "Booked" && (
-              <div className="bg-[#332b12] border border-[#664a04] text-[#f6b100] text-sm rounded-lg p-3">
+              <div className={`text-sm rounded-xl p-3 border ${
+                isClean
+                  ? "bg-amber-50 border-amber-200 text-amber-900"
+                  : "bg-amber-950/40 border-amber-800 text-amber-300"
+              }`}>
                 Showing as Booked. If this table isn't actually occupied (e.g. its
                 order was closed elsewhere), use "Force available" below to reset it.
               </div>
             )}
 
             <div>
-              <label className="block text-[#ababab] mb-2 text-sm font-medium">Status</label>
+              <label className={`block mb-1.5 text-xs font-bold uppercase tracking-wider ${isClean ? "text-slate-600" : "text-slate-400"}`}>
+                Status
+              </label>
               <select
                 value={draftStatus}
                 onChange={(e) => setDraftStatus(e.target.value)}
-                className="w-full bg-[#1f1f1f] text-white rounded-lg p-3 px-4 focus:outline-none"
+                className={`w-full rounded-xl p-3 px-4 text-sm font-medium border outline-none transition ${
+                  isClean
+                    ? "bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-amber-500"
+                    : "bg-slate-800 border-slate-700 text-white focus:border-amber-500"
+                }`}
               >
                 <option value="Available">Available</option>
                 <option value="Booked">Booked</option>
@@ -228,40 +238,54 @@ const TableCard = ({ id, name, status, initials, seats }) => {
             </div>
 
             <div>
-              <label className="block text-[#ababab] mb-2 text-sm font-medium">Seats</label>
+              <label className={`block mb-1.5 text-xs font-bold uppercase tracking-wider ${isClean ? "text-slate-600" : "text-slate-400"}`}>
+                Seats
+              </label>
               <input
                 type="number"
                 min="1"
                 value={draftSeats}
                 onChange={(e) => setDraftSeats(e.target.value)}
-                className="w-full bg-[#1f1f1f] text-white rounded-lg p-3 px-4 focus:outline-none"
+                className={`w-full rounded-xl p-3 px-4 text-sm font-medium border outline-none transition ${
+                  isClean
+                    ? "bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-amber-500"
+                    : "bg-slate-800 border-slate-700 text-white focus:border-amber-500"
+                }`}
               />
             </div>
 
             <button
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="w-full bg-[#F6B100] text-[#1f1f1f] font-semibold rounded-lg py-3 hover:bg-yellow-600 disabled:opacity-60"
+              className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl py-3 transition shadow-sm disabled:opacity-60 text-sm"
             >
-              Save changes
+              Save Changes
             </button>
 
             {status === "Booked" && (
               <button
                 onClick={handleForceRelease}
                 disabled={updateMutation.isPending}
-                className="w-full bg-[#2e4a40] text-green-400 font-semibold rounded-lg py-3 hover:bg-[#375a4d] disabled:opacity-60"
+                className={`w-full font-bold rounded-xl py-3 border transition disabled:opacity-60 text-sm ${
+                  isClean
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                    : "bg-emerald-950/60 text-emerald-300 border-emerald-800 hover:bg-emerald-900/60"
+                }`}
               >
-                Force available (clear stuck booking)
+                Force Available (Clear Stuck Booking)
               </button>
             )}
 
             <button
               onClick={handleDelete}
               disabled={deleteMutation.isPending || status === "Booked"}
-              className="w-full bg-transparent border border-red-600 text-red-500 font-semibold rounded-lg py-3 hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`w-full border font-bold rounded-xl py-3 transition disabled:opacity-40 disabled:cursor-not-allowed text-sm ${
+                isClean
+                  ? "border-red-200 text-red-600 hover:bg-red-50"
+                  : "border-red-800/80 text-red-400 hover:bg-red-950/40"
+              }`}
             >
-              Delete table
+              Delete Table
             </button>
           </div>
         </Modal>

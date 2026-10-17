@@ -53,7 +53,7 @@ const SCOPES = [
 ];
 
 const inputCls =
-  "w-full bg-[#262626] text-white rounded px-3 py-2.5 sm:py-2 outline-none mt-1 text-sm focus:ring-1 focus:ring-[#f6b100]";
+  "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 outline-none mt-1 text-xs focus:border-amber-500 font-medium transition";
 
 // `defaultDate`: when this is opened from the Daily Profit picker, pre-load
 // the scope to that exact day (scope "range" with from = to = that date)
@@ -240,9 +240,9 @@ const ReportSender = ({ defaultDate } = {}) => {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center justify-center gap-2 bg-[#1a1a1a] hover:bg-[#262626] border border-[#333] text-[#f5f5f5] rounded-md px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium w-full sm:w-auto"
+        className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl px-3.5 sm:px-4 py-2 text-xs uppercase tracking-wider shadow-sm transition active:scale-95 w-full sm:w-auto"
       >
-        <FaFilePdf className="text-[#e6402e] shrink-0" /> <span className="truncate">Generate report</span>
+        <FaFilePdf size={13} className="shrink-0" /> <span className="truncate">Generate Report</span>
       </button>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Profit & expense report">
@@ -252,14 +252,14 @@ const ReportSender = ({ defaultDate } = {}) => {
         </div>
 
         {status?.status === "ready" && (
-          <div className="mb-4 text-xs bg-[#111] rounded-lg p-3 space-y-1">
-            <p className="text-[#ababab] break-all">
-              Sending from: <span className="text-[#f5f5f5]">{formatNumber(status.linkedNumber)}</span>
+          <div className="mb-4 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-1">
+            <p className="text-slate-600 dark:text-slate-400 break-all font-medium">
+              Sending from: <span className="text-slate-900 dark:text-white font-bold">{formatNumber(status.linkedNumber)}</span>
             </p>
             <button
               onClick={handleUnlink}
               disabled={busy !== ""}
-              className="flex items-center gap-1.5 text-[#e6402e] hover:text-[#ff5a46] mt-1 disabled:opacity-60"
+              className="flex items-center gap-1.5 text-rose-500 hover:text-rose-600 mt-1 font-bold text-[11px] disabled:opacity-60"
             >
               <FaUnlink /> {busy === "unlink" ? "Unlinking…" : "Wrong phone? Unlink & relink"}
             </button>
@@ -268,8 +268,8 @@ const ReportSender = ({ defaultDate } = {}) => {
 
         {/* ---- Ask-first confirmation, shown before any QR is requested ---- */}
         {awaitingLinkConfirm && (
-          <div className="mb-4 bg-[#241d0a] border border-[#f6b100]/40 rounded-lg p-3">
-            <p className="text-xs text-[#f6b100] mb-3 leading-relaxed">
+          <div className="mb-4 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50 rounded-xl p-3.5">
+            <p className="text-xs text-amber-800 dark:text-amber-300 mb-3 leading-relaxed font-medium">
               The next QR code can be scanned by <strong>any</strong> WhatsApp — whichever phone scans it becomes
               the one reports send from. Make sure you're ready with the correct phone before continuing.
             </p>
@@ -277,7 +277,7 @@ const ReportSender = ({ defaultDate } = {}) => {
               <button
                 onClick={confirmAndShowQr}
                 disabled={busy !== ""}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#f6b100] text-[#1a1a1a] rounded-md px-3 py-2.5 sm:py-2 text-xs sm:text-sm font-medium disabled:opacity-60"
+                className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider disabled:opacity-60 transition"
               >
                 <FaLink /> I'm ready — show QR
               </button>
@@ -286,7 +286,7 @@ const ReportSender = ({ defaultDate } = {}) => {
                   setAwaitingLinkConfirm(false);
                   setPendingSend(false);
                 }}
-                className="flex-1 sm:flex-initial bg-[#262626] text-[#ababab] rounded-md px-3 py-2.5 sm:py-2 text-xs sm:text-sm font-medium"
+                className="flex-1 sm:flex-initial bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-2 text-xs font-bold transition"
               >
                 Cancel
               </button>
@@ -295,9 +295,9 @@ const ReportSender = ({ defaultDate } = {}) => {
         )}
 
         {status?.status === "qr" && status?.qrDataUrl && (
-          <div className="mb-4 flex flex-col items-center gap-2 bg-[#111] rounded-lg p-3 sm:p-4">
-            <img src={status.qrDataUrl} alt="WhatsApp QR code" className="w-40 h-40 sm:w-48 sm:h-48" />
-            <p className="text-[11px] sm:text-xs text-[#ababab] text-center leading-relaxed">
+          <div className="mb-4 flex flex-col items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4">
+            <img src={status.qrDataUrl} alt="WhatsApp QR code" className="w-40 h-40 sm:w-48 sm:h-48 rounded-lg" />
+            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed">
               WhatsApp on your phone → Settings → Linked Devices → Link a Device, then scan this.
               {pendingSend && " Your report sends automatically the second it links."}
             </p>
@@ -322,13 +322,15 @@ const ReportSender = ({ defaultDate } = {}) => {
         )}
 
         {/* ---- Scope picker ---- */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-1.5 mb-4">
           {SCOPES.map((opt) => (
             <button
               key={opt.key}
               onClick={() => setScope(opt.key)}
-              className={`flex-1 min-w-[30%] rounded-md px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium ${
-                scope === opt.key ? "bg-[#f6b100] text-[#1a1a1a]" : "bg-[#262626] text-[#ababab]"
+              className={`flex-1 min-w-[30%] rounded-xl px-2 sm:px-3 py-2 text-xs font-bold transition ${
+                scope === opt.key
+                  ? "bg-amber-500 text-slate-950 shadow-xs font-black"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {opt.label}
@@ -385,17 +387,17 @@ const ReportSender = ({ defaultDate } = {}) => {
           <button
             onClick={handleDownload}
             disabled={busy !== ""}
-            className="flex-1 flex items-center justify-center gap-2 bg-[#262626] hover:bg-[#333] text-white rounded-md px-4 py-2.5 sm:py-2 text-sm font-medium disabled:opacity-60"
+            className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 sm:py-2 text-xs font-bold transition disabled:opacity-60"
           >
-            <FaFilePdf /> {busy === "download" ? "Generating…" : "Download PDF"}
+            <FaFilePdf size={12} /> {busy === "download" ? "Generating…" : "Download PDF"}
           </button>
           <button
             onClick={handleSendClick}
             disabled={busy !== "" || (pendingSend && status?.status !== "ready")}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-md px-4 py-2.5 sm:py-2 text-sm font-medium disabled:opacity-60"
+            className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl px-4 py-2.5 sm:py-2 text-xs font-black uppercase tracking-wider shadow-sm transition active:scale-95 disabled:opacity-60"
           >
-            <FaWhatsapp />{" "}
-            {busy === "send" ? "Sending…" : pendingSend ? "Waiting for scan…" : "Send to WhatsApp"}
+            <FaWhatsapp size={14} />{" "}
+            {busy === "send" ? "Sending…" : pendingSend ? "Waiting for scan…" : "Send WhatsApp"}
           </button>
         </div>
 

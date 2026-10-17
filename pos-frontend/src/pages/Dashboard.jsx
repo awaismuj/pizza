@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { MdTableBar, MdCategory } from "react-icons/md";
+import FoodIcon from "../utils/foodIcons";
 import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { enqueueSnackbar } from "notistack";
+import { FaSearch, FaEdit, FaTrash } from "react-icons/fa";
 import Metrics from "../components/dashboard/Metrics";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Modal from "../components/dashboard/Modal";
@@ -57,14 +59,18 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState(null);
   const [modalInitialData, setModalInitialData] = useState(null);
-  // /dashboard?tab=Inventory opens straight on that tab (used by the
-  // low-stock popup's "Restock now" button).
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
   useEffect(() => {
     setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
   }, [requestedTab, isAdmin]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    navigate(`/dashboard?tab=${tab}`, { replace: true });
+  };
   const [restockAmounts, setRestockAmounts] = useState({});
   const [categorySearch, setCategorySearch] = useState("");
   const [dishSearch, setDishSearch] = useState("");
@@ -319,52 +325,31 @@ const Dashboard = () => {
 
   return (
     <div className="pos-page-container space-y-4">
-      {/* Top Action Bar & Categorized Module Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-        <div>
-          <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
-            Restaurant Management & Control Hub
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Configure menu, track inventory recipes, oversee staff & financial metrics
-          </p>
-        </div>
-
-        {isAdmin && (
+      {/* Contextual Action Bar when managing catalog dishes & tables */}
+      {isAdmin && activeTab === "Menu" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              Menu & Catalog Engineering
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Configure dishes, categories, pricing, and floor tables
+            </p>
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             {buttons.map(({ label, icon, action }) => (
               <button
                 key={action}
                 onClick={() => handleOpenModal(action)}
-                className="pos-btn-secondary py-2"
+                className="pos-btn-secondary py-1.5 text-xs font-semibold"
               >
                 <span className="text-amber-500">{icon}</span>
                 <span>{label}</span>
               </button>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Tab Pills - Sleek, scrollable, high-contrast module tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide p-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-        {visibleTabs.map((tab) => {
-          const isActive = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3.5 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all duration-150 flex items-center gap-1.5 ${
-                isActive
-                  ? "bg-amber-500 text-slate-950 shadow-xs font-black"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-            >
-              <span>{tab}</span>
-            </button>
-          );
-        })}
-      </div>
+        </div>
+      )}
 
       {/* Tab Content Panes */}
       <div className="pt-1">
@@ -377,50 +362,53 @@ const Dashboard = () => {
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
       {activeTab === "Assets" && assetRoles.includes(String(role || "").toLowerCase()) && <AssetManagement role={role} />}
       {activeTab === "Menu" && (
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#262626] rounded-lg p-5">
-              <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Categories</h3>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  placeholder="🔍 Search categories…"
-                  className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
-                />
+        <div className="w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">Categories</h3>
+              <div className="mb-3">
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200/80 dark:border-slate-700">
+                  <FaSearch className="text-slate-400 text-xs shrink-0" />
+                  <input
+                    type="text"
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    placeholder="Search categories…"
+                    className="bg-transparent text-slate-900 dark:text-white text-xs outline-none w-full placeholder:text-slate-400"
+                  />
+                </div>
               </div>
               {categorySearch.trim() ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {filteredCategories.length > 0 ? (
                     filteredCategories.map((category) => (
                       <div
                         key={category._id}
-                        className="flex items-center justify-between rounded-lg bg-[#1a1a1a] p-3 gap-2"
+                        className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 p-2.5 gap-2"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
                             {isUploadedImage(category.icon) ? (
                               <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-xl">{category.icon || "🍽️"}</span>
+                              <FoodIcon icon={category.icon || category._id} className="text-xl text-amber-500" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[#f5f5f5] font-medium truncate">{category.name}</p>
-                            <p className="text-[#ababab] text-sm truncate">{category.description || "No description"}</p>
+                            <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{category.name}</p>
+                            <p className="text-slate-400 text-[11px] truncate">{category.description || "No description"}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-1.5 shrink-0">
                           <button
                             onClick={() => handleOpenModal("category", category)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
+                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDeleteCategory(category)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
+                            className="bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2.5 py-1 rounded-lg text-xs font-bold"
                           >
                             Delete
                           </button>
@@ -428,42 +416,42 @@ const Dashboard = () => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-[#ababab]">No categories match "{categorySearch}".</p>
+                    <p className="text-slate-400 text-xs">No categories match "{categorySearch}".</p>
                   )}
                 </div>
               ) : (
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="categories">
                   {(provided) => (
-                    <div className="space-y-3" ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="space-y-2" ref={provided.innerRef} {...provided.droppableProps}>
                       {categories.length > 0 ? (
                         categories.map((category, index) => (
                           <Draggable key={category._id} draggableId={category._id} index={index}>
                             {(providedDraggable) => (
-                              <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-lg bg-[#1a1a1a] p-3 gap-2">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                  <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
+                              <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 p-2.5 gap-2">
+                                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
                                     {isUploadedImage(category.icon) ? (
                                       <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-xl">{category.icon || "🍽️"}</span>
+                                      <FoodIcon icon={category.icon || category._id} className="text-xl text-amber-500" />
                                     )}
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="text-[#f5f5f5] font-medium truncate">{category.name}</p>
-                                    <p className="text-[#ababab] text-sm truncate">{category.description || "No description"}</p>
+                                    <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{category.name}</p>
+                                    <p className="text-slate-400 text-[11px] truncate">{category.description || "No description"}</p>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 shrink-0">
+                                <div className="flex gap-1.5 shrink-0">
                                   <button
                                     onClick={() => handleOpenModal("category", category)}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
+                                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => handleDeleteCategory(category)}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
+                                    className="bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2.5 py-1 rounded-lg text-xs font-bold"
                                   >
                                     Delete
                                   </button>
@@ -473,7 +461,7 @@ const Dashboard = () => {
                           </Draggable>
                         ))
                       ) : (
-                        <p className="text-[#ababab]">No categories available.</p>
+                        <p className="text-slate-400 text-xs">No categories available.</p>
                       )}
                       {provided.placeholder}
                     </div>
@@ -483,53 +471,56 @@ const Dashboard = () => {
               )}
             </div>
 
-            <div className="bg-[#262626] rounded-lg p-5">
-              <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Dishes</h3>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={dishSearch}
-                  onChange={(e) => setDishSearch(e.target.value)}
-                  placeholder="🔍 Search dishes…"
-                  className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
-                />
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">Dishes</h3>
+              <div className="mb-3">
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200/80 dark:border-slate-700">
+                  <FaSearch className="text-slate-400 text-xs shrink-0" />
+                  <input
+                    type="text"
+                    value={dishSearch}
+                    onChange={(e) => setDishSearch(e.target.value)}
+                    placeholder="Search dishes…"
+                    className="bg-transparent text-slate-900 dark:text-white text-xs outline-none w-full placeholder:text-slate-400"
+                  />
+                </div>
               </div>
               {dishSearch.trim() ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {filteredDishes.length > 0 ? (
                     filteredDishes.map((dish) => (
                       <div
                         key={dish._id}
-                        className="flex items-center justify-between rounded-lg bg-[#1a1a1a] p-3 gap-4"
+                        className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 p-2.5 gap-2"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
                             {isUploadedImage(dish.image) ? (
                               <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-xl">{dish.icon || "🍽️"}</span>
+                              <FoodIcon icon={dish.icon || dish.name} className="text-xl text-amber-500" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[#f5f5f5] font-medium truncate">{dish.name}</p>
-                            <p className="text-[#ababab] text-sm truncate">
+                            <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{dish.name}</p>
+                            <p className="text-slate-400 text-[11px] truncate">
                               {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                               {dish.isInventoryTracked && (
-                                <span className="ml-2 text-green-400">🔗 Inventory linked</span>
+                                <span className="ml-1.5 text-emerald-500 font-semibold">🔗 Tracked</span>
                               )}
                             </p>
                           </div>
                         </div>
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-1.5 shrink-0">
                           <button
                             onClick={() => handleOpenModal("dishes", dish)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
+                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDeleteDish(dish)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
+                            className="bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2.5 py-1 rounded-lg text-xs font-bold"
                           >
                             Delete
                           </button>
@@ -537,47 +528,47 @@ const Dashboard = () => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-[#ababab]">No dishes match "{dishSearch}".</p>
+                    <p className="text-slate-400 text-xs">No dishes match "{dishSearch}".</p>
                   )}
                 </div>
               ) : (
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="dishes">
                   {(provided) => (
-                    <div className="space-y-3" ref={provided.innerRef} {...provided.droppableProps}>
+                    <div className="space-y-2" ref={provided.innerRef} {...provided.droppableProps}>
                       {dishes.length > 0 ? (
                         dishes.map((dish, index) => (
                           <Draggable key={dish._id} draggableId={dish._id} index={index}>
                             {(providedDraggable) => (
-                              <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-lg bg-[#1a1a1a] p-3 gap-4">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                  <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
+                              <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 p-2.5 gap-2">
+                                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
                                     {isUploadedImage(dish.image) ? (
                                       <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-xl">{dish.icon || "🍽️"}</span>
+                                      <FoodIcon icon={dish.icon || dish.name} className="text-xl text-amber-500" />
                                     )}
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="text-[#f5f5f5] font-medium truncate">{dish.name}</p>
-                                    <p className="text-[#ababab] text-sm truncate">
+                                    <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{dish.name}</p>
+                                    <p className="text-slate-400 text-[11px] truncate">
                                       {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                                       {dish.isInventoryTracked && (
-                                        <span className="ml-2 text-green-400">🔗 Inventory linked</span>
+                                        <span className="ml-1.5 text-emerald-500 font-semibold">🔗 Tracked</span>
                                       )}
                                     </p>
                                   </div>
                                 </div>
-                                <div className="flex gap-2 shrink-0">
+                                <div className="flex gap-1.5 shrink-0">
                                   <button
                                     onClick={() => handleOpenModal("dishes", dish)}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
+                                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => handleDeleteDish(dish)}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
+                                    className="bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2.5 py-1 rounded-lg text-xs font-bold"
                                   >
                                     Delete
                                   </button>
@@ -587,7 +578,7 @@ const Dashboard = () => {
                           </Draggable>
                         ))
                       ) : (
-                        <p className="text-[#ababab]">No dishes available.</p>
+                        <p className="text-slate-400 text-xs">No dishes available.</p>
                       )}
                       {provided.placeholder}
                     </div>
@@ -601,13 +592,13 @@ const Dashboard = () => {
       )}
 
       {activeTab === "Deals" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="w-full pb-8">
           <DealsManager />
         </div>
       )}
 
       {activeTab === "Hero Slider" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="w-full pb-8">
           <HeroSliderManager />
         </div>
       )}
@@ -619,31 +610,31 @@ const Dashboard = () => {
       )}
 
       {activeTab === "Inventory" && (
-        <div className="container mx-auto px-6 pb-10">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
-            <div className="bg-[#262626] rounded-lg p-5">
-              <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">
+        <div className="w-full pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-3.5">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">
                 {editingInventory ? "Edit Inventory Item" : "Add Inventory Item"}
               </h3>
 
-              <form onSubmit={handleInventorySubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={handleInventorySubmit} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
                     value={inventoryForm.name}
                     onChange={(e) => setInventoryForm({ ...inventoryForm, name: e.target.value })}
-                    className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
                     placeholder="Item name"
                   />
                   <input
                     value={inventoryForm.category}
                     onChange={(e) => setInventoryForm({ ...inventoryForm, category: e.target.value })}
-                    className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
                     placeholder="Category name"
                   />
                   <input
                     value={inventoryForm.unit}
                     onChange={(e) => setInventoryForm({ ...inventoryForm, unit: e.target.value })}
-                    className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
                     placeholder="Unit (pcs/bottle/kg)"
                   />
                   <input
@@ -651,7 +642,7 @@ const Dashboard = () => {
                     min="0"
                     value={inventoryForm.quantity}
                     onChange={(e) => setInventoryForm({ ...inventoryForm, quantity: e.target.value })}
-                    className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
                     placeholder="Current quantity"
                   />
                   <input
@@ -659,7 +650,7 @@ const Dashboard = () => {
                     min="0"
                     value={inventoryForm.reorderLevel}
                     onChange={(e) => setInventoryForm({ ...inventoryForm, reorderLevel: e.target.value })}
-                    className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
                     placeholder="Reorder level"
                   />
                   <input
@@ -667,7 +658,7 @@ const Dashboard = () => {
                     min="0"
                     value={inventoryForm.costPrice}
                     onChange={(e) => setInventoryForm({ ...inventoryForm, costPrice: e.target.value })}
-                    className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
                     placeholder="Cost price"
                   />
                   <input
@@ -675,23 +666,23 @@ const Dashboard = () => {
                     min="0"
                     value={inventoryForm.sellingPrice}
                     onChange={(e) => setInventoryForm({ ...inventoryForm, sellingPrice: e.target.value })}
-                    className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none"
+                    className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
                     placeholder="Selling price"
                   />
                 </div>
 
                 <textarea
-                  rows="3"
+                  rows="2"
                   value={inventoryForm.notes}
                   onChange={(e) => setInventoryForm({ ...inventoryForm, notes: e.target.value })}
-                  className="bg-[#1a1a1a] text-white rounded px-3 py-3 outline-none w-full"
+                  className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 w-full"
                   placeholder="Notes (optional)"
                 />
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold shadow-xs"
                     disabled={createInventoryMutation.isPending || updateInventoryMutation.isPending}
                   >
                     {editingInventory ? "Update Item" : "Save Item"}
@@ -703,7 +694,7 @@ const Dashboard = () => {
                         setEditingInventory(null);
                         setInventoryForm(defaultInventoryForm);
                       }}
-                      className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
+                      className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-xs font-semibold"
                     >
                       Cancel
                     </button>
@@ -712,41 +703,44 @@ const Dashboard = () => {
               </form>
             </div>
 
-            <div className="bg-[#262626] rounded-lg p-5">
-              <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Stock Overview</h3>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={inventorySearch}
-                  onChange={(e) => setInventorySearch(e.target.value)}
-                  placeholder="🔍 Search inventory…"
-                  className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
-                />
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">Stock Overview</h3>
+              <div className="mb-3">
+                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200/80 dark:border-slate-700">
+                  <FaSearch className="text-slate-400 text-xs shrink-0" />
+                  <input
+                    type="text"
+                    value={inventorySearch}
+                    onChange={(e) => setInventorySearch(e.target.value)}
+                    placeholder="Search inventory…"
+                    className="bg-transparent text-slate-900 dark:text-white text-xs outline-none w-full placeholder:text-slate-400"
+                  />
+                </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
                 {filteredInventoryItems.length > 0 ? (
                   filteredInventoryItems.map((item) => (
-                    <div key={item._id} className="rounded-lg bg-[#1a1a1a] p-3">
-                      <div className="flex items-start justify-between gap-3">
+                    <div key={item._id} className="rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 p-3">
+                      <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-[#f5f5f5] font-medium">{item.name}</p>
-                          <p className="text-[#ababab] text-xs">
+                          <p className="text-slate-900 dark:text-white font-bold text-xs">{item.name}</p>
+                          <p className="text-slate-400 text-[11px]">
                             {item.category?.name || "Uncategorized"} • {item.quantity} {item.unit}
                           </p>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${item.stockStatus === "low_stock" ? "bg-yellow-600/20 text-yellow-300" : item.stockStatus === "out_of_stock" ? "bg-red-600/20 text-red-300" : "bg-green-600/20 text-green-300"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.stockStatus === "low_stock" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : item.stockStatus === "out_of_stock" ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"}`}>
                           {item.stockStatus === "low_stock" ? "Low stock" : item.stockStatus === "out_of_stock" ? "Out of stock" : "In stock"}
                         </span>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                         <input
                           type="number"
                           min="0"
                           value={restockAmounts[item._id] ?? ""}
                           onChange={(e) => setRestockAmounts({ ...restockAmounts, [item._id]: e.target.value })}
                           placeholder={`Add ${item.unit}`}
-                          className="w-24 bg-[#262626] text-white text-sm rounded px-2 py-1 outline-none border border-[#333]"
+                          className="w-20 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs rounded-lg px-2 py-1 outline-none border border-slate-200 dark:border-slate-700"
                         />
                         <button
                           onClick={() => {
@@ -758,25 +752,25 @@ const Dashboard = () => {
                             adjustInventoryMutation.mutate({ inventoryId: item._id, quantityChange: amount, note: "Restocked" });
                             setRestockAmounts({ ...restockAmounts, [item._id]: "" });
                           }}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-2 py-1 rounded text-sm font-medium"
+                          className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-1 rounded-lg text-xs font-bold"
                         >
-                          Add stock
+                          Add
                         </button>
                         <button
                           onClick={() => adjustInventoryMutation.mutate({ inventoryId: item._id, quantityChange: 1, note: "Manual stock increment" })}
-                          className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm"
+                          className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-2 py-1 rounded-lg text-xs font-bold"
                         >
                           +1
                         </button>
                         <button
                           onClick={() => adjustInventoryMutation.mutate({ inventoryId: item._id, quantityChange: -1, note: "Manual stock decrement" })}
-                          className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm"
+                          className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-2 py-1 rounded-lg text-xs font-bold"
                         >
                           -1
                         </button>
                         <button
                           onClick={() => startInventoryEdit(item)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
+                          className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white px-2 py-1 rounded-lg text-xs font-bold"
                         >
                           Edit
                         </button>
@@ -786,7 +780,7 @@ const Dashboard = () => {
                               deleteInventoryMutation.mutate(item._id);
                             }
                           }}
-                          className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
+                          className="bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2 py-1 rounded-lg text-xs font-bold"
                         >
                           Delete
                         </button>
@@ -794,7 +788,7 @@ const Dashboard = () => {
                     </div>
                   ))
                 ) : (
-                  <p className="text-[#ababab]">
+                  <p className="text-slate-400 text-xs">
                     {inventorySearch.trim() ? `No inventory items match "${inventorySearch}".` : "No inventory items yet."}
                   </p>
                 )}

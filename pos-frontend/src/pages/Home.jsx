@@ -30,9 +30,9 @@ const Home = () => {
     <section
       className={`${
         isModern ? "bg-transparent" : "bg-[#1f1f1f]"
-      } min-h-[calc(100vh-5rem)] overflow-x-hidden pb-36`}
+      } min-h-[calc(100vh-5rem)] overflow-x-hidden pb-8`}
     >
-      <div className="flex w-full flex-col gap-4">
+      <div className="flex w-full flex-col gap-3">
         <Greetings />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <MiniCard

@@ -27,16 +27,19 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-[#1f1f1f] px-6 text-center text-[#f5f5f5]">
-          <h1 className="text-2xl font-bold">Something went wrong</h1>
-          <p className="max-w-md text-sm text-[#ababab]">
-            This screen hit an unexpected error. Your data is safe — reload to try again.
+        <div className="flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-slate-950 px-6 text-center text-slate-100">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center text-2xl font-bold shadow-lg">
+            ⚠
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-white">Something went wrong</h1>
+          <p className="max-w-md text-sm text-slate-400">
+            This screen encountered an unexpected display error. All order and server data is safe — click reload to continue.
           </p>
           <button
             onClick={this.handleReload}
-            className="rounded-lg bg-[#f6b100] px-6 py-3 font-semibold text-[#1f1f1f]"
+            className="rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 px-6 py-3 font-bold text-sm shadow-md transition"
           >
-            Reload
+            Reload POS Terminal
           </button>
         </div>
       );

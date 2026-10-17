@@ -7,7 +7,7 @@ const MiniCard = ({ title, icon, number, footerNum }) => {
 
   return (
     <div
-      className={`w-full rounded-2xl p-5 sm:p-6 md:w-1/2 transition duration-200 ${
+      className={`w-full rounded-2xl p-5 sm:p-6 transition duration-200 ${
         isClean
           ? "bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-slate-300"
           : "bg-slate-900/90 border border-slate-800 shadow-xl hover:border-slate-700"
