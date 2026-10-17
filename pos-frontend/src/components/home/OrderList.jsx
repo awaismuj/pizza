@@ -1,22 +1,27 @@
-import React from "react";
-import { MdLanguage } from "react-icons/md";
+import React, { useState } from "react";
+import { FcGlobe, FcShop } from "react-icons/fc";
 import { getAvatarName } from "../../utils/index";
 import { STAGE_LABELS, statusPillClass } from "../../utils/orderStages";
 import { useUITheme } from "../../context/UIThemeContext";
+import ViewOrderModal from "../orders/ViewOrderModal";
 
 const OrderList = ({ order }) => {
   const { isClean } = useUITheme();
+  const [showViewModal, setShowViewModal] = useState(false);
 
   return (
-    <div
-      className={`mb-2.5 flex items-center gap-3 rounded-xl p-3 sm:gap-4 transition duration-150 ${
-        isClean
-          ? "bg-white border border-slate-200/90 hover:border-slate-300 hover:shadow-xs"
-          : "bg-slate-950/70 border border-slate-800 hover:border-slate-700"
-      }`}
-    >
+    <>
+      <div
+        onClick={() => setShowViewModal(true)}
+        className={`mb-2.5 flex items-center gap-3 rounded-xl p-3 sm:gap-4 transition duration-150 cursor-pointer ${
+          isClean
+            ? "bg-white border border-slate-200/90 hover:border-amber-400 hover:shadow-xs"
+            : "bg-slate-950/70 border border-slate-800 hover:border-amber-500/50"
+        }`}
+        title="Click to view order details"
+      >
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-sm font-black text-slate-950 shadow-xs">
-        {getAvatarName(order.customerDetails.name)}
+        {getAvatarName(order.customerDetails?.name || "Guest")}
       </div>
 
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between min-w-0">
@@ -26,12 +31,12 @@ const OrderList = ({ order }) => {
               isClean ? "text-slate-900" : "text-white"
             }`}
           >
-            {order.customerDetails.name}
+            {order.customerDetails?.name || "Walk-in Guest"}
           </h4>
           <p className={`text-xs mt-0.5 ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
-            {order.items.length} {order.items.length === 1 ? "Item" : "Items"} •{" "}
+            {order.items?.length || 0} {(order.items?.length || 0) === 1 ? "Item" : "Items"} •{" "}
             <span className={`font-mono font-bold ${isClean ? "text-slate-900" : "text-slate-300"}`}>
-              Rs {order.bills.totalWithTax.toFixed(0)}
+              Rs {Number(order.bills?.totalWithTax || 0).toFixed(0)}
             </span>
           </p>
         </div>
@@ -39,24 +44,25 @@ const OrderList = ({ order }) => {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {order.orderSource === "Online" ? (
             <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold border ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold border ${
                 isClean
                   ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                   : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
               }`}
             >
-              <MdLanguage size={12} />
+              <FcGlobe size={14} />
               <span>Online</span>
             </span>
           ) : (
             <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold border ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold border ${
                 isClean
                   ? "border-amber-200 bg-amber-50 text-amber-900"
                   : "border-amber-500/30 bg-amber-500/10 text-amber-400"
               }`}
             >
-              Table {order.table?.tableNo ?? "—"}
+              <FcShop size={14} />
+              <span>Table {order.table?.tableNo ?? "—"}</span>
             </span>
           )}
         </div>
@@ -72,6 +78,14 @@ const OrderList = ({ order }) => {
         </div>
       </div>
     </div>
+
+    {showViewModal && (
+      <ViewOrderModal
+        order={order}
+        onClose={() => setShowViewModal(false)}
+      />
+    )}
+  </>
   );
 };
 

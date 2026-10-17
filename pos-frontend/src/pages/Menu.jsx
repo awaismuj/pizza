@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
-import { MdRestaurantMenu } from "react-icons/md";
+import { ColoredPizzaIcon } from "../utils/foodIcons";
 import MenuContainer from "../components/menu/MenuContainer";
 import CustomerInfo from "../components/menu/CustomerInfo";
 import CartInfo from "../components/menu/CartInfo";
@@ -49,11 +49,11 @@ const Menu = () => {
             <div
               className={`p-2 rounded-xl flex items-center justify-center ${
                 isClean
-                  ? "bg-amber-50 text-amber-600 border border-amber-200/70"
-                  : "bg-slate-800 text-amber-400 border border-slate-700/60"
+                  ? "bg-amber-50 border border-amber-200/70"
+                  : "bg-slate-800 border border-slate-700/60"
               }`}
             >
-              <MdRestaurantMenu size={20} />
+              <ColoredPizzaIcon size={24} />
             </div>
             <div className="flex flex-col items-start">
               <h2

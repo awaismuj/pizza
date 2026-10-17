@@ -13,6 +13,11 @@ export const UIThemeProvider = ({ children }) => {
     return localStorage.getItem("genz_pos_color_theme") || "clean";
   });
 
+  // Dual-mode POS: "cashier" (fast-lane touch POS) vs "manager" (full ERP Back Office)
+  const [posRoleMode, setPosRoleModeState] = useState(() => {
+    return localStorage.getItem("genz_pos_role_mode") || "cashier";
+  });
+
   useEffect(() => {
     if (colorTheme === "dark") {
       document.documentElement.classList.add("dark");
@@ -41,6 +46,19 @@ export const UIThemeProvider = ({ children }) => {
     });
   };
 
+  const setPosRoleMode = (mode) => {
+    localStorage.setItem("genz_pos_role_mode", mode);
+    setPosRoleModeState(mode);
+  };
+
+  const togglePosRoleMode = () => {
+    setPosRoleModeState((prev) => {
+      const next = prev === "cashier" ? "manager" : "cashier";
+      localStorage.setItem("genz_pos_role_mode", next);
+      return next;
+    });
+  };
+
   const setMode = (mode) => {
     localStorage.setItem("genz_pos_ui_mode", mode);
     setUiMode(mode);
@@ -62,6 +80,11 @@ export const UIThemeProvider = ({ children }) => {
         isClean: colorTheme === "clean",
         toggleColorTheme,
         setTheme,
+        posRoleMode,
+        isCashierMode: posRoleMode === "cashier",
+        isManagerMode: posRoleMode === "manager",
+        setPosRoleMode,
+        togglePosRoleMode,
       }}
     >
       {children}

@@ -212,3 +212,12 @@ export const uploadAssetDocument = (file) => {
 };
 export const downloadAssetDocument = (filename) =>
   axiosWrapper.get(`/api/assets/documents/${encodeURIComponent(filename)}`, { responseType: "blob" });
+
+// User and Role Permission Management
+export const getAllUsers = () => axiosWrapper.get("/api/user/all");
+export const createSystemUser = (data) => axiosWrapper.post("/api/user/create", data);
+export const updateSystemUser = ({ id, ...data }) => axiosWrapper.put(`/api/user/${id}`, data);
+export const deleteSystemUser = (id) => axiosWrapper.delete(`/api/user/${id}`);
+export const updateUserPermissions = ({ userId, canAccessERP, role, permissions }) =>
+  axiosWrapper.patch(`/api/user/permissions/${userId}`, { canAccessERP, role, permissions });
+

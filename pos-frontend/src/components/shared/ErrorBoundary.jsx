@@ -35,6 +35,11 @@ class ErrorBoundary extends React.Component {
           <p className="max-w-md text-sm text-slate-400">
             This screen encountered an unexpected display error. All order and server data is safe — click reload to continue.
           </p>
+          {this.state.error && (
+            <div className="max-w-lg overflow-auto rounded-xl bg-slate-900 border border-slate-800 p-3 text-left font-mono text-xs text-rose-400">
+              {this.state.error.message || String(this.state.error)}
+            </div>
+          )}
           <button
             onClick={this.handleReload}
             className="rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 px-6 py-3 font-bold text-sm shadow-md transition"

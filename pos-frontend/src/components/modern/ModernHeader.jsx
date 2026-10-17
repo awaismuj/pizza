@@ -2,6 +2,7 @@ import React from "react";
 import { FaUserCircle, FaSun, FaMoon } from "react-icons/fa";
 import { IoLogOut } from "react-icons/io5";
 import { MdTableBar, MdDeliveryDining } from "react-icons/md";
+import { FcShop, FcBriefcase, FcPlanner, FcInTransit } from "react-icons/fc";
 import { useDispatch, useSelector } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { logout, getTables, getOrders } from "../../https";
@@ -115,7 +116,7 @@ const ModernHeader = ({ collapsed }) => {
         </div>
 
         {/* Live Status Indicators */}
-        <div className="hidden lg:flex items-center gap-2 ml-3">
+        <div className="hidden xl:flex items-center gap-2 ml-1">
           <div
             onClick={() => navigate("/tables")}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs cursor-pointer transition border ${
@@ -125,7 +126,7 @@ const ModernHeader = ({ collapsed }) => {
             }`}
             title="View table occupancy"
           >
-            <MdTableBar className="text-amber-500 shrink-0" size={15} />
+            <FcPlanner className="shrink-0" size={16} />
             <span className="text-[11px] font-medium">
               Tables:{" "}
               <strong className={isClean ? "text-slate-950 font-bold" : "text-white"}>
@@ -144,7 +145,7 @@ const ModernHeader = ({ collapsed }) => {
             }`}
             title="View active online orders"
           >
-            <MdDeliveryDining className="text-emerald-500 shrink-0" size={16} />
+            <FcInTransit className="shrink-0" size={16} />
             <span className="text-[11px] font-medium">
               Online Active:{" "}
               <strong className={isClean ? "text-emerald-950 font-bold" : "text-white"}>

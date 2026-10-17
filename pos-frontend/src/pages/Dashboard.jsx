@@ -388,11 +388,7 @@ const Dashboard = () => {
                       >
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
-                            {isUploadedImage(category.icon) ? (
-                              <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <FoodIcon icon={category.icon || category._id} className="text-xl text-amber-500" />
-                            )}
+                            <FoodIcon icon={category.icon || category.name} size={22} />
                           </div>
                           <div className="min-w-0">
                             <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{category.name}</p>
@@ -431,11 +427,7 @@ const Dashboard = () => {
                               <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 p-2.5 gap-2">
                                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                   <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
-                                    {isUploadedImage(category.icon) ? (
-                                      <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <FoodIcon icon={category.icon || category._id} className="text-xl text-amber-500" />
-                                    )}
+                                    <FoodIcon icon={category.icon || category.name} size={22} />
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{category.name}</p>
@@ -495,11 +487,7 @@ const Dashboard = () => {
                       >
                         <div className="flex items-center gap-2.5 flex-1 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
-                            {isUploadedImage(dish.image) ? (
-                              <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <FoodIcon icon={dish.icon || dish.name} className="text-xl text-amber-500" />
-                            )}
+                            <FoodIcon icon={dish.image || dish.icon || dish.name} size={22} />
                           </div>
                           <div className="min-w-0">
                             <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{dish.name}</p>
@@ -543,11 +531,7 @@ const Dashboard = () => {
                               <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/60 p-2.5 gap-2">
                                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                   <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center overflow-hidden shrink-0">
-                                    {isUploadedImage(dish.image) ? (
-                                      <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <FoodIcon icon={dish.icon || dish.name} className="text-xl text-amber-500" />
-                                    )}
+                                    <FoodIcon icon={dish.image || dish.icon || dish.name} size={22} />
                                   </div>
                                   <div className="min-w-0">
                                     <p className="text-slate-900 dark:text-white font-bold text-xs truncate">{dish.name}</p>

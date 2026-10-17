@@ -27,8 +27,8 @@ export const orderItemCount = (order) =>
     : 0;
 
 export const formatCurrency = (value) => {
-  // Whole numbers show without decimals, fractional ones keep 2dp (e.g. Rs 1.05).
-  return Number.isInteger(value) ? value.toString() : value.toFixed(2);
+  const num = typeof value === "number" ? value : Number(value) || 0;
+  return Number.isInteger(num) ? num.toString() : num.toFixed(2);
 };
 
 export const pctChange = (current, previous) => {

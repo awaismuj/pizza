@@ -1,11 +1,26 @@
 import React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  MdRestaurantMenu,
-  MdTableBar,
-  MdOutlineReorder,
-  MdDeliveryDining,
-  MdOutlineShoppingBag,
+  FcShop,
+  FcPlanner,
+  FcShipped,
+  FcInTransit,
+  FcPackage,
+  FcPositiveDynamic,
+  FcDocument,
+  FcBullish,
+  FcMoneyTransfer,
+  FcRating,
+  FcMultipleInputs,
+  FcConferenceCall,
+  FcApproval,
+  FcSalesPerformance,
+  FcAdvertising,
+  FcServices,
+  FcDepartment,
+  FcBriefcase,
+} from "react-icons/fc";
+import {
   MdChevronLeft,
   MdChevronRight,
   MdReceiptLong,
@@ -19,6 +34,8 @@ import {
   MdApartment,
   MdDashboard,
   MdViewCarousel,
+  MdRestaurantMenu,
+  MdArrowBack,
 } from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
 import { FaBell } from "react-icons/fa";
@@ -28,14 +45,16 @@ import { getOrders, getLowStockItems } from "../../https";
 import { isStockRole, LOW_STOCK_QUERY_KEY, OPEN_LOW_STOCK_EVENT } from "../shared/LowStockAlert";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import { useUITheme } from "../../context/UIThemeContext";
+import { canUserAccessERP } from "../../utils/orderPermissions";
 
 const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isClean } = useUITheme();
+  const { isClean, isCashierMode, setPosRoleMode } = useUITheme();
   const userData = useSelector((state) => state.user);
   const roleLower = String(userData.role || "").toLowerCase();
 
+  const hasERP = canUserAccessERP(userData);
   const isAdmin = ["admin", "accountant", "asset manager", "read only"].includes(roleLower);
   const isFullAdmin = roleLower === "admin";
   const canSeeAssets = ["admin", "accountant", "asset manager", "read only"].includes(roleLower);
@@ -64,21 +83,21 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
   });
   const lowStockCount = canSeeStock ? lowStockData?.data?.data?.length ?? 0 : 0;
 
-  // Front of House operations
+  // Front of House operations (Vibrant Colored SVGs)
   const operationsItems = [
     {
       to: "/menu",
       label: "POS Terminal",
       short: "POS",
-      icon: <MdRestaurantMenu size={20} />,
+      icon: <FcShop size={22} />,
       badge: null,
-      desc: "Cashier & quick billing",
+      desc: "Cashier billing grid",
     },
     {
       to: "/tables",
       label: "Tables & Floors",
       short: "Tables",
-      icon: <MdTableBar size={20} />,
+      icon: <FcPlanner size={22} />,
       badge: null,
       desc: "Live floor seating plan",
     },
@@ -86,7 +105,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
       to: "/orders",
       label: "Dine-In Kitchen",
       short: "Kitchen",
-      icon: <MdOutlineReorder size={20} />,
+      icon: <FcShipped size={22} />,
       badge: inProgressDineIn > 0 ? inProgressDineIn : null,
       badgeColor: "bg-amber-500",
       desc: "Kitchen display system",
@@ -95,22 +114,22 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
       to: "/online-orders",
       label: "Online Dispatch",
       short: "Online",
-      icon: <MdDeliveryDining size={22} />,
+      icon: <FcInTransit size={22} />,
       badge: pendingOnline > 0 ? pendingOnline : null,
       badgeColor: "bg-emerald-500 animate-pulse",
-      desc: "Delivery & takeaway queue",
+      desc: "Delivery queue & tracking",
     },
     {
       to: "/outdoor",
       label: "Takeaway Window",
       short: "Takeaway",
-      icon: <MdOutlineShoppingBag size={20} />,
+      icon: <FcPackage size={22} />,
       badge: null,
       desc: "Express counter pickup",
     },
   ];
 
-  // Back Office ERP Modules (Dashboard Tabs)
+  // Back Office ERP Modules (Dashboard Tabs - Vibrant Colored SVGs)
   const currentTab = new URLSearchParams(location.search).get("tab") || (isFullAdmin ? "Metrics" : "Assets");
   const isDashboard = location.pathname === "/dashboard";
 
@@ -120,37 +139,37 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
           {
             tab: "Metrics",
             label: "KPIs & Analytics",
-            icon: <MdInsights size={18} />,
+            icon: <FcPositiveDynamic size={20} />,
             desc: "Executive performance metrics",
           },
           {
             tab: "Orders",
             label: "Order Ledger",
-            icon: <MdReceiptLong size={18} />,
+            icon: <FcDocument size={20} />,
             desc: "Audit trail & settlements",
           },
           {
             tab: "Profit",
             label: "Profit & Loss",
-            icon: <MdAccountBalance size={18} />,
+            icon: <FcBullish size={20} />,
             desc: "COGS & trading statement",
           },
           {
             tab: "Payments",
             label: "Settlement Gateway",
-            icon: <MdPayments size={18} />,
+            icon: <FcMoneyTransfer size={20} />,
             desc: "Cash, card & digital",
           },
           {
             tab: "Menu",
             label: "Menu Engineering",
-            icon: <MdRestaurantMenu size={18} />,
+            icon: <FcRating size={20} />,
             desc: "Categories, dishes & prices",
           },
           {
             tab: "Inventory",
             label: "Inventory Control",
-            icon: <MdInventory2 size={18} />,
+            icon: <FcMultipleInputs size={20} />,
             badge: lowStockCount > 0 ? lowStockCount : null,
             badgeColor: "bg-rose-500",
             desc: "Stock ledger & restock alerts",
@@ -158,31 +177,31 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
           {
             tab: "Staff",
             label: "Staff & Payroll HR",
-            icon: <MdPeopleAlt size={18} />,
+            icon: <FcConferenceCall size={20} />,
             desc: "Roster, attendance & slips",
           },
           {
             tab: "Deals",
             label: "Deals & Combos",
-            icon: <MdLocalOffer size={18} />,
+            icon: <FcApproval size={20} />,
             desc: "Promotions & discounts",
           },
           {
             tab: "Build Your Own",
             label: "Custom Deal Builder",
-            icon: <BiSolidDish size={18} />,
+            icon: <FcSalesPerformance size={20} />,
             desc: "Dynamic tier discounts",
           },
           {
             tab: "Hero Slider",
             label: "Store Banners",
-            icon: <MdViewCarousel size={18} />,
+            icon: <FcAdvertising size={20} />,
             desc: "Storefront showcase slides",
           },
           {
             tab: "Tax",
             label: "Tax & Store Config",
-            icon: <MdSettings size={18} />,
+            icon: <FcServices size={20} />,
             desc: "Global tax rates & charges",
           },
         ]
@@ -192,7 +211,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
           {
             tab: "Assets",
             label: "Fixed Asset Register",
-            icon: <MdApartment size={18} />,
+            icon: <FcDepartment size={20} />,
             desc: "Asset valuations & custody",
           },
         ]
@@ -258,6 +277,59 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
         </button>
       </div>
 
+      {/* Permission-Based Portal Mode Switcher (Above New Order Button) */}
+      {hasERP && (
+        <div className="px-3 pt-2.5 pb-0 shrink-0">
+          <div
+            className={`flex items-center p-1 rounded-xl border ${
+              isClean ? "bg-slate-100 border-slate-200/90" : "bg-slate-900 border-slate-800"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setPosRoleMode("cashier");
+                if (location.pathname === "/dashboard") navigate("/");
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                isCashierMode
+                  ? isClean
+                    ? "bg-white text-slate-950 shadow-xs"
+                    : "bg-slate-800 text-white shadow-xs"
+                  : isClean
+                  ? "text-slate-500 hover:text-slate-900"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Cashier Counter POS"
+            >
+              <FcShop size={16} className="shrink-0" />
+              {!collapsed && <span>Cashier</span>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPosRoleMode("manager");
+                navigate("/dashboard");
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                !isCashierMode
+                  ? isClean
+                    ? "bg-white text-slate-950 shadow-xs"
+                    : "bg-slate-800 text-white shadow-xs"
+                  : isClean
+                  ? "text-slate-500 hover:text-slate-900"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Manager Back-Office ERP"
+            >
+              <FcBriefcase size={16} className="shrink-0" />
+              {!collapsed && <span>Manager</span>}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Quick Action Button: New Order */}
       <div className="p-3 shrink-0">
         <button
@@ -273,98 +345,62 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
 
       {/* Navigation Sections */}
       <nav className="flex-1 px-3 py-1 space-y-4 overflow-y-auto scrollbar-hide">
-        {/* SECTION 1: OPERATIONS (Front of House) */}
-        <div>
-          {!collapsed && (
-            <div className="flex items-center justify-between px-3 mb-1.5">
-              <span
-                className={`text-[10px] font-black tracking-wider uppercase ${
-                  isClean ? "text-slate-400" : "text-slate-500"
-                }`}
-              >
-                Operations (FOH)
-              </span>
-              <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.2 rounded">
-                Live
-              </span>
-            </div>
-          )}
-
-          <div className="space-y-1">
-            {operationsItems.map((item) => {
-              const active = location.pathname === item.to;
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
-                    active
-                      ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-bold"
-                      : isClean
-                      ? "text-slate-600 hover:bg-slate-100/90 hover:text-slate-900"
-                      : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-100"
-                  }`}
-                  title={item.label}
-                >
-                  <div
-                    className={`shrink-0 transition-colors ${
-                      active
-                        ? "text-slate-950"
-                        : isClean
-                        ? "text-slate-500 group-hover:text-amber-600"
-                        : "text-slate-400 group-hover:text-amber-400"
-                    }`}
-                  >
-                    {item.icon}
-                  </div>
-
-                  {!collapsed && (
-                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                      <div className="truncate">
-                        <p className="truncate text-xs leading-none font-bold">{item.label}</p>
-                        <p
-                          className={`text-[10px] leading-tight truncate mt-0.5 ${
-                            active
-                              ? "text-slate-900/80 font-medium"
-                              : isClean
-                              ? "text-slate-400 font-normal"
-                              : "text-slate-500 font-normal"
-                          }`}
-                        >
-                          {item.desc}
-                        </p>
-                      </div>
-
-                      {item.badge !== null && (
-                        <span
-                          className={`ml-2 px-1.5 py-0.5 text-[10px] font-black rounded-full text-white shadow-xs ${
-                            item.badgeColor || "bg-amber-500"
-                          }`}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SECTION 2: FOOD & BEVERAGE ERP PORTAL (Back Office Management) */}
-        {isAdmin && erpModules.length > 0 && (
-          <div className={`pt-2 border-t ${isClean ? "border-slate-200/80" : "border-slate-800/80"}`}>
+        {/* If in Cashier Mode: Only show Front of House operations (minimal, fast-lane) */}
+        {isCashierMode ? (
+          <div>
             {!collapsed && (
-              <div className="flex items-center justify-between px-3 mb-1.5">
-                <span
-                  className={`text-[10px] font-black tracking-wider uppercase ${
-                    isClean ? "text-slate-400" : "text-slate-500"
-                  }`}
-                >
+              <div className="flex items-center justify-between px-3 mb-2">
+                <span className={`text-[10px] font-black tracking-wider uppercase ${isClean ? "text-slate-400" : "text-slate-500"}`}>
+                  Counter Desk
+                </span>
+                <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">
+                  Cashier Fast-Lane
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              {operationsItems.map((item) => {
+                const active = location.pathname === item.to;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+                      active
+                        ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-bold"
+                        : isClean
+                        ? "text-slate-700 hover:bg-slate-100/90 hover:text-slate-950"
+                        : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
+                    }`}
+                    title={item.label}
+                  >
+                    <div className="shrink-0">{item.icon}</div>
+
+                    {!collapsed && (
+                      <div className="flex-1 min-w-0 flex items-center justify-between">
+                        <span className="truncate text-xs font-bold leading-none">{item.label}</span>
+                        {item.badge !== null && (
+                          <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-black rounded-full text-white shadow-xs ${item.badgeColor || "bg-amber-500"}`}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* If in Manager Mode: Show Back-Office ERP Suite */
+          <div>
+            {!collapsed && (
+              <div className="flex items-center justify-between px-3 mb-2">
+                <span className={`text-[10px] font-black tracking-wider uppercase ${isClean ? "text-slate-400" : "text-slate-500"}`}>
                   F&B ERP Portal
                 </span>
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
+                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                   Back Office
                 </span>
               </div>
@@ -377,50 +413,22 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
                   <NavLink
                     key={item.tab}
                     to={`/dashboard?tab=${item.tab}`}
-                    className={`flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all group ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
                       active
                         ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-bold"
                         : isClean
-                        ? "text-slate-600 hover:bg-slate-100/90 hover:text-slate-900"
-                        : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-100"
+                        ? "text-slate-700 hover:bg-slate-100/90 hover:text-slate-950"
+                        : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
                     }`}
                     title={item.label}
                   >
-                    <div
-                      className={`shrink-0 transition-colors ${
-                        active
-                          ? "text-slate-950"
-                          : isClean
-                          ? "text-slate-500 group-hover:text-amber-600"
-                          : "text-slate-400 group-hover:text-amber-400"
-                      }`}
-                    >
-                      {item.icon}
-                    </div>
+                    <div className="shrink-0">{item.icon}</div>
 
                     {!collapsed && (
                       <div className="flex-1 min-w-0 flex items-center justify-between">
-                        <div className="truncate">
-                          <p className="truncate text-xs leading-none font-bold">{item.label}</p>
-                          <p
-                            className={`text-[10px] leading-tight truncate mt-0.5 ${
-                              active
-                                ? "text-slate-900/80 font-medium"
-                                : isClean
-                                ? "text-slate-400 font-normal"
-                                : "text-slate-500 font-normal"
-                            }`}
-                          >
-                            {item.desc}
-                          </p>
-                        </div>
-
+                        <span className="truncate text-xs font-bold leading-none">{item.label}</span>
                         {item.badge !== null && item.badge !== undefined && (
-                          <span
-                            className={`ml-2 px-1.5 py-0.5 text-[10px] font-black rounded-full text-white shadow-xs ${
-                              item.badgeColor || "bg-rose-500"
-                            }`}
-                          >
+                          <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-black rounded-full text-white shadow-xs ${item.badgeColor || "bg-rose-500"}`}>
                             {item.badge}
                           </span>
                         )}
@@ -456,12 +464,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
               }`}
               title="Add Cash Expense"
             >
-              <MdReceiptLong
-                size={18}
-                className={`shrink-0 ${
-                  isClean ? "text-slate-400 group-hover:text-amber-600" : "text-slate-400 group-hover:text-amber-400"
-                }`}
-              />
+              <FcMoneyTransfer size={18} className="shrink-0" />
               {!collapsed && <span>Record Expense</span>}
             </button>
 
@@ -478,7 +481,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
                 }`}
                 title={lowStockCount > 0 ? `${lowStockCount} items need restock` : "Inventory Stock"}
               >
-                <FaBell size={16} className="shrink-0" />
+                <FcServices size={18} className="shrink-0" />
                 {!collapsed && (
                   <div className="flex-1 flex items-center justify-between">
                     <span>Stock Alerts</span>

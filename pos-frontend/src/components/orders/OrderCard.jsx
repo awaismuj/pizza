@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { FaLongArrowAltRight, FaPen, FaTrash } from "react-icons/fa";
 import { MdLanguage, MdTakeoutDining, MdTableBar } from "react-icons/md";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +11,8 @@ import { canEditOrder, canCancelOrder, canDeleteOrder } from "../../utils/orderP
 import OrderStageTracker from "./OrderStageTracker";
 import Invoice from "../invoice/Invoice";
 import EditOrderModal from "./EditOrderModal";
+import ViewOrderModal from "./ViewOrderModal";
+import { FcDocument } from "react-icons/fc";
 import { useUITheme } from "../../context/UIThemeContext";
 
 // Orders finish on different final statuses depending on source (dine-in/
@@ -35,6 +38,8 @@ const OrderCard = ({ order }) => {
   const [printOrder, setPrintOrder] = useState(null);
   // Edit-items modal — Cashier/Admin only (see orderPermissions.js).
   const [showEditModal, setShowEditModal] = useState(false);
+  // View full order details modal (items, variants, bill breakdown)
+  const [showViewModal, setShowViewModal] = useState(false);
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
@@ -185,55 +190,82 @@ const OrderCard = ({ order }) => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      {!isTerminal && (
-        <div
-          className={`mt-3 pt-3 border-t flex flex-wrap gap-2 ${
-            isClean ? "border-slate-100" : "border-slate-800/80"
-          }`}
-        >
-          {next && (
+      {/* Action Buttons: View Details button ALWAYS visible */}
+      <div className={`mt-3 pt-3 border-t flex flex-col gap-2 ${isClean ? "border-slate-100" : "border-slate-800/80"}`}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowViewModal(true)}
+            className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs border transition flex items-center justify-center gap-1.5 shadow-xs ${
+              isClean
+                ? "bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200"
+                : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+            }`}
+            title="Inspect order items, variants, and notes"
+          >
+            <FcDocument size={16} />
+            <span>View Order Details</span>
+          </button>
+
+          {isTerminal && (
             <button
-              onClick={() => setStatus(next.to)}
-              disabled={statusMutation.isPending}
-              className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition shadow-sm disabled:opacity-60 flex items-center justify-center gap-1"
-            >
-              <span>{next.label}</span>
-              <span>→</span>
-            </button>
-          )}
-          {canEditOrder(role) && (
-            <button
-              onClick={() => setShowEditModal(true)}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-xs border transition ${
+              onClick={() => setPrintOrder(order)}
+              className={`py-2 px-3 rounded-xl font-bold text-xs border transition flex items-center justify-center gap-1 ${
                 isClean
-                  ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"
-                  : "bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700"
+                  ? "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
               }`}
-              aria-label="Edit order"
+              title="Print Receipt"
             >
-              <FaPen size={11} /> Edit
-            </button>
-          )}
-          {canCancelOrder(role) && (
-            <button
-              onClick={() => {
-                if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
-                  setStatus("Cancelled");
-                }
-              }}
-              disabled={statusMutation.isPending}
-              className={`rounded-xl px-3 py-2 font-bold text-xs border transition disabled:opacity-60 ${
-                isClean
-                  ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
-                  : "bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border-rose-800"
-              }`}
-            >
-              Cancel
+              Receipt
             </button>
           )}
         </div>
-      )}
+
+        {!isTerminal && (
+          <div className="flex flex-wrap gap-2">
+            {next && (
+              <button
+                onClick={() => setStatus(next.to)}
+                disabled={statusMutation.isPending}
+                className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition shadow-sm disabled:opacity-60 flex items-center justify-center gap-1"
+              >
+                <span>{next.label}</span>
+                <span>→</span>
+              </button>
+            )}
+            {canEditOrder(role) && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-xs border transition ${
+                  isClean
+                    ? "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                    : "bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700"
+                }`}
+                aria-label="Edit order"
+              >
+                <FaPen size={11} /> Edit
+              </button>
+            )}
+            {canCancelOrder(role) && (
+              <button
+                onClick={() => {
+                  if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
+                    setStatus("Cancelled");
+                  }
+                }}
+                disabled={statusMutation.isPending}
+                className={`rounded-xl px-3 py-2 font-bold text-xs border transition disabled:opacity-60 ${
+                  isClean
+                    ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
+                    : "bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border-rose-800"
+                }`}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {canDeleteOrder(role, order.orderStatus) && (
         <button
@@ -247,6 +279,14 @@ const OrderCard = ({ order }) => {
         >
           <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete order"}
         </button>
+      )}
+
+      {showViewModal && (
+        <ViewOrderModal
+          order={order}
+          onClose={() => setShowViewModal(false)}
+          onPrint={(ord) => setPrintOrder(ord)}
+        />
       )}
 
       {printOrder && (

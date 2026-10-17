@@ -32,11 +32,18 @@ export const getBgColor = () => {
 };
 
 export const getAvatarName = (name) => {
-  if(!name) return "";
-
-  return name.split(" ").map(word => word[0]).join("").toUpperCase();
-
-}
+  if (!name || typeof name !== "string") return "G";
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .map((word) => word[0])
+      .filter(Boolean)
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "G"
+  );
+};
 
 // Human-facing order number. Every order now gets a real sequential number
 // assigned by the backend when it's created — "<YYYYMMDD><3-digit seq>",

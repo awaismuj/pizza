@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GenZ Pizza Land - Minimalist POS Concept</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    .dark .custom-scroll::-webkit-scrollbar-thumb { background: #334155; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- TOP APP BAR -->
+  <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 flex items-center justify-center text-slate-950 font-extrabold text-base shadow-sm shadow-amber-500/20">
+          🍕
+        </div>
+        <div>
+          <span class="font-extrabold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white">GenZ Pizza</span>
+          <span class="hidden md:inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">Terminal 01 • Shift Active</span>
+        </div>
+      </div>
+
+      <!-- MODE SWITCHER (Cashier vs Back Office) -->
+      <div class="hidden lg:flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
+        <button id="btn-cashier-mode" onclick="setMode('cashier')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs bg-white text-slate-950 dark:bg-slate-900 dark:text-white">
+          Cashier Mode
+        </button>
+        <button id="btn-manager-mode" onclick="setMode('manager')" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+          Manager Portal
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Quick Glance Pill -->
+    <div class="flex items-center gap-2 sm:gap-4">
+      <div class="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs">
+        <div>
+          <span class="text-slate-400 text-[10px] uppercase font-bold">Today's Sales</span>
+          <p class="font-extrabold text-slate-900 dark:text-white">Rs 48,250</p>
+        </div>
+        <div class="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+        <div>
+          <span class="text-slate-400 text-[10px] uppercase font-bold">Active Tickets</span>
+          <p class="font-extrabold text-amber-600 dark:text-amber-400">7 Orders</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+        🌙
+      </button>
+
+      <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+        <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold flex items-center justify-center text-xs">
+          SA
+        </div>
+        <div class="hidden md:block text-left">
+          <p class="text-xs font-bold leading-none text-slate-900 dark:text-white">Shahzaib</p>
+          <p class="text-[10px] font-semibold text-slate-400">Cashier on Duty</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- CASHIER SIDEBAR (Minimalist 5 core tasks) -->
+    <aside id="cashier-sidebar" class="w-20 md:w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex flex-col justify-between">
+      <div class="space-y-1.5">
+        <p class="hidden md:block text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">Front Desk</p>
+
+        <!-- Big Primary New Order Button -->
+        <button class="w-full flex items-center justify-center md:justify-start gap-2.5 px-3 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-sm transition active:scale-95 mb-4">
+          <span class="text-base font-black">+</span>
+          <span class="hidden md:inline">Quick Order</span>
+        </button>
+
+        <a href="#" class="flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-xs">
+          <span class="text-base">🛒</span>
+          <span class="hidden md:inline">Live Counter</span>
+        </a>
+
+        <a href="#" class="flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs transition">
+          <span class="text-base">🍽️</span>
+          <span class="hidden md:inline">Dine-in Tables</span>
+          <span class="hidden md:inline-block ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">8/14</span>
+        </a>
+
+        <a href="#" class="flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs transition">
+          <span class="text-base">📋</span>
+          <span class="hidden md:inline">Active Orders</span>
+          <span class="hidden md:inline-block ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400">5</span>
+        </a>
+
+        <a href="#" class="flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs transition">
+          <span class="text-base">🍳</span>
+          <span class="hidden md:inline">Kitchen Screen</span>
+        </a>
+
+        <a href="#" class="flex items-center justify-center md:justify-start gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-xs transition">
+          <span class="text-base">🛵</span>
+          <span class="hidden md:inline">Delivery Queue</span>
+          <span class="hidden md:inline-block ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">2</span>
+        </a>
+      </div>
+
+      <!-- Shift / Drawer Bottom helper -->
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+        <button class="w-full flex items-center justify-center md:justify-start gap-2.5 px-3 py-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold">
+          <span>🔒</span>
+          <span class="hidden md:inline">Cash Drawer / Close</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENT WORKSPACE -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scroll">
+      
+      <!-- HERO QUICK ACCESS TILES (The 4 Big Cashier Actions) -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">Fast Order Station</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Choose order type to start billing immediately</p>
+          </div>
+          <span class="text-xs font-semibold text-slate-400 hidden sm:inline">Press <kbd class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[11px] font-mono">Space</kbd> for New Bill</span>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          
+          <!-- Tile 1: Dine-in -->
+          <button class="group p-4 sm:p-5 rounded-2xl border-2 border-transparent hover:border-amber-500 bg-white dark:bg-slate-900 shadow-xs hover:shadow-md transition text-left relative overflow-hidden">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+              🍽️
+            </div>
+            <p class="font-extrabold text-base text-slate-900 dark:text-white">Dine In</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Select table & guests</p>
+            <div class="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+              <span>6 Free Tables</span> →
+            </div>
+          </button>
+
+          <!-- Tile 2: Takeaway -->
+          <button class="group p-4 sm:p-5 rounded-2xl border-2 border-transparent hover:border-amber-500 bg-white dark:bg-slate-900 shadow-xs hover:shadow-md transition text-left relative overflow-hidden">
+            <div class="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+              🥡
+            </div>
+            <p class="font-extrabold text-base text-slate-900 dark:text-white">Takeaway</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Walk-in counter pickup</p>
+            <div class="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-orange-600 dark:text-orange-400">
+              <span>3 In Prep</span> →
+            </div>
+          </button>
+
+          <!-- Tile 3: Delivery -->
+          <button class="group p-4 sm:p-5 rounded-2xl border-2 border-transparent hover:border-amber-500 bg-white dark:bg-slate-900 shadow-xs hover:shadow-md transition text-left relative overflow-hidden">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+              🛵
+            </div>
+            <p class="font-extrabold text-base text-slate-900 dark:text-white">Delivery</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Rider dispatch & address</p>
+            <div class="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+              <span>2 On Route</span> →
+            </div>
+          </button>
+
+          <!-- Tile 4: Table Map Quick Glance -->
+          <button class="group p-4 sm:p-5 rounded-2xl border-2 border-transparent hover:border-amber-500 bg-white dark:bg-slate-900 shadow-xs hover:shadow-md transition text-left relative overflow-hidden">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+              🗺️
+            </div>
+            <p class="font-extrabold text-base text-slate-900 dark:text-white">Floor View</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Visual hall layout</p>
+            <div class="mt-3 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <span>8 / 14 Occupied</span> →
+            </div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- TWO-COLUMN WORKSPACE: Active Live Tickets (Left) + Fast Table/Category Peek (Right) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- COLUMN 1 & 2: Active Orders Fast Lane -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-slate-900 dark:text-white">Active Floor & Kitchen Queue</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">5 Live</span>
+            </div>
+            
+            <!-- Quick filters (No confusion) -->
+            <div class="flex items-center gap-1 text-xs">
+              <button class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold">All (5)</button>
+              <button class="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Dine-In (3)</button>
+              <button class="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Takeaway (1)</button>
+              <button class="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">Delivery (1)</button>
+            </div>
+          </div>
+
+          <!-- Active Ticket List (Designed for Glanceability & Fast Tapping) -->
+          <div class="space-y-3">
+            
+            <!-- Ticket 1 -->
+            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 transition shadow-xs flex flex-wrap items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex flex-col items-center justify-center">
+                  <span class="text-[9px] font-bold uppercase">Table</span>
+                  <span class="text-base font-extrabold leading-none">04</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-extrabold text-sm text-slate-900 dark:text-white">#1042 • Ahmad Khan</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Baking (12m)</span>
+                  </div>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">1x GenZ Supreme Large, 2x Garlic Bread, 1x 1.5L Coke</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-black text-sm text-slate-900 dark:text-white">Rs 2,850</span>
+                <button class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200">View</button>
+                <button class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs">Settle Bill</button>
+              </div>
+            </div>
+
+            <!-- Ticket 2 -->
+            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 transition shadow-xs flex flex-wrap items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 flex flex-col items-center justify-center">
+                  <span class="text-[9px] font-bold uppercase">Pick</span>
+                  <span class="text-base font-extrabold leading-none">#12</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-extrabold text-sm text-slate-900 dark:text-white">#1041 • Sara Malik</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Ready at Counter</span>
+                  </div>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">2x Fajita Medium, 1x Molten Lava Cake</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-black text-sm text-slate-900 dark:text-white">Rs 2,400</span>
+                <button class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200">View</button>
+                <button class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-xs">Handover</button>
+              </div>
+            </div>
+
+            <!-- Ticket 3 -->
+            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-500 transition shadow-xs flex flex-wrap items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex flex-col items-center justify-center">
+                  <span class="text-[9px] font-bold uppercase">Rider</span>
+                  <span class="text-base font-extrabold leading-none">02</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-extrabold text-sm text-slate-900 dark:text-white">#1040 • Ali Raza (Phase 5)</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">With Rider</span>
+                  </div>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">1x Crown Crust Pepperoni, 2x Dip Sauce</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-black text-sm text-slate-900 dark:text-white">Rs 1,950</span>
+                <span class="text-xs font-semibold text-slate-400">Cash on Delivery</span>
+                <button class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200">Details</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- COLUMN 3: Fast Floor Mini-Map / Shift Glance -->
+        <div class="space-y-4">
+          
+          <!-- Mini Table Map Widget -->
+          <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-bold text-slate-900 dark:text-white">Quick Table Selection</h2>
+              <span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Hall A</span>
+            </div>
+
+            <!-- Visual Table Grid (Click to open/assign order) -->
+            <div class="grid grid-cols-4 gap-2 text-center text-xs font-bold">
+              <div class="p-2.5 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40 cursor-pointer">
+                T1
+                <span class="block text-[9px] font-medium opacity-80">Rs 1.8k</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40 cursor-pointer hover:scale-105 transition">
+                T2
+                <span class="block text-[9px] font-medium opacity-80">Free</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40 cursor-pointer">
+                T3
+                <span class="block text-[9px] font-medium opacity-80">Rs 3.2k</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-900/40 cursor-pointer">
+                T4
+                <span class="block text-[9px] font-medium opacity-80">Rs 2.8k</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40 cursor-pointer hover:scale-105 transition">
+                T5
+                <span class="block text-[9px] font-medium opacity-80">Free</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40 cursor-pointer hover:scale-105 transition">
+                T6
+                <span class="block text-[9px] font-medium opacity-80">Free</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/40 cursor-pointer">
+                T7
+                <span class="block text-[9px] font-medium opacity-80">Bill Out</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40 cursor-pointer hover:scale-105 transition">
+                T8
+                <span class="block text-[9px] font-medium opacity-80">Free</span>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Available</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Occupied</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Payment</span>
+            </div>
+          </div>
+
+          <!-- Shift & Drawer Quick Card -->
+          <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800">
+            <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-2">Shift Reconciliation</h2>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                <span>Opening Cash:</span>
+                <span class="font-bold text-slate-800 dark:text-slate-200">Rs 10,000</span>
+              </div>
+              <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                <span>Cash Collected:</span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400">+ Rs 34,200</span>
+              </div>
+              <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                <span>Card & Digital:</span>
+                <span class="font-bold text-blue-600 dark:text-blue-400">+ Rs 14,050</span>
+              </div>
+              <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between font-extrabold text-sm text-slate-900 dark:text-white">
+                <span>Current In Drawer:</span>
+                <span class="text-amber-600 dark:text-amber-400">Rs 44,200</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    function setMode(mode) {
+      const cashierBtn = document.getElementById('btn-cashier-mode');
+      const managerBtn = document.getElementById('btn-manager-mode');
+      if (mode === 'cashier') {
+        cashierBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs bg-white text-slate-950 dark:bg-slate-900 dark:text-white";
+        managerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+      } else {
+        managerBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs bg-white text-slate-950 dark:bg-slate-900 dark:text-white";
+        cashierBtn.className = "px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+      }
+    }
+  </script>
+</body>
+</html>

@@ -39,6 +39,25 @@ const userSchema = new mongoose.Schema({
         required: true
     },
 
+    // Granular Capability & Permission Matrix
+    permissions: {
+        canAccessERP: { type: Boolean, default: false },
+        canManageOrders: { type: Boolean, default: true },
+        canManageMenu: { type: Boolean, default: false },
+        canManageInventory: { type: Boolean, default: false },
+        canManageStaff: { type: Boolean, default: false },
+        canViewFinancials: { type: Boolean, default: false },
+        canManageAssets: { type: Boolean, default: false },
+        canManageSettings: { type: Boolean, default: false },
+        canDeleteRecords: { type: Boolean, default: false },
+    },
+
+    // Whether this staff user has permission to access the Manager ERP portal
+    canAccessERP: {
+        type: Boolean,
+        default: false,
+    },
+
     // New signups sit as "Pending" until an admin approves them via the
     // email sent to config.adminApprovalEmail — they cannot log in until then.
     status: {

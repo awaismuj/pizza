@@ -181,4 +181,202 @@ const logout = async (req, res, next) => {
 
 
 
-module.exports = { register, login, getUserData, logout, approveUser, rejectUser }
+const getAllUsers = async (req, res, next) => {
+    try {
+        const users = await User.find({}, "-password").sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: users });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const createUserByAdmin = async (req, res, next) => {
+    try {
+        const requesterRole = String(req.user?.role || "").toLowerCase();
+        if (requesterRole !== "admin") {
+            return next(createHttpError(403, "Only administrators can directly create system user accounts."));
+        }
+
+        const { name, phone, email, password, role, status = "Approved", permissions, canAccessERP } = req.body;
+        if (!name || !phone || !email || !password || !role) {
+            return next(createHttpError(400, "Name, phone, email, password, and role are all required."));
+        }
+
+        const existing = await User.findOne({ email: email.toLowerCase().trim() });
+        if (existing) {
+            return next(createHttpError(400, "A user account with this email address already exists."));
+        }
+
+        const isFullAdmin = String(role).toLowerCase() === "admin";
+        const defaultPermissions = {
+            canAccessERP: isFullAdmin || Boolean(canAccessERP || permissions?.canAccessERP),
+            canManageOrders: true,
+            canManageMenu: isFullAdmin,
+            canManageInventory: isFullAdmin,
+            canManageStaff: isFullAdmin,
+            canViewFinancials: isFullAdmin,
+            canManageAssets: isFullAdmin,
+            canManageSettings: isFullAdmin,
+            canDeleteRecords: isFullAdmin,
+            ...(permissions || {}),
+        };
+
+        const newUser = new User({
+            name: name.trim(),
+            phone,
+            email: email.toLowerCase().trim(),
+            password,
+            role,
+            status,
+            canAccessERP: defaultPermissions.canAccessERP,
+            permissions: defaultPermissions,
+        });
+
+        await newUser.save();
+        const userObj = newUser.toObject();
+        delete userObj.password;
+
+        res.status(201).json({
+            success: true,
+            message: "System user account created successfully!",
+            data: userObj,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateUser = async (req, res, next) => {
+    try {
+        const requesterRole = String(req.user?.role || "").toLowerCase();
+        if (requesterRole !== "admin") {
+            return next(createHttpError(403, "Only administrators can update user accounts."));
+        }
+
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) return next(createHttpError(404, "User not found"));
+
+        const { name, phone, email, password, role, status, permissions, canAccessERP } = req.body;
+
+        if (name) user.name = name.trim();
+        if (phone) user.phone = phone;
+        if (email) {
+            const trimmedEmail = email.toLowerCase().trim();
+            if (trimmedEmail !== user.email) {
+                const clash = await User.findOne({ email: trimmedEmail, _id: { $ne: id } });
+                if (clash) return next(createHttpError(400, "Email is already taken by another account."));
+                user.email = trimmedEmail;
+            }
+        }
+        if (role) user.role = role;
+        if (status) user.status = status;
+        if (password && password.trim().length >= 4) {
+            user.password = password.trim();
+        }
+
+        if (permissions) {
+            user.permissions = {
+                ...(user.permissions ? (user.permissions.toObject ? user.permissions.toObject() : user.permissions) : {}),
+                ...permissions,
+            };
+            if (typeof permissions.canAccessERP === "boolean") {
+                user.canAccessERP = permissions.canAccessERP;
+            }
+        }
+        if (typeof canAccessERP === "boolean") {
+            user.canAccessERP = canAccessERP;
+            if (!user.permissions) user.permissions = {};
+            user.permissions.canAccessERP = canAccessERP;
+        }
+
+        await user.save();
+        const userObj = user.toObject();
+        delete userObj.password;
+
+        res.status(200).json({
+            success: true,
+            message: "User account updated successfully!",
+            data: userObj,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteUser = async (req, res, next) => {
+    try {
+        const requesterRole = String(req.user?.role || "").toLowerCase();
+        if (requesterRole !== "admin") {
+            return next(createHttpError(403, "Only administrators can delete user accounts."));
+        }
+
+        const { id } = req.params;
+        if (req.user?._id?.toString() === id) {
+            return next(createHttpError(400, "You cannot delete your own logged-in admin account."));
+        }
+
+        const deleted = await User.findByIdAndDelete(id);
+        if (!deleted) return next(createHttpError(404, "User not found"));
+
+        res.status(200).json({
+            success: true,
+            message: "User account deleted successfully!",
+            data: { _id: id },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateUserPermissions = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { canAccessERP, role, permissions } = req.body;
+
+        const user = await User.findById(id);
+        if (!user) return next(createHttpError(404, "User not found"));
+
+        if (typeof canAccessERP === "boolean") {
+            user.canAccessERP = canAccessERP;
+            if (!user.permissions) user.permissions = {};
+            user.permissions.canAccessERP = canAccessERP;
+        }
+        if (role) user.role = role;
+        if (permissions) {
+            user.permissions = {
+                ...(user.permissions ? (user.permissions.toObject ? user.permissions.toObject() : user.permissions) : {}),
+                ...permissions,
+            };
+            if (typeof permissions.canAccessERP === "boolean") {
+                user.canAccessERP = permissions.canAccessERP;
+            }
+        }
+
+        await user.save();
+        const userObj = user.toObject();
+        delete userObj.password;
+
+        res.status(200).json({
+            success: true,
+            message: "User permissions updated successfully!",
+            data: userObj,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = {
+    register,
+    login,
+    getUserData,
+    logout,
+    approveUser,
+    rejectUser,
+    getAllUsers,
+    createUserByAdmin,
+    updateUser,
+    deleteUser,
+    updateUserPermissions,
+};

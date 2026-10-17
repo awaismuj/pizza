@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { FaSearch } from "react-icons/fa";
-import { MdReceiptLong } from "react-icons/md";
+import { FcSearch, FcDocument } from "react-icons/fc";
 import OrderList from "./OrderList";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
@@ -79,7 +78,7 @@ const RecentOrders = () => {
               : "bg-slate-900 border border-slate-800 text-slate-100 focus-within:border-amber-500"
           }`}
         >
-          <FaSearch className={isClean ? "text-slate-400" : "text-slate-400"} />
+          <FcSearch size={18} />
           <input
             type="text"
             value={searchTerm}
@@ -98,8 +97,8 @@ const RecentOrders = () => {
             })
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mb-2">
-                <MdReceiptLong size={32} />
+              <span className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 mb-2">
+                <FcDocument size={36} />
               </span>
               <p className={isClean ? "text-slate-500 font-medium text-sm" : "text-slate-400 text-sm"}>
                 {searchTerm ? `No orders matching "${searchTerm}"` : "No orders available"}
