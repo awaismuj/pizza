@@ -225,3 +225,8 @@ export const uploadAssetDocument = (file) => {
 };
 export const downloadAssetDocument = (filename) =>
   axiosWrapper.get(`/api/assets/documents/${encodeURIComponent(filename)}`, { responseType: "blob" });
+
+// Customer reviews (storefront "Write a Review") — admin moderation.
+export const getReviews = () => axiosWrapper.get("/api/review");
+export const toggleReview = (reviewId) => axiosWrapper.patch(`/api/review/${reviewId}/toggle`);
+export const deleteReview = (reviewId) => axiosWrapper.delete(`/api/review/${reviewId}`);

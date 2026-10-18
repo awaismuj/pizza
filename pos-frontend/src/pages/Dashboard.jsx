@@ -1,7 +1,25 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { MdTableBar, MdCategory } from "react-icons/md";
+import {
+  MdTableBar,
+  MdCategory,
+  MdInsights,
+  MdReceiptLong,
+  MdPayments,
+  MdRestaurantMenu,
+  MdLocalOffer,
+  MdViewCarousel,
+  MdTrendingUp,
+  MdInventory2,
+  MdBadge,
+  MdTune,
+  MdAccountBalance,
+  MdMusicNote,
+  MdDevices,
+  MdRateReview,
+  MdAdd,
+} from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -17,6 +35,7 @@ import TaxManager from "../components/dashboard/TaxManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
+import ReviewsManager from "../components/dashboard/ReviewsManager";
 import MusicPlayer from "../components/shared/MusicPlayer";
 import {
   getCategories,
@@ -36,12 +55,30 @@ import { resolveImageUrl } from "../utils";
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
 const buttons = [
-  { label: "Add Table", icon: <MdTableBar />, action: "table" },
-  { label: "Add Category", icon: <MdCategory />, action: "category" },
-  { label: "Add Dishes", icon: <BiSolidDish />, action: "dishes" },
+  { label: "Add Table", hint: "Dine-in seating", icon: <MdTableBar />, action: "table", tint: "#3b82f6" },
+  { label: "Add Category", hint: "Group your menu", icon: <MdCategory />, action: "category", tint: "#a855f7" },
+  { label: "Add Dishes", hint: "New menu item", icon: <BiSolidDish />, action: "dishes", tint: "#f6b100" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
+const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Reviews", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
+
+// Icon per tab, so the bar can be scanned at a glance.
+const tabIcons = {
+  Metrics: <MdInsights />,
+  Orders: <MdReceiptLong />,
+  Payments: <MdPayments />,
+  Menu: <MdRestaurantMenu />,
+  Deals: <MdLocalOffer />,
+  "Hero Slider": <MdViewCarousel />,
+  Reviews: <MdRateReview />,
+  Profit: <MdTrendingUp />,
+  Inventory: <MdInventory2 />,
+  Staff: <MdBadge />,
+  "Build Your Own": <MdTune />,
+  Tax: <MdAccountBalance />,
+  Music: <MdMusicNote />,
+  Assets: <MdDevices />,
+};
 const assetRoles = ["admin", "accountant", "asset manager", "read only"];
 
 const Dashboard = () => {
@@ -318,35 +355,56 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
-      <div className="container mx-auto flex items-center justify-between py-14 px-6 md:px-4 flex-wrap gap-4">
-        {isAdmin && <div className="flex items-center gap-3 flex-wrap">
-          {buttons.map(({ label, icon, action }) => {
-            return (
-              <button
-                key={action}
-                onClick={() => handleOpenModal(action)}
-                className="bg-[#1a1a1a] hover:bg-[#262626] px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2"
-              >
-                {label} {icon}
-              </button>
-            );
-          })}
-        </div>}
+    <div className="dash-wide bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
+      <div className="container mx-auto px-4 sm:px-6 pt-8 pb-4">
+        {isAdmin && (
+          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5 mb-6">
+            <div>
+              <h1 className="text-[#f5f5f5] text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+              <p className="text-[#8a8a8a] text-sm mt-1">Manage your menu, orders and storefront in one place.</p>
+            </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:min-w-[640px]">
+              {buttons.map(({ label, hint, icon, action, tint }) => (
+                <button
+                  key={action}
+                  onClick={() => handleOpenModal(action)}
+                  className="group flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left bg-[#262626] hover:bg-[#2e2e2e] border border-[#333] hover:border-[#4a4a4a] rounded-2xl px-2 sm:px-4 py-3 transition-colors"
+                >
+                  <span
+                    className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-2xl"
+                    style={{ background: `${tint}26`, color: tint }}
+                  >
+                    {icon}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[#f5f5f5] font-semibold leading-tight">{label}</span>
+                    <span className="hidden sm:block text-[#8a8a8a] text-xs mt-0.5 truncate">{hint}</span>
+                  </span>
+                  <span className="hidden sm:flex w-8 h-8 rounded-full bg-[#1f1f1f] text-[#f5f5f5] flex items-center justify-center text-lg group-hover:bg-[#f6b100] group-hover:text-[#1f1f1f] transition-colors">
+                    <MdAdd />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="dash-tabs flex items-center gap-1.5 overflow-x-auto bg-[#262626] border border-[#333] rounded-2xl p-1.5">
           {visibleTabs.map((tab) => {
+            const active = activeTab === tab;
             return (
               <button
                 key={tab}
-                className={`
-                px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2 ${
-                  activeTab === tab
-                    ? "bg-[#262626]"
-                    : "bg-[#1a1a1a] hover:bg-[#262626]"
-                }`}
                 onClick={() => setActiveTab(tab)}
+                aria-current={active ? "page" : undefined}
+                className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
+                  active
+                    ? "bg-[#f6b100] text-[#1f1f1f] shadow-md shadow-black/30"
+                    : "text-[#b5b5b5] hover:text-[#f5f5f5] hover:bg-[#333]"
+                }`}
               >
+                <span className="text-lg">{tabIcons[tab]}</span>
                 {tab}
               </button>
             );
@@ -360,6 +418,7 @@ const Dashboard = () => {
       {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}
+      {activeTab === "Reviews" && <ReviewsManager />}
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
       {activeTab === "Assets" && assetRoles.includes(String(role || "").toLowerCase()) && <AssetManagement role={role} />}
       {activeTab === "Menu" && (

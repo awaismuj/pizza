@@ -59,3 +59,8 @@ export const lookupOrderByPhone = (phone) =>
 // an accurate estimate before checkout; the amount actually charged is
 // always recalculated server-side from this same setting.
 export const getPublicSettings = () => request("/api/settings");
+
+// Customer reviews: public read + "Write a Review" submit.
+export const getPublicReviews = (limit = 30) => request(`/api/review/public?limit=${limit}`);
+export const submitReview = (payload) =>
+  request("/api/review/public", { method: "POST", body: JSON.stringify(payload) });

@@ -7,6 +7,8 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { serveUploadedImage } = require("./controllers/uploadController");
 const app = express();
+// Behind Cloudflare/nginx: needed so req.ip is the visitor, not the proxy.
+app.set("trust proxy", 1);
 
 const PORT = config.port;
 connectDB();
@@ -76,6 +78,7 @@ app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
 app.use("/api/music", require("./routes/musicRoute"));
+app.use("/api/review", require("./routes/reviewRoute"));
 
 // Global Error Handler
 app.use(globalErrorHandler);

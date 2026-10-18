@@ -9,10 +9,14 @@ import {
   cancelOrder,
   lookupOrderByPhone,
   getPublicSettings,
+  getPublicReviews,
+  submitReview,
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
 import sindbadLogo from "./assets/sindbad-solution-logo.png";
+import { DESIGN_STYLES } from "./design";
+import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection, SiteFooter } from "./Sections.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
 
 /* ---------------------------------------------------------------------------
@@ -60,7 +64,8 @@ const STYLES = `
 
   --header-h: 60px;
   --nav-h: 54px;
-  --shell: 1200px;
+  --shell: 100%;
+  --gutter: clamp(16px, 2.6vw, 56px);
 }
 
 * {
@@ -168,7 +173,7 @@ select {
 
 @media (min-width: 900px) {
   .gzp-shell {
-    padding: 0 28px;
+    padding: 0 var(--gutter);
   }
 }
 
@@ -198,7 +203,7 @@ select {
 
 @media (min-width: 900px) {
   .gzp-header-inner {
-    padding: 0 28px;
+    padding: 0 var(--gutter);
   }
 }
 
@@ -470,7 +475,7 @@ select {
 
 @media (min-width: 900px) {
   .gzp-navbar-inner {
-    padding: 0 28px;
+    padding: 0 var(--gutter);
   }
 }
 
@@ -2185,7 +2190,7 @@ textarea::placeholder {
     tag.id = "gzp-styles";
     document.head.appendChild(tag);
   }
-  tag.textContent = STYLES + BYO_STYLES;
+  tag.textContent = STYLES + BYO_STYLES + DESIGN_STYLES;
 
   // Dark browser chrome on mobile, so the notch area matches the page.
   if (!document.querySelector('meta[name="theme-color"]')) {
@@ -2696,7 +2701,7 @@ const WhatsAppButton = () => (
   </a>
 );
 
-const Header = ({ minimal, cartCount, onSearch, onCart }) => (
+const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) => (
   <header className="gzp-header">
     <div className="gzp-header-inner">
       <button
@@ -2713,6 +2718,15 @@ const Header = ({ minimal, cartCount, onSearch, onCart }) => (
 
       {!minimal && (
         <>
+          <nav className="v2-links" aria-label="Site">
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("menu")}>Menu</button>
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("deals")}>Deals</button>
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("reviews")}>Reviews</button>
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("contact")}>Contact</button>
+          </nav>
+          <button className="v2-track-btn" onClick={onTrack} type="button">
+            <IconTruck /> Track order
+          </button>
           <button
             className="gzp-icon-btn"
             onClick={onSearch}
@@ -2848,6 +2862,7 @@ function App() {
   // Manual "Track order" lookup (footer button) — lets a customer pull up
   // status on any device/browser, not just the one that placed the order.
   const [trackOpen, setTrackOpen] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState(null);
   const [trackInput, setTrackInput] = useState("");
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState("");
@@ -3233,6 +3248,18 @@ function App() {
     if (!el) return;
     setActiveSection(id);
     el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Header / hero / footer links: "menu" lands on the first menu section,
+  // everything else scrolls to its own section if it exists.
+  const navigateTo = (target) => {
+    if (target === "menu") {
+      const first = deals.length > 0 ? DEALS_SECTION_ID : navItems[0]?.id;
+      if (first) return goToSection(first);
+    }
+    if (target === "deals" && deals.length === 0) return goToSection(navItems[0]?.id);
+    const el = document.getElementById(`section-${target}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // Highlight the chip for whichever section is currently under the sticky
@@ -3731,6 +3758,8 @@ function App() {
         cartCount={cartCount}
         onSearch={() => setSearchOpen(true)}
         onCart={() => setCartOpen(true)}
+        onNavigate={navigateTo}
+        onTrack={() => setTrackOpen(true)}
       />
 
       {/* Left up after "Click for more order" on the Thank You screen, so
@@ -3754,6 +3783,12 @@ function App() {
 
       {/* ---- Hero: full-width slider only, staff-managed from the POS
              dashboard (Dashboard > Hero Slider) ---- */}
+      <HeroIntro
+        summary={reviewSummary}
+        onOrder={() => navigateTo("menu")}
+        onTrack={() => setTrackOpen(true)}
+      />
+
       <section className="gzp-hero">
         <HeroSlider
           slides={heroSlides}
@@ -3987,24 +4022,17 @@ function App() {
           </>
         )}
 
-        <footer className="gzp-footer">
-          <div className="gzp-footer-inner">
-            <p>
-              <strong>GenZ Pizza Land</strong>
-              Prices are in rupees. {taxRatePercent}% tax is added at checkout and the rider
-              collects the total in cash.
-            </p>
-            <button className="gzp-btn gzp-btn-ghost" onClick={() => setTrackOpen(true)} type="button">
-              <IconTruck /> Track an order
-            </button>
-          </div>
-          <div className="gzp-footer-credit">
-            <span>Developed by</span>
-            <img src={sindbadLogo} alt="" />
-            <strong>Sindbad Solution</strong>
-          </div>
-        </footer>
+        <FeaturesSection />
+        <ReviewsSection onSummary={setReviewSummary} />
+        <HowItWorks />
+        <ContactSection whatsappLink={WHATSAPP_LINK} onTrack={() => setTrackOpen(true)} />
       </div>
+
+      <SiteFooter
+        taxRatePercent={taxRatePercent}
+        onNavigate={navigateTo}
+        onTrack={() => setTrackOpen(true)}
+      />
 
       {/* ---- Bottom cart bar ---- */}
       {cartCount > 0 && !cartOpen && !checkoutOpen && (
