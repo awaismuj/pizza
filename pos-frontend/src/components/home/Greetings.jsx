@@ -29,7 +29,7 @@ const Greetings = () => {
           <h1 className="mt-2 break-words text-2xl font-bold text-[#f5f5f5] sm:text-3xl">
             {greetingFor(now.getHours())}, {userName || "there"}
           </h1>
-          <p className="mt-1 text-sm text-[#9a9a9a]">Here is what is happening in the shop right now.</p>
+          <p className="mt-1 text-sm text-[#9a9a9a]">Shop overview</p>
         </div>
         <div className="sm:text-right">
           <p className="font-bold tabular-nums leading-none text-[#f5f5f5] text-4xl sm:text-5xl">
