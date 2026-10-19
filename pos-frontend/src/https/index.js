@@ -130,6 +130,7 @@ export const deleteInventoryItem = (inventoryId) => axiosWrapper.delete(`/api/in
 // Expense Endpoints
 export const getExpenses = (date) => axiosWrapper.get("/api/expense", { params: { date } });
 export const addExpense = (data) => axiosWrapper.post("/api/expense/", data);
+export const updateExpense = ({ id, ...data }) => axiosWrapper.put(`/api/expense/${id}`, data);
 export const deleteExpense = (expenseId) => axiosWrapper.delete(`/api/expense/${expenseId}`);
 
 // Profit Endpoints

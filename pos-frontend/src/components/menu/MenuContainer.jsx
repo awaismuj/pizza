@@ -513,7 +513,9 @@ const MenuContainer = ({ onAddToCart }) => {
                   key={menu.id}
                   className={`flex flex-col items-start justify-between gap-1.5 p-3 rounded-2xl cursor-pointer transition-all duration-150 border min-h-[75px] sm:min-h-[85px] ${
                     isSelected
-                      ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-bold"
+                      ? isClean
+                        ? "bg-amber-50/80 border-2 border-amber-500 text-slate-950 shadow-sm"
+                        : "bg-amber-500/10 border-2 border-amber-500 text-white shadow-sm"
                       : isClean
                       ? "bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-xs hover:bg-slate-50/80"
                       : "bg-slate-900/90 text-slate-200 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 shadow-md"
@@ -527,19 +529,21 @@ const MenuContainer = ({ onAddToCart }) => {
                   <div className="flex items-start justify-between w-full gap-2">
                     <h3
                       className={`text-xs sm:text-sm font-extrabold line-clamp-2 break-words min-w-0 flex-1 leading-tight ${
-                        isSelected ? "text-slate-950" : isClean ? "text-slate-900" : "text-white"
+                        isSelected
+                          ? isClean ? "text-amber-950" : "text-amber-400"
+                          : isClean ? "text-slate-900" : "text-white"
                       }`}
                     >
                       <MenuIcon icon={menu.icon} /> {menu.name}
                     </h3>
                     {isSelected && (
-                      <GrRadialSelected className="text-slate-950 shrink-0 mt-0.5" size={15} />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-4 ring-amber-500/20 shrink-0 mt-1" />
                     )}
                   </div>
                   <p
-                    className={`text-[11px] font-semibold ${
+                    className={`text-[11px] font-bold ${
                       isSelected
-                        ? "text-slate-900/80"
+                        ? isClean ? "text-amber-700" : "text-amber-400"
                         : isClean
                         ? "text-slate-400"
                         : "text-slate-500"

@@ -10,6 +10,7 @@
     "migrate:asset-depreciation": "node scripts/migrate-asset-depreciation.js",
     "seed": "node scripts/seed.js",
     "seed:pizzaland": "node scripts/seedPizzaLandRecipes.js",
+    "seed:staging": "node scripts/populateStagingData.js",
     "reset:sales": "node scripts/reset-sales.js",
     "backfill:order-numbers": "node scripts/backfill-order-numbers.js",
     "mongo": "node scripts/start-local-mongo.js",

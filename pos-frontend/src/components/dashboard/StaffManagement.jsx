@@ -1033,19 +1033,42 @@ const StaffManagement = () => {
       {isFormOpen &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <form
-              onSubmit={submitStaffForm}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl max-h-[92vh] overflow-y-auto p-5 sm:p-6 space-y-4 shadow-2xl"
-            >
-              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-slate-900 dark:text-white text-base font-bold tracking-tight">
-                  {editingStaff ? "Edit Staff Details" : "Enroll New Staff Member"}
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400 text-xs">
-                  Enter personnel information, salary rate, and optional system login permissions
-                </p>
-              </div>
+          <div className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
+            <div
+              className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+              onClick={() => {
+                setIsFormOpen(false);
+                setEditingStaff(null);
+              }}
+            />
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <form
+                onSubmit={submitStaffForm}
+                onClick={(e) => e.stopPropagation()}
+                className="pointer-events-auto w-screen max-w-xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full"
+              >
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-4 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-slate-900 dark:text-white text-base font-bold tracking-tight">
+                      {editingStaff ? "Edit Staff Details" : "Enroll New Staff Member"}
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                      Enter personnel information, salary rate, and optional system login permissions
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFormOpen(false);
+                      setEditingStaff(null);
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4 flex-1 overflow-y-auto">
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
@@ -1215,27 +1238,29 @@ const StaffManagement = () => {
                   </div>
                 )}
               </div>
+            </div>
 
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsFormOpen(false);
-                    setEditingStaff(null);
-                  }}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={addMutation.isPending || updateMutation.isPending}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2.5 text-xs font-black shadow-sm transition active:scale-95 disabled:opacity-50"
-                >
-                  Save Details
-                </button>
-              </div>
-            </form>
+            <div className="flex gap-2 p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFormOpen(false);
+                      setEditingStaff(null);
+                    }}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addMutation.isPending || updateMutation.isPending}
+                    className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2.5 text-xs font-black shadow-sm transition active:scale-95 disabled:opacity-50"
+                  >
+                    Save Details
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>,
           document.body
         )}
@@ -1244,31 +1269,42 @@ const StaffManagement = () => {
       {isUserModalOpen &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <form
-              onSubmit={submitUserForm}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl max-h-[92vh] overflow-y-auto p-5 sm:p-6 space-y-4 shadow-2xl"
-            >
-              <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
-                <div>
-                  <h3 className="text-slate-900 dark:text-white text-base font-bold tracking-tight">
-                    {editingUser ? "Edit User Account & Permissions" : "Enroll New System User"}
-                  </h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs">
-                    Configure login credentials and grant granular module capabilities
-                  </p>
+          <div className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
+            <div
+              className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+              onClick={() => {
+                setIsUserModalOpen(false);
+                setEditingUser(null);
+              }}
+            />
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <form
+                onSubmit={submitUserForm}
+                onClick={(e) => e.stopPropagation()}
+                className="pointer-events-auto w-screen max-w-xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full"
+              >
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-4 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-slate-900 dark:text-white text-base font-bold tracking-tight">
+                      {editingUser ? "Edit User Account & Permissions" : "Enroll New System User"}
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                      Configure login credentials and grant granular module capabilities
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUserModalOpen(false);
+                      setEditingUser(null);
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsUserModalOpen(false);
-                    setEditingUser(null);
-                  }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
-                >
-                  <FaTimes size={14} />
-                </button>
-              </div>
+
+                <div className="p-6 space-y-4 flex-1 overflow-y-auto">
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
@@ -1365,27 +1401,29 @@ const StaffManagement = () => {
                   onChange={(newPerms) => setUserForm({ ...userForm, permissions: newPerms })}
                 />
               </div>
+            </div>
 
-              <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsUserModalOpen(false);
-                    setEditingUser(null);
-                  }}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createUserMutation.isPending || updateUserMutation.isPending}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2.5 text-xs font-black shadow-sm transition active:scale-95 disabled:opacity-50"
-                >
-                  {editingUser ? "Update User & Permissions" : "Create User Account"}
-                </button>
-              </div>
-            </form>
+            <div className="flex gap-2 p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUserModalOpen(false);
+                      setEditingUser(null);
+                    }}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createUserMutation.isPending || updateUserMutation.isPending}
+                    className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2.5 text-xs font-black shadow-sm transition active:scale-95 disabled:opacity-50"
+                  >
+                    {editingUser ? "Update User & Permissions" : "Create User Account"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>,
           document.body
         )}
@@ -1394,72 +1432,102 @@ const StaffManagement = () => {
       {adjustmentFor &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!(Number(adjustmentForm.amount) > 0)) {
-                  enqueueSnackbar("Enter an amount greater than 0.", { variant: "error" });
-                  return;
-                }
-                addAdjMutation.mutate({
-                  staffId: adjustmentFor,
-                  type: adjustmentForm.type,
-                  amount: Number(adjustmentForm.amount),
-                  date: todayStr(),
-                  note: adjustmentForm.note,
-                });
-              }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl"
-            >
-              <h3 className="text-slate-900 dark:text-white text-base font-bold">Record Salary Adjustment</h3>
-              <div className="flex gap-2">
-                {["Advance", "Deduction"].map((t) => (
+          <div className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
+            <div
+              className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+              onClick={() => setAdjustmentFor(null)}
+            />
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!(Number(adjustmentForm.amount) > 0)) {
+                    enqueueSnackbar("Enter an amount greater than 0.", { variant: "error" });
+                    return;
+                  }
+                  addAdjMutation.mutate({
+                    staffId: adjustmentFor,
+                    type: adjustmentForm.type,
+                    amount: Number(adjustmentForm.amount),
+                    date: todayStr(),
+                    note: adjustmentForm.note,
+                  });
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="pointer-events-auto w-screen max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full"
+              >
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-4 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between">
+                  <h3 className="text-slate-900 dark:text-white text-base font-bold">Record Salary Adjustment</h3>
                   <button
-                    key={t}
                     type="button"
-                    onClick={() => setAdjustmentForm((p) => ({ ...p, type: t }))}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
-                      adjustmentForm.type === t
-                        ? "bg-amber-500 text-slate-950 shadow-xs"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
-                    }`}
+                    onClick={() => setAdjustmentFor(null)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg"
                   >
-                    {t}
+                    ✕
                   </button>
-                ))}
-              </div>
-              <input
-                type="number"
-                min="0"
-                value={adjustmentForm.amount}
-                onChange={(e) => setAdjustmentForm((p) => ({ ...p, amount: e.target.value }))}
-                placeholder="Amount (Rs)"
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 font-bold"
-              />
-              <input
-                value={adjustmentForm.note}
-                onChange={(e) => setAdjustmentForm((p) => ({ ...p, note: e.target.value }))}
-                placeholder="Note or reason (optional)"
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
-              />
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setAdjustmentFor(null)}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={addAdjMutation.isPending}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2.5 text-xs font-black shadow-sm transition active:scale-95"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
+                </div>
+
+                <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+                  <div className="flex gap-2">
+                    {["Advance", "Deduction"].map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setAdjustmentForm((p) => ({ ...p, type: t }))}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition ${
+                          adjustmentForm.type === t
+                            ? "bg-amber-500 text-slate-950 shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                      Adjustment Amount (Rs) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={adjustmentForm.amount}
+                      onChange={(e) => setAdjustmentForm((p) => ({ ...p, amount: e.target.value }))}
+                      placeholder="Amount (Rs)"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
+                      Note / Reason
+                    </label>
+                    <input
+                      value={adjustmentForm.note}
+                      onChange={(e) => setAdjustmentForm((p) => ({ ...p, note: e.target.value }))}
+                      placeholder="Note or reason (optional)"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setAdjustmentFor(null)}
+                    className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addAdjMutation.isPending}
+                    className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl py-2.5 text-xs font-black shadow-sm transition active:scale-95"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>,
           document.body
         )}
@@ -1468,50 +1536,75 @@ const StaffManagement = () => {
       {historyFor &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <h3 className="text-slate-900 dark:text-white text-base font-bold">
-                  Attendance: {staff.find((s) => s._id === historyFor)?.name}
-                </h3>
-                <input
-                  type="month"
-                  value={payrollMonth}
-                  max={thisMonthStr()}
-                  onChange={(e) => setPayrollMonth(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2 py-1 outline-none text-xs font-semibold"
-                />
-              </div>
-              <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
-                {(historyData?.data?.data ?? []).map((row) => (
-                  <div
-                    key={row.dayKey}
-                    className="flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70 rounded-xl px-3 py-2"
-                  >
-                    <span className="text-slate-600 dark:text-slate-400 font-semibold">{row.dayKey}</span>
-                    <span
-                      className={`font-bold ${
-                        row.status === "Present"
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : row.status === "Absent"
-                          ? "text-rose-500"
-                          : "text-amber-500"
-                      }`}
-                    >
-                      {row.status}
-                    </span>
-                  </div>
-                ))}
-                {(historyData?.data?.data ?? []).length === 0 && (
-                  <p className="text-slate-400 text-xs py-4 text-center">No attendance records for this month.</p>
-                )}
-              </div>
-              <button
-                onClick={() => setHistoryFor(null)}
-                className="mt-4 w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
+          <div className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
+            <div
+              className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+              onClick={() => setHistoryFor(null)}
+            />
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="pointer-events-auto w-screen max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full"
               >
-                Close
-              </button>
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-4 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-slate-900 dark:text-white text-base font-bold">
+                      Attendance History
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {staff.find((s) => s._id === historyFor)?.name}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="month"
+                      value={payrollMonth}
+                      max={thisMonthStr()}
+                      onChange={(e) => setPayrollMonth(e.target.value)}
+                      className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-2.5 py-1 outline-none text-xs font-semibold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setHistoryFor(null)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6 space-y-2 flex-1 overflow-y-auto">
+                  {(historyData?.data?.data ?? []).map((row) => (
+                    <div
+                      key={row.dayKey}
+                      className="flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/70 rounded-xl px-3 py-2.5"
+                    >
+                      <span className="text-slate-600 dark:text-slate-400 font-semibold">{row.dayKey}</span>
+                      <span
+                        className={`font-bold ${
+                          row.status === "Present"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : row.status === "Absent"
+                            ? "text-rose-500"
+                            : "text-amber-500"
+                        }`}
+                      >
+                        {row.status}
+                      </span>
+                    </div>
+                  ))}
+                  {(historyData?.data?.data ?? []).length === 0 && (
+                    <p className="text-slate-400 text-xs py-8 text-center font-medium">No attendance records for this month.</p>
+                  )}
+                </div>
+                <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850 shrink-0">
+                  <button
+                    onClick={() => setHistoryFor(null)}
+                    className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl py-2.5 text-xs font-bold transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>,
           document.body

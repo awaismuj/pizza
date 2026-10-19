@@ -92,15 +92,20 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
   };
 
   const modalJSX = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] overflow-hidden" role="dialog" aria-modal="true">
       <div
-        onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto border transition-colors ${
-          isClean
-            ? "bg-white border-slate-200 text-slate-900"
-            : "bg-[#0F172A] border-slate-800 text-slate-100"
-        }`}
-      >
+        className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+        onClick={onClose}
+      />
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`pointer-events-auto w-screen max-w-lg shadow-2xl flex flex-col h-full border-l transition-colors ${
+            isClean
+              ? "bg-white border-slate-200 text-slate-900"
+              : "bg-[#0F172A] border-slate-800 text-slate-100"
+          }`}
+        >
         {/* Modal Header */}
         <div
           className={`flex items-center justify-between px-6 py-4 border-b ${
@@ -136,7 +141,7 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 overflow-y-auto">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
           {/* Order Type Toggle: Dine In vs Takeaway */}
           <div
             className={`grid grid-cols-2 gap-3 p-1 rounded-xl border ${
@@ -324,6 +329,7 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
             <span>&rarr;</span>
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

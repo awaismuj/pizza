@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FaTrash, FaLock, FaBolt, FaChevronDown, FaChevronUp, FaReceipt, FaPlus } from "react-icons/fa";
+import { FaTrash, FaLock, FaBolt, FaChevronDown, FaChevronUp, FaReceipt, FaPlus, FaEdit } from "react-icons/fa";
 import { FiDollarSign, FiShoppingBag, FiCreditCard, FiTrendingUp } from "react-icons/fi";
 import { enqueueSnackbar } from "notistack";
-import { getDailyProfit, getMonthlyProfit, getDailyOrders, getExpenses, addExpense, deleteExpense } from "../../https";
+import { getDailyProfit, getMonthlyProfit, getDailyOrders, getExpenses, addExpense, updateExpense, deleteExpense } from "../../https";
 import { formatCurrency } from "../../utils/orderMetrics";
 import ReportSender from "./ReportSender";
 import { useUITheme } from "../../context/UIThemeContext";
@@ -46,6 +46,7 @@ const ProfitExpenses = () => {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [selectedMonth, setSelectedMonth] = useState(thisMonthStr());
   const [expenseForm, setExpenseForm] = useState({ amount: "", description: "" });
+  const [editingExpense, setEditingExpense] = useState(null);
 
   const { data: dailyData, isLoading: isDailyLoading } = useQuery({
     queryKey: ["dailyProfit", selectedDate],
@@ -97,6 +98,18 @@ const ProfitExpenses = () => {
     },
     onError: (err) => {
       enqueueSnackbar(err?.response?.data?.message || "Failed to add expense.", { variant: "error" });
+    },
+  });
+
+  const updateExpenseMutation = useMutation({
+    mutationFn: updateExpense,
+    onSuccess: () => {
+      invalidateAllForDate();
+      setEditingExpense(null);
+      enqueueSnackbar("Expense updated — profit updated.", { variant: "success" });
+    },
+    onError: (err) => {
+      enqueueSnackbar(err?.response?.data?.message || "Failed to update expense.", { variant: "error" });
     },
   });
 
@@ -320,7 +333,7 @@ const ProfitExpenses = () => {
 
         <div className="space-y-2">
           {expenses.length === 0 ? (
-            <p className="text-slate-400 text-xs py-2">No shift expenses logged for this date.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs py-2 font-medium">No shift expenses logged for this date.</p>
           ) : (
             expenses.map((exp) => (
               <div
@@ -332,21 +345,126 @@ const ProfitExpenses = () => {
                     Rs {formatCurrency(exp.amount)}
                   </p>
                   {exp.description && (
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{exp.description}</p>
+                    <p className="text-slate-600 dark:text-slate-300 text-xs mt-0.5 font-medium">{exp.description}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => deleteExpenseMutation.mutate(exp._id)}
-                  className="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                  aria-label="Delete expense"
-                >
-                  <FaTrash size={12} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setEditingExpense({ ...exp })}
+                    className="p-1.5 text-slate-500 hover:text-amber-500 transition rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                    title="Edit expense"
+                    aria-label="Edit expense"
+                  >
+                    <FaEdit size={13} />
+                  </button>
+                  <button
+                    onClick={() => deleteExpenseMutation.mutate(exp._id)}
+                    className="p-1.5 text-slate-500 hover:text-rose-500 transition rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    title="Delete expense"
+                    aria-label="Delete expense"
+                  >
+                    <FaTrash size={12} />
+                  </button>
+                </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* Edit Expense Side Overlay (Metronic Style) */}
+      {editingExpense && (
+        <div className="fixed inset-0 z-[9999] overflow-hidden" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-opacity"
+            onClick={() => setEditingExpense(null)}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <div
+              className="pointer-events-auto w-screen max-w-md bg-white dark:bg-slate-900 shadow-2xl flex flex-col h-full border-l border-slate-200 dark:border-slate-800"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                    Edit Shift Expense
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Update expense amount and reason</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingExpense(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const amount = Number(editingExpense.amount);
+                  if (!Number.isFinite(amount) || amount <= 0) {
+                    enqueueSnackbar("Enter a valid amount.", { variant: "warning" });
+                    return;
+                  }
+                  updateExpenseMutation.mutate({
+                    id: editingExpense._id,
+                    amount,
+                    description: editingExpense.description?.trim() || "",
+                  });
+                }}
+                className="p-6 space-y-4 flex-1 overflow-y-auto"
+                id="edit-expense-form"
+              >
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Expense Amount (Rs)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editingExpense.amount}
+                    onChange={(e) => setEditingExpense((prev) => ({ ...prev, amount: e.target.value }))}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-amber-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Description / Reason
+                  </label>
+                  <input
+                    type="text"
+                    value={editingExpense.description}
+                    onChange={(e) => setEditingExpense((prev) => ({ ...prev, description: e.target.value }))}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-amber-500"
+                    required
+                  />
+                </div>
+              </form>
+              <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEditingExpense(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="edit-expense-form"
+                  disabled={updateExpenseMutation.isPending}
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-slate-950 text-white dark:bg-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-slate-100 transition shadow-xs disabled:opacity-60"
+                >
+                  {updateExpenseMutation.isPending ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---- Monthly Profit Overview & Interactive Calendar ---- */}
       <div className="pos-card p-5 sm:p-6">

@@ -174,12 +174,28 @@ VECTOR_FOOD_ICONS.forEach((item) => {
   }
 });
 
-// Additional emoji mappings
+// Additional emoji and keyword mappings
 ICON_LOOKUP["🍺"] = ColoredDrinkIcon;
 ICON_LOOKUP["🍷"] = ColoredDrinkIcon;
 ICON_LOOKUP["🥗"] = ColoredSoupIcon;
 ICON_LOOKUP["🍣"] = ColoredPlatterIcon;
 ICON_LOOKUP["🍱"] = ColoredPlatterIcon;
+ICON_LOOKUP["deal"] = ColoredDealsIcon;
+ICON_LOOKUP["deals"] = ColoredDealsIcon;
+ICON_LOOKUP["special"] = ColoredDealsIcon;
+ICON_LOOKUP["discount"] = ColoredDealsIcon;
+ICON_LOOKUP["combo"] = ColoredPlatterIcon;
+ICON_LOOKUP["platter"] = ColoredPlatterIcon;
+ICON_LOOKUP["beverage"] = ColoredDrinkIcon;
+ICON_LOOKUP["drinks"] = ColoredDrinkIcon;
+ICON_LOOKUP["drink"] = ColoredDrinkIcon;
+ICON_LOOKUP["chicken"] = ColoredBbqIcon;
+ICON_LOOKUP["wings"] = ColoredBbqIcon;
+ICON_LOOKUP["bbq"] = ColoredBbqIcon;
+ICON_LOOKUP["fastfood"] = ColoredFriesIcon;
+ICON_LOOKUP["fries"] = ColoredFriesIcon;
+ICON_LOOKUP["dessert"] = ColoredDessertIcon;
+ICON_LOOKUP["sweet"] = ColoredDessertIcon;
 
 export const isUploadedImage = (value = "") => {
   if (typeof value !== "string") return false;

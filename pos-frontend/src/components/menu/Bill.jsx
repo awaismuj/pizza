@@ -5,6 +5,7 @@ import {
   addOrder,
   createOrderRazorpay,
   updateTable,
+  updateOrderItems,
   verifyPaymentRazorpay,
 } from "../../https/index";
 import { enqueueSnackbar } from "notistack";
@@ -56,6 +57,14 @@ const Bill = () => {
   const [showPendingReceipt, setShowPendingReceipt] = useState(false);
 
   const handlePlaceOrder = async () => {
+    if (customerData.existingOrderId) {
+      updateOrderMutation.mutate({
+        orderId: customerData.existingOrderId,
+        items: cartData,
+      });
+      return;
+    }
+
     if (!paymentMethod) {
       enqueueSnackbar("Please select a payment method!", {
         variant: "warning",
@@ -242,6 +251,25 @@ const Bill = () => {
     },
   });
 
+  const updateOrderMutation = useMutation({
+    mutationFn: (reqData) => updateOrderItems(reqData),
+    onSuccess: (resData) => {
+      const { data } = resData.data;
+      setOrderInfo(data);
+      queryClient.invalidateQueries(["orders"]);
+      queryClient.invalidateQueries(["tables"]);
+      enqueueSnackbar("Table order updated with new items!", { variant: "success" });
+      setShowKitchenSlip(true);
+      dispatch(removeCustomer());
+      dispatch(removeAllItems());
+    },
+    onError: (error) => {
+      const message =
+        error?.response?.data?.message || "Failed to update order items.";
+      enqueueSnackbar(message, { variant: "error" });
+    },
+  });
+
   return (
     <>
       <div
@@ -268,11 +296,11 @@ const Bill = () => {
               isClean ? "border-slate-200 text-slate-900" : "border-slate-800 text-white"
             }`}
           >
-            <span className={isClean ? "text-slate-900 font-extrabold" : "text-amber-400"}>
+            <span className={isClean ? "text-slate-900 font-bold" : "text-amber-400 font-bold"}>
               Payable Total
             </span>
             <span
-              className={`font-mono text-base font-black ${
+              className={`font-mono text-base font-bold ${
                 isClean ? "text-amber-600" : "text-amber-400"
               }`}
             >
@@ -288,7 +316,7 @@ const Bill = () => {
             onClick={() => setPaymentMethod("Cash")}
             className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
               paymentMethod === "Cash"
-                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
+                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-bold"
                 : isClean
                 ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
                 : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
@@ -333,10 +361,14 @@ const Bill = () => {
           <button
             type="button"
             onClick={handlePlaceOrder}
-            disabled={orderMutation.isPending || cartData.length === 0}
-            className="py-3 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition active:scale-95 disabled:opacity-40"
+            disabled={orderMutation.isPending || updateOrderMutation.isPending || cartData.length === 0}
+            className="py-3 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition active:scale-95 disabled:opacity-40"
           >
-            {orderMutation.isPending ? "Ringing In..." : "Complete Order →"}
+            {orderMutation.isPending || updateOrderMutation.isPending
+              ? "Saving..."
+              : customerData.existingOrderId
+              ? "Update Table Order →"
+              : "Complete Order →"}
           </button>
         </div>
       </div>

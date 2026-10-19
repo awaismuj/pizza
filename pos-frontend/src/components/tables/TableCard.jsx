@@ -12,28 +12,41 @@ import Modal from "../shared/Modal";
 import { updateTable as updateTableApi, deleteTable as deleteTableApi } from "../../https";
 import { useUITheme } from "../../context/UIThemeContext";
 
-const TableCard = ({ id, name, status, initials, seats }) => {
+import TableOrderDrawer from "./TableOrderDrawer";
+
+const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isClean } = useUITheme();
   const role = useSelector((state) => state.user.role);
-  const isAdmin = String(role || "").toLowerCase() === "admin";
+  const normalizedRole = String(role || "").toLowerCase();
+  const isAdmin = normalizedRole === "admin" || normalizedRole === "manager" || normalizedRole === "system admin";
 
   const [isManageOpen, setIsManageOpen] = useState(false);
+  const [isOrderDrawerOpen, setIsOrderDrawerOpen] = useState(false);
+  const [draftTableNo, setDraftTableNo] = useState(name);
   const [draftStatus, setDraftStatus] = useState(status);
   const [draftSeats, setDraftSeats] = useState(seats);
 
   const handleClick = (name) => {
-    if (status === "Booked") return;
+    if (status === "Booked") {
+      setIsOrderDrawerOpen(true);
+      return;
+    }
 
-    const table = { tableId: id, tableNo: name };
-    dispatch(updateTableInCart({ table }));
+    const tableObj = { tableId: id, tableNo: name };
+    dispatch(updateTableInCart({ table: tableObj }));
     navigate(`/menu`);
   };
 
   const openManage = (e) => {
     e.stopPropagation();
+    if (onEdit && table) {
+      onEdit(table);
+      return;
+    }
+    setDraftTableNo(name);
     setDraftStatus(status);
     setDraftSeats(seats);
     setIsManageOpen(true);
@@ -67,8 +80,10 @@ const TableCard = ({ id, name, status, initials, seats }) => {
 
   const handleSave = () => {
     const seatsNum = Number(draftSeats);
+    const tableNoNum = Number(draftTableNo);
     const payload = { status: draftStatus };
     if (!Number.isNaN(seatsNum) && seatsNum > 0) payload.seats = seatsNum;
+    if (!Number.isNaN(tableNoNum) && tableNoNum > 0) payload.tableNo = tableNoNum;
     updateMutation.mutate(payload);
   };
 
@@ -176,8 +191,13 @@ const TableCard = ({ id, name, status, initials, seats }) => {
             isClean ? "text-slate-700" : "text-slate-300"
           }`}
         >
-          {initials || (isBooked ? "Occupied" : "Empty Table")}
+          {initials || table?.currentOrder?.customerDetails?.name || (isBooked ? "Occupied" : "Empty Table")}
         </p>
+        {isBooked && (table?.currentOrder?.bills?.totalWithTax || table?.currentOrder?.bills?.total) && (
+          <span className="text-[11px] font-black font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+            Rs {(table.currentOrder.bills.totalWithTax || table.currentOrder.bills.total).toLocaleString()}
+          </span>
+        )}
       </div>
 
       {/* Footer: Seats & Action CTA */}
@@ -190,19 +210,29 @@ const TableCard = ({ id, name, status, initials, seats }) => {
           Capacity: <strong className={isClean ? "text-slate-800 font-bold" : "text-slate-200"}>{seats} Seats</strong>
         </span>
 
-        <span
-          className={`font-bold transition ${
-            isBooked
-              ? isClean
-                ? "text-slate-400"
-                : "text-slate-500"
-              : isClean
-              ? "text-amber-700 group-hover:translate-x-0.5"
-              : "text-amber-400 group-hover:translate-x-0.5"
-          }`}
-        >
-          {isBooked ? "In Service" : "Take Order →"}
-        </span>
+        {isBooked ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOrderDrawerOpen(true);
+            }}
+            className="font-black text-amber-600 dark:text-amber-400 hover:text-amber-500 flex items-center gap-1 transition group-hover:translate-x-0.5"
+          >
+            <span>View Order</span>
+            <span>↗</span>
+          </button>
+        ) : (
+          <span
+            className={`font-bold transition ${
+              isClean
+                ? "text-amber-700 group-hover:translate-x-0.5"
+                : "text-amber-400 group-hover:translate-x-0.5"
+            }`}
+          >
+            Take Order →
+          </span>
+        )}
       </div>
 
       {isAdmin && (
@@ -218,6 +248,23 @@ const TableCard = ({ id, name, status, initials, seats }) => {
                 order was closed elsewhere), use "Force available" below to reset it.
               </div>
             )}
+
+            <div>
+              <label className={`block mb-1.5 text-xs font-bold uppercase tracking-wider ${isClean ? "text-slate-600" : "text-slate-400"}`}>
+                Table Number
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={draftTableNo}
+                onChange={(e) => setDraftTableNo(e.target.value)}
+                className={`w-full rounded-xl p-3 px-4 text-sm font-medium border outline-none transition ${
+                  isClean
+                    ? "bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-amber-500"
+                    : "bg-slate-800 border-slate-700 text-white focus:border-amber-500"
+                }`}
+              />
+            </div>
 
             <div>
               <label className={`block mb-1.5 text-xs font-bold uppercase tracking-wider ${isClean ? "text-slate-600" : "text-slate-400"}`}>
@@ -290,6 +337,14 @@ const TableCard = ({ id, name, status, initials, seats }) => {
           </div>
         </Modal>
       )}
+
+      {/* Active Table Order Drawer */}
+      <TableOrderDrawer
+        isOpen={isOrderDrawerOpen}
+        onClose={() => setIsOrderDrawerOpen(false)}
+        table={{ ...table, _id: id, tableNo: name, status, seats }}
+        onFreeTable={handleForceRelease}
+      />
     </div>
   );
 };

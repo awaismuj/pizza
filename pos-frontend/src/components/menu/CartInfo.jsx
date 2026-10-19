@@ -30,8 +30,8 @@ const CartInfo = () => {
       <OrderSearch />
       <div className="px-4 pt-3 shrink-0 flex items-center justify-between">
         <h3
-          className={`text-sm font-extrabold uppercase tracking-wider ${
-            isClean ? "text-slate-900" : "text-[#e4e4e4]"
+          className={`text-xs font-bold uppercase tracking-wider ${
+            isClean ? "text-slate-900" : "text-slate-200"
           }`}
         >
           Order Items ({cartData.length})

@@ -656,8 +656,16 @@ const AssetManagement = ({ role }) => {
       </section>
 
       {selectedAsset && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 py-8 sm:p-6">
-          <section role="dialog" aria-modal="true" aria-labelledby="asset-detail-title" className="w-full max-w-4xl rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xl sm:p-7 text-slate-800 dark:text-slate-100">
+        <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+            onClick={() => setSelectedId("")}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <section
+              onClick={(e) => e.stopPropagation()}
+              className="pointer-events-auto w-screen max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full overflow-y-auto p-5 sm:p-7 text-slate-800 dark:text-slate-100"
+            >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400">{selectedAsset.assetId}</p>
@@ -765,11 +773,23 @@ const AssetManagement = ({ role }) => {
             )}
           </section>
         </div>
+      </div>
       )}
 
       {dialog && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 backdrop-blur-xs p-3 py-8 sm:p-6">
-          <section role="dialog" aria-modal="true" aria-labelledby="asset-dialog-title" className="w-full max-w-3xl rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xl sm:p-7 text-slate-800 dark:text-slate-100">
+        <div className="fixed inset-0 z-[60] overflow-hidden" role="dialog" aria-modal="true">
+          <div
+            className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+            onClick={() => setDialog("")}
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="asset-dialog-title"
+              onClick={(e) => e.stopPropagation()}
+              className="pointer-events-auto w-screen max-w-3xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full overflow-y-auto p-5 sm:p-7 text-slate-800 dark:text-slate-100"
+            >
             <div className="mb-5 flex items-center justify-between gap-3">
               <h2 id="asset-dialog-title" className="text-xl font-bold text-slate-900 dark:text-white">
                 {dialog === "asset" ? (editingId ? "Edit asset details" : "Register a business asset") : ({
@@ -908,6 +928,7 @@ const AssetManagement = ({ role }) => {
             )}
           </section>
         </div>
+      </div>
       )}
     </main>
   );

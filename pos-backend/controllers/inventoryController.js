@@ -15,13 +15,20 @@ const resolveCategoryId = async (categoryValue) => {
     return categoryValue;
   }
 
-  const category = await Category.findOne({
-    name: { $regex: `^${escapeRegex(String(categoryValue).trim())}$`, $options: "i" },
+  const trimmed = String(categoryValue).trim();
+  if (!trimmed || trimmed.toLowerCase() === "uncategorized") {
+    return null;
+  }
+
+  let category = await Category.findOne({
+    name: { $regex: `^${escapeRegex(trimmed)}$`, $options: "i" },
   });
 
   if (!category) {
-    const error = createHttpError(400, "Category not found. Please create the category first.");
-    throw error;
+    category = await Category.create({
+      name: trimmed,
+      icon: "📦",
+    });
   }
 
   return category._id;

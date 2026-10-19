@@ -44,6 +44,39 @@ const getExpenses = async (req, res, next) => {
   }
 };
 
+const updateExpense = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { amount, description, date } = req.body;
+
+    const updateData = {};
+    if (amount !== undefined) {
+      const numericAmount = Number(amount);
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        return next(createHttpError(400, "Enter a valid expense amount."));
+      }
+      updateData.amount = numericAmount;
+    }
+
+    if (description !== undefined) {
+      updateData.description = String(description).trim();
+    }
+
+    if (date) {
+      updateData.dayKey = DAY_KEY_RE.test(date) ? date : dayKeyFor(new Date(date));
+    }
+
+    const updated = await Expense.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updated) {
+      return next(createHttpError(404, "Expense not found."));
+    }
+
+    res.status(200).json({ success: true, message: "Expense updated!", data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deleteExpense = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -57,4 +90,4 @@ const deleteExpense = async (req, res, next) => {
   }
 };
 
-module.exports = { addExpense, getExpenses, deleteExpense };
+module.exports = { addExpense, getExpenses, updateExpense, deleteExpense };

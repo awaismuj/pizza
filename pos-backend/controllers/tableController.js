@@ -26,13 +26,33 @@ const addTable = async (req, res, next) => {
   }
 };
 
+const Order = require("../models/orderModel");
+
 const getTables = async (req, res, next) => {
   try {
     const tables = await Table.find().populate({
       path: "currentOrder",
-      select: "customerDetails"
+      select: "customerDetails items bills orderStatus orderNumber orderDate paymentMethod"
     });
-    res.status(200).json({ success: true, data: tables });
+
+    const populatedTables = await Promise.all(
+      tables.map(async (table) => {
+        const tableObj = table.toObject();
+        if (tableObj.status === "Booked" && (!tableObj.currentOrder || !tableObj.currentOrder.customerDetails)) {
+          const activeOrder = await Order.findOne({
+            table: table._id,
+            orderStatus: { $in: ["In Progress", "Ready", "Pending"] },
+          }).sort({ orderDate: -1 });
+
+          if (activeOrder) {
+            tableObj.currentOrder = activeOrder;
+          }
+        }
+        return tableObj;
+      })
+    );
+
+    res.status(200).json({ success: true, data: populatedTables });
   } catch (error) {
     next(error);
   }
@@ -40,7 +60,7 @@ const getTables = async (req, res, next) => {
 
 const updateTable = async (req, res, next) => {
   try {
-    const { status, orderId, seats } = req.body;
+    const { status, orderId, seats, tableNo } = req.body;
 
     const { id } = req.params;
 
@@ -49,14 +69,10 @@ const updateTable = async (req, res, next) => {
         return next(error);
     }
 
-    // Build the update carefully instead of always writing { status, currentOrder: orderId }.
-    // The old code always set currentOrder to whatever orderId was (including
-    // undefined), so a table booked for an order that later got deleted/lost
-    // its link had no way to be freed again except by touching the DB
-    // directly — that's the "table shows Booked but no order is active" bug.
     const update = {};
     if (status !== undefined) update.status = status;
     if (seats !== undefined) update.seats = seats;
+    if (tableNo !== undefined) update.tableNo = tableNo;
 
     if (orderId !== undefined) {
       // Booking flow (Bill.jsx) explicitly ties the table to an order.

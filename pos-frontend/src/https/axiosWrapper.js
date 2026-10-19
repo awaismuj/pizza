@@ -71,9 +71,11 @@ const defaultHeader = {
   Accept: "application/json",
 };
 
-// Prefer an explicit VITE_BACKEND_URL. If not provided (dev), fall back to localhost:3000
+// Prefer an explicit VITE_BACKEND_URL. In development fallback to localhost:3000, in production fallback to relative domain ""
 const backendBaseURL =
-  import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:3000";
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:3000" : "");
 
 export const axiosWrapper = axios.create({
   baseURL: backendBaseURL,

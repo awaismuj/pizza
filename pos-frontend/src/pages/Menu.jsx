@@ -33,7 +33,7 @@ const Menu = () => {
             <BackButton />
             <div>
               <h1
-                className={`text-lg sm:text-xl font-black tracking-tight leading-none ${
+                className={`text-lg sm:text-xl font-bold tracking-tight leading-none ${
                   isClean ? "text-slate-900" : "text-white"
                 }`}
               >
@@ -57,7 +57,7 @@ const Menu = () => {
             </div>
             <div className="flex flex-col items-start">
               <h2
-                className={`text-xs sm:text-sm font-extrabold tracking-wide leading-tight ${
+                className={`text-xs sm:text-sm font-bold tracking-tight leading-tight ${
                   isClean ? "text-slate-900" : "text-white"
                 }`}
               >

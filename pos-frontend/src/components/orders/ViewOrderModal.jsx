@@ -18,12 +18,18 @@ const ViewOrderModal = ({ order, onClose, onPrint }) => {
   const customer = order.customerDetails || {};
 
   const content = (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
       <div
-        className={`w-full max-w-lg rounded-2xl shadow-2xl border flex flex-col max-h-[90vh] overflow-hidden transition ${
-          isClean ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
-        }`}
-      >
+        className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+        onClick={onClose}
+      />
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`pointer-events-auto w-screen max-w-lg shadow-2xl border-l flex flex-col h-full overflow-hidden transition ${
+            isClean ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
+          }`}
+        >
         {/* Modal Header */}
         <div
           className={`flex items-center justify-between p-4 sm:p-5 border-b shrink-0 ${
@@ -218,6 +224,7 @@ const ViewOrderModal = ({ order, onClose, onPrint }) => {
             Close Details
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
