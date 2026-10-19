@@ -23,6 +23,7 @@ import {
 import {
   MdChevronLeft,
   MdChevronRight,
+  MdExpandMore,
   MdReceiptLong,
   MdInsights,
   MdAccountBalance,
@@ -129,94 +130,161 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
     },
   ];
 
-  // Back Office ERP Modules (Dashboard Tabs - Vibrant Colored SVGs)
+  // Back Office ERP Modules Grouped by Function (Collapsible Tree Navigation)
   const currentTab = new URLSearchParams(location.search).get("tab") || (isFullAdmin ? "Metrics" : "Assets");
   const isDashboard = location.pathname === "/dashboard";
 
-  const erpModules = [
-    ...(isFullAdmin
-      ? [
-          {
-            tab: "Metrics",
-            label: "KPIs & Analytics",
-            icon: <FcPositiveDynamic size={20} />,
-            desc: "Executive performance metrics",
-          },
-          {
-            tab: "Orders",
-            label: "Order Ledger",
-            icon: <FcDocument size={20} />,
-            desc: "Audit trail & settlements",
-          },
-          {
-            tab: "Profit",
-            label: "Profit & Loss",
-            icon: <FcBullish size={20} />,
-            desc: "COGS & trading statement",
-          },
-          {
-            tab: "Payments",
-            label: "Settlement Gateway",
-            icon: <FcMoneyTransfer size={20} />,
-            desc: "Cash, card & digital",
-          },
-          {
-            tab: "Menu",
-            label: "Menu Engineering",
-            icon: <FcRating size={20} />,
-            desc: "Categories, dishes & prices",
-          },
-          {
-            tab: "Inventory",
-            label: "Inventory Control",
-            icon: <FcMultipleInputs size={20} />,
-            badge: lowStockCount > 0 ? lowStockCount : null,
-            badgeColor: "bg-rose-500",
-            desc: "Stock ledger & restock alerts",
-          },
-          {
-            tab: "Staff",
-            label: "Staff & Payroll HR",
-            icon: <FcConferenceCall size={20} />,
-            desc: "Roster, attendance & slips",
-          },
-          {
-            tab: "Deals",
-            label: "Deals & Combos",
-            icon: <FcApproval size={20} />,
-            desc: "Promotions & discounts",
-          },
-          {
-            tab: "Build Your Own",
-            label: "Custom Deal Builder",
-            icon: <FcSalesPerformance size={20} />,
-            desc: "Dynamic tier discounts",
-          },
-          {
-            tab: "Hero Slider",
-            label: "Store Banners",
-            icon: <FcAdvertising size={20} />,
-            desc: "Storefront showcase slides",
-          },
-          {
-            tab: "Tax",
-            label: "Tax & Store Config",
-            icon: <FcServices size={20} />,
-            desc: "Global tax rates & charges",
-          },
-        ]
-      : []),
-    ...(canSeeAssets
-      ? [
-          {
-            tab: "Assets",
-            label: "Fixed Asset Register",
-            icon: <FcDepartment size={20} />,
-            desc: "Asset valuations & custody",
-          },
-        ]
-      : []),
-  ];
+  const erpGroups = [
+    {
+      id: "financials",
+      label: "Financials & Audit",
+      icon: <FcPositiveDynamic size={18} />,
+      items: [
+        ...(isFullAdmin
+          ? [
+              {
+                tab: "Metrics",
+                label: "KPIs & Analytics",
+                icon: <FcPositiveDynamic size={16} />,
+                desc: "Executive performance metrics",
+              },
+              {
+                tab: "Orders",
+                label: "Order Ledger",
+                icon: <FcDocument size={16} />,
+                desc: "Audit trail & settlements",
+              },
+              {
+                tab: "Profit",
+                label: "Profit & Loss",
+                icon: <FcBullish size={16} />,
+                desc: "COGS & trading statement",
+              },
+              {
+                tab: "Payments",
+                label: "Settlement Gateway",
+                icon: <FcMoneyTransfer size={16} />,
+                desc: "Cash, card & digital",
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      id: "catalog",
+      label: "Menu & Promotions",
+      icon: <FcRating size={18} />,
+      items: [
+        ...(isFullAdmin
+          ? [
+              {
+                tab: "Menu",
+                label: "Menu Engineering",
+                icon: <FcRating size={16} />,
+                desc: "Categories, dishes & prices",
+              },
+              {
+                tab: "Deals",
+                label: "Deals & Combos",
+                icon: <FcApproval size={16} />,
+                desc: "Promotions & discounts",
+              },
+              {
+                tab: "Build Your Own",
+                label: "Custom Deal Builder",
+                icon: <FcSalesPerformance size={16} />,
+                desc: "Dynamic tier discounts",
+              },
+              {
+                tab: "Hero Slider",
+                label: "Store Banners",
+                icon: <FcAdvertising size={16} />,
+                desc: "Storefront showcase slides",
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      id: "operations",
+      label: "Operations & HR",
+      icon: <FcMultipleInputs size={18} />,
+      items: [
+        ...(isFullAdmin
+          ? [
+              {
+                tab: "Inventory",
+                label: "Inventory Control",
+                icon: <FcMultipleInputs size={16} />,
+                badge: lowStockCount > 0 ? lowStockCount : null,
+                badgeColor: "bg-rose-500",
+                desc: "Stock ledger & restock alerts",
+              },
+              {
+                tab: "Staff",
+                label: "Staff & Payroll HR",
+                icon: <FcConferenceCall size={16} />,
+                desc: "Roster, attendance & slips",
+              },
+            ]
+          : []),
+        ...(canSeeAssets
+          ? [
+              {
+                tab: "Assets",
+                label: "Fixed Asset Register",
+                icon: <FcDepartment size={16} />,
+                desc: "Asset valuations & custody",
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      id: "settings",
+      label: "Store Settings",
+      icon: <FcServices size={18} />,
+      items: [
+        ...(isFullAdmin
+          ? [
+              {
+                tab: "Tax",
+                label: "Tax & Store Config",
+                icon: <FcServices size={16} />,
+                desc: "Global tax rates & charges",
+              },
+            ]
+          : []),
+      ],
+    },
+  ].filter((group) => group.items.length > 0);
+
+  // Collapsible Tree state for Manager Mode
+  const [openCategories, setOpenCategories] = React.useState({
+    financials: true,
+    catalog: true,
+    operations: true,
+    settings: true,
+  });
+
+  const toggleCategory = (catId) => {
+    setOpenCategories((prev) => ({
+      ...prev,
+      [catId]: !prev[catId],
+    }));
+  };
+
+  // Ensure currently selected tab's group stays expanded automatically
+  React.useEffect(() => {
+    if (isDashboard) {
+      const activeGroup = erpGroups.find((g) =>
+        g.items.some((item) => item.tab === currentTab)
+      );
+      if (activeGroup && !openCategories[activeGroup.id]) {
+        setOpenCategories((prev) => ({ ...prev, [activeGroup.id]: true }));
+      }
+    }
+  }, [currentTab, isDashboard]);
 
   return (
     <aside
@@ -442,10 +510,10 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
             </div>
           </div>
         ) : (
-          /* If in Manager Mode: Show Back-Office ERP Suite */
-          <div>
+          /* If in Manager Mode: Show Structured Collapsible Tree-Line ERP Suite */
+          <div className="space-y-3">
             {!collapsed && (
-              <div className="flex items-center justify-between px-3 mb-2">
+              <div className="flex items-center justify-between px-3 mb-1">
                 <span className={`text-[10px] font-black tracking-wider uppercase ${isClean ? "text-slate-500" : "text-slate-400"}`}>
                   F&B ERP Portal
                 </span>
@@ -455,55 +523,124 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
               </div>
             )}
 
-            <div className={collapsed ? "space-y-1 flex flex-col items-center" : "space-y-1"}>
-              {erpModules.map((item) => {
-                const active = isDashboard && currentTab === item.tab;
-                return (
-                  <NavLink
-                    key={item.tab}
-                    to={`/dashboard?tab=${item.tab}`}
-                    className={`relative transition-all group ${
-                      collapsed
-                        ? "w-11 h-11 flex items-center justify-center rounded-xl"
-                        : "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold"
-                    } ${
-                      active
-                        ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-black"
-                        : isClean
-                        ? "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
-                        : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
-                    }`}
-                    title={item.label}
-                  >
-                    <div className="shrink-0 flex items-center justify-center">{item.icon}</div>
+            {!collapsed ? (
+              <div className="space-y-2">
+                {erpGroups.map((group) => {
+                  const isExpanded = openCategories[group.id] ?? true;
+                  const hasActiveChild = isDashboard && group.items.some((item) => item.tab === currentTab);
 
-                    {!collapsed && (
-                      <div className="flex-1 min-w-0 flex items-center justify-between">
-                        <span className="truncate text-xs font-bold leading-none">{item.label}</span>
-                        {item.badge !== null && item.badge !== undefined && (
-                          <span className={`ml-2 px-1.5 py-0.5 text-[10px] font-black rounded-full text-white shadow-xs ${item.badgeColor || "bg-rose-500"}`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {collapsed && (
-                      <>
-                        {item.badge !== null && item.badge !== undefined && (
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[9px] font-black rounded-full text-white bg-rose-500 border-2 border-white dark:border-slate-900 shadow-xs">
-                            {item.badge}
-                          </span>
-                        )}
-                        <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
-                          {item.label}
+                  return (
+                    <div key={group.id} className="rounded-xl overflow-hidden">
+                      {/* Parent Category Header */}
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(group.id)}
+                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                          hasActiveChild
+                            ? isClean
+                              ? "bg-amber-50 text-amber-900 border border-amber-200/80 font-black"
+                              : "bg-amber-500/10 text-amber-300 border border-amber-500/20 font-black"
+                            : isClean
+                            ? "text-slate-700 hover:bg-slate-100/90"
+                            : "text-slate-300 hover:bg-slate-800/60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="shrink-0">{group.icon}</span>
+                          <span className="truncate text-xs tracking-tight">{group.label}</span>
                         </div>
-                      </>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {group.items.length}
+                          </span>
+                          {isExpanded ? (
+                            <MdExpandMore size={16} className="text-slate-400 transition-transform duration-200" />
+                          ) : (
+                            <MdChevronRight size={16} className="text-slate-400 transition-transform duration-200" />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Tree Branch Guide Lines & Child Items */}
+                      {isExpanded && (
+                        <div className="relative pl-3 ml-4.5 my-1.5 border-l-2 border-slate-200 dark:border-slate-800 space-y-1">
+                          {group.items.map((item) => {
+                            const active = isDashboard && currentTab === item.tab;
+                            return (
+                              <NavLink
+                                key={item.tab}
+                                to={`/dashboard?tab=${item.tab}`}
+                                className={`relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all group before:content-[''] before:absolute before:-left-3 before:top-1/2 before:-translate-y-1/2 before:w-2.5 before:h-0.5 before:transition-colors ${
+                                  active
+                                    ? isClean
+                                      ? "bg-amber-500 text-slate-950 font-black shadow-xs before:bg-amber-500"
+                                      : "bg-amber-500 text-slate-950 font-black shadow-xs before:bg-amber-500"
+                                    : isClean
+                                    ? "text-slate-600 hover:text-slate-950 hover:bg-slate-100 before:bg-slate-200 dark:before:bg-slate-800"
+                                    : "text-slate-400 hover:text-white hover:bg-slate-800/60 before:bg-slate-200 dark:before:bg-slate-800"
+                                }`}
+                                title={item.label}
+                              >
+                                <div className="shrink-0 flex items-center justify-center scale-90">
+                                  {item.icon}
+                                </div>
+                                <span className="truncate flex-1 text-xs leading-none">
+                                  {item.label}
+                                </span>
+                                {item.badge !== null && item.badge !== undefined && (
+                                  <span className={`px-1.5 py-0.5 text-[9px] font-black rounded-full text-white shadow-xs ${item.badgeColor || "bg-rose-500"}`}>
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* In Collapsed Mode: Clean centered icons grouped with subtle separators and floating tooltips */
+              <div className="space-y-2 flex flex-col items-center">
+                {erpGroups.map((group, gIdx) => (
+                  <div key={group.id} className="w-full flex flex-col items-center space-y-1">
+                    {gIdx > 0 && (
+                      <div className={`w-6 h-px my-1 ${isClean ? "bg-slate-200" : "bg-slate-800"}`} />
                     )}
-                  </NavLink>
-                );
-              })}
-            </div>
+                    {group.items.map((item) => {
+                      const active = isDashboard && currentTab === item.tab;
+                      return (
+                        <NavLink
+                          key={item.tab}
+                          to={`/dashboard?tab=${item.tab}`}
+                          className={`relative transition-all group w-11 h-11 flex items-center justify-center rounded-xl ${
+                            active
+                              ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-black"
+                              : isClean
+                              ? "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                              : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
+                          }`}
+                          title={`${group.label} · ${item.label}`}
+                        >
+                          <div className="shrink-0 flex items-center justify-center">{item.icon}</div>
+                          {item.badge !== null && item.badge !== undefined && (
+                            <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[9px] font-black rounded-full text-white bg-rose-500 border-2 border-white dark:border-slate-900 shadow-xs">
+                              {item.badge}
+                            </span>
+                          )}
+                          <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+                            <span className="text-amber-400 text-[10px] uppercase tracking-wider block font-black">{group.label}</span>
+                            {item.label}
+                          </div>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
