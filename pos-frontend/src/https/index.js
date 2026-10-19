@@ -137,6 +137,8 @@ export const getDailyProfit = (date) => axiosWrapper.get("/api/profit/day", { pa
 export const getMonthlyProfit = (month) => axiosWrapper.get("/api/profit/month", { params: { month } });
 // Per-order breakdown behind a day's Daily Profit summary — every order
 // placed that day with its own revenue/cost/profit.
+export const exportProfitReport = (params) =>
+  axiosWrapper.get("/api/profit/export", { params, responseType: "blob" });
 export const getDailyOrders = (date) => axiosWrapper.get("/api/profit/day/orders", { params: { date } });
 
 // Report Endpoints (PDF download / send to WhatsApp)

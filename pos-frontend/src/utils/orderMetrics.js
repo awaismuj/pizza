@@ -126,3 +126,34 @@ export const computeMonthlyMetrics = (orders = []) => {
     itemsSold: { value: current.itemsSold, percentage: pctChange(current.itemsSold, previous.itemsSold) },
   };
 };
+
+// Extra numbers for the redesigned Home page: today's order count, average
+// ticket, hourly sales (for the sparkline) and how many live orders sit in
+// each stage. Uses the same "earned" rule as every other screen.
+export const computeHomeStats = (orders = []) => {
+  const now = new Date();
+  const todays = orders.filter((o) => isSameDay(new Date(o.orderDate || o.createdAt), now));
+  const earned = todays.filter(isEarnedOrder);
+  const earnings = earned.reduce((sum, o) => sum + orderTotal(o), 0);
+
+  const hourly = Array.from({ length: 24 }, () => 0);
+  earned.forEach((o) => {
+    hourly[new Date(o.orderDate || o.createdAt).getHours()] += orderTotal(o);
+  });
+
+  const live = orders.filter((o) => !["Closed", "Completed", "Cancelled"].includes(o.orderStatus));
+  const stageCounts = live.reduce((acc, o) => {
+    acc[o.orderStatus] = (acc[o.orderStatus] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    ordersToday: todays.filter((o) => o.orderStatus !== "Cancelled").length,
+    cancelledToday: todays.filter((o) => o.orderStatus === "Cancelled").length,
+    averageTicket: earned.length ? earnings / earned.length : 0,
+    onlineToday: todays.filter((o) => o.orderSource === "Online" && o.orderStatus !== "Cancelled").length,
+    hourly,
+    liveCount: live.length,
+    stageCounts,
+  };
+};

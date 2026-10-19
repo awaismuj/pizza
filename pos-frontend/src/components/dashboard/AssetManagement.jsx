@@ -25,6 +25,7 @@ import {
   uploadImage,
 } from "../../https";
 import { resolveImageUrl } from "../../utils";
+import ExportButtons from "./ExportButtons";
 
 const CATEGORIES = [
   "Computers and Laptops",
@@ -287,12 +288,6 @@ const AssetManagement = ({ role }) => {
     onSuccess: () => { invalidateAssets(); enqueueSnackbar("Asset status updated.", { variant: "success" }); },
     onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not update asset status.", { variant: "error" }),
   });
-  const reportMutation = useMutation({
-    mutationFn: exportAssetReport,
-    onSuccess: (response, variables) => download(response.data, `asset-${variables.type}.${variables.format}`),
-    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not export asset report.", { variant: "error" }),
-  });
-
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
   const updateDialogForm = (field, value) => setDialogForm((current) => ({ ...current, [field]: value }));
   const openCreate = () => {
@@ -443,10 +438,6 @@ const AssetManagement = ({ role }) => {
     setFilters((current) => ({ ...current, [field]: value }));
   };
 
-  const openReport = (format) => {
-    reportMutation.mutate({ ...filters, page: undefined, limit: undefined, format, type: reportType });
-  };
-
   const acquisitionCost = Number(form.purchasePrice || 0) + Number(form.additionalCosts || 0);
   const activityMutating = Object.values(actionMutations).some((mutation) => mutation.isPending);
 
@@ -534,7 +525,7 @@ const AssetManagement = ({ role }) => {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="font-semibold text-white">Asset reports</h2>
-              <p className="mt-1 text-xs text-[#888]">Exports use the filters selected below. Excel export is SpreadsheetML (.xls).</p>
+              <p className="mt-1 text-xs text-[#888]">Downloads use the filters selected below and are available as CSV, Excel (.xlsx) or PDF.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <select aria-label="Report type" value={reportType} onChange={(event) => setReportType(event.target.value)} className={`${inputClass} w-auto`}>
@@ -550,11 +541,11 @@ const AssetManagement = ({ role }) => {
                 <option value="monthly-summary">Monthly summary</option>
                 <option value="annual-summary">Financial-year summary</option>
               </select>
-              {["csv", "xls", "pdf"].map((format) => (
-                <button key={format} type="button" disabled={reportMutation.isPending} onClick={() => openReport(format)} className="rounded-lg border border-[#454545] px-3 py-2 text-xs font-semibold uppercase text-white hover:bg-[#303030] disabled:opacity-50">
-                  {format === "xls" ? "Excel" : format}
-                </button>
-              ))}
+              <ExportButtons
+                label="Download"
+                fallbackName={`asset-${reportType}`}
+                request={(format) => exportAssetReport({ ...filters, page: undefined, limit: undefined, format, type: reportType })}
+              />
             </div>
           </div>
         </section>

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FaTrash, FaLock, FaBolt, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { enqueueSnackbar } from "notistack";
-import { getDailyProfit, getMonthlyProfit, getDailyOrders, getExpenses, addExpense, deleteExpense } from "../../https";
+import { getDailyProfit, getMonthlyProfit, getDailyOrders, getExpenses, addExpense, deleteExpense, exportProfitReport } from "../../https";
+import ExportButtons from "./ExportButtons";
 import { formatCurrency } from "../../utils/orderMetrics";
 import ReportSender from "./ReportSender";
 
@@ -131,6 +132,11 @@ const ProfitExpenses = () => {
         </div>
         <div className="flex items-center gap-2">
           <ReportSender defaultDate={selectedDate} />
+          <ExportButtons
+            label="Export day"
+            fallbackName={`profit-day-${selectedDate}`}
+            request={(format) => exportProfitReport({ scope: "day", date: selectedDate, format })}
+          />
           {!isViewingToday && (
             <button
               onClick={() => setSelectedDate(todayStr())}
@@ -306,13 +312,20 @@ const ProfitExpenses = () => {
           <h2 className="font-semibold text-[#f5f5f5] text-xl">Monthly Profit</h2>
           <p className="text-sm text-[#ababab]">Total revenue, expenses and actual profit for the month.</p>
         </div>
-        <input
-          type="month"
-          value={selectedMonth}
-          max={thisMonthStr()}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="bg-[#1a1a1a] text-[#f5f5f5] rounded-md px-3 py-2 outline-none border border-[#333]"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportButtons
+            label="Export month"
+            fallbackName={`profit-month-${selectedMonth}`}
+            request={(format) => exportProfitReport({ scope: "month", month: selectedMonth, format })}
+          />
+          <input
+            type="month"
+            value={selectedMonth}
+            max={thisMonthStr()}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="bg-[#1a1a1a] text-[#f5f5f5] rounded-md px-3 py-2 outline-none border border-[#333]"
+          />
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
