@@ -11,35 +11,60 @@ const app = express();
 const PORT = config.port;
 connectDB();
 
-const allowedOrigins = [
-    config.frontendUrl,
-    config.storeUrl,
-    // POS frontend dev server (vite default)
+const cleanUrl = (url) => (typeof url === "string" ? url.trim().replace(/\/+$/, "") : "");
+
+const splitOrigins = (str) =>
+    (str ? str.split(",").map(cleanUrl).filter(Boolean) : []);
+
+const configuredOrigins = [
+    ...splitOrigins(process.env.ALLOWED_ORIGINS),
+    ...splitOrigins(config.frontendUrl),
+    ...splitOrigins(config.storeUrl),
+    ...splitOrigins(config.backendUrl),
+    // Common local development and preview servers
     'http://localhost:5173',
-    // Vite preview server
     'http://localhost:4173',
     'http://127.0.0.1:4175',
-    // Online store dev server (see online-store/vite.config.js)
     'http://localhost:5174',
     'http://localhost:3000',
+    // Live deployments
+    'https://pizza.strongpass.online',
+    'https://bepizza.strongpass.online',
     'https://pos.muscatfood.com',
     'https://apipos.muscatfood.com',
     'https://genzpizza.online',
     'https://www.genzpizza.online',
     'https://genzpizza.muscatfood.com'
-].filter(Boolean);
+].map(cleanUrl).filter(Boolean);
+
+const isOriginAllowed = (origin) => {
+    if (!origin) return true; // allow mobile apps, curl, server-to-server, same-origin
+    const originClean = cleanUrl(origin);
+    if (configuredOrigins.includes(originClean)) return true;
+
+    // Dynamically allow any subdomain on these verified deployment domains
+    if (/^https?:\/\/([a-z0-9-]+\.)*strongpass\.online(:\d+)?$/i.test(originClean)) return true;
+    if (/^https?:\/\/([a-z0-9-]+\.)*genzpizza\.online(:\d+)?$/i.test(originClean)) return true;
+    if (/^https?:\/\/([a-z0-9-]+\.)*muscatfood\.com(:\d+)?$/i.test(originClean)) return true;
+
+    return false;
+};
 
 // Middlewares
-app.use(cors({
+const corsOptions = {
     credentials: true,
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (isOriginAllowed(origin)) {
             return callback(null, true);
         }
+        return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
 
-        return callback(new Error('Not allowed by CORS'));
-    }
-}));
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json()); // parse incoming request in json format
 app.use(cookieParser())
 

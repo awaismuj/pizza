@@ -9,7 +9,7 @@ const config = Object.freeze({
     // allow-list from an env var without touching app.js in every deploy.
     storeUrl: process.env.STORE_URL || process.env.ONLINE_STORE_URL || "http://localhost:5174",
     backendUrl: process.env.BACKEND_URL || "http://localhost:3000",
-    cookieDomain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === "production" ? ".muscatfood.com" : undefined),
+    cookieDomain: process.env.COOKIE_DOMAIN || undefined,
     accessTokenSecret: process.env.JWT_SECRET || "change_this_to_a_long_random_secret_key",
     // Sales tax rate applied to every order (POS and online). Keep this in
     // sync with TAX_RATE_PERCENT in the frontend's constants/index.js.
