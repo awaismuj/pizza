@@ -135,6 +135,11 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
             <p>
               <strong>Tax:</strong> Rs {orderInfo.bills.tax.toFixed(2)}
             </p>
+            {Number(orderInfo.bills.deliveryFee) > 0 && (
+              <p>
+                <strong>Delivery fee:</strong> Rs {Number(orderInfo.bills.deliveryFee).toFixed(2)}
+              </p>
+            )}
             <p className="text-md font-semibold">
               <strong>Grand Total:</strong> Rs{" "}
               {orderInfo.bills.totalWithTax.toFixed(2)}
@@ -153,7 +158,12 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
                 {orderInfo.paymentMethod === "JazzCash/Raast" && orderInfo.paymentStatus && orderInfo.paymentStatus !== "Verified" && (
                   <p>Payment status: {orderInfo.paymentStatus}</p>
                 )}
-                {orderInfo.customerDetails?.address && (
+                {orderInfo.fulfillment?.method === "pickup" && (
+                  <p>
+                    <strong>Pickup at:</strong> {orderInfo.fulfillment.branchName}
+                  </p>
+                )}
+                {orderInfo.fulfillment?.method !== "pickup" && orderInfo.customerDetails?.address && (
                   <p>
                     <strong>Deliver to:</strong> {orderInfo.customerDetails.address}
                   </p>

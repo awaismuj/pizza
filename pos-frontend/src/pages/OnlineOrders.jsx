@@ -14,6 +14,7 @@ import { PaymentBadge, PaymentDetails, PaymentActions } from "../components/orde
 import { paymentKind } from "../utils/payments";
 import Invoice from "../components/invoice/Invoice";
 import { canEditOrder, canCancelOrder, canDeleteOrder } from "../utils/orderPermissions";
+import { I } from "../components/shared/AppIcons";
 
 // The staff-facing flow for orders placed on genzpizza.online:
 //   Pending -> (Accept | Accept & Process | Cancel)
@@ -177,6 +178,21 @@ const OnlineOrders = () => {
               </span>
             </div>
             <p className="text-xs text-[#ababab]">{order.customerDetails?.phone}</p>
+            {order.fulfillment?.method && (
+              <div className="mt-2 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-[#1f1f1f] px-2.5 py-1.5 text-xs text-[#f5f5f5]">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-[#f6b100]">
+                  {order.fulfillment.method === "pickup" ? <I.Store /> : <I.Rider />}
+                  {order.fulfillment.method === "pickup" ? "Pickup" : "Delivery"}
+                </span>
+                <span className="text-[#ababab]">
+                  {order.fulfillment.branchName}
+                  {order.fulfillment.zoneName ? ` · ${order.fulfillment.zoneName}` : ""}
+                  {order.fulfillment.estimatedMinutes?.min != null
+                    ? ` · ${order.fulfillment.estimatedMinutes.min}-${order.fulfillment.estimatedMinutes.max} min`
+                    : ""}
+                </span>
+              </div>
+            )}
             {order.customerDetails?.address && (
               <p className="mt-1 text-xs text-[#ababab]">{order.customerDetails.address}</p>
             )}
@@ -203,6 +219,12 @@ const OnlineOrders = () => {
               ))}
             </ul>
 
+            {Number(order.bills?.deliveryFee) > 0 && (
+              <div className="mt-3 flex items-center justify-between text-sm text-[#ababab]">
+                <span>Delivery fee</span>
+                <span>Rs {Number(order.bills.deliveryFee).toFixed(2)}</span>
+              </div>
+            )}
             <div className="mt-3 flex items-center justify-between border-t border-[#383838] pt-2">
               <span className="text-sm text-[#ababab]">Total</span>
               <span className="font-semibold text-[#f5f5f5]">
@@ -283,7 +305,7 @@ const OnlineOrders = () => {
                 onClick={() => setPrintOrder(order)}
                 className="mt-2 w-full rounded-lg bg-[#2a2a2a] py-2 text-sm font-semibold text-[#f5f5f5] hover:bg-[#333]"
               >
-                🖨 Print receipt (80mm)
+                Print receipt (80mm)
               </button>
             )}
 

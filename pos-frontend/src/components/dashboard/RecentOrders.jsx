@@ -5,6 +5,7 @@ import { enqueueSnackbar } from "notistack";
 import { getOrders, updateOrderStatus } from "../../https/index";
 import { formatDateAndTime, getOrderNumber } from "../../utils";
 import { paymentKind, paymentKindLabel, PAYMENT_STATUS_STYLE } from "../../utils/payments";
+import { I } from "../shared/AppIcons";
 
 const RecentOrders = () => {
   const queryClient = useQueryClient();
@@ -69,11 +70,17 @@ const RecentOrders = () => {
   // Shared between the mobile card and the desktop table so the two views
   // can never drift out of sync with each other.
   const renderTableWhere = (order, isOnline) =>
-    isOnline
-      ? "🌐 Online"
-      : order.table?.tableNo
-      ? `Table - ${order.table.tableNo}`
-      : "🥡 Takeaway";
+    isOnline ? (
+      <span className="inline-flex items-center gap-1.5">
+        <I.Cart /> Online{order.fulfillment?.method ? ` · ${order.fulfillment.method === "pickup" ? "Pickup" : "Delivery"}` : ""}
+      </span>
+    ) : order.table?.tableNo ? (
+      `Table - ${order.table.tableNo}`
+    ) : (
+      <span className="inline-flex items-center gap-1.5">
+        <I.Bag /> Takeaway
+      </span>
+    );
 
   const renderStatus = (order, isOnline) =>
     isOnline ? (

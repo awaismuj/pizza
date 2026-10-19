@@ -3,6 +3,7 @@ import { FaLongArrowAltRight } from "react-icons/fa";
 import { FaCircle } from "react-icons/fa";
 import { getAvatarName } from "../../utils/index";
 import { STAGE_LABELS, statusPillClass } from "../../utils/orderStages";
+import { I } from "../shared/AppIcons";
 
 const OrderList = ({ key, order }) => {
   return (
@@ -22,7 +23,7 @@ const OrderList = ({ key, order }) => {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {order.orderSource === "Online" ? (
             <h1 className="inline-flex items-center gap-1 rounded-lg border border-[#025cca] p-1 text-[11px] font-semibold text-[#025cca] sm:text-xs">
-              🌐 Online
+              <I.Cart className="inline mr-1" />Online
             </h1>
           ) : (
             <h1 className="inline-flex items-center gap-1 rounded-lg border border-[#f6b100] p-1 text-[11px] font-semibold text-[#f6b100] sm:text-xs">

@@ -12,6 +12,8 @@ const { getOrCreateSettings } = require("./settingsController");
 const { normalizeByoConfig, byoDiscountPercent } = require("../utils/byoDiscount");
 const { generateOrderNumber } = require("../utils/orderNumber");
 const PaymentProof = require("../models/paymentProofModel");
+const Branch = require("../models/branchModel");
+const { quoteFulfillment } = require("../utils/fulfillment");
 const {
   WAITING_STATUS,
   resolvePublicPayment,
@@ -40,6 +42,20 @@ const addOrder = async (req, res, next) => {
     // Dine-in / POS orders are only created once staff confirm them at the
     // register, so stock is committed immediately (unlike online orders,
     // which defer this until Accept - see addPublicOrder below).
+    // Optional fulfillment (delivery/pickup) from the POS: same rules as the
+    // website, except staff can ring orders up outside opening hours.
+    if (req.body.fulfillment?.method) {
+      const f = req.body.fulfillment;
+      const fb = mongoose.Types.ObjectId.isValid(f.branchId) ? await Branch.findById(f.branchId) : null;
+      const q = quoteFulfillment({ branch: fb, method: f.method, zoneId: f.zoneId, subtotal: Number(req.body.bills?.total) || 0, staff: true });
+      if (!q.ok) return next(createHttpError(400, q.error));
+      req.body.fulfillment = {
+        method: q.method, branchId: fb._id, branchName: fb.name, zoneId: q.zoneId || undefined,
+        zoneName: q.zoneName || undefined, deliveryFee: q.fee, minOrder: q.minOrder,
+        estimatedMinutes: { min: q.etaMin, max: q.etaMax }, estimatedAt: q.readyAt,
+      };
+      req.body.bills = { ...req.body.bills, deliveryFee: q.fee, totalWithTax: (Number(req.body.bills?.totalWithTax) || 0) + q.fee };
+    }
     const deductions = await deductInventoryForOrderItems(req.body.items || []);
 
     const order = new Order({ ...req.body, inventoryDeducted: true });
@@ -65,7 +81,7 @@ const addOrder = async (req, res, next) => {
 // so a customer can't hold stock hostage by never checking out.
 const addPublicOrder = async (req, res, next) => {
   try {
-    const { customerName, customerPhone, address, items } = req.body;
+    const { customerName, customerPhone, address, items, fulfillment: fulfillmentInput } = req.body;
 
     if (!customerName || !customerPhone || !Array.isArray(items) || items.length === 0) {
       const error = createHttpError(400, "Name, phone, and at least one item are required.");
@@ -261,15 +277,28 @@ const addPublicOrder = async (req, res, next) => {
 
     const subtotalBeforeDiscount = total;
     total -= discount; // from here on `total` is what the customer actually owes pre-tax
+
+    // Delivery / pickup: branch, area, fee, minimum order, opening hours and
+    // temporary restrictions are all re-checked here from the live branch
+    // settings - the browser's idea of the fee is never trusted.
+    const fInput = fulfillmentInput && typeof fulfillmentInput === "object" ? fulfillmentInput : {};
+    const fBranch = mongoose.Types.ObjectId.isValid(fInput.branchId) ? await Branch.findById(fInput.branchId) : null;
+    const fQuote = quoteFulfillment({ branch: fBranch, method: fInput.method, zoneId: fInput.zoneId, subtotal: total });
+    if (!fQuote.ok) return next(createHttpError(400, fQuote.error));
+    if (fQuote.method === "delivery" && String(address || "").trim().length < 10) {
+      return next(createHttpError(400, "Enter your full delivery address (house, street, landmark)."));
+    }
+    const deliveryFee = fQuote.fee;
+
     const tax = (total * taxRatePercent) / 100;
-    const totalWithTax = total + tax;
+    const totalWithTax = total + tax + deliveryFee;
 
     const order = new Order({
       customerDetails: {
         name: customerName,
         phone: customerPhone,
         guests: 1,
-        address: address || "",
+        address: fQuote.method === "delivery" ? String(address || "").trim() : "",
       },
       orderStatus: isJazz ? WAITING_STATUS : "Pending",
       orderSource: "Online",
@@ -282,6 +311,18 @@ const addPublicOrder = async (req, res, next) => {
         discount,
         discountPercent,
         discountLabel,
+        deliveryFee,
+      },
+      fulfillment: {
+        method: fQuote.method,
+        branchId: fBranch._id,
+        branchName: fBranch.name,
+        zoneId: fQuote.zoneId || undefined,
+        zoneName: fQuote.zoneName || undefined,
+        deliveryFee,
+        minOrder: fQuote.minOrder,
+        estimatedMinutes: { min: fQuote.etaMin, max: fQuote.etaMax },
+        estimatedAt: fQuote.readyAt,
       },
       items: resolvedItems,
       paymentMethod: payment.method,
@@ -397,6 +438,8 @@ const lookupPublicOrderByPhone = async (req, res, next) => {
         orderStatus: order.orderStatus,
         items: order.items,
         bills: order.bills,
+        fulfillment: order.fulfillment,
+        customerDetails: { address: order.customerDetails?.address || "" },
         orderDate: order.orderDate,
         payment: publicPayment(order),
       },
@@ -428,6 +471,8 @@ const getPublicOrderStatus = async (req, res, next) => {
         orderStatus: order.orderStatus,
         items: order.items,
         bills: order.bills,
+        fulfillment: order.fulfillment,
+        customerDetails: { address: order.customerDetails?.address || "" },
         orderDate: order.orderDate,
         payment: publicPayment(order),
       },

@@ -224,3 +224,11 @@ export const downloadAssetDocument = (filename) =>
 export const getReviews = () => axiosWrapper.get("/api/review");
 export const toggleReview = (reviewId) => axiosWrapper.patch(`/api/review/${reviewId}/toggle`);
 export const deleteReview = (reviewId) => axiosWrapper.delete(`/api/review/${reviewId}`);
+
+// Branches + delivery/pickup rules. Same rules are enforced server-side for
+// the website and the POS (see pos-backend/utils/fulfillment.js).
+export const getBranches = () => axiosWrapper.get("/api/branch");
+export const addBranch = (data) => axiosWrapper.post("/api/branch", data);
+export const updateBranch = ({ id, ...data }) => axiosWrapper.put(`/api/branch/${id}`, data);
+export const deleteBranch = (id) => axiosWrapper.delete(`/api/branch/${id}`);
+export const quoteFulfillment = (data) => axiosWrapper.post("/api/branch/quote", data);

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { I } from "./AppIcons.jsx";
 import { uploadPaymentProof } from "./api";
 import { resolveImageUrl } from "./utils";
 import defaultQr from "./assets/jazzcash-raast-qr.png";
@@ -118,10 +119,10 @@ const copyText = async (text) => {
 
 /* ------------------------------ method picker ----------------------------- */
 
-export const PaymentMethodPicker = ({ cfg, value, onChange }) => {
+export const PaymentMethodPicker = ({ cfg, value, onChange, pickup = false }) => {
   const options = [
-    cfg.codEnabled && { id: PAY_COD, title: "Cash on Delivery", sub: "Pay the rider when it arrives", icon: "💵" },
-    cfg.jazzcashEnabled && { id: PAY_JAZZ, title: "Pay via JazzCash / Raast QR", sub: "Scan, pay & upload the screenshot", icon: "📱" },
+    cfg.codEnabled && { id: PAY_COD, title: pickup ? "Pay at Pickup" : "Cash on Delivery", sub: pickup ? "Pay at the counter when you collect" : "Pay the rider when it arrives", icon: <I.Cash /> },
+    cfg.jazzcashEnabled && { id: PAY_JAZZ, title: "Pay via JazzCash / Raast QR", sub: "Scan, pay & upload the screenshot", icon: <I.Phone /> },
   ].filter(Boolean);
 
   return (
@@ -201,7 +202,7 @@ export const JazzCashCard = ({ cfg, amountLabel, jazz }) => {
             <div className="pay-till">
               <b>{cfg.tillId}</b>
               <button type="button" className="pay-mini" onClick={handleCopy}>
-                {copied ? "Copied ✓" : "Copy"}
+                {copied ? "Copied" : "Copy"}
               </button>
             </div>
           </div>
@@ -263,7 +264,7 @@ export const JazzCashCard = ({ cfg, amountLabel, jazz }) => {
               <div>
                 <b>{jazz.fileName}</b>
                 <small className={jazz.proofId ? "ok" : ""}>
-                  {jazz.uploading ? "Uploading…" : jazz.proofId ? "Uploaded ✓" : ""}
+                  {jazz.uploading ? "Uploading…" : jazz.proofId ? "Uploaded" : ""}
                 </small>
                 <button type="button" className="pay-mini" onClick={() => { jazz.clearFile(); fileInput.current?.click(); }}>
                   Change
@@ -272,7 +273,7 @@ export const JazzCashCard = ({ cfg, amountLabel, jazz }) => {
             </div>
           ) : (
             <button type="button" className="pay-drop" onClick={() => fileInput.current?.click()}>
-              📷 Choose screenshot
+              <I.Camera aria-hidden="true" style={{ marginRight: 8, verticalAlign: "-2px" }} />Choose screenshot
             </button>
           )}
           {jazz.uploadError && <em className="pay-err" role="alert">{jazz.uploadError}</em>}
@@ -295,7 +296,7 @@ export const PaymentStatusBanner = ({ order, whatsappHref }) => {
   if (order.orderStatus === "Payment Pending Verification") {
     return (
       <div className="pay-banner is-wait">
-        <b>⏳ Payment under verification</b>
+        <b><I.Hourglass aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }} />Payment under verification</b>
         <p>Thanks! We'll verify your payment and confirm your order shortly. This page updates automatically.</p>
         <small>TID {p.tid}</small>
       </div>
@@ -304,7 +305,7 @@ export const PaymentStatusBanner = ({ order, whatsappHref }) => {
   if (p.status === "Rejected") {
     return (
       <div className="pay-banner is-bad" role="alert">
-        <b>✖ Payment not verified</b>
+        <b><I.CrossCircle aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }} />Payment not verified</b>
         <p>{p.rejectionReason || "We couldn't confirm your payment."}</p>
         <a className="pay-btn-wa" href={whatsappHref} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>
       </div>
@@ -313,7 +314,7 @@ export const PaymentStatusBanner = ({ order, whatsappHref }) => {
   if (p.status === "Verified") {
     return (
       <div className="pay-banner is-ok">
-        <b>✔ Payment verified</b>
+        <b><I.CheckCircle aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }} />Payment verified</b>
         <p>Paid via JazzCash/Raast · TID {p.tid}</p>
       </div>
     );

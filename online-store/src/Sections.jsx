@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getPublicReviews, submitReview } from "./api";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
 import sindbadLogo from "./assets/sindbad-solution-logo.png";
+import { I } from "./AppIcons.jsx";
 
 /* New storefront sections: hero intro, features, how-it-works, reviews,
    contact panel and footer. Self-contained so App.jsx only mounts them. */
@@ -95,7 +96,7 @@ export const HeroIntro = ({ onOrder, onTrack, summary }) => (
       <div className="v2-intro">
         <div className="v2-intro-copy">
           <span className="v2-eyebrow">
-            <i /> Now delivering across Gojra
+            <i /> Delivery &amp; pickup in Gojra
           </span>
           <h1>
             Hot, cheesy &amp; <em>delivered</em> to your door
@@ -114,12 +115,12 @@ export const HeroIntro = ({ onOrder, onTrack, summary }) => (
       </div>
 
       <ul className="v2-chips" aria-label="Highlights">
-        <li>💵 Cash on delivery</li>
-        <li>📍 Live order tracking</li>
-        <li>🧩 Build your own deal</li>
+        <li><I.Cash aria-hidden="true" /> Cash on delivery</li>
+        <li><I.Pin aria-hidden="true" /> Live order tracking</li>
+        <li><I.Puzzle aria-hidden="true" /> Build your own deal</li>
         {summary?.total > 0 && (
           <li className="rating">
-            ★ {summary.average} · {summary.total} review{summary.total === 1 ? "" : "s"}
+            <StarIcon /> {summary.average} · {summary.total} review{summary.total === 1 ? "" : "s"}
           </li>
         )}
       </ul>
@@ -130,49 +131,63 @@ export const HeroIntro = ({ onOrder, onTrack, summary }) => (
 /* -------------------------- Features + how it works -------------------------- */
 
 const FEATURES = [
-  { icon: "🍕", title: "Made to order", text: "Every pizza is built fresh when you order — never sitting under a heat lamp." },
-  { icon: "🛵", title: "Hot to your door", text: "Our riders deliver across Gojra, so it arrives the way it left the oven." },
-  { icon: "💳", title: "Pay your way", text: "Cash on delivery, or scan the JazzCash / Raast QR at checkout. No sign-up needed." },
-  { icon: "🧩", title: "Build your own deal", text: "Mix flavours, sizes and sides into a bundle that fits your crowd and budget." },
+  { Icon: I.Pizza, title: "Made to order", text: "Every pizza is built fresh when you order, never sitting under a heat lamp.", tag: "Fresh" },
+  { Icon: I.Rider, title: "Home delivery", text: "Riders bring it hot to your door. See your area's fee and time before you pay.", tag: "Door to door" },
+  { Icon: I.Store, title: "Pickup from the restaurant", text: "Skip the delivery fee. Order ahead and collect it from the counter when it is ready.", tag: "No fee" },
+  { Icon: I.Card, title: "Pay your way", text: "Cash on delivery or at pickup, or scan the JazzCash / Raast QR. No sign-up needed.", tag: "Flexible" },
+  { Icon: I.Puzzle, title: "Build your own deal", text: "Mix flavours, sizes and sides into a bundle that fits your crowd and your budget.", tag: "Save more" },
+  { Icon: I.Pin, title: "Live order tracking", text: "Follow your order from the kitchen to your hands, with an estimated time on the way.", tag: "Real time" },
 ];
 
 export const FeaturesSection = () => (
-  <section className="v2-section" id="section-why">
-    <span className="v2-kicker">Why GenZ Pizza Land</span>
-    <h2 className="v2-title">Good food, without the fuss</h2>
-    <div className="v2-features">
-      {FEATURES.map((f) => (
-        <div className="v2-feature" key={f.title}>
-          <div className="v2-ico" aria-hidden="true">{f.icon}</div>
-          <h3>{f.title}</h3>
-          <p>{f.text}</p>
-        </div>
+  <section className="s3-section" id="section-why">
+    <div className="s3-head">
+      <span className="v2-kicker">What we deliver</span>
+      <h2 className="v2-title">Good food, your way</h2>
+      <p className="s3-lead">Fresh from the oven, to your door or your hands. Here is what you get with every order.</p>
+    </div>
+    <div className="s3-deliver">
+      {FEATURES.map(({ Icon, title, text, tag }) => (
+        <article className="s3-card" key={title}>
+          <div className="s3-card-top">
+            <span className="s3-ico"><Icon aria-hidden="true" /></span>
+            <span className="s3-tag">{tag}</span>
+          </div>
+          <h3>{title}</h3>
+          <p>{text}</p>
+        </article>
       ))}
     </div>
   </section>
 );
 
+const STEPS = [
+  { Icon: I.Utensils, title: "Pick your food", text: "Browse the menu and deals, choose size and crust, and add everything to your order." },
+  { Icon: I.Rider, title: "Delivery or pickup", text: "Choose home delivery or collect it yourself. Fees and times are shown up front." },
+  { Icon: I.Card, title: "Confirm and pay", text: "Add your name and phone. Pay in cash or by JazzCash / Raast. No account needed." },
+  { Icon: I.Clock, title: "Track and enjoy", text: "Watch your order progress live, then enjoy it hot, at your door or at the counter." },
+];
+
 export const HowItWorks = () => (
-  <section className="v2-how" id="section-how">
-    <span className="v2-kicker">How it works</span>
-    <h2 className="v2-title" style={{ color: "#fff" }}>Three steps to a full table</h2>
-    <p className="v2-sub">From first tap to first bite, it takes a couple of minutes.</p>
-    <div className="v2-steps">
-      <div className="v2-step">
-        <b>1</b>
-        <h3>Pick your food</h3>
-        <p>Browse the menu and deals, choose your size and crust, and add everything to your order.</p>
+  <section className="s3-how" id="section-how">
+    <div className="s3-how-inner">
+      <div className="s3-head is-light">
+        <span className="v2-kicker">How it works</span>
+        <h2 className="v2-title">Four easy steps to a full table</h2>
+        <p className="s3-lead">From first tap to first bite takes just a couple of minutes.</p>
       </div>
-      <div className="v2-step">
-        <b>2</b>
-        <h3>Confirm your details</h3>
-        <p>Enter your name, phone and address. No account, no card — just your delivery details.</p>
-      </div>
-      <div className="v2-step">
-        <b>3</b>
-        <h3>Track &amp; enjoy</h3>
-        <p>Follow your order live as the kitchen cooks it, then pay the rider in cash on arrival.</p>
-      </div>
+      <ol className="s3-steps">
+        {STEPS.map(({ Icon, title, text }, i) => (
+          <li className="s3-step" key={title}>
+            <div className="s3-step-ico">
+              <Icon aria-hidden="true" />
+              <b>{i + 1}</b>
+            </div>
+            <h3>{title}</h3>
+            <p>{text}</p>
+          </li>
+        ))}
+      </ol>
     </div>
   </section>
 );
@@ -261,7 +276,7 @@ const ReviewModal = ({ onClose, onSubmitted }) => {
       <div className="v2-rvm" role="dialog" aria-modal="true" aria-label="Write a review">
         {done ? (
           <div className="v2-thanks">
-            <div className="big" aria-hidden="true">🎉</div>
+            <div className="big" aria-hidden="true"><I.CheckCircle /></div>
             <h3>Thank you!</h3>
             <p>Your review is live. It really helps other hungry people in Gojra.</p>
             <button type="button" className="gzp-btn gzp-btn-primary gzp-btn-block" onClick={onClose}>
@@ -401,20 +416,16 @@ export const ReviewsSection = ({ onSummary }) => {
   const openModal = () => setOpen(true);
 
   return (
-    <section className="v2-section" id="section-reviews">
-      <div className="v2-reviews-head">
-        <div>
-          <span className="v2-kicker">Reviews</span>
-          <h2 className="v2-title">What Gojra is saying</h2>
-        </div>
-        <button type="button" className="v2-write inline" onClick={openModal}>
-          <PencilIcon /> Write a Review
-        </button>
+    <section className="s3-section" id="section-reviews">
+      <div className="s3-head">
+        <span className="v2-kicker">Reviews</span>
+        <h2 className="v2-title">What Gojra is saying</h2>
+        <p className="s3-lead">Honest words from people who ordered with us.</p>
       </div>
 
-      <div className="v2-rv-layout">
-        <aside className="v2-rv-summary" aria-label="Rating summary">
-          <div className="v2-rv-score">
+      <div className="s3-rv-layout">
+        <aside className="s3-rv-summary" aria-label="Rating summary">
+          <div className="s3-rv-score">
             <b>{summary.total ? summary.average.toFixed(1) : "–"}</b>
             <div>
               <Stars value={summary.average} />
@@ -425,22 +436,22 @@ export const ReviewsSection = ({ onSummary }) => {
               </small>
             </div>
           </div>
-          <div className="v2-bars">
+          <div className="s3-bars">
             {bars.map((b) => (
-              <div className="v2-bar" key={b.n}>
-                <span>{b.n}★</span>
+              <div className="s3-bar" key={b.n}>
+                <span className="s3-barn">{b.n} <StarIcon /></span>
                 <i><span style={{ width: `${b.pct}%` }} /></i>
                 <em>{b.count}</em>
               </div>
             ))}
           </div>
-          <button type="button" className="v2-write" onClick={openModal}>
-            <PencilIcon /> Write a Review
+          <button type="button" className="s3-write" onClick={openModal}>
+            <PencilIcon /> Write a review
           </button>
         </aside>
 
         <div>
-          <div className="v2-rv-list">
+          <div className="s3-rv-list">
             {loading && <div className="v2-rv-empty">Loading reviews…</div>}
 
             {!loading && loadError && reviews.length === 0 && (
@@ -457,15 +468,19 @@ export const ReviewsSection = ({ onSummary }) => {
 
             {!loading && !loadError && reviews.length === 0 && (
               <div className="v2-rv-empty">
-                <span aria-hidden="true" style={{ fontSize: "2rem" }}>⭐</span>
+                <span aria-hidden="true" className="s3-empty-ico"><I.Star /></span>
                 <b>Be the first to review</b>
                 Ate with us? Tell others what you thought.
               </div>
             )}
 
             {reviews.slice(0, shown).map((r) => (
-              <article className="v2-rv" key={r._id}>
-                <div className="v2-rv-top">
+              <article className="s3-rv" key={r._id}>
+                <I.Quote className="s3-quote" aria-hidden="true" />
+                <Stars value={r.rating} />
+                {r.title && <h4>{r.title}</h4>}
+                <p>{r.comment}</p>
+                <div className="s3-rv-foot">
                   <div className="v2-avatar" style={{ background: colorFor(r.name) }} aria-hidden="true">
                     {(r.name || "?").trim().charAt(0).toUpperCase()}
                   </div>
@@ -473,11 +488,8 @@ export const ReviewsSection = ({ onSummary }) => {
                     <strong>{r.name}</strong>
                     <span>{timeAgo(r.createdAt)}</span>
                   </div>
+                  {r.dish && <span className="v2-rv-dish"><I.Utensils aria-hidden="true" /> {r.dish}</span>}
                 </div>
-                <Stars value={r.rating} />
-                {r.title && <h4>{r.title}</h4>}
-                <p>{r.comment}</p>
-                {r.dish && <span className="v2-rv-dish">🍽 {r.dish}</span>}
               </article>
             ))}
           </div>
@@ -517,9 +529,9 @@ export const ContactSection = ({ whatsappLink, onTrack }) => (
     <div className="v2-panel">
       <span className="v2-kicker">Good to know</span>
       <ul className="v2-facts">
-        <li><span aria-hidden="true">📍</span> Delivering across Gojra</li>
-        <li><span aria-hidden="true">💵</span> Cash on delivery or JazzCash / Raast QR</li>
-        <li><span aria-hidden="true">⏱</span> Live order tracking from the kitchen to your door</li>
+        <li><span aria-hidden="true"><I.Pin /></span> Home delivery and restaurant pickup in Gojra</li>
+        <li><span aria-hidden="true"><I.Cash /></span> Cash on delivery or JazzCash / Raast QR</li>
+        <li><span aria-hidden="true"><I.Clock /></span> Live order tracking from the kitchen to you</li>
       </ul>
       <button type="button" className="gzp-btn gzp-btn-ghost" onClick={onTrack}>
         Track an order
@@ -567,3 +579,68 @@ export const SiteFooter = ({ taxRatePercent, onNavigate, onTrack }) => (
     </div>
   </footer>
 );
+
+
+export const SECTIONS_STYLES = `
+.s3-section { padding: clamp(40px, 6vw, 84px) var(--gutter); }
+.s3-head { max-width: 640px; margin: 0 auto 32px; text-align: center; }
+.s3-head .v2-title { margin: 6px 0 10px; }
+.s3-lead { margin: 0; color: var(--flour-dim); font-size: 1.02rem; line-height: 1.55; }
+.s3-head.is-light .v2-title, .s3-head.is-light .s3-lead { color: #fff; }
+.s3-head.is-light .s3-lead { opacity: .78; }
+
+.s3-deliver { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 1200px; margin: 0 auto; }
+@media (max-width: 960px) { .s3-deliver { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 580px) { .s3-deliver { grid-template-columns: 1fr; } }
+.s3-card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 10px; transition: transform .2s, box-shadow .2s, border-color .2s; }
+.s3-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); border-color: rgba(230,57,47,.3); }
+.s3-card-top { display: flex; justify-content: space-between; align-items: center; }
+.s3-ico { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 1.3rem; color: #fff; background: linear-gradient(135deg, #E6392F, #ff7a45); box-shadow: 0 10px 20px -8px rgba(230,57,47,.55); }
+.s3-tag { font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--ember-deep); background: #fff0ec; padding: 5px 10px; border-radius: 999px; }
+.s3-card h3 { margin: 6px 0 0; font-size: 1.12rem; }
+.s3-card p { margin: 0; color: var(--flour-dim); font-size: .94rem; line-height: 1.55; }
+
+.s3-how { background: linear-gradient(160deg, #2a1d17, #1c1410); padding: clamp(44px, 6vw, 88px) var(--gutter); }
+.s3-how-inner { max-width: 1200px; margin: 0 auto; }
+.s3-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; position: relative; counter-reset: s; }
+@media (min-width: 961px) { .s3-steps::before { content: ""; position: absolute; top: 36px; left: 12%; right: 12%; border-top: 2px dashed rgba(255,255,255,.22); } }
+@media (max-width: 960px) { .s3-steps { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .s3-steps { grid-template-columns: 1fr; } }
+.s3-step { position: relative; text-align: center; padding: 0 6px; }
+.s3-step-ico { position: relative; width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 50%; display: grid; place-items: center; font-size: 1.5rem; color: #fff; background: linear-gradient(135deg, #E6392F, #ff7a45); box-shadow: 0 0 0 6px #2a1d17, 0 14px 26px -8px rgba(230,57,47,.6); }
+.s3-step-ico b { position: absolute; top: -4px; right: -4px; width: 26px; height: 26px; border-radius: 50%; background: #FFC83D; color: #2a1d17; font-size: .8rem; display: grid; place-items: center; box-shadow: 0 0 0 3px #2a1d17; }
+.s3-step h3 { margin: 0 0 6px; color: #fff; font-size: 1.08rem; }
+.s3-step p { margin: 0; color: rgba(255,255,255,.72); font-size: .92rem; line-height: 1.55; }
+
+.s3-rv-layout { display: grid; grid-template-columns: 320px 1fr; gap: 22px; max-width: 1200px; margin: 0 auto; align-items: start; }
+@media (max-width: 900px) { .s3-rv-layout { grid-template-columns: 1fr; } }
+.s3-rv-summary { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 24px; display: flex; flex-direction: column; gap: 18px; position: sticky; top: calc(var(--header-h) + var(--nav-h) + 12px); }
+@media (max-width: 900px) { .s3-rv-summary { position: static; } }
+.s3-rv-score { display: flex; align-items: center; gap: 14px; }
+.s3-rv-score > b { font-size: 3.4rem; line-height: 1; font-weight: 900; color: var(--flour); }
+.s3-rv-score small { display: block; margin-top: 4px; color: var(--flour-dim); }
+.s3-bars { display: flex; flex-direction: column; gap: 8px; }
+.s3-bar { display: grid; grid-template-columns: 34px 1fr 26px; align-items: center; gap: 10px; font-size: .82rem; color: var(--flour-dim); }
+.s3-barn { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; }
+.s3-barn svg { width: 11px; height: 11px; color: #f5a524; }
+.s3-bar i { height: 8px; background: #f3e8dc; border-radius: 999px; overflow: hidden; display: block; }
+.s3-bar i span { display: block; height: 100%; background: linear-gradient(90deg, #f5a524, #E6392F); border-radius: 999px; }
+.s3-bar em { font-style: normal; text-align: right; }
+.s3-write { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; padding: 13px 16px; font: inherit; font-weight: 800; color: #fff; background: var(--ember); cursor: pointer; box-shadow: 0 12px 22px -10px rgba(230,57,47,.6); }
+.s3-write:hover { background: var(--ember-deep); }
+.s3-write svg { width: 16px; height: 16px; }
+.s3-rv-list { columns: 2 280px; column-gap: 16px; }
+.s3-rv-list > .v2-rv-empty { column-span: all; }
+.s3-rv { position: relative; break-inside: avoid; margin: 0 0 16px; background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.s3-rv .s3-quote { position: absolute; top: 16px; right: 18px; font-size: 1.4rem; color: #ffd9d3; }
+.s3-rv h4 { margin: 0; font-size: 1rem; }
+.s3-rv p { margin: 0; color: var(--flour-dim); line-height: 1.6; font-size: .94rem; }
+.s3-rv-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line); }
+.s3-rv-foot strong { display: block; font-size: .9rem; }
+.s3-rv-foot > div:nth-child(2) span { font-size: .76rem; color: var(--flour-faint); }
+.s3-rv-foot .v2-rv-dish { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: .76rem; background: #fff0ec; color: var(--ember-deep); padding: 4px 10px; border-radius: 999px; }
+.s3-empty-ico { display: grid; place-items: center; font-size: 2rem; color: #f5a524; margin-bottom: 6px; }
+.v2-thanks .big svg { width: 54px; height: 54px; color: var(--basil); }
+.v2-chips li svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+.v2-facts li > span svg { color: var(--ember); }
+`;

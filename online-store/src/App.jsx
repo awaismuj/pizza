@@ -25,7 +25,9 @@ import {
   JazzCashCard,
   PaymentStatusBanner,
 } from "./Payment.jsx";
-import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection, SiteFooter } from "./Sections.jsx";
+import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection, SiteFooter, SECTIONS_STYLES } from "./Sections.jsx";
+import { I, FoodIcon } from "./AppIcons.jsx";
+import { FulfillmentPicker, FULFILLMENT_STYLES, useFulfillment } from "./Fulfillment.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
 
 /* ---------------------------------------------------------------------------
@@ -2199,7 +2201,7 @@ textarea::placeholder {
     tag.id = "gzp-styles";
     document.head.appendChild(tag);
   }
-  tag.textContent = STYLES + BYO_STYLES + DESIGN_STYLES;
+  tag.textContent = STYLES + BYO_STYLES + DESIGN_STYLES + FULFILLMENT_STYLES + SECTIONS_STYLES;
 
   // Dark browser chrome on mobile, so the notch area matches the page.
   if (!document.querySelector('meta[name="theme-color"]')) {
@@ -2380,7 +2382,7 @@ const Media = ({ src, alt, icon, className }) => {
   return src && !failed ? (
     <img src={src} alt={alt} className={className} loading="lazy" onError={() => setFailed(true)} />
   ) : (
-    <div className="gzp-media-fallback">{icon || "🍽️"}</div>
+    <div className="gzp-media-fallback"><FoodIcon icon={icon} /></div>
   );
 };
 
@@ -2514,10 +2516,10 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
   return (
     <div className="gzp-thankyou-overlay" role="dialog" aria-modal="true" aria-label="Order confirmed">
       <div className="gzp-thankyou-card">
-        <span className="gzp-thankyou-sticker tl" aria-hidden="true">🎉</span>
-        <span className="gzp-thankyou-sticker tr" aria-hidden="true">🍕</span>
-        <span className="gzp-thankyou-sticker bl" aria-hidden="true">🧀</span>
-        <span className="gzp-thankyou-sticker br" aria-hidden="true">🎊</span>
+        <span className="gzp-thankyou-sticker tl" aria-hidden="true"><I.Sparkles /></span>
+        <span className="gzp-thankyou-sticker tr" aria-hidden="true"><I.Pizza /></span>
+        <span className="gzp-thankyou-sticker bl" aria-hidden="true"><I.Cheese /></span>
+        <span className="gzp-thankyou-sticker br" aria-hidden="true"><I.Star /></span>
 
         <div className="gzp-thankyou-badge">
           <img src={genzLogo} alt="GenZ Pizza Land" />
@@ -2525,7 +2527,7 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
 
         <PizzaMascot />
 
-        <h2 className="gzp-thankyou-title">Thank you! 🎉</h2>
+        <h2 className="gzp-thankyou-title">Thank you!</h2>
         <p className="gzp-thankyou-sub">
           {order?.orderStatus === WAITING_STATUS
             ? "We'll verify your payment and confirm your order shortly."
@@ -2991,7 +2993,7 @@ function App() {
     const known = new Set(categories.map((c) => c._id));
     const loose = dishes.filter((d) => !known.has(d.category?._id || d.category));
     if (loose.length > 0) {
-      ordered.push({ id: "other", name: "More to eat", icon: "🍽️", items: loose });
+      ordered.push({ id: "other", name: "More to eat", icon: "utensils", items: loose });
     }
     return ordered;
   }, [categories, dishes]);
@@ -3116,7 +3118,11 @@ function App() {
 
   const subtotal = grossSubtotal - byoDiscount; // after discount: what tax is charged on
   const tax = (subtotal * taxRatePercent) / 100;
-  const total = subtotal + tax;
+  const cartTotal = subtotal + tax; // before any delivery fee
+  // Delivery / pickup: the server prices and validates the choice; the fee
+  // is added here so the total updates the moment the method changes.
+  const fulfil = useFulfillment(subtotal);
+  const total = cartTotal + fulfil.fee;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
 
   const showToast = useCallback((message, duration = 2000) => {
@@ -3445,7 +3451,7 @@ function App() {
   }, [payments, payMethod]);
 
   const jazzSelected = payMethod === PAY_JAZZ && payments.jazzcashEnabled;
-  const canPlace = !placing && (!jazzSelected || jazz.ready);
+  const canPlace = !placing && fulfil.ready && (!jazzSelected || jazz.ready);
 
   const handleCheckout = async (e) => {
     e.preventDefault();
@@ -3464,6 +3470,11 @@ function App() {
       return;
     }
 
+    if (!fulfil.ready) {
+      setError(fulfil.blocker || "Please choose delivery or pickup and fill in the details.");
+      return;
+    }
+
     if (jazzSelected && !jazz.ready) {
       setError("Please add your Transaction ID, sender name/number and payment screenshot first.");
       return;
@@ -3476,7 +3487,8 @@ function App() {
       const res = await placeOrder({
         customerName: form.name,
         customerPhone: form.phone,
-        address: form.address,
+        address: fulfil.method === "delivery" ? fulfil.address : "",
+        fulfillment: fulfil.payload(),
         ...(jazzSelected
           ? {
               paymentMethod: "jazzcash",
@@ -3647,7 +3659,7 @@ function App() {
       {resolveImageUrl(l.item.image) ? (
         <img src={resolveImageUrl(l.item.image)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
       ) : (
-        <span className="gzp-line-icon">{l.item.icon || "🍽️"}</span>
+        <span className="gzp-line-icon"><FoodIcon icon={l.item.icon} /></span>
       )}
       <div className="gzp-line-main">
         <h4>
@@ -3804,24 +3816,37 @@ function App() {
                     <span>−{formatRs(order.bills.discount)}</span>
                   </div>
                 )}
+                {Number(order.bills?.deliveryFee) > 0 && (
+                  <div>
+                    <span>Delivery fee</span>
+                    <span>{formatRs(order.bills.deliveryFee)}</span>
+                  </div>
+                )}
                 <div className="gzp-grand">
                   <span>
                     {isPaidFlow
                       ? order.payment?.status === "Verified"
                         ? "Paid via JazzCash/Raast"
                         : "Total (JazzCash/Raast)"
-                      : "Pay on delivery"}
+                      : order.fulfillment?.method === "pickup" ? "Pay at pickup" : "Pay on delivery"}
                   </span>
                   <span>{formatRs(order.bills?.totalWithTax || 0)}</span>
                 </div>
               </div>
             </div>
 
-            {order.customerDetails?.address && (
+            {order.fulfillment?.method && (
               <div className="gzp-panel">
-                <h3>Delivering to</h3>
-                <p style={{ margin: 0, color: "var(--flour-dim)", fontSize: "0.93rem" }}>
-                  {order.customerDetails.address}
+                <h3>{order.fulfillment.method === "pickup" ? "Pickup from" : "Delivering to"}</h3>
+                <p style={{ margin: 0, color: "var(--flour-dim)", fontSize: "0.93rem", lineHeight: 1.5 }}>
+                  {order.fulfillment.method === "pickup"
+                    ? order.fulfillment.branchName
+                    : order.customerDetails?.address}
+                  {order.fulfillment.method === "delivery" && order.fulfillment.zoneName ? ` (${order.fulfillment.zoneName})` : ""}
+                  {order.fulfillment.method === "delivery" && order.fulfillment.branchName ? <><br />From {order.fulfillment.branchName}</> : null}
+                  {order.fulfillment.estimatedMinutes?.min != null && (
+                    <><br />Estimated {order.fulfillment.method === "pickup" ? "ready time" : "arrival"}: {order.fulfillment.estimatedMinutes.min}–{order.fulfillment.estimatedMinutes.max} min after confirmation</>
+                  )}
                 </p>
               </div>
             )}
@@ -3832,7 +3857,7 @@ function App() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              💬 Need help? Chat with us on WhatsApp
+              <I.Chat aria-hidden="true" style={{ marginRight: 8, verticalAlign: "-2px" }} />Need help? Chat with us on WhatsApp
             </a>
 
             <button
@@ -4010,7 +4035,7 @@ function App() {
                           }
                         >
                           <div className="gzp-deal-media">
-                            <Media src={resolveImageUrl(deal.image)} alt={deal.name} icon={deal.icon || "🔥"} />
+                            <Media src={resolveImageUrl(deal.image)} alt={deal.name} icon={deal.icon || "flame"} />
                             {deal.badge && <span className="gzp-badge">{deal.badge}</span>}
                             {saving > 0 && <span className="gzp-save">Save {saving}%</span>}
                             {stockLabel(deal.availableQty) && (
@@ -4141,7 +4166,7 @@ function App() {
             <small>
               {cartCount} item{cartCount === 1 ? "" : "s"} in your order
             </small>
-            <b>{formatRs(total)}</b>
+            <b>{formatRs(cartTotal)}</b>
           </span>
           <span className="gzp-cartbar-cta">View order</span>
         </button>
@@ -4151,7 +4176,7 @@ function App() {
 
       {toast && (
         <div className="gzp-toast" role="status">
-          <i>✓</i>
+          <i><I.Check /></i>
           {toast}
         </div>
       )}
@@ -4192,7 +4217,7 @@ function App() {
                 {resolveImageUrl(item.image) ? (
                   <img src={resolveImageUrl(item.image)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 ) : (
-                  <span className="gzp-result-icon">{item.icon || "🍽️"}</span>
+                  <span className="gzp-result-icon"><FoodIcon icon={item.icon} /></span>
                 )}
                 <span className="gzp-result-name">
                   {item.name}
@@ -4231,7 +4256,7 @@ function App() {
                 aria-label="Close"
                 type="button"
               >
-                ✕
+                <I.Close aria-hidden="true" />
               </button>
             </div>
 
@@ -4539,14 +4564,14 @@ function App() {
             <div className="gzp-sheet-head">
               <h2>Your order</h2>
               <button className="gzp-icon-btn" onClick={() => setCartOpen(false)} aria-label="Close" type="button">
-                ✕
+                <I.Close aria-hidden="true" />
               </button>
             </div>
 
             {cartLines.length === 0 ? (
               <div className="gzp-sheet-body">
                 <div className="gzp-empty">
-                  <span>🛒</span>
+                  <span><I.Cart aria-hidden="true" /></span>
                   Nothing here yet. Add a deal or a pizza and it'll show up.
                 </div>
                 <button className="gzp-btn gzp-btn-primary" onClick={() => setCartOpen(false)} type="button">
@@ -4561,7 +4586,7 @@ function App() {
                   {byoLines.length > 0 && (
                     <div className="gzp-byo-cart">
                       <div className="gzp-byo-cart-head">
-                        <h4>🎯 Your custom deal</h4>
+                        <h4><I.Target aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }} />Your custom deal</h4>
                         <button type="button" onClick={() => { setCartOpen(false); setByoOpen(true); }}>
                           Edit
                         </button>
@@ -4597,9 +4622,13 @@ function App() {
                       <span>Tax ({taxRatePercent}%)</span>
                       <span>{formatRs(tax)}</span>
                     </div>
+                    <div>
+                      <span>Delivery</span>
+                      <span>Chosen at checkout</span>
+                    </div>
                     <div className="gzp-grand">
                       <span>Total</span>
-                      <span>{formatRs(total)}</span>
+                      <span>{formatRs(cartTotal)}</span>
                     </div>
                   </div>
                   {byoBlocked && (
@@ -4618,7 +4647,7 @@ function App() {
                     disabled={byoBlocked}
                     type="button"
                   >
-                    Add delivery details
+                    Choose delivery or pickup
                   </button>
                   {byoBlocked && (
                     <button
@@ -4647,7 +4676,7 @@ function App() {
       {/* ---- Checkout ---- */}
       {checkoutOpen && (
         <div className="gzp-sheet-overlay" onClick={() => setCheckoutOpen(false)}>
-          <div className="gzp-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Delivery details">
+          <div className="gzp-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Delivery or pickup details">
             <div className="gzp-sheet-head">
               <button
                 className="gzp-icon-btn"
@@ -4660,12 +4689,14 @@ function App() {
               >
                 <IconChevron dir="left" />
               </button>
-              <h2>Where should we send it?</h2>
+              <h2>Delivery or pickup</h2>
             </div>
 
             <form onSubmit={handleCheckout} style={{ display: "contents" }}>
               <div className="gzp-sheet-body">
                 <div className="gzp-form">
+                  <FulfillmentPicker f={fulfil} />
+
                   <label className="gzp-field">
                     <span>Your name</span>
                     <input
@@ -4697,18 +4728,7 @@ function App() {
                     />
                   </label>
 
-                  <label className="gzp-field">
-                    <span>Delivery address</span>
-                    <textarea
-                      required
-                      rows={3}
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      placeholder="House or flat number, street, area, nearest landmark"
-                    />
-                  </label>
-
-                  <PaymentMethodPicker cfg={payments} value={payMethod} onChange={setPayMethod} />
+                  <PaymentMethodPicker cfg={payments} value={payMethod} onChange={setPayMethod} pickup={fulfil.method === "pickup"} />
 
                   {jazzSelected ? (
                     <JazzCashCard cfg={payments} amountLabel={formatRs(total)} jazz={jazz} />
@@ -4716,8 +4736,11 @@ function App() {
                     <p className="gzp-note">
                       <IconTruck />
                       <span>
-                        <b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this
-                        number if we can't find the address.
+                        {fulfil.method === "pickup" ? (
+                          <><b>Pay at pickup.</b> Pay at the counter when you collect your order. We'll call you if anything changes.</>
+                        ) : (
+                          <><b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this number if we can't find the address.</>
+                        )}
                       </span>
                     </p>
                   )}
@@ -4728,6 +4751,14 @@ function App() {
 
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
+                  <div>
+                    <span>Subtotal + tax</span>
+                    <span>{formatRs(cartTotal)}</span>
+                  </div>
+                  <div>
+                    <span>{fulfil.method === "pickup" ? "Pickup" : "Delivery fee"}</span>
+                    <span>{fulfil.quote?.ok ? (fulfil.fee > 0 ? formatRs(fulfil.fee) : "Free") : "—"}</span>
+                  </div>
                   <div className="gzp-grand">
                     <span>Total to pay</span>
                     <span>{formatRs(total)}</span>
@@ -4740,6 +4771,8 @@ function App() {
                 >
                   {placing
                     ? "Sending to the kitchen…"
+                    : !fulfil.ready
+                    ? fulfil.quoting ? "Checking…" : fulfil.method === "delivery" ? "Complete delivery details" : "Check pickup details"
                     : jazzSelected && !jazz.ready
                     ? jazz.uploading
                       ? "Uploading screenshot…"
@@ -4759,7 +4792,7 @@ function App() {
             <div className="gzp-sheet-head">
               <h2>Track your order</h2>
               <button className="gzp-icon-btn" onClick={() => setTrackOpen(false)} aria-label="Close" type="button">
-                ✕
+                <I.Close aria-hidden="true" />
               </button>
             </div>
 

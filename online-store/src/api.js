@@ -86,3 +86,10 @@ export async function uploadPaymentProof(file) {
   }
   return data;
 }
+
+// Branches + live fulfillment rules (hours, pickup, delivery zones & fees).
+export const getPublicBranches = () => request("/api/branch/public");
+// Server-side price/validation of a delivery or pickup choice. The checkout
+// endpoint re-runs the exact same rules, so this is what the customer will pay.
+export const quoteFulfillment = (payload) =>
+  request("/api/branch/public/quote", { method: "POST", body: JSON.stringify(payload) });

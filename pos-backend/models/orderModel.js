@@ -94,6 +94,21 @@ const orderSchema = new mongoose.Schema({
         discount: { type: Number, default: 0 },
         discountPercent: { type: Number, default: 0 },
         discountLabel: { type: String, default: "" },
+        // Delivery charge, added AFTER tax (it is not taxed). 0 for pickup.
+        deliveryFee: { type: Number, default: 0 },
+    },
+    // How the customer receives the order. Saved with every online order and
+    // optional on POS orders. Validated by utils/fulfillment.js.
+    fulfillment: {
+        method: { type: String, enum: ["delivery", "pickup"] },
+        branchId: { type: mongoose.Schema.Types.ObjectId, ref: "Branch" },
+        branchName: String,
+        zoneId: String,
+        zoneName: String,
+        deliveryFee: { type: Number, default: 0 },
+        minOrder: { type: Number, default: 0 },
+        estimatedMinutes: { min: Number, max: Number },
+        estimatedAt: Date,
     },
     items: [],
     table: { type: mongoose.Schema.Types.ObjectId, ref: "Table" },

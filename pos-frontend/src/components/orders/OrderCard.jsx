@@ -10,6 +10,7 @@ import { canEditOrder, canCancelOrder, canDeleteOrder } from "../../utils/orderP
 import OrderStageTracker from "./OrderStageTracker";
 import Invoice from "../invoice/Invoice";
 import EditOrderModal from "./EditOrderModal";
+import { I } from "../shared/AppIcons";
 
 // Orders finish on different final statuses depending on source (dine-in/
 // takeaway end at "Closed", online orders end at "Completed") — either one
@@ -93,9 +94,9 @@ const OrderCard = ({ order }) => {
               {isOnline ? "Online delivery" : isTakeaway ? "Outdoor / Takeaway" : "Dine in"}
             </p>
             {isOnline ? (
-              <p className="text-[#025cca] text-sm">🌐 Online order</p>
+              <p className="text-[#025cca] text-sm"><I.Cart className="inline mr-1.5" />Online order</p>
             ) : isTakeaway ? (
-              <p className="text-[#f6b100] text-sm">🥡 Takeaway</p>
+              <p className="text-[#f6b100] text-sm"><I.Bag className="inline mr-1.5" />Takeaway</p>
             ) : (
               <p className="text-[#ababab] text-sm">
                 Table <FaLongArrowAltRight className="text-[#ababab] ml-2 inline" /> {order.table?.tableNo ?? "—"}

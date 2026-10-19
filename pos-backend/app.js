@@ -76,6 +76,7 @@ app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
 app.use("/api/music", require("./routes/musicRoute"));
 app.use("/api/review", require("./routes/reviewRoute"));
+app.use("/api/branch", require("./routes/branchRoute"));
 
 // Global Error Handler
 app.use(globalErrorHandler);

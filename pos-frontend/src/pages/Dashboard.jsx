@@ -20,6 +20,11 @@ import {
   MdRateReview,
   MdQrCode2,
   MdAdd,
+  MdStorefront,
+  MdMenu,
+  MdClose,
+  MdChevronLeft,
+  MdChevronRight,
 } from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +43,7 @@ import StaffManagement from "../components/dashboard/StaffManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
 import ReviewsManager from "../components/dashboard/ReviewsManager";
 import PaymentSettingsManager from "../components/dashboard/PaymentSettingsManager";
+import BranchesManager from "../components/dashboard/BranchesManager";
 import MusicPlayer from "../components/shared/MusicPlayer";
 import {
   getCategories,
@@ -53,6 +59,7 @@ import {
   deleteInventoryItem,
 } from "../https";
 import { resolveImageUrl } from "../utils";
+import { I, FoodIcon } from "../components/shared/AppIcons";
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
@@ -62,7 +69,15 @@ const buttons = [
   { label: "Add Dishes", hint: "New menu item", icon: <BiSolidDish />, action: "dishes", tint: "#f6b100" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Payment Settings", "Menu", "Deals", "Hero Slider", "Reviews", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
+// Sidebar sections. Order here is the order shown on screen.
+const tabGroups = [
+  { label: "Overview", tabs: ["Metrics", "Orders", "Payments", "Profit"] },
+  { label: "Storefront", tabs: ["Menu", "Deals", "Hero Slider", "Build Your Own", "Reviews"] },
+  { label: "Delivery & Pickup", tabs: ["Branches"] },
+  { label: "Operations", tabs: ["Inventory", "Staff", "Assets"] },
+  { label: "Settings", tabs: ["Payment Settings", "Tax", "Music"] },
+];
+const tabs = tabGroups.flatMap((g) => g.tabs);
 
 // Icon per tab, so the bar can be scanned at a glance.
 const tabIcons = {
@@ -81,6 +96,7 @@ const tabIcons = {
   Tax: <MdAccountBalance />,
   Music: <MdMusicNote />,
   Assets: <MdDevices />,
+  Branches: <MdStorefront />,
 };
 const assetRoles = ["admin", "accountant", "asset manager", "read only"];
 
@@ -89,6 +105,9 @@ const Dashboard = () => {
   const role = useSelector((state) => state.user.role);
   const isAdmin = String(role || "").toLowerCase() === "admin";
   const visibleTabs = isAdmin ? tabs : ["Assets"];
+  const visibleGroups = isAdmin ? tabGroups : [{ label: "Operations", tabs: ["Assets"] }];
+  const [sideOpen, setSideOpen] = useState(false); // mobile drawer
+  const [sideCollapsed, setSideCollapsed] = useState(false); // desktop icon-only
 
   useEffect(() => {
     document.title = "POS | Admin Dashboard";
@@ -357,64 +376,142 @@ const Dashboard = () => {
     });
   };
 
+  const pickTab = (tab) => {
+    setActiveTab(tab);
+    setSideOpen(false);
+    window.scrollTo({ top: 0 });
+  };
+
+  const sidebar = (collapsed) => (
+    <nav aria-label="Dashboard sections" className="flex flex-col gap-5">
+      {visibleGroups.map((group) => (
+        <div key={group.label}>
+          {!collapsed && (
+            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#6f6f6f]">{group.label}</p>
+          )}
+          {collapsed && <div className="mx-3 mb-1.5 border-t border-[#333]" />}
+          <ul className="flex flex-col gap-1">
+            {group.tabs.map((tab) => {
+              const active = activeTab === tab;
+              return (
+                <li key={tab}>
+                  <button
+                    onClick={() => pickTab(tab)}
+                    aria-current={active ? "page" : undefined}
+                    title={collapsed ? tab : undefined}
+                    className={`w-full flex items-center gap-3 rounded-xl text-sm font-semibold transition-colors ${
+                      collapsed ? "justify-center px-0 py-3" : "px-3 py-2.5 text-left"
+                    } ${
+                      active
+                        ? "bg-[#f6b100] text-[#1f1f1f] shadow-md shadow-black/30"
+                        : "text-[#b5b5b5] hover:text-[#f5f5f5] hover:bg-[#2e2e2e]"
+                    }`}
+                  >
+                    <span className="text-lg shrink-0">{tabIcons[tab]}</span>
+                    {!collapsed && <span className="truncate">{tab}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+
   return (
     <div className="dash-wide bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
-      <div className="container mx-auto px-4 sm:px-6 pt-8 pb-4">
-        {isAdmin && (
-          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5 mb-6">
-            <div>
-              <h1 className="text-[#f5f5f5] text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
-              <p className="text-[#8a8a8a] text-sm mt-1">Manage your menu, orders and storefront in one place.</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:min-w-[640px]">
-              {buttons.map(({ label, hint, icon, action, tint }) => (
-                <button
-                  key={action}
-                  onClick={() => handleOpenModal(action)}
-                  className="group flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left bg-[#262626] hover:bg-[#2e2e2e] border border-[#333] hover:border-[#4a4a4a] rounded-2xl px-2 sm:px-4 py-3 transition-colors"
-                >
-                  <span
-                    className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-2xl"
-                    style={{ background: `${tint}26`, color: tint }}
-                  >
-                    {icon}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[#f5f5f5] font-semibold leading-tight">{label}</span>
-                    <span className="hidden sm:block text-[#8a8a8a] text-xs mt-0.5 truncate">{hint}</span>
-                  </span>
-                  <span className="hidden sm:flex w-8 h-8 rounded-full bg-[#1f1f1f] text-[#f5f5f5] flex items-center justify-center text-lg group-hover:bg-[#f6b100] group-hover:text-[#1f1f1f] transition-colors">
-                    <MdAdd />
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="dash-tabs flex items-center gap-1.5 overflow-x-auto bg-[#262626] border border-[#333] rounded-2xl p-1.5">
-          {visibleTabs.map((tab) => {
-            const active = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                aria-current={active ? "page" : undefined}
-                className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors ${
-                  active
-                    ? "bg-[#f6b100] text-[#1f1f1f] shadow-md shadow-black/30"
-                    : "text-[#b5b5b5] hover:text-[#f5f5f5] hover:bg-[#333]"
-                }`}
-              >
-                <span className="text-lg">{tabIcons[tab]}</span>
-                {tab}
-              </button>
-            );
-          })}
+      {/* Mobile: top bar with the current section + a button that opens the drawer */}
+      <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 bg-[#1f1f1f]/95 backdrop-blur border-b border-[#333] px-4 py-3">
+        <button
+          onClick={() => setSideOpen(true)}
+          aria-label="Open sections menu"
+          className="w-10 h-10 rounded-xl bg-[#262626] border border-[#333] text-[#f5f5f5] flex items-center justify-center text-xl"
+        >
+          <MdMenu />
+        </button>
+        <div className="flex items-center gap-2 text-[#f5f5f5] font-semibold">
+          <span className="text-[#f6b100] text-lg">{tabIcons[activeTab]}</span>
+          {activeTab}
         </div>
       </div>
 
+      {sideOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setSideOpen(false)} aria-hidden="true" />
+          <aside className="relative w-72 max-w-[85%] h-full bg-[#1b1b1b] border-r border-[#333] p-4 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <span className="text-[#f5f5f5] font-bold text-lg">Dashboard</span>
+              <button
+                onClick={() => setSideOpen(false)}
+                aria-label="Close menu"
+                className="w-9 h-9 rounded-lg bg-[#262626] text-[#f5f5f5] flex items-center justify-center text-lg"
+              >
+                <MdClose />
+              </button>
+            </div>
+            {sidebar(false)}
+          </aside>
+        </div>
+      )}
+
+      <div className="flex items-start">
+        {/* Desktop: fixed sidebar that stays in view while the page scrolls */}
+        <aside
+          className={`hidden lg:block shrink-0 sticky top-0 self-start h-screen overflow-y-auto bg-[#1b1b1b] border-r border-[#333] py-6 transition-[width] duration-200 ${
+            sideCollapsed ? "w-[76px] px-2" : "w-64 px-3"
+          }`}
+        >
+          <div className={`flex items-center mb-5 ${sideCollapsed ? "justify-center" : "justify-between px-3"}`}>
+            {!sideCollapsed && <span className="text-[#f5f5f5] font-bold text-lg">Dashboard</span>}
+            <button
+              onClick={() => setSideCollapsed((v) => !v)}
+              aria-label={sideCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="w-8 h-8 rounded-lg bg-[#262626] border border-[#333] text-[#b5b5b5] hover:text-[#f5f5f5] flex items-center justify-center"
+            >
+              {sideCollapsed ? <MdChevronRight /> : <MdChevronLeft />}
+            </button>
+          </div>
+          {sidebar(sideCollapsed)}
+        </aside>
+
+        <main className="flex-1 min-w-0">
+          <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-4">
+            {isAdmin && (
+              <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-5">
+                <div>
+                  <h1 className="text-[#f5f5f5] text-2xl sm:text-3xl font-bold tracking-tight">{activeTab}</h1>
+                  <p className="text-[#8a8a8a] text-sm mt-1">Manage your menu, orders and storefront in one place.</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 2xl:min-w-[640px]">
+                  {buttons.map(({ label, hint, icon, action, tint }) => (
+                    <button
+                      key={action}
+                      onClick={() => handleOpenModal(action)}
+                      className="group flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left bg-[#262626] hover:bg-[#2e2e2e] border border-[#333] hover:border-[#4a4a4a] rounded-2xl px-2 sm:px-4 py-3 transition-colors"
+                    >
+                      <span
+                        className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-2xl"
+                        style={{ background: `${tint}26`, color: tint }}
+                      >
+                        {icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[#f5f5f5] font-semibold leading-tight">{label}</span>
+                        <span className="hidden sm:block text-[#8a8a8a] text-xs mt-0.5 truncate">{hint}</span>
+                      </span>
+                      <span className="hidden sm:flex w-8 h-8 rounded-full bg-[#1f1f1f] text-[#f5f5f5] items-center justify-center text-lg group-hover:bg-[#f6b100] group-hover:text-[#1f1f1f] transition-colors">
+                        <MdAdd />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+      {activeTab === "Branches" && <BranchesManager />}
       {activeTab === "Metrics" && <Metrics />}
       {activeTab === "Orders" && <RecentOrders />}
       {activeTab === "Payments" && <PaymentsOverview />}
@@ -435,7 +532,7 @@ const Dashboard = () => {
                   type="text"
                   value={categorySearch}
                   onChange={(e) => setCategorySearch(e.target.value)}
-                  placeholder="🔍 Search categories…"
+                  placeholder="Search categories…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
               </div>
@@ -452,7 +549,7 @@ const Dashboard = () => {
                             {isUploadedImage(category.icon) ? (
                               <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-xl">{category.icon || "🍽️"}</span>
+                              <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
                             )}
                           </div>
                           <div className="min-w-0">
@@ -495,7 +592,7 @@ const Dashboard = () => {
                                     {isUploadedImage(category.icon) ? (
                                       <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-xl">{category.icon || "🍽️"}</span>
+                                      <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
                                     )}
                                   </div>
                                   <div className="min-w-0">
@@ -539,7 +636,7 @@ const Dashboard = () => {
                   type="text"
                   value={dishSearch}
                   onChange={(e) => setDishSearch(e.target.value)}
-                  placeholder="🔍 Search dishes…"
+                  placeholder="Search dishes…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
               </div>
@@ -556,7 +653,7 @@ const Dashboard = () => {
                             {isUploadedImage(dish.image) ? (
                               <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-xl">{dish.icon || "🍽️"}</span>
+                              <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
                             )}
                           </div>
                           <div className="min-w-0">
@@ -564,7 +661,7 @@ const Dashboard = () => {
                             <p className="text-[#ababab] text-sm truncate">
                               {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                               {dish.isInventoryTracked && (
-                                <span className="ml-2 text-green-400">🔗 Inventory linked</span>
+                                <span className="ml-2 text-green-400"><I.Check className="inline mr-1" />Inventory linked</span>
                               )}
                             </p>
                           </div>
@@ -604,7 +701,7 @@ const Dashboard = () => {
                                     {isUploadedImage(dish.image) ? (
                                       <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-xl">{dish.icon || "🍽️"}</span>
+                                      <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
                                     )}
                                   </div>
                                   <div className="min-w-0">
@@ -612,7 +709,7 @@ const Dashboard = () => {
                                     <p className="text-[#ababab] text-sm truncate">
                                       {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                                       {dish.isInventoryTracked && (
-                                        <span className="ml-2 text-green-400">🔗 Inventory linked</span>
+                                        <span className="ml-2 text-green-400"><I.Check className="inline mr-1" />Inventory linked</span>
                                       )}
                                     </p>
                                   </div>
@@ -768,7 +865,7 @@ const Dashboard = () => {
                   type="text"
                   value={inventorySearch}
                   onChange={(e) => setInventorySearch(e.target.value)}
-                  placeholder="🔍 Search inventory…"
+                  placeholder="Search inventory…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
               </div>
@@ -852,6 +949,9 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+        </main>
+      </div>
 
       {isModalOpen && (
         <Modal action={modalAction} setIsModalOpen={setIsModalOpen} initialData={modalInitialData} />
