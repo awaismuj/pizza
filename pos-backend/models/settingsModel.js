@@ -26,6 +26,17 @@ const settingsSchema = new mongoose.Schema(
         maxlength: 300,
       },
     },
+    // Online-store payment options, editable from Dashboard > Payment Settings.
+    payments: {
+      codEnabled: { type: Boolean, default: true },
+      jazzcashEnabled: { type: Boolean, default: true },
+      merchantName: { type: String, default: "GEN Z FOOD", trim: true, maxlength: 60 },
+      tillId: { type: String, default: "984661930", trim: true, maxlength: 20 },
+      dialCode: { type: String, default: "*786*10#", trim: true, maxlength: 20 },
+      // "/uploads/xyz.png" once an admin uploads a new QR; empty = use the
+      // QR image bundled with the storefront.
+      qrImage: { type: String, default: "", trim: true, maxlength: 300 },
+    },
     assetAccounting: {
       currency: { type: String, default: "PKR", match: /^[A-Z]{3}$/ },
       financialYearStartMonth: { type: Number, default: 1, min: 1, max: 12 },

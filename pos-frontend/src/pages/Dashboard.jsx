@@ -18,6 +18,7 @@ import {
   MdMusicNote,
   MdDevices,
   MdRateReview,
+  MdQrCode2,
   MdAdd,
 } from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
@@ -36,6 +37,7 @@ import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
 import ReviewsManager from "../components/dashboard/ReviewsManager";
+import PaymentSettingsManager from "../components/dashboard/PaymentSettingsManager";
 import MusicPlayer from "../components/shared/MusicPlayer";
 import {
   getCategories,
@@ -60,13 +62,14 @@ const buttons = [
   { label: "Add Dishes", hint: "New menu item", icon: <BiSolidDish />, action: "dishes", tint: "#f6b100" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Reviews", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
+const tabs = ["Metrics", "Orders", "Payments", "Payment Settings", "Menu", "Deals", "Hero Slider", "Reviews", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Music", "Assets"];
 
 // Icon per tab, so the bar can be scanned at a glance.
 const tabIcons = {
   Metrics: <MdInsights />,
   Orders: <MdReceiptLong />,
   Payments: <MdPayments />,
+  "Payment Settings": <MdQrCode2 />,
   Menu: <MdRestaurantMenu />,
   Deals: <MdLocalOffer />,
   "Hero Slider": <MdViewCarousel />,
@@ -415,6 +418,7 @@ const Dashboard = () => {
       {activeTab === "Metrics" && <Metrics />}
       {activeTab === "Orders" && <RecentOrders />}
       {activeTab === "Payments" && <PaymentsOverview />}
+      {activeTab === "Payment Settings" && <PaymentSettingsManager />}
       {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}

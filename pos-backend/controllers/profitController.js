@@ -186,13 +186,14 @@ const getDayOrders = async (req, res, next) => {
     const orders = await Order.find({ orderDate: { $gte: start, $lt: end } })
       .populate("table", "tableNo")
       .sort({ orderDate: 1 })
-      .select("orderNumber customerDetails orderStatus orderSource table items bills costOfGoods orderDate");
+      .select("orderNumber customerDetails orderStatus orderSource table items bills costOfGoods orderDate paymentMethod paymentStatus jazzcash.tid");
 
     const rows = orders.map((o) => {
       // Mirrors earnedOrderFilter() in utils/profitService.js — whether
       // THIS order actually counted towards the day's revenue figure above.
+      const paymentOk = o.paymentMethod !== "JazzCash/Raast" || o.paymentStatus === "Verified";
       const isEarned =
-        o.orderSource !== "Online" ? o.orderStatus !== "Cancelled" : o.orderStatus === "Completed";
+        paymentOk && (o.orderSource !== "Online" ? o.orderStatus !== "Cancelled" : o.orderStatus === "Completed");
       const revenue = isEarned ? Number(o?.bills?.totalWithTax ?? o?.bills?.total ?? 0) || 0 : 0;
       const cost = isEarned ? Number(o?.costOfGoods) || 0 : 0;
 
@@ -202,6 +203,9 @@ const getDayOrders = async (req, res, next) => {
         customerName: o.customerDetails?.name || "—",
         orderStatus: o.orderStatus,
         orderSource: o.orderSource,
+        paymentMethod: o.paymentMethod || "",
+        paymentStatus: o.paymentStatus || "",
+        tid: o.jazzcash?.tid || "",
         table: o.table?.tableNo ?? null,
         itemsCount: orderItemCount(o),
         orderDate: o.orderDate,

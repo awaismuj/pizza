@@ -1,19 +1,6 @@
-import axios from "axios";
 import { axiosWrapper } from "./axiosWrapper";
 
 // API Endpoints
-export const generatePosterFoodImage = ({ itemName, style }) =>
-  axios.post(
-    `${axiosWrapper.defaults.baseURL}/api/poster/generate`,
-    { itemName, style },
-    { timeout: 120000, withCredentials: true }
-  );
-export const generateFullPosterDesign = (posterDetails) =>
-  axios.post(
-    `${axiosWrapper.defaults.baseURL}/api/poster/design`,
-    posterDetails,
-    { timeout: 180000, withCredentials: true }
-  );
 
 // Auth Endpoints
 export const login = (data) => axiosWrapper.post("/api/user/login", data);
@@ -165,6 +152,13 @@ export const unlinkWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-
 // Order Endpoints
 export const addOrder = (data) => axiosWrapper.post("/api/order/", data);
 export const getOrders = () => axiosWrapper.get("/api/order");
+// JazzCash/Raast payment review (Cashier/Admin). The screenshot is private,
+// so it is fetched with the staff cookie and shown from a blob URL.
+export const verifyOrderPayment = (orderId) => axiosWrapper.patch(`/api/order/${orderId}/payment/verify`);
+export const rejectOrderPayment = ({ orderId, reason }) =>
+  axiosWrapper.patch(`/api/order/${orderId}/payment/reject`, { reason });
+export const getPaymentProofBlob = (orderId) =>
+  axiosWrapper.get(`/api/order/${orderId}/payment-proof`, { responseType: "blob" });
 export const updateOrderStatus = ({ orderId, orderStatus }) =>
   axiosWrapper.put(`/api/order/${orderId}`, { orderStatus });
 // Edit an order's items (add/remove/change quantity) — Cashier/Admin only,

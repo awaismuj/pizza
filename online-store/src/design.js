@@ -405,6 +405,92 @@ body::before { opacity: 0.025; }
 .gzp-app { padding-bottom: 0; }
 .v2-footer-bottom { padding-bottom: 104px; }
 
+/* ---------- Payment (JazzCash / Raast QR) ---------- */
+
+.pay-methods { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 10px; min-width: 0; }
+.pay-methods legend { font-weight: 800; font-size: .86rem; margin-bottom: 8px; padding: 0; }
+.pay-method {
+  position: relative; display: flex; align-items: center; gap: 12px; cursor: pointer;
+  padding: 14px 16px; border-radius: 16px; background: #fff;
+  border: 2px solid rgba(31,27,24,.12); transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.pay-method:hover { border-color: rgba(180,6,20,.4); }
+.pay-method.is-on { border-color: #B40614; background: #fff5f4; box-shadow: 0 10px 24px -14px rgba(180,6,20,.6); }
+.pay-method input { position: absolute; opacity: 0; pointer-events: none; }
+.pay-method input:focus-visible ~ .pay-radio { outline: 2px solid var(--gold); outline-offset: 3px; }
+.pay-ico { font-size: 1.6rem; flex: none; }
+.pay-text { flex: 1; min-width: 0; display: grid; }
+.pay-text b { font-size: .98rem; }
+.pay-text small { color: var(--flour-dim); font-size: .8rem; }
+.pay-radio { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(31,27,24,.3); position: relative; }
+.pay-method.is-on .pay-radio { border-color: #B40614; }
+.pay-method.is-on .pay-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #B40614; }
+
+.pay-card { display: grid; gap: 18px; padding: 16px; border-radius: 20px; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-soft); }
+.pay-amount {
+  display: grid; gap: 2px; text-align: center; padding: 16px; border-radius: 16px;
+  background: linear-gradient(135deg, #B40614, #EE4540); color: #fff;
+}
+.pay-amount span { font-weight: 700; font-size: .82rem; letter-spacing: .08em; text-transform: uppercase; opacity: .9; }
+.pay-amount strong { font-family: "Archivo", sans-serif; font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 900; letter-spacing: -.03em; line-height: 1.1; }
+.pay-amount small { opacity: .9; font-size: .8rem; }
+
+.pay-grid { display: grid; gap: 18px; grid-template-columns: 1fr; align-items: start; }
+.pay-qr { display: grid; gap: 8px; justify-items: center; text-align: center; }
+.pay-grid, .pay-card, .pay-info { min-width: 0; }
+.pay-qr img {
+  width: 100%; max-width: 320px; height: auto; border-radius: 14px;
+  border: 1px solid var(--line); background: #ffd800;
+}
+.pay-qr p { margin: 0; font-weight: 700; font-size: .86rem; color: var(--flour-dim); }
+.pay-info { display: grid; gap: 12px; min-width: 0; }
+.pay-row { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--cream-2); }
+.pay-row > span { font-size: .74rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--flour-faint); }
+.pay-row > b { font-size: 1.1rem; overflow-wrap: anywhere; }
+.pay-till { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pay-till b { font-family: "Archivo", sans-serif; font-size: 1.35rem; letter-spacing: .08em; }
+.pay-mini {
+  border: 1.5px solid #B40614; background: #fff; color: #B40614; border-radius: 999px;
+  padding: 6px 14px; font-weight: 800; font-size: .8rem; cursor: pointer; flex: none;
+}
+.pay-mini:hover { background: #B40614; color: #fff; }
+.pay-btn-ghost {
+  padding: 12px 16px; border-radius: 999px; cursor: pointer; font-weight: 800;
+  background: #fff; border: 1.5px solid rgba(31,27,24,.2);
+}
+.pay-btn-ghost:hover { border-color: #B40614; color: #B40614; }
+.pay-dial { margin: 0; padding: 12px 14px; border-radius: 14px; border: 1.5px dashed rgba(180,6,20,.45); font-size: .92rem; }
+.pay-hint { margin: 0; font-size: .82rem; color: var(--flour-dim); }
+
+.pay-proof { display: grid; gap: 14px; padding-top: 16px; border-top: 1px dashed rgba(31,27,24,.18); }
+.pay-proof h4 { margin: 0; font-size: 1.05rem; font-weight: 850; }
+.pay-err { font-style: normal; font-size: .8rem; font-weight: 650; color: #B40614; }
+.pay-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.pay-drop {
+  width: 100%; padding: 22px; border-radius: 16px; cursor: pointer; font-weight: 800;
+  background: #fffaf3; border: 2px dashed rgba(180,6,20,.4); color: #B40614;
+}
+.pay-drop:hover { background: #fff1ee; }
+.pay-shot { display: flex; align-items: center; gap: 14px; padding: 10px; border-radius: 16px; background: #fffaf3; border: 1px solid var(--line); }
+.pay-shot img { width: 72px; height: 96px; object-fit: cover; border-radius: 10px; flex: none; }
+.pay-shot > div { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.pay-shot b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+.pay-shot small { color: var(--flour-dim); font-weight: 700; }
+.pay-shot small.ok { color: var(--basil); }
+
+.pay-banner { margin-top: 14px; padding: 14px 16px; border-radius: 16px; display: grid; gap: 4px; }
+.pay-banner b { font-size: 1.02rem; }
+.pay-banner p { margin: 0; font-size: .92rem; }
+.pay-banner small { opacity: .75; font-weight: 700; }
+.pay-banner.is-wait { background: #fff4d6; border: 1px solid #f5c542; color: #6b4e00; }
+.pay-banner.is-bad { background: #fde8e6; border: 1px solid #f19a94; color: #8d0511; }
+.pay-banner.is-ok { background: #e3f6ea; border: 1px solid #8ad3a8; color: #0d6b38; }
+.pay-btn-wa {
+  justify-self: start; margin-top: 8px; padding: 10px 18px; border-radius: 999px; font-weight: 800;
+  background: #25d366; color: #fff; text-decoration: none;
+}
+.gzp-btn.pay-help { text-decoration: none; margin-top: 16px; }
+
 @media (prefers-reduced-motion: reduce) {
   .v2-rvm-overlay, .v2-rvm { animation: none; }
 }

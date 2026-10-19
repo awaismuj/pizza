@@ -16,6 +16,15 @@ import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
 import sindbadLogo from "./assets/sindbad-solution-logo.png";
 import { DESIGN_STYLES } from "./design";
+import {
+  PAY_COD,
+  PAY_JAZZ,
+  DEFAULT_PAYMENTS,
+  useJazzForm,
+  PaymentMethodPicker,
+  JazzCashCard,
+  PaymentStatusBanner,
+} from "./Payment.jsx";
 import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection, SiteFooter } from "./Sections.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
 
@@ -2207,8 +2216,12 @@ textarea::placeholder {
 const FALLBACK_TAX_RATE_PERCENT = 16;
 
 const STATUS_STEPS = ["Pending", "Accepted", "Preparing", "Ready to Deliver", "Completed"];
+// JazzCash/Raast orders start one step earlier: staff confirm the money first.
+const PAID_STATUS_STEPS = ["Payment Pending Verification", "Accepted", "Preparing", "Ready to Deliver", "Completed"];
+const WAITING_STATUS = "Payment Pending Verification";
 
 const STATUS_LABELS = {
+  [WAITING_STATUS]: "Verifying your payment",
   Pending: "Order received",
   Accepted: "Accepted by the kitchen",
   Preparing: "Preparing your food",
@@ -2218,6 +2231,7 @@ const STATUS_LABELS = {
 };
 
 const STATUS_HEADLINES = {
+  [WAITING_STATUS]: "Verifying your payment",
   Pending: "We've got your order",
   Accepted: "The kitchen is on it",
   Preparing: "Your food is cooking",
@@ -2512,7 +2526,11 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
         <PizzaMascot />
 
         <h2 className="gzp-thankyou-title">Thank you! 🎉</h2>
-        <p className="gzp-thankyou-sub">Your order's in and the kitchen's already looking at it.</p>
+        <p className="gzp-thankyou-sub">
+          {order?.orderStatus === WAITING_STATUS
+            ? "We'll verify your payment and confirm your order shortly."
+            : "Your order's in and the kitchen's already looking at it."}
+        </p>
 
         {orderNumber && <span className="gzp-thankyou-pill">Order #{orderNumber}</span>}
 
@@ -2863,6 +2881,10 @@ function App() {
   // status on any device/browser, not just the one that placed the order.
   const [trackOpen, setTrackOpen] = useState(false);
   const [reviewSummary, setReviewSummary] = useState(null);
+  // Payment options + merchant details, live from Dashboard > Payment Settings.
+  const [payments, setPayments] = useState(DEFAULT_PAYMENTS);
+  const [payMethod, setPayMethod] = useState(PAY_COD);
+  const jazz = useJazzForm();
   const [trackInput, setTrackInput] = useState("");
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState("");
@@ -2897,6 +2919,7 @@ function App() {
         setAdminHeroSlides(heroRes.data || []);
         const liveTaxRate = settingsRes?.data?.taxRatePercent;
         if (typeof liveTaxRate === "number") setTaxRatePercent(liveTaxRate);
+        if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
         if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
       } catch (err) {
         setError(err.message);
@@ -3178,6 +3201,7 @@ function App() {
       // admin panel reaches customers who already have the page open.
       if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
       if (typeof settingsRes?.data?.taxRatePercent === "number") setTaxRatePercent(settingsRes.data.taxRatePercent);
+      if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
     } catch (err) {
       // Transient network hiccup - keep showing the last known menu.
     }
@@ -3386,6 +3410,16 @@ function App() {
 
   /* ---------------- Checkout / tracking ---------------- */
 
+  // If staff switch a method off while the customer has it selected, fall
+  // back to whichever one is still available.
+  useEffect(() => {
+    if (payMethod === PAY_COD && !payments.codEnabled && payments.jazzcashEnabled) setPayMethod(PAY_JAZZ);
+    if (payMethod === PAY_JAZZ && !payments.jazzcashEnabled && payments.codEnabled) setPayMethod(PAY_COD);
+  }, [payments, payMethod]);
+
+  const jazzSelected = payMethod === PAY_JAZZ && payments.jazzcashEnabled;
+  const canPlace = !placing && (!jazzSelected || jazz.ready);
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (cartLines.length === 0) return;
@@ -3403,6 +3437,11 @@ function App() {
       return;
     }
 
+    if (jazzSelected && !jazz.ready) {
+      setError("Please add your Transaction ID, sender name/number and payment screenshot first.");
+      return;
+    }
+
     setPlacing(true);
     setError("");
 
@@ -3411,6 +3450,14 @@ function App() {
         customerName: form.name,
         customerPhone: form.phone,
         address: form.address,
+        ...(jazzSelected
+          ? {
+              paymentMethod: "jazzcash",
+              tid: jazz.tid,
+              senderInfo: jazz.sender,
+              proofId: jazz.proofId,
+            }
+          : { paymentMethod: "cod" }),
         items: cartLines.map((l) =>
           l.type === "deal"
             ? { dealId: l.item._id, quantity: l.qty, dealSelections: l.dealSelections || undefined }
@@ -3430,6 +3477,7 @@ function App() {
       setOrder(res.data);
       setShowThankYou(true);
       setTrackingDismissed(false);
+      jazz.reset();
       setCart({});
       setCheckoutOpen(false);
       setCartOpen(false);
@@ -3627,8 +3675,14 @@ function App() {
   }
 
   if (orderId && order && !trackingDismissed) {
-    const stepIndex = STATUS_STEPS.indexOf(order.orderStatus);
+    const isPaidFlow = order.payment?.method === "JazzCash/Raast";
+    const steps = isPaidFlow ? PAID_STATUS_STEPS : STATUS_STEPS;
+    const stepIndex = steps.indexOf(order.orderStatus);
     const isCancelled = order.orderStatus === "Cancelled";
+    const orderRef = String(order._id || "").slice(-6).toUpperCase();
+    const helpHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      `Hello GenZ Pizza Land, I need help with order #${orderRef}.`
+    )}`;
 
     return (
       <div className="gzp-app">
@@ -3655,17 +3709,21 @@ function App() {
                 </button>
               </div>
 
+              <PaymentStatusBanner order={order} whatsappHref={helpHref} />
+
               {isCancelled ? (
-                <p className="gzp-cancelled">
-                  This order was cancelled. Nothing has been charged — you can order again any time.
-                </p>
+                isPaidFlow ? null : (
+                  <p className="gzp-cancelled">
+                    This order was cancelled. Nothing has been charged — you can order again any time.
+                  </p>
+                )
               ) : (
                 <>
                   <p className="gzp-eta">
                     This page updates itself every few seconds. Keep it open and watch it move.
                   </p>
                   <ol className="gzp-steps">
-                    {STATUS_STEPS.map((step, i) => (
+                    {steps.map((step, i) => (
                       <li
                         key={step}
                         className={
@@ -3720,7 +3778,13 @@ function App() {
                   </div>
                 )}
                 <div className="gzp-grand">
-                  <span>Pay on delivery</span>
+                  <span>
+                    {isPaidFlow
+                      ? order.payment?.status === "Verified"
+                        ? "Paid via JazzCash/Raast"
+                        : "Total (JazzCash/Raast)"
+                      : "Pay on delivery"}
+                  </span>
                   <span>{formatRs(order.bills?.totalWithTax || 0)}</span>
                 </div>
               </div>
@@ -3735,9 +3799,18 @@ function App() {
               </div>
             )}
 
+            <a
+              className="gzp-btn gzp-btn-ghost gzp-btn-block pay-help"
+              href={helpHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              💬 Need help? Chat with us on WhatsApp
+            </a>
+
             <button
               className="gzp-btn gzp-btn-ghost gzp-btn-block"
-              style={{ marginTop: 16 }}
+              style={{ marginTop: 12 }}
               onClick={startNewOrder}
               type="button"
             >
@@ -4608,13 +4681,19 @@ function App() {
                     />
                   </label>
 
-                  <p className="gzp-note">
-                    <IconTruck />
-                    <span>
-                      <b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this
-                      number if we can't find the address.
-                    </span>
-                  </p>
+                  <PaymentMethodPicker cfg={payments} value={payMethod} onChange={setPayMethod} />
+
+                  {jazzSelected ? (
+                    <JazzCashCard cfg={payments} amountLabel={formatRs(total)} jazz={jazz} />
+                  ) : (
+                    <p className="gzp-note">
+                      <IconTruck />
+                      <span>
+                        <b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this
+                        number if we can't find the address.
+                      </span>
+                    </p>
+                  )}
 
                   {error && <p className="gzp-error">{error}</p>}
                 </div>
@@ -4630,9 +4709,15 @@ function App() {
                 <button
                   type="submit"
                   className="gzp-btn gzp-btn-primary gzp-btn-block"
-                  disabled={placing}
+                  disabled={!canPlace}
                 >
-                  {placing ? "Sending to the kitchen…" : "Place order"}
+                  {placing
+                    ? "Sending to the kitchen…"
+                    : jazzSelected && !jazz.ready
+                    ? jazz.uploading
+                      ? "Uploading screenshot…"
+                      : "Add payment details to continue"
+                    : "Place order"}
                 </button>
               </div>
             </form>

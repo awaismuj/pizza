@@ -8,7 +8,16 @@ const mongoose = require("mongoose");
 const ORDER_STATUSES = [
     "In Progress", "Ready", "Closed",
     "Pending", "Accepted", "Preparing", "Ready to Deliver", "Completed", "Cancelled",
+    // Online order paid by JazzCash/Raast QR: the customer has sent money
+    // and a screenshot, staff still have to confirm it actually arrived.
+    // Behaves like "Pending" (no stock deducted yet, but stock is reserved).
+    "Payment Pending Verification",
 ];
+
+// Payment methods for online orders (POS orders keep using "Cash"/"Online").
+const PAYMENT_METHOD_COD = "Cash on Delivery";
+const PAYMENT_METHOD_JAZZCASH = "JazzCash/Raast";
+const PAYMENT_STATUSES = ["Pending", "Verified", "Rejected"];
 
 const orderSchema = new mongoose.Schema({
     customerDetails: {
@@ -96,6 +105,25 @@ const orderSchema = new mongoose.Schema({
         default: false,
     },
     paymentMethod: String,
+    // Pending / Verified / Rejected. Only set on online orders. Cash on
+    // Delivery orders turn Verified once delivered (cash collected);
+    // JazzCash/Raast orders turn Verified when staff confirm the money.
+    paymentStatus: { type: String, enum: PAYMENT_STATUSES },
+    // Normalised (UPPERCASE) JazzCash/Raast transaction ID. Unique so the
+    // same payment can never be used to pay for two orders. Left undefined
+    // (not null) for every other order so the sparse index ignores them.
+    jazzcashTid: { type: String, unique: true, sparse: true },
+    jazzcash: {
+        tid: String,                 // as displayed (normalised)
+        senderInfo: String,          // sender's name or number
+        amount: Number,              // exact total the customer must pay
+        proofId: { type: mongoose.Schema.Types.ObjectId, ref: "PaymentProof" },
+        rejectionReason: String,
+        verifiedAt: Date,
+        verifiedBy: { userId: mongoose.Schema.Types.ObjectId, name: String },
+        rejectedAt: Date,
+        rejectedBy: { userId: mongoose.Schema.Types.ObjectId, name: String },
+    },
     paymentData: {
         razorpay_order_id: String,
         razorpay_payment_id: String
@@ -103,5 +131,7 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps : true } );
 
 orderSchema.statics.ORDER_STATUSES = ORDER_STATUSES;
+orderSchema.statics.PAYMENT_METHOD_COD = PAYMENT_METHOD_COD;
+orderSchema.statics.PAYMENT_METHOD_JAZZCASH = PAYMENT_METHOD_JAZZCASH;
 
 module.exports = mongoose.model("Order", orderSchema);

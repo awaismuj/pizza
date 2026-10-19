@@ -11,6 +11,13 @@ const { findOrderShortages, shortageMessage, invalidateAvailabilityCache } = req
 const { getOrCreateSettings } = require("./settingsController");
 const { normalizeByoConfig, byoDiscountPercent } = require("../utils/byoDiscount");
 const { generateOrderNumber } = require("../utils/orderNumber");
+const PaymentProof = require("../models/paymentProofModel");
+const {
+  WAITING_STATUS,
+  resolvePublicPayment,
+  publicPayment,
+  isJazzcashOrder,
+} = require("../utils/paymentUtils");
 
 const VALID_ORDER_STATUSES = Order.ORDER_STATUSES;
 // Statuses that free up the dine-in table this order was sitting at.
@@ -225,6 +232,12 @@ const addPublicOrder = async (req, res, next) => {
     const settings = await getOrCreateSettings();
     const { taxRatePercent } = settings;
 
+    // Payment method (Cash on Delivery or JazzCash/Raast QR). Everything the
+    // customer sent is re-validated here; the amount to pay is always the
+    // server-calculated total, never a number from the browser.
+    const payment = await resolvePublicPayment(req.body, settings);
+    const isJazz = payment.method === Order.PAYMENT_METHOD_JAZZCASH;
+
     // Build Your Own Deal: the percentage is ALWAYS recalculated here from the
     // live admin setting and the real item count - never from anything the
     // browser claims - so nobody can post a made-up discount.
@@ -258,9 +271,9 @@ const addPublicOrder = async (req, res, next) => {
         guests: 1,
         address: address || "",
       },
-      orderStatus: "Pending",
+      orderStatus: isJazz ? WAITING_STATUS : "Pending",
       orderSource: "Online",
-      statusHistory: [{ status: "Pending", at: new Date() }],
+      statusHistory: [{ status: isJazz ? WAITING_STATUS : "Pending", at: new Date() }],
       bills: {
         total,
         tax,
@@ -271,17 +284,51 @@ const addPublicOrder = async (req, res, next) => {
         discountLabel,
       },
       items: resolvedItems,
-      paymentMethod: "Cash on Delivery",
+      paymentMethod: payment.method,
+      paymentStatus: "Pending",
     });
     order.orderNumber = await generateOrderNumber(order.orderDate || new Date());
 
-    await order.save();
+    if (isJazz) {
+      order.jazzcashTid = payment.tid;
+      order.jazzcash = {
+        tid: payment.tid,
+        senderInfo: payment.senderInfo,
+        amount: Math.round(totalWithTax * 100) / 100,
+        proofId: payment.proofId,
+      };
+
+      // Claim the screenshot first (atomic, so one upload can't back two
+      // orders), and hand it back if the order can't be saved.
+      const claimed = await PaymentProof.findOneAndUpdate(
+        { _id: payment.proofId, attached: false },
+        { attached: true },
+        { new: true }
+      );
+      if (!claimed) {
+        return next(createHttpError(400, "Your payment screenshot expired or was already used. Please upload it again."));
+      }
+      try {
+        await order.save();
+      } catch (saveError) {
+        await PaymentProof.updateOne({ _id: payment.proofId }, { attached: false }).catch(() => {});
+        if (saveError?.code === 11000 && saveError?.keyPattern?.jazzcashTid) {
+          return next(createHttpError(409, "This Transaction ID was already used on another order. Please check the TID, or contact us on WhatsApp."));
+        }
+        throw saveError;
+      }
+      await PaymentProof.updateOne({ _id: payment.proofId }, { orderId: order._id }).catch(() => {});
+    } else {
+      await order.save();
+    }
     invalidateAvailabilityCache(); // this order now reserves stock
 
     res.status(201).json({
       success: true,
-      message: "Order placed! You'll see live status updates here.",
-      data: order,
+      message: isJazz
+        ? "Order received! We'll verify your payment and confirm shortly."
+        : "Order placed! You'll see live status updates here.",
+      data: { ...order.toObject(), payment: publicPayment(order), jazzcash: undefined, jazzcashTid: undefined },
     });
   } catch (error) {
     next(error);
@@ -351,6 +398,7 @@ const lookupPublicOrderByPhone = async (req, res, next) => {
         items: order.items,
         bills: order.bills,
         orderDate: order.orderDate,
+        payment: publicPayment(order),
       },
     });
   } catch (error) {
@@ -381,6 +429,7 @@ const getPublicOrderStatus = async (req, res, next) => {
         items: order.items,
         bills: order.bills,
         orderDate: order.orderDate,
+        payment: publicPayment(order),
       },
     });
   } catch (error) {
@@ -433,6 +482,12 @@ const updateOrder = async (req, res, next) => {
           `This order is already ${order.orderStatus.toLowerCase()} and can no longer be edited.`
         );
         return next(error);
+      }
+
+      // The customer paid an exact amount — don't change the bill until
+      // that payment has been verified or rejected.
+      if (order.orderStatus === WAITING_STATUS) {
+        return next(createHttpError(400, "Verify or reject the payment first, then the order can be edited."));
       }
 
       const newItems = req.body.items;
@@ -530,6 +585,29 @@ const updateOrder = async (req, res, next) => {
         `This order is already ${order.orderStatus.toLowerCase()} and can no longer be updated.`
       );
       return next(error);
+    }
+
+    // A JazzCash/Raast order only moves forward through "Verify & Accept"
+    // (see jazzcashController) — never by skipping straight to Accepted,
+    // Preparing, etc. Cancelling is still allowed, and counts as a rejection.
+    if (order.orderStatus === WAITING_STATUS && orderStatus !== "Cancelled") {
+      return next(createHttpError(400, "Verify the payment first (use \"Verify & Accept\" or \"Reject Payment\")."));
+    }
+    if (order.orderStatus === WAITING_STATUS && orderStatus === "Cancelled") {
+      order.paymentStatus = "Rejected";
+      // A rejected payment frees its TID, so the customer can order again
+      // with a corrected screenshot/TID (the TID stays on jazzcash.tid as the record).
+      order.jazzcashTid = undefined;
+      order.jazzcash = {
+        ...(order.jazzcash?.toObject ? order.jazzcash.toObject() : order.jazzcash),
+        rejectionReason: "Order cancelled by the shop.",
+        rejectedAt: new Date(),
+        rejectedBy: { userId: req.user?._id, name: req.user?.name || "" },
+      };
+    }
+    // Cash on Delivery: the cash is in hand once the order is delivered.
+    if (orderStatus === "Completed" && order.orderSource === "Online" && !isJazzcashOrder(order)) {
+      order.paymentStatus = "Verified";
     }
 
     // Staff accepting an online order is the moment stock actually gets
@@ -633,6 +711,9 @@ const deleteOrder = async (req, res, next) => {
       deletedAt: now,
     });
 
+    if (order.jazzcash?.proofId) {
+      await PaymentProof.deleteOne({ _id: order.jazzcash.proofId }).catch(() => {});
+    }
     await order.deleteOne();
     invalidateAvailabilityCache();
 
@@ -662,6 +743,15 @@ const cancelPublicOrder = async (req, res, next) => {
     if (!order || order.orderSource !== "Online") {
       const error = createHttpError(404, "Order not found!");
       return next(error);
+    }
+
+    if (order.orderStatus === WAITING_STATUS) {
+      return next(
+        createHttpError(
+          400,
+          "You've already sent a payment for this order. Please message us on WhatsApp (+923259061006) so we can cancel it and sort out your refund."
+        )
+      );
     }
 
     if (order.orderStatus !== "Pending") {

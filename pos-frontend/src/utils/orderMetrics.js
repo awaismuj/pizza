@@ -9,8 +9,14 @@
 // unless Cancelled — waiting for "Closed" (really just "ticket closed out")
 // used to delay showing that revenue for hours. Online orders may be
 // Cash-on-Delivery, so they only count once "Completed" (delivered).
-export const isEarnedOrder = (order) =>
-  order.orderSource === "Online" ? order.orderStatus === "Completed" : order.orderStatus !== "Cancelled";
+//
+// JazzCash/Raast orders additionally count ONLY once the payment is
+// Verified — money that staff haven't confirmed (or have rejected) is never
+// revenue. Mirrors utils/profitService.js on the backend.
+export const isEarnedOrder = (order) => {
+  if (order.paymentMethod === "JazzCash/Raast" && order.paymentStatus !== "Verified") return false;
+  return order.orderSource === "Online" ? order.orderStatus === "Completed" : order.orderStatus !== "Cancelled";
+};
 export const IN_PROGRESS_STATUS = "In Progress";
 
 export const isSameDay = (a, b) =>

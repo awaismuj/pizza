@@ -2,21 +2,15 @@ import { useDispatch } from "react-redux";
 import { getUserData } from "../https";
 import { useEffect, useState } from "react";
 import { removeUser, setUser } from "../redux/slices/userSlice";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const useLoadData = () => {
   const dispatch = useDispatch();
-  const location = useLocation();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const demoPreview = import.meta.env.DEV && import.meta.env.VITE_POS_DEMO === "true";
 
   useEffect(() => {
-    if (location.pathname === "/poster-maker") {
-      setIsLoading(false);
-      return;
-    }
-
     if (demoPreview) {
       dispatch(setUser({
         _id: "local-demo-admin",
@@ -45,7 +39,7 @@ const useLoadData = () => {
     };
 
     fetchUser();
-  }, [demoPreview, dispatch, location.pathname, navigate]);
+  }, [demoPreview, dispatch, navigate]);
 
   return isLoading;
 };

@@ -5,6 +5,7 @@ import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import ReceiptFooter from "../shared/ReceiptFooter";
 import { printReceipt } from "../../utils/printReceipt";
 import { getOrderNumber } from "../../utils";
+import { paymentReceiptLine } from "../../utils/payments";
 
 // The final bill — shown once an order reaches its terminal "Closed"/
 // "Completed" stage (see OrderCard.jsx), i.e. when a table is being
@@ -143,7 +144,22 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           {/* Payment Details */}
 
           <div className="mb-2 mt-2 text-xs">
-            {orderInfo.paymentMethod === "Cash" ? (
+            {orderInfo.paymentMethod === "JazzCash/Raast" || orderInfo.paymentMethod === "Cash on Delivery" ? (
+              <>
+                {/* Online orders: "Paid via JazzCash/Raast (TID: xxxx)" or "Cash on Delivery" */}
+                <p>
+                  <strong>{paymentReceiptLine(orderInfo)}</strong>
+                </p>
+                {orderInfo.paymentMethod === "JazzCash/Raast" && orderInfo.paymentStatus && orderInfo.paymentStatus !== "Verified" && (
+                  <p>Payment status: {orderInfo.paymentStatus}</p>
+                )}
+                {orderInfo.customerDetails?.address && (
+                  <p>
+                    <strong>Deliver to:</strong> {orderInfo.customerDetails.address}
+                  </p>
+                )}
+              </>
+            ) : orderInfo.paymentMethod === "Cash" ? (
               <p>
                 <strong>Payment Method:</strong> {orderInfo.paymentMethod}
               </p>

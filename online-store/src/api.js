@@ -64,3 +64,25 @@ export const getPublicSettings = () => request("/api/settings");
 export const getPublicReviews = (limit = 30) => request(`/api/review/public?limit=${limit}`);
 export const submitReview = (payload) =>
   request("/api/review/public", { method: "POST", body: JSON.stringify(payload) });
+
+// JazzCash/Raast payment screenshot — sent as multipart (NOT JSON) before the
+// order is placed; returns { data: { proofId } } to attach to the order.
+export async function uploadPaymentProof(file) {
+  const body = new FormData();
+  body.append("screenshot", file);
+  let res;
+  try {
+    res = await fetch(`${BACKEND_URL}/api/order/public/payment-proof`, { method: "POST", body });
+  } catch {
+    const err = new Error("Network error. Please check your connection and try again.");
+    err.isNetworkError = true;
+    throw err;
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || "Couldn't upload the screenshot. Please try again.");
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}

@@ -15,7 +15,9 @@ const OrderStageTracker = ({ order }) => {
   if (status === "Cancelled") {
     return (
       <div className="mt-4 rounded-lg bg-[#3b1d1d] px-3 py-2 text-center text-sm font-semibold text-red-500">
-        Order cancelled — stock returned to inventory
+        {order.paymentStatus === "Rejected"
+          ? `Payment rejected${order.jazzcash?.rejectionReason ? `: ${order.jazzcash.rejectionReason}` : ""}`
+          : "Order cancelled — stock returned to inventory"}
       </div>
     );
   }

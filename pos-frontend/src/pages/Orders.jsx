@@ -80,7 +80,7 @@ const Orders = () => {
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3 overflow-y-auto px-4 py-4 scrollbar-hide sm:px-6">
+      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 overflow-y-auto px-4 py-4 scrollbar-hide min-[480px]:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {
           filteredOrders.length > 0 ? (
             filteredOrders.map((order) => {

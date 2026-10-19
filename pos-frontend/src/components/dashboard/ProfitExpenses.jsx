@@ -186,12 +186,13 @@ const ProfitExpenses = () => {
             )}
             {dayOrders.length > 0 && (
               <div className="overflow-x-auto scrollbar-hide">
-                <table className="w-full min-w-[560px] text-sm">
+                <table className="w-full min-w-[680px] text-sm">
                   <thead>
                     <tr className="text-left text-[#7a7a7a] text-xs uppercase">
                       <th className="py-2 pr-3 font-medium">Order</th>
                       <th className="py-2 pr-3 font-medium">Customer</th>
                       <th className="py-2 pr-3 font-medium">Status</th>
+                      <th className="py-2 pr-3 font-medium">Payment</th>
                       <th className="py-2 pr-3 font-medium text-right">Revenue</th>
                       <th className="py-2 pr-3 font-medium text-right">Cost</th>
                       <th className="py-2 pr-3 font-medium text-right">Profit</th>
@@ -212,6 +213,15 @@ const ProfitExpenses = () => {
                           {o.orderStatus}
                           {!o.countedTowardsProfit && (
                             <span className="block text-[10px] text-[#7a7a7a]">not counted</span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-[#f5f5f5] whitespace-nowrap">
+                          {o.paymentMethod || "—"}
+                          {o.paymentStatus && o.paymentMethod === "JazzCash/Raast" && (
+                            <span className="block text-[10px] text-[#7a7a7a]">
+                              {o.paymentStatus}
+                              {o.tid ? ` · TID ${o.tid}` : ""}
+                            </span>
                           )}
                         </td>
                         <td className="py-2 pr-3 text-right text-[#f5f5f5] whitespace-nowrap">

@@ -142,7 +142,7 @@ export const HeroIntro = ({ onOrder, onTrack, summary, taxFree }) => (
 const FEATURES = [
   { icon: "🍕", title: "Made to order", text: "Every pizza is built fresh when you order — never sitting under a heat lamp." },
   { icon: "🛵", title: "Hot to your door", text: "Our riders deliver across Gojra, so it arrives the way it left the oven." },
-  { icon: "💵", title: "Pay on delivery", text: "No card and no sign-up. Pay the rider in cash when your food arrives." },
+  { icon: "💳", title: "Pay your way", text: "Cash on delivery, or scan the JazzCash / Raast QR at checkout. No sign-up needed." },
   { icon: "🧩", title: "Build your own deal", text: "Mix flavours, sizes and sides into a bundle that fits your crowd and budget." },
 ];
 
@@ -528,7 +528,7 @@ export const ContactSection = ({ whatsappLink, onTrack }) => (
       <span className="v2-kicker">Good to know</span>
       <ul className="v2-facts">
         <li><span aria-hidden="true">📍</span> Delivering across Gojra</li>
-        <li><span aria-hidden="true">💵</span> Cash on delivery — the rider collects the total</li>
+        <li><span aria-hidden="true">💵</span> Cash on delivery or JazzCash / Raast QR</li>
         <li><span aria-hidden="true">⏱</span> Live order tracking from the kitchen to your door</li>
       </ul>
       <button type="button" className="gzp-btn gzp-btn-ghost" onClick={onTrack}>
@@ -548,7 +548,7 @@ export const SiteFooter = ({ taxRatePercent, onNavigate, onTrack }) => (
           </div>
           <p>
             Fresh pizzas, burgers and sides, delivered hot across Gojra. Prices are in rupees;
-            {" "}{taxRatePercent}% tax is added at checkout and the rider collects the total in cash.
+            {" "}{taxRatePercent}% tax is added at checkout. Pay cash on delivery or by JazzCash / Raast QR.
           </p>
         </div>
         <div>

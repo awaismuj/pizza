@@ -15,8 +15,6 @@ connectDB();
 
 const allowedOrigins = [
     config.frontendUrl,
-    'http://localhost:4175',
-    'http://127.0.0.1:4175',
     config.storeUrl,
     // POS frontend dev server (vite default)
     'http://localhost:5173',
@@ -73,7 +71,6 @@ app.use("/api/expense", require("./routes/expenseRoute"));
 app.use("/api/profit", require("./routes/profitRoute"));
 app.use("/api/payment", require("./routes/paymentRoute"));
 app.use("/api/upload", require("./routes/uploadRoute"));
-app.use("/api/poster", require("./routes/posterRoute"));
 app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
