@@ -2,7 +2,6 @@
 
 A full-featured **GenZ Pizza Land POS System** built using the **MERN Stack** to streamline pizza shop operations, enhance customer experience, and manage orders, payments, and inventory with ease.
 
-
 ## ✨ **Features**
 
 - 🍽️ **Order Management**  

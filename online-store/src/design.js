@@ -55,9 +55,7 @@ body::before { opacity: 0.025; }
 /* ---------- Header (glass) ---------- */
 
 .gzp-header {
-  background: rgba(255, 248, 239, 0.82);
-  backdrop-filter: saturate(1.6) blur(16px);
-  -webkit-backdrop-filter: saturate(1.6) blur(16px);
+  background: rgba(255, 248, 239, 0.96);
   border-bottom: 1px solid var(--line);
   box-shadow: none;
 }
@@ -93,51 +91,37 @@ body::before { opacity: 0.025; }
 .v2-track-btn svg { width: 18px; height: 18px; }
 @media (min-width: 700px) { .v2-track-btn { display: inline-flex; } }
 
-/* ---------- Hero intro ---------- */
+/* ---------- Hero intro (compact) ---------- */
 
-.v2-hero { padding-top: clamp(20px, 3.4vw, 52px); }
-.v2-hero-grid {
-  display: grid; gap: clamp(20px, 3vw, 48px);
-  grid-template-columns: 1fr; align-items: end;
+.v2-hero { padding-top: clamp(14px, 2vw, 28px); }
+.v2-intro {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 16px 28px;
 }
-@media (min-width: 1000px) { .v2-hero-grid { grid-template-columns: 1.35fr 1fr; } }
-
 .v2-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 7px 14px; border-radius: 999px;
+  padding: 5px 12px; border-radius: 999px;
   background: #fff; border: 1px solid var(--line);
-  font-weight: 700; font-size: .8rem; letter-spacing: .02em; color: var(--flour-dim);
-  box-shadow: var(--shadow-soft);
+  font-weight: 700; font-size: .76rem; color: var(--flour-dim);
 }
-.v2-eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--basil); box-shadow: 0 0 0 4px rgba(26,158,86,.18); }
-
+.v2-eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: var(--basil); box-shadow: 0 0 0 3px rgba(26,158,86,.18); }
 .v2-hero h1 {
-  margin: 18px 0 14px;
-  font-size: clamp(2.3rem, 5.6vw, 5rem);
-  line-height: 1.02; letter-spacing: -0.04em; font-weight: 900;
-  font-variation-settings: "wdth" 116;
+  margin: 10px 0 4px;
+  font-size: clamp(1.55rem, 2.6vw, 2.5rem);
+  line-height: 1.1; letter-spacing: -0.03em; font-weight: 850;
+  font-variation-settings: "wdth" 108;
 }
-.v2-hero h1 em { font-style: normal; color: var(--ember); position: relative; white-space: nowrap; }
-.v2-hero h1 em::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0.06em; height: .22em;
-  background: var(--gold); z-index: -1; border-radius: 6px; transform: rotate(-1deg);
-}
-.v2-hero p.lead { margin: 0; max-width: 56ch; font-size: clamp(1rem, 1.3vw, 1.2rem); color: var(--flour-dim); }
-.v2-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
-.v2-cta .gzp-btn { padding: 15px 26px; border-radius: 999px; font-size: 1rem; }
+.v2-hero h1 em { font-style: normal; color: var(--ember); }
+.v2-hero p.lead { margin: 0; color: var(--flour-dim); font-size: clamp(.92rem, 1.1vw, 1.05rem); }
+.v2-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.v2-cta .gzp-btn { padding: 12px 22px; border-radius: 999px; font-size: .95rem; }
 .v2-cta .gzp-btn-ghost { background: #fff; }
-
-.v2-stats {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+.v2-chips { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-chips li {
+  padding: 6px 13px; border-radius: 999px; background: var(--cream-2);
+  font-size: .82rem; font-weight: 650; color: var(--flour-dim);
 }
-.v2-stat {
-  background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg);
-  padding: 18px 18px 16px; box-shadow: var(--shadow-soft);
-}
-.v2-stat:nth-child(1) { background: var(--ember); border-color: var(--ember); color: #fff; }
-.v2-stat:nth-child(4) { background: var(--gold); border-color: var(--gold); }
-.v2-stat b { display: block; font-family: "Archivo", sans-serif; font-size: clamp(1.4rem, 2.2vw, 2rem); font-weight: 850; letter-spacing: -.03em; line-height: 1.1; }
-.v2-stat span { display: block; margin-top: 4px; font-size: .85rem; font-weight: 600; opacity: .8; }
+.v2-chips li.rating { background: var(--gold); color: var(--flour); }
 
 /* Slider — rounded, framed, full width */
 .gzp-hero { padding: clamp(18px, 2.4vw, 34px) var(--gutter) 0; }
@@ -155,7 +139,7 @@ body::before { opacity: 0.025; }
 
 /* ---------- Category nav ---------- */
 
-.gzp-navbar { background: rgba(255,248,239,.9); border-bottom: 1px solid var(--line); }
+.gzp-navbar { background: rgba(255,248,239,.97); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--line); }
 .gzp-chip {
   border: 1px solid var(--line); background: #fff; color: var(--flour-dim);
   padding: 9px 18px; font-weight: 650;

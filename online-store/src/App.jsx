@@ -3267,11 +3267,33 @@ function App() {
 
   /* ---------------- Navigation ---------------- */
 
+  // Smooth-scrolls to a section and then double-checks it actually arrived.
+  // (scrollIntoView on its own can be cut short — by the chip bar's own
+  // scroll, or by images loading and shifting the layout mid-scroll —
+  // which left the page stopping halfway.)
+  const scrollToElement = (el) => {
+    if (!el) return;
+    const stickyOffset = (document.querySelector(".gzp-header")?.offsetHeight || 0) +
+      (document.querySelector(".gzp-navbar")?.offsetHeight || 0) + 8;
+    const targetFor = () => Math.max(0, el.getBoundingClientRect().top + window.scrollY - stickyOffset);
+    window.scrollTo({ top: targetFor(), behavior: "smooth" });
+    let tries = 0;
+    const settle = () => {
+      tries += 1;
+      const diff = targetFor() - window.scrollY;
+      if (Math.abs(diff) > 6 && tries <= 4) {
+        window.scrollTo({ top: targetFor(), behavior: tries < 3 ? "smooth" : "auto" });
+        window.setTimeout(settle, 450);
+      }
+    };
+    window.setTimeout(settle, 650);
+  };
+
   const goToSection = (id) => {
     const el = document.getElementById(`section-${id}`);
     if (!el) return;
     setActiveSection(id);
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToElement(el);
   };
 
   // Header / hero / footer links: "menu" lands on the first menu section,
@@ -3282,8 +3304,7 @@ function App() {
       if (first) return goToSection(first);
     }
     if (target === "deals" && deals.length === 0) return goToSection(navItems[0]?.id);
-    const el = document.getElementById(`section-${target}`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToElement(document.getElementById(`section-${target}`));
   };
 
   // Highlight the chip for whichever section is currently under the sticky
@@ -3315,8 +3336,14 @@ function App() {
   }, [navItems, loading, orderId]);
 
   useEffect(() => {
-    const chip = chipsRef.current?.querySelector(".is-active");
-    chip?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+    // Only scroll the chip bar itself — never scrollIntoView, which also
+    // nudges the page and fights the user's own scrolling.
+    const bar = chipsRef.current;
+    const chip = bar?.querySelector(".is-active");
+    if (bar && chip) {
+      const left = chip.offsetLeft - (bar.clientWidth - chip.offsetWidth) / 2;
+      bar.scrollTo({ left: Math.max(0, left), behavior: "auto" });
+    }
   }, [activeSection]);
 
   const scrollRail = (direction) => {

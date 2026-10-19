@@ -89,50 +89,40 @@ const saveName = (name) => {
 
 /* ------------------------------ Hero intro ------------------------------ */
 
-export const HeroIntro = ({ onOrder, onTrack, summary, taxFree }) => (
+export const HeroIntro = ({ onOrder, onTrack, summary }) => (
   <section className="v2-hero">
     <div className="v2-wrap">
-      <div className="v2-hero-grid">
-        <div>
+      <div className="v2-intro">
+        <div className="v2-intro-copy">
           <span className="v2-eyebrow">
             <i /> Now delivering across Gojra
           </span>
           <h1>
-            Hot, cheesy &amp; <em>delivered</em> to your door.
+            Hot, cheesy &amp; <em>delivered</em> to your door
           </h1>
-          <p className="lead">
-            Fresh pizzas, burgers and sides made to order. Build your own deal, pay cash when it
-            arrives, and watch your order move from the kitchen to your doorstep.
-          </p>
-          <div className="v2-cta">
-            <button type="button" className="gzp-btn gzp-btn-primary" onClick={onOrder}>
-              Order now
-            </button>
-            <button type="button" className="gzp-btn gzp-btn-ghost" onClick={onTrack}>
-              Track my order
-            </button>
-          </div>
+          <p className="lead">Fresh pizzas, burgers and sides made to order.</p>
         </div>
 
-        <div className="v2-stats" aria-label="Highlights">
-          <div className="v2-stat">
-            <b>Cash</b>
-            <span>on delivery, no account needed</span>
-          </div>
-          <div className="v2-stat">
-            <b>Live</b>
-            <span>order tracking, step by step</span>
-          </div>
-          <div className="v2-stat">
-            <b>Custom</b>
-            <span>build your own deal</span>
-          </div>
-          <div className="v2-stat">
-            <b>{summary?.total ? `${summary.average} ★` : "Fresh"}</b>
-            <span>{summary?.total ? `from ${summary.total} customer review${summary.total === 1 ? "" : "s"}` : "made to order, every time"}</span>
-          </div>
+        <div className="v2-cta">
+          <button type="button" className="gzp-btn gzp-btn-primary" onClick={onOrder}>
+            Order now
+          </button>
+          <button type="button" className="gzp-btn gzp-btn-ghost" onClick={onTrack}>
+            Track my order
+          </button>
         </div>
       </div>
+
+      <ul className="v2-chips" aria-label="Highlights">
+        <li>💵 Cash on delivery</li>
+        <li>📍 Live order tracking</li>
+        <li>🧩 Build your own deal</li>
+        {summary?.total > 0 && (
+          <li className="rating">
+            ★ {summary.average} · {summary.total} review{summary.total === 1 ? "" : "s"}
+          </li>
+        )}
+      </ul>
     </div>
   </section>
 );
