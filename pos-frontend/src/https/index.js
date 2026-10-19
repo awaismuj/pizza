@@ -119,6 +119,8 @@ export const uploadImage = async (file, onProgress) => {
 };
 
 // Inventory Endpoints
+export const exportInventoryReport = (params) =>
+  axiosWrapper.get("/api/inventory/export", { params, responseType: "blob" });
 export const getInventoryItems = () => axiosWrapper.get("/api/inventory");
 export const addInventoryItem = (data) => axiosWrapper.post("/api/inventory/", data);
 export const updateInventoryItem = ({ inventoryId, ...data }) =>

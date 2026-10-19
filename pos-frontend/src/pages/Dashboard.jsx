@@ -53,12 +53,15 @@ import {
   reorderCategories,
   reorderDishes,
   getInventoryItems,
+  exportInventoryReport,
   addInventoryItem,
   updateInventoryItem,
   adjustInventoryItem,
   deleteInventoryItem,
 } from "../https";
 import { resolveImageUrl } from "../utils";
+import { MdSearch } from "react-icons/md";
+import ExportButtons from "../components/dashboard/ExportButtons";
 import { I, FoodIcon } from "../components/shared/AppIcons";
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
@@ -107,6 +110,7 @@ const Dashboard = () => {
   const visibleTabs = isAdmin ? tabs : ["Assets"];
   const visibleGroups = isAdmin ? tabGroups : [{ label: "Operations", tabs: ["Assets"] }];
   const [sideOpen, setSideOpen] = useState(false); // mobile drawer
+  const [sectionSearch, setSectionSearch] = useState("");
   const [sideCollapsed, setSideCollapsed] = useState(false); // desktop icon-only
 
   useEffect(() => {
@@ -183,6 +187,7 @@ const Dashboard = () => {
   const [inventoryForm, setInventoryForm] = useState(defaultInventoryForm);
   const [editingInventory, setEditingInventory] = useState(null);
   const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryStatus, setInventoryStatus] = useState("");
   const filteredInventoryItems = inventorySearch.trim()
     ? inventoryItems.filter(
         (item) =>
@@ -377,14 +382,48 @@ const Dashboard = () => {
   };
 
   const pickTab = (tab) => {
+    setSectionSearch("");
     setActiveTab(tab);
     setSideOpen(false);
     window.scrollTo({ top: 0 });
   };
 
+  // Sidebar search: matches a section's name or its group's name.
+  const sectionQuery = sectionSearch.trim().toLowerCase();
+  const matchedGroups = sectionQuery
+    ? visibleGroups
+        .map((group) => ({
+          ...group,
+          tabs: group.label.toLowerCase().includes(sectionQuery)
+            ? group.tabs
+            : group.tabs.filter((tab) => tab.toLowerCase().includes(sectionQuery)),
+        }))
+        .filter((group) => group.tabs.length)
+    : visibleGroups;
+
   const sidebar = (collapsed) => (
     <nav aria-label="Dashboard sections" className="flex flex-col gap-5">
-      {visibleGroups.map((group) => (
+      {!collapsed && (
+        <label className="flex items-center gap-2 rounded-xl border border-[#333] bg-[#262626] px-3 py-2 focus-within:border-[#f6b100]">
+          <MdSearch className="shrink-0 text-lg text-[#8a8a8a]" />
+          <span className="sr-only">Search dashboard sections</span>
+          <input
+            type="search"
+            value={sectionSearch}
+            onChange={(e) => setSectionSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && matchedGroups[0]) pickTab(matchedGroups[0].tabs[0]);
+              if (e.key === "Escape") setSectionSearch("");
+            }}
+            placeholder="Search dashboard…"
+            className="w-full min-w-0 bg-transparent text-sm text-[#f5f5f5] outline-none placeholder:text-[#6f6f6f]"
+          />
+        </label>
+      )}
+      {sectionQuery && matchedGroups.length === 0 && !collapsed && (
+        <p className="px-3 text-sm text-[#8a8a8a]">No section matches “{sectionSearch}”.</p>
+      )}
+      {matchedGroups.map((group) => (
         <div key={group.label}>
           {!collapsed && (
             <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#6f6f6f]">{group.label}</p>
@@ -860,6 +899,24 @@ const Dashboard = () => {
 
             <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Stock Overview</h3>
+              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-[#1a1a1a] p-3">
+                <select
+                  value={inventoryStatus}
+                  onChange={(e) => setInventoryStatus(e.target.value)}
+                  aria-label="Stock report filter"
+                  className="rounded-lg border border-[#333] bg-[#262626] px-3 py-2 text-sm text-white outline-none"
+                >
+                  <option value="">All items</option>
+                  <option value="low">Low stock only</option>
+                  <option value="out">Out of stock only</option>
+                  <option value="in">In stock only</option>
+                </select>
+                <ExportButtons
+                  label="Stock report"
+                  fallbackName="stock-report"
+                  request={(format) => exportInventoryReport({ format, status: inventoryStatus || undefined, search: inventorySearch.trim() || undefined })}
+                />
+              </div>
               <div className="mb-4">
                 <input
                   type="text"
