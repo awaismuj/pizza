@@ -101,6 +101,32 @@ const tabIcons = {
   Assets: <MdDevices />,
   Branches: <MdStorefront />,
 };
+// Accent colour per section: drives the sidebar chips, the active pill and the page backdrop glow.
+const tabTheme = {
+  Metrics: "#3b82f6",
+  Orders: "#f97316",
+  Payments: "#10b981",
+  Profit: "#22c55e",
+  Menu: "#ef4444",
+  Deals: "#ec4899",
+  "Hero Slider": "#a855f7",
+  "Build Your Own": "#14b8a6",
+  Reviews: "#f6b100",
+  Branches: "#06b6d4",
+  Inventory: "#8b5cf6",
+  Staff: "#0ea5e9",
+  Assets: "#84cc16",
+  "Payment Settings": "#6366f1",
+  Tax: "#f59e0b",
+  Music: "#f43f5e",
+};
+const groupTheme = {
+  Overview: "#3b82f6",
+  Storefront: "#ec4899",
+  "Delivery & Pickup": "#06b6d4",
+  Operations: "#8b5cf6",
+  Settings: "#f59e0b",
+};
 const assetRoles = ["admin", "accountant", "asset manager", "read only"];
 
 const Dashboard = () => {
@@ -404,7 +430,7 @@ const Dashboard = () => {
   const sidebar = (collapsed) => (
     <nav aria-label="Dashboard sections" className="flex flex-col gap-5">
       {!collapsed && (
-        <label className="flex items-center gap-2 rounded-xl border border-[#333] bg-[#262626] px-3 py-2 focus-within:border-[#f6b100]">
+        <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 focus-within:border-[#f6b100] focus-within:bg-white/10">
           <MdSearch className="shrink-0 text-lg text-[#8a8a8a]" />
           <span className="sr-only">Search dashboard sections</span>
           <input
@@ -426,27 +452,45 @@ const Dashboard = () => {
       {matchedGroups.map((group) => (
         <div key={group.label}>
           {!collapsed && (
-            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#6f6f6f]">{group.label}</p>
+            <p className="px-3 mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider" style={{ color: groupTheme[group.label] || "#8a8a8a" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: groupTheme[group.label] || "#8a8a8a", boxShadow: `0 0 8px ${groupTheme[group.label] || "#8a8a8a"}` }} />
+              {group.label}
+            </p>
           )}
           {collapsed && <div className="mx-3 mb-1.5 border-t border-[#333]" />}
           <ul className="flex flex-col gap-1">
             {group.tabs.map((tab) => {
               const active = activeTab === tab;
+              const c = tabTheme[tab] || "#f6b100";
               return (
                 <li key={tab}>
                   <button
                     onClick={() => pickTab(tab)}
                     aria-current={active ? "page" : undefined}
                     title={collapsed ? tab : undefined}
-                    className={`w-full flex items-center gap-3 rounded-xl text-sm font-semibold transition-colors ${
-                      collapsed ? "justify-center px-0 py-3" : "px-3 py-2.5 text-left"
+                    style={
+                      active
+                        ? { background: `linear-gradient(135deg, ${c}, ${c}b3)`, boxShadow: `0 6px 18px ${c}55` }
+                        : undefined
+                    }
+                    className={`group w-full flex items-center gap-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      collapsed ? "justify-center px-0 py-2.5" : "px-2.5 py-2 text-left"
                     } ${
                       active
-                        ? "bg-[#f6b100] text-[#1f1f1f] shadow-md shadow-black/30"
-                        : "text-[#b5b5b5] hover:text-[#f5f5f5] hover:bg-[#2e2e2e]"
+                        ? "text-white"
+                        : "text-[#c4c4c4] hover:text-white hover:bg-white/5 hover:translate-x-0.5"
                     }`}
                   >
-                    <span className="text-lg shrink-0">{tabIcons[tab]}</span>
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg transition-colors"
+                      style={
+                        active
+                          ? { background: "rgba(255,255,255,0.22)", color: "#fff" }
+                          : { background: `${c}24`, color: c }
+                      }
+                    >
+                      {tabIcons[tab]}
+                    </span>
                     {!collapsed && <span className="truncate">{tab}</span>}
                   </button>
                 </li>
@@ -459,7 +503,12 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="dash-wide bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
+    <div
+      className="dash-wide bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10 transition-[background] duration-500"
+      style={{
+        backgroundImage: `radial-gradient(900px 480px at 85% -5%, ${(tabTheme[activeTab] || "#f6b100")}2e, transparent 60%), radial-gradient(700px 420px at 10% 105%, ${(tabTheme[activeTab] || "#f6b100")}1f, transparent 60%), radial-gradient(500px 300px at 55% 45%, rgba(168,85,247,0.07), transparent 70%)`,
+      }}
+    >
       {/* Mobile: top bar with the current section + a button that opens the drawer */}
       <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 bg-[#1f1f1f]/95 backdrop-blur border-b border-[#333] px-4 py-3">
         <button
@@ -478,7 +527,10 @@ const Dashboard = () => {
       {sideOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setSideOpen(false)} aria-hidden="true" />
-          <aside className="relative w-72 max-w-[85%] h-full bg-[#1b1b1b] border-r border-[#333] p-4 overflow-y-auto">
+          <aside
+            className="relative w-72 max-w-[85%] h-full border-r border-white/10 p-4 overflow-y-auto"
+            style={{ backgroundImage: `linear-gradient(180deg, ${(tabTheme[activeTab] || "#f6b100")}22 0%, transparent 28%), linear-gradient(180deg, #1d1d24 0%, #17171b 100%)` }}
+          >
             <div className="flex items-center justify-between mb-4 px-1">
               <span className="text-[#f5f5f5] font-bold text-lg">Dashboard</span>
               <button
@@ -497,9 +549,12 @@ const Dashboard = () => {
       <div className="flex items-start">
         {/* Desktop: fixed sidebar that stays in view while the page scrolls */}
         <aside
-          className={`hidden lg:block shrink-0 sticky top-0 self-start h-screen overflow-y-auto bg-[#1b1b1b] border-r border-[#333] py-6 transition-[width] duration-200 ${
+          className={`hidden lg:block shrink-0 sticky top-0 self-start h-screen overflow-y-auto border-r border-white/10 py-6 transition-[width] duration-200 ${
             sideCollapsed ? "w-[76px] px-2" : "w-64 px-3"
           }`}
+          style={{
+            backgroundImage: `linear-gradient(180deg, ${(tabTheme[activeTab] || "#f6b100")}22 0%, transparent 28%), linear-gradient(180deg, #1d1d24 0%, #17171b 100%)`,
+          }}
         >
           <div className={`flex items-center mb-5 ${sideCollapsed ? "justify-center" : "justify-between px-3"}`}>
             {!sideCollapsed && <span className="text-[#f5f5f5] font-bold text-lg">Dashboard</span>}
@@ -519,7 +574,12 @@ const Dashboard = () => {
             {isAdmin && (
               <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-5">
                 <div>
-                  <h1 className="text-[#f5f5f5] text-2xl sm:text-3xl font-bold tracking-tight">{activeTab}</h1>
+                  <h1
+                    className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent"
+                    style={{ backgroundImage: `linear-gradient(90deg, #ffffff, ${tabTheme[activeTab] || "#f6b100"})` }}
+                  >
+                    {activeTab}
+                  </h1>
                   <p className="text-[#8a8a8a] text-sm mt-1">Manage your menu, orders and storefront in one place.</p>
                 </div>
 
@@ -528,7 +588,7 @@ const Dashboard = () => {
                     <button
                       key={action}
                       onClick={() => handleOpenModal(action)}
-                      className="group flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left bg-[#262626] hover:bg-[#2e2e2e] border border-[#333] hover:border-[#4a4a4a] rounded-2xl px-2 sm:px-4 py-3 transition-colors"
+                      className="group flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left bg-white/5 hover:bg-white/10 backdrop-blur border border-white/10 hover:border-white/25 rounded-2xl px-2 sm:px-4 py-3 transition-all hover:-translate-y-0.5"
                     >
                       <span
                         className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-2xl"
