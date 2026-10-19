@@ -249,13 +249,13 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
           {!collapsed && (
             <div className="min-w-0">
               <h2
-                className={`text-sm font-bold tracking-tight truncate leading-tight ${
+                className={`text-sm font-black tracking-tight truncate leading-tight ${
                   isClean ? "text-slate-900" : "text-white"
                 }`}
               >
                 GenZ Pizza Land
               </h2>
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md mt-0.5">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                 Enterprise POS
               </span>
@@ -266,116 +266,152 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
         {/* Sleek Floating Expand/Collapse Toggle Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className={`absolute -right-3 top-5 z-50 w-6 h-6 rounded-full border shadow-md flex items-center justify-center transition-all ${
+          className={`absolute -right-3.5 top-5 z-50 w-7 h-7 rounded-full border shadow-md flex items-center justify-center transition-all ${
             isClean
-              ? "bg-white border-slate-200 text-slate-600 hover:text-amber-600 hover:bg-slate-50"
-              : "bg-slate-900 border-slate-700 text-slate-300 hover:text-amber-400 hover:bg-slate-800"
+              ? "bg-white border-slate-200 text-slate-700 hover:text-amber-600 hover:bg-slate-50"
+              : "bg-slate-900 border-slate-700 text-slate-200 hover:text-amber-400 hover:bg-slate-800"
           }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <MdChevronRight size={14} /> : <MdChevronLeft size={14} />}
+          {collapsed ? <MdChevronRight size={16} /> : <MdChevronLeft size={16} />}
         </button>
       </div>
 
-      {/* Permission-Based Portal Mode Switcher (Above New Order Button) */}
+      {/* Permission-Based Portal Mode Switcher */}
       {hasERP && (
-        <div className="px-3 pt-2.5 pb-0 shrink-0">
-          <div
-            className={`flex items-center p-1 rounded-xl border ${
-              isClean ? "bg-slate-100 border-slate-200/90" : "bg-slate-900 border-slate-800"
-            }`}
-          >
+        <div className={`pt-3 pb-1 shrink-0 ${collapsed ? "px-2 flex justify-center" : "px-3"}`}>
+          {collapsed ? (
             <button
               type="button"
               onClick={() => {
-                setPosRoleMode("cashier");
-                if (location.pathname === "/dashboard") navigate("/");
+                const next = isCashierMode ? "manager" : "cashier";
+                setPosRoleMode(next);
+                if (next === "manager") navigate("/dashboard");
+                else if (location.pathname === "/dashboard") navigate("/");
               }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
-                isCashierMode
-                  ? isClean
-                    ? "bg-white text-slate-950 shadow-xs"
-                    : "bg-slate-800 text-white shadow-xs"
-                  : isClean
-                  ? "text-slate-500 hover:text-slate-900"
-                  : "text-slate-400 hover:text-white"
+              className={`w-11 h-11 rounded-xl border flex items-center justify-center relative group transition shadow-xs ${
+                isClean
+                  ? "bg-slate-50 hover:bg-white border-slate-200 text-slate-800 hover:border-amber-400"
+                  : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-100 hover:border-amber-400"
               }`}
-              title="Cashier Counter POS"
+              title={isCashierMode ? "Mode: Cashier (Click to switch to Manager ERP)" : "Mode: Manager (Click to switch to Cashier POS)"}
             >
-              <FcShop size={16} className="shrink-0" />
-              {!collapsed && <span>Cashier</span>}
+              {isCashierMode ? <FcShop size={22} /> : <FcBriefcase size={22} />}
+              <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+                {isCashierMode ? "Switch to Manager ERP" : "Switch to Cashier POS"}
+              </div>
             </button>
+          ) : (
+            <div
+              className={`flex items-center p-1 rounded-xl border ${
+                isClean ? "bg-slate-100 border-slate-200/90" : "bg-slate-900 border-slate-800"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setPosRoleMode("cashier");
+                  if (location.pathname === "/dashboard") navigate("/");
+                }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                  isCashierMode
+                    ? isClean
+                      ? "bg-white text-slate-950 shadow-xs"
+                      : "bg-slate-800 text-white shadow-xs"
+                    : isClean
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Cashier Counter POS"
+              >
+                <FcShop size={16} className="shrink-0" />
+                <span>Cashier</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setPosRoleMode("manager");
-                navigate("/dashboard");
-              }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
-                !isCashierMode
-                  ? isClean
-                    ? "bg-white text-slate-950 shadow-xs"
-                    : "bg-slate-800 text-white shadow-xs"
-                  : isClean
-                  ? "text-slate-500 hover:text-slate-900"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              title="Manager Back-Office ERP"
-            >
-              <FcBriefcase size={16} className="shrink-0" />
-              {!collapsed && <span>Manager</span>}
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPosRoleMode("manager");
+                  navigate("/dashboard");
+                }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                  !isCashierMode
+                    ? isClean
+                      ? "bg-white text-slate-950 shadow-xs"
+                      : "bg-slate-800 text-white shadow-xs"
+                    : isClean
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Manager Back-Office ERP"
+              >
+                <FcBriefcase size={16} className="shrink-0" />
+                <span>Manager</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Quick Action Button: New Order */}
-      <div className="p-3 shrink-0">
+      <div className={`shrink-0 ${collapsed ? "px-2 py-2 flex justify-center" : "p-3"}`}>
         <button
           type="button"
           onClick={onOpenNewOrder}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 transition active:scale-95"
+          className={`${
+            collapsed
+              ? "w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 transition active:scale-95 relative group"
+              : "w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl font-black text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 transition active:scale-95"
+          }`}
           title="New Dine-In Order"
         >
-          <BiSolidDish size={18} className="shrink-0" />
+          <BiSolidDish size={20} className="shrink-0" />
           {!collapsed && <span>+ New Order</span>}
+          {collapsed && (
+            <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+              New Dine-In Order
+            </div>
+          )}
         </button>
       </div>
 
       {/* Navigation Sections */}
-      <nav className="flex-1 px-3 py-1 space-y-4 overflow-y-auto scrollbar-hide">
+      <nav className={`flex-1 overflow-y-auto scrollbar-hide py-1 ${collapsed ? "px-2 space-y-2" : "px-3 space-y-4"}`}>
         {/* If in Cashier Mode: Only show Front of House operations (minimal, fast-lane) */}
         {isCashierMode ? (
           <div>
             {!collapsed && (
               <div className="flex items-center justify-between px-3 mb-2">
-                <span className={`text-[10px] font-black tracking-wider uppercase ${isClean ? "text-slate-400" : "text-slate-500"}`}>
+                <span className={`text-[10px] font-black tracking-wider uppercase ${isClean ? "text-slate-500" : "text-slate-400"}`}>
                   Counter Desk
                 </span>
-                <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">
+                <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">
                   Cashier Fast-Lane
                 </span>
               </div>
             )}
 
-            <div className="space-y-1.5">
+            <div className={collapsed ? "space-y-1.5 flex flex-col items-center" : "space-y-1.5"}>
               {operationsItems.map((item) => {
                 const active = location.pathname === item.to;
                 return (
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+                    className={`relative transition-all group ${
+                      collapsed
+                        ? "w-11 h-11 flex items-center justify-center rounded-xl"
+                        : "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold"
+                    } ${
                       active
-                        ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-bold"
+                        ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-black"
                         : isClean
-                        ? "text-slate-700 hover:bg-slate-100/90 hover:text-slate-950"
-                        : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
+                        ? "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                        : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
                     }`}
                     title={item.label}
                   >
-                    <div className="shrink-0">{item.icon}</div>
+                    <div className="shrink-0 flex items-center justify-center">{item.icon}</div>
 
                     {!collapsed && (
                       <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -387,6 +423,19 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
                         )}
                       </div>
                     )}
+
+                    {collapsed && (
+                      <>
+                        {item.badge !== null && (
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[9px] font-black rounded-full text-white bg-rose-500 border-2 border-white dark:border-slate-900 shadow-xs">
+                            {item.badge}
+                          </span>
+                        )}
+                        <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+                          {item.label}
+                        </div>
+                      </>
+                    )}
                   </NavLink>
                 );
               })}
@@ -397,32 +446,36 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
           <div>
             {!collapsed && (
               <div className="flex items-center justify-between px-3 mb-2">
-                <span className={`text-[10px] font-black tracking-wider uppercase ${isClean ? "text-slate-400" : "text-slate-500"}`}>
+                <span className={`text-[10px] font-black tracking-wider uppercase ${isClean ? "text-slate-500" : "text-slate-400"}`}>
                   F&B ERP Portal
                 </span>
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                   Back Office
                 </span>
               </div>
             )}
 
-            <div className="space-y-1">
+            <div className={collapsed ? "space-y-1 flex flex-col items-center" : "space-y-1"}>
               {erpModules.map((item) => {
                 const active = isDashboard && currentTab === item.tab;
                 return (
                   <NavLink
                     key={item.tab}
                     to={`/dashboard?tab=${item.tab}`}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                    className={`relative transition-all group ${
+                      collapsed
+                        ? "w-11 h-11 flex items-center justify-center rounded-xl"
+                        : "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold"
+                    } ${
                       active
-                        ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-bold"
+                        ? "bg-amber-500 text-slate-950 shadow-sm shadow-amber-500/20 font-black"
                         : isClean
-                        ? "text-slate-700 hover:bg-slate-100/90 hover:text-slate-950"
-                        : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
+                        ? "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                        : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
                     }`}
                     title={item.label}
                   >
-                    <div className="shrink-0">{item.icon}</div>
+                    <div className="shrink-0 flex items-center justify-center">{item.icon}</div>
 
                     {!collapsed && (
                       <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -433,6 +486,19 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
                           </span>
                         )}
                       </div>
+                    )}
+
+                    {collapsed && (
+                      <>
+                        {item.badge !== null && item.badge !== undefined && (
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[9px] font-black rounded-full text-white bg-rose-500 border-2 border-white dark:border-slate-900 shadow-xs">
+                            {item.badge}
+                          </span>
+                        )}
+                        <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+                          {item.label}
+                        </div>
+                      </>
                     )}
                   </NavLink>
                 );
@@ -445,52 +511,77 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
         <div className={`pt-2 border-t ${isClean ? "border-slate-200/80" : "border-slate-800/80"}`}>
           {!collapsed && (
             <p
-              className={`px-3 text-[10px] font-black tracking-wider uppercase mb-1 ${
-                isClean ? "text-slate-400" : "text-slate-500"
+              className={`px-3 text-[10px] font-black tracking-wider uppercase mb-1.5 ${
+                isClean ? "text-slate-500" : "text-slate-400"
               }`}
             >
               Quick Cash & Alerts
             </p>
           )}
 
-          <div className="space-y-1">
+          <div className={collapsed ? "space-y-1.5 flex flex-col items-center" : "space-y-1"}>
             <button
               type="button"
               onClick={onOpenExpense}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition group ${
+              className={`relative transition group ${
+                collapsed
+                  ? "w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                  : "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold"
+              } ${
                 isClean
-                  ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
+                  ? "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                  : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
               }`}
               title="Add Cash Expense"
             >
-              <FcMoneyTransfer size={18} className="shrink-0" />
+              <FcMoneyTransfer size={20} className="shrink-0" />
               {!collapsed && <span>Record Expense</span>}
+              {collapsed && (
+                <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+                  Record Expense
+                </div>
+              )}
             </button>
 
             {canSeeStock && (
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new Event(OPEN_LOW_STOCK_EVENT))}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition group ${
+                className={`relative transition group ${
+                  collapsed
+                    ? "w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                    : "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold"
+                } ${
                   lowStockCount > 0
                     ? "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20"
                     : isClean
-                    ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                    : "text-slate-400 hover:bg-slate-800/70 hover:text-white"
+                    ? "text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                    : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
                 }`}
-                title={lowStockCount > 0 ? `${lowStockCount} items need restock` : "Inventory Stock"}
+                title={lowStockCount > 0 ? `${lowStockCount} items need restock` : "Inventory Stock Alerts"}
               >
-                <FcServices size={18} className="shrink-0" />
+                <FcServices size={20} className="shrink-0" />
                 {!collapsed && (
                   <div className="flex-1 flex items-center justify-between">
                     <span>Stock Alerts</span>
                     {lowStockCount > 0 && (
-                      <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                      <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">
                         {lowStockCount}
                       </span>
                     )}
                   </div>
+                )}
+                {collapsed && (
+                  <>
+                    {lowStockCount > 0 && (
+                      <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[9px] font-black rounded-full text-white bg-rose-500 border-2 border-white dark:border-slate-900 shadow-xs">
+                        {lowStockCount}
+                      </span>
+                    )}
+                    <div className="absolute left-full ml-3 px-2.5 py-1 text-xs font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+                      Stock Alerts {lowStockCount > 0 ? `(${lowStockCount})` : ""}
+                    </div>
+                  </>
                 )}
               </button>
             )}
@@ -506,19 +597,23 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder, onOpenExpense 
             : "border-slate-800/80 bg-slate-900/60"
         }`}
       >
-        <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"} text-[11px] font-medium`}>
-          <span className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <div className={`flex items-center ${collapsed ? "justify-center relative group" : "justify-between"} text-[11px] font-medium`}>
+          <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             {!collapsed && <span>POS Online</span>}
           </span>
-          {!collapsed && (
+          {!collapsed ? (
             <span
-              className={`text-[10px] font-mono ${
-                isClean ? "text-slate-400" : "text-slate-500"
+              className={`text-[10px] font-mono font-bold ${
+                isClean ? "text-slate-500" : "text-slate-400"
               }`}
             >
               v2.0-ERP
             </span>
+          ) : (
+            <div className="absolute left-full ml-3 px-2 py-1 text-[11px] font-bold whitespace-nowrap rounded-lg bg-slate-950 text-white shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-slate-800">
+              POS Online · v2.0
+            </div>
           )}
         </div>
       </div>

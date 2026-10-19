@@ -12,18 +12,9 @@ html {
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-}
-
-/* Executive SaaS Typography Weight Normalizer */
-/* Eliminates cartoonish 900-weight bloat and ensures crisp, balanced weights */
-.font-black {
-  font-weight: 700 !important;
-}
-.font-extrabold {
-  font-weight: 600 !important;
+  letter-spacing: -0.01em;
 }
 
 /* Trackpad-scroll hover fix: see useScrollHoverFix.js. While scrolling,

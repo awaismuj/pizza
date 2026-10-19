@@ -187,16 +187,21 @@ export const isUploadedImage = (value = "") => {
 };
 
 /**
- * Universal Colored SVG Food Icon Renderer:
- * renders gorgeous multi-colored vector food icons for any dish or category.
- * If an image URL fails to load or is broken, it gracefully falls back to the vector SVG!
+ * Universal Colored Food Icon Renderer:
+ * - If an uploaded image URL is provided, renders the image.
+ * - If a mapped vector icon key exists, renders the vector SVG.
+ * - If a native emoji string is passed (🍕, 🍔, 🥪, 🍲, 🥤, etc.), renders the crisp native emoji.
+ * - Otherwise gracefully falls back to a clean dining symbol.
  */
-export const FoodIcon = ({ icon, className = "", size = 22, fallback = ColoredPizzaIcon }) => {
+export const FoodIcon = ({ icon, className = "", size = 20, fallback = null }) => {
   const [imgError, setImgError] = React.useState(false);
 
   if (!icon || imgError) {
-    const FallbackComponent = fallback;
-    return <FallbackComponent size={size} className={className} />;
+    if (fallback) {
+      const FallbackComponent = fallback;
+      return <FallbackComponent size={size} className={className} />;
+    }
+    return <span style={{ fontSize: `${size}px`, lineHeight: 1 }} className={`inline-block select-none ${className}`}>🍽️</span>;
   }
 
   if (isUploadedImage(icon)) {
@@ -205,14 +210,29 @@ export const FoodIcon = ({ icon, className = "", size = 22, fallback = ColoredPi
         src={resolveImageUrl(icon)}
         alt="Food icon"
         className={`object-cover rounded-md shadow-xs ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width: `${size}px`, height: `${size}px` }}
         onError={() => setImgError(true)}
       />
     );
   }
 
-  const Component = ICON_LOOKUP[icon] || fallback;
-  return <Component size={size} className={className} />;
+  // If in mapped vector SVG icons
+  if (ICON_LOOKUP[icon]) {
+    const Component = ICON_LOOKUP[icon];
+    return <Component size={size} className={className} />;
+  }
+
+  // If it's an emoji or short symbol, render crisp native emoji directly
+  if (typeof icon === "string" && (icon.length <= 4 || /\p{Extended_Pictographic}/u.test(icon))) {
+    return <span style={{ fontSize: `${size}px`, lineHeight: 1 }} className={`inline-block select-none ${className}`}>{icon}</span>;
+  }
+
+  if (fallback) {
+    const FallbackComponent = fallback;
+    return <FallbackComponent size={size} className={className} />;
+  }
+
+  return <span style={{ fontSize: `${size}px`, lineHeight: 1 }} className={`inline-block select-none ${className}`}>🍽️</span>;
 };
 
 export default FoodIcon;
