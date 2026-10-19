@@ -3,15 +3,13 @@ const mongoose = require("mongoose");
 const Branch = require("../models/branchModel");
 const { quoteFulfillment, publicBranch, defaultHours } = require("../utils/fulfillment");
 
-// First run on an existing deployment: create one branch so checkout keeps
-// working. Admin edits it (name, zones, fees, hours) from Dashboard > Branches.
 const ensureDefaultBranch = async () => {
   if ((await Branch.estimatedDocumentCount()) > 0) return;
   await Branch.create({
     name: "GenZ Pizza Land - Gojra",
     address: "Gojra",
     hours: defaultHours(),
-    delivery: { zones: [{ name: "Gojra city", areas: "Within city limits", fee: 100, travelMinutes: 25 }] },
+    delivery: { zones: [{ name: "Gojra city", areas: "Within city limits", fee: 100, distanceKm: 3, travelMinutes: 25 }] },
   });
 };
 
@@ -26,7 +24,6 @@ const hhmm = (v, label) => {
   return String(v);
 };
 
-// Validates everything an admin can send; anything unexpected is dropped.
 const cleanBranch = (b = {}) => {
   const name = text(b.name, 80);
   if (name.length < 2) throw createHttpError(400, "Enter the branch name (at least 2 characters).");
@@ -62,7 +59,8 @@ const cleanBranch = (b = {}) => {
       enabled: b.delivery.enabled !== false,
       prepMinutes: num(b.delivery.prepMinutes ?? 25, "Delivery preparation time", { max: 480 }),
       minOrder: num(b.delivery.minOrder ?? 0, "Delivery minimum order"),
-      freeAbove: num(b.delivery.freeAbove ?? 0, "Free delivery threshold"),
+      freeAbove: num(b.delivery.freeAbove ?? 1000, "Free delivery threshold"),
+      freeWithinKm: num(b.delivery.freeWithinKm ?? 4, "Free delivery distance"),
       zones: zones.map((z) => {
         const zn = text(z.name, 60);
         if (!zn) throw createHttpError(400, "Every delivery zone needs a name.");
@@ -70,7 +68,8 @@ const cleanBranch = (b = {}) => {
           ...(mongoose.Types.ObjectId.isValid(z._id) ? { _id: z._id } : {}),
           name: zn,
           areas: text(z.areas, 200),
-          fee: num(z.fee ?? 0, `Fee for "${zn}"`),
+          fee: num(z.fee ?? 100, `Fee for "${zn}"`),
+          distanceKm: z.distanceKm === "" || z.distanceKm == null ? null : num(z.distanceKm, `Distance for "${zn}"`, { max: 500 }),
           minOrder: num(z.minOrder ?? 0, `Minimum order for "${zn}"`),
           travelMinutes: num(z.travelMinutes ?? 20, `Travel time for "${zn}"`, { max: 240 }),
           active: z.active !== false,
@@ -93,7 +92,6 @@ const cleanBranch = (b = {}) => {
   return out;
 };
 
-// Public: branches a customer can see, with live open/closed + rules.
 const getPublicBranches = async (req, res, next) => {
   try {
     await ensureDefaultBranch();
@@ -105,7 +103,6 @@ const getPublicBranches = async (req, res, next) => {
   }
 };
 
-// Public: price + validate a fulfillment choice while the customer is picking.
 const quotePublic = async (req, res, next) => {
   try {
     const { branchId, method, zoneId } = req.body || {};
@@ -118,7 +115,6 @@ const quotePublic = async (req, res, next) => {
   }
 };
 
-// Staff (POS): same rules, but staff may ring orders outside opening hours.
 const quoteStaff = async (req, res, next) => {
   try {
     const { branchId, method, zoneId } = req.body || {};

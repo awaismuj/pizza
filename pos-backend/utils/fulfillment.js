@@ -1,8 +1,3 @@
-// Single source of truth for delivery / pickup rules. The public checkout
-// (online store), the quote endpoint the store calls while the customer is
-// choosing, and the POS order endpoint ALL go through quoteFulfillment(), so
-// fees, minimums, opening hours and restrictions can never disagree.
-
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const METHODS = ["delivery", "pickup"];
 
@@ -20,7 +15,6 @@ const fmt12 = (hhmm) => {
   return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
 };
 
-// Wall-clock parts in the branch's own timezone (the server may run in UTC).
 const localParts = (date, timeZone = "Asia/Karachi") => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -36,8 +30,6 @@ const localParts = (date, timeZone = "Asia/Karachi") => {
 
 const hoursFor = (branch, day) => (branch.hours || []).find((h) => h.day === day);
 
-// Is the branch open at `date`? Handles windows that run past midnight
-// (e.g. 18:00 -> 02:00 belongs to the day it STARTED on).
 const isOpenAt = (branch, date = new Date()) => {
   const { day, minutes } = localParts(date, branch.timezone);
   const today = hoursFor(branch, day);
@@ -55,7 +47,6 @@ const isOpenAt = (branch, date = new Date()) => {
   return false;
 };
 
-// Human text for the next opening, e.g. "today at 11:00 AM" / "Tuesday at 11:00 AM".
 const nextOpening = (branch, date = new Date()) => {
   const { day, minutes } = localParts(date, branch.timezone);
   for (let i = 0; i < 8; i += 1) {
@@ -79,12 +70,9 @@ const restrictionFor = (branch, method, date = new Date()) => {
 
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-/**
- * Apply the rules for one branch + method.
- *  - subtotal: order value BEFORE tax (after any discount)
- *  - staff:    POS staff can ring up orders outside opening hours
- * Never throws; returns { ok, errors[], error, ...details }.
- */
+const isFreeByDistance = (zone, freeWithinKm) =>
+  freeWithinKm > 0 && zone.distanceKm != null && Number(zone.distanceKm) <= freeWithinKm;
+
 const quoteFulfillment = ({ branch, method, zoneId, subtotal = 0, now = new Date(), staff = false }) => {
   const errors = [];
   const out = {
@@ -98,6 +86,7 @@ const quoteFulfillment = ({ branch, method, zoneId, subtotal = 0, now = new Date
     minOrder: 0,
     shortBy: 0,
     freeDeliveryAbove: 0,
+    freeWithinKm: 0,
     prepMinutes: 0,
     etaMin: null,
     etaMax: null,
@@ -151,6 +140,7 @@ const quoteFulfillment = ({ branch, method, zoneId, subtotal = 0, now = new Date
   if (method === "delivery") {
     const zones = (branch.delivery.zones || []).filter((z) => z.active);
     out.freeDeliveryAbove = Number(branch.delivery.freeAbove) || 0;
+    out.freeWithinKm = Number(branch.delivery.freeWithinKm) || 0;
     const zone = zones.find((z) => String(z._id) === String(zoneId));
     if (!zoneId) {
       errors.push("Select your delivery area.");
@@ -161,7 +151,9 @@ const quoteFulfillment = ({ branch, method, zoneId, subtotal = 0, now = new Date
       out.zoneName = zone.name;
       minOrder = Math.max(minOrder, Number(zone.minOrder) || 0);
       travel = Number(zone.travelMinutes) || 0;
-      const free = out.freeDeliveryAbove > 0 && subtotal >= out.freeDeliveryAbove;
+      const free =
+        (out.freeDeliveryAbove > 0 && subtotal >= out.freeDeliveryAbove) ||
+        isFreeByDistance(zone, out.freeWithinKm);
       out.fee = free ? 0 : round2(zone.fee);
     }
   } else {
@@ -182,7 +174,6 @@ const quoteFulfillment = ({ branch, method, zoneId, subtotal = 0, now = new Date
   return finish();
 };
 
-// What a customer is allowed to see about a branch.
 const publicBranch = (branch, now = new Date()) => {
   const b = branch.toObject ? branch.toObject() : branch;
   const sample = (method) => restrictionFor(b, method, now);
@@ -206,6 +197,7 @@ const publicBranch = (branch, now = new Date()) => {
       prepMinutes: b.delivery?.prepMinutes || 0,
       minOrder: b.delivery?.minOrder || 0,
       freeAbove: b.delivery?.freeAbove || 0,
+      freeWithinKm: b.delivery?.freeWithinKm || 0,
       blockedReason: sample("delivery"),
       zones: (b.delivery?.zones || [])
         .filter((z) => z.active)
@@ -214,6 +206,7 @@ const publicBranch = (branch, now = new Date()) => {
           name: z.name,
           areas: z.areas,
           fee: z.fee,
+          distanceKm: z.distanceKm ?? null,
           minOrder: z.minOrder,
           travelMinutes: z.travelMinutes,
         })),

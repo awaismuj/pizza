@@ -4,11 +4,6 @@ import { enqueueSnackbar } from "notistack";
 import { MdAdd, MdDelete, MdStorefront } from "react-icons/md";
 import { addBranch, deleteBranch, getBranches, updateBranch } from "../../https";
 
-// Dashboard > Branches. Everything the delivery / pickup rules need, per
-// branch: opening hours, pickup availability, delivery zones + fees, minimum
-// orders, preparation estimates and temporary restrictions. The website and
-// the POS both read these same rules from the backend.
-
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const blankBranch = () => ({
@@ -18,8 +13,8 @@ const blankBranch = () => ({
   phone: "",
   isActive: true,
   hours: DAYS.map((_, day) => ({ day, open: true, from: "11:00", to: "23:00" })),
-  pickup: { enabled: true, prepMinutes: 20, minOrder: 0, instructions: "Come to the counter and give your order number." },
-  delivery: { enabled: true, prepMinutes: 25, minOrder: 0, freeAbove: 0, zones: [] },
+  pickup: { enabled: true, prepMinutes: 20, minOrder: 0, instructions: "Show your order number at the counter." },
+  delivery: { enabled: true, prepMinutes: 25, minOrder: 0, freeAbove: 1000, freeWithinKm: 4, zones: [] },
   restriction: { active: false, applies: "delivery", message: "", until: "" },
 });
 
@@ -88,8 +83,6 @@ const BranchesManager = () => {
   const [form, setForm] = useState(null);
   const [dirty, setDirty] = useState(false);
 
-  // Load the selected branch into the form (only when the selection changes
-  // or a save refreshes the list - never mid-typing).
   useEffect(() => {
     if (selectedId === "new") return;
     const found = branches.find((b) => b._id === selectedId) || branches[0];
@@ -153,7 +146,7 @@ const BranchesManager = () => {
   });
 
   const addZone = () =>
-    patch("delivery.zones", [...form.delivery.zones, { name: "", areas: "", fee: 100, minOrder: 0, travelMinutes: 20, active: true }]);
+    patch("delivery.zones", [...form.delivery.zones, { name: "", areas: "", fee: 100, distanceKm: "", minOrder: 0, travelMinutes: 20, active: true }]);
   const setZone = (i, key, value) => patch(`delivery.zones.${i}.${key}`, value);
   const removeZone = (i) => patch("delivery.zones", form.delivery.zones.filter((_, idx) => idx !== i));
   const num = (v) => (v === "" ? "" : Number(v));
@@ -241,7 +234,7 @@ const BranchesManager = () => {
             right={<Toggle checked={form.delivery.enabled} onChange={(v) => patch("delivery.enabled", v)} label="Delivery available" />}
           >
             <div className={form.delivery.enabled ? "" : "opacity-50"}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
                 <Field label="Preparation time (minutes)" hint="Kitchen time before the rider leaves.">
                   <input type="number" min="0" className={inputCls} value={form.delivery.prepMinutes} onChange={(e) => patch("delivery.prepMinutes", num(e.target.value))} />
                 </Field>
@@ -250,6 +243,9 @@ const BranchesManager = () => {
                 </Field>
                 <Field label="Free delivery above (Rs.)" hint="Before tax. 0 = never free.">
                   <input type="number" min="0" className={inputCls} value={form.delivery.freeAbove} onChange={(e) => patch("delivery.freeAbove", num(e.target.value))} />
+                </Field>
+                <Field label="Free within (km)" hint="Zones this close are free. 0 = off.">
+                  <input type="number" min="0" step="0.5" className={inputCls} value={form.delivery.freeWithinKm} onChange={(e) => patch("delivery.freeWithinKm", num(e.target.value))} />
                 </Field>
               </div>
 
@@ -265,10 +261,11 @@ const BranchesManager = () => {
               <div className="flex flex-col gap-3">
                 {form.delivery.zones.map((z, i) => (
                   <div key={z._id || i} className="rounded-xl bg-[#1f1f1f] border border-[#333] p-3">
-                    <div className="grid grid-cols-2 lg:grid-cols-[1.2fr_1.6fr_90px_110px_110px_auto] gap-3 items-end">
+                    <div className="grid grid-cols-2 lg:grid-cols-[1.2fr_1.6fr_90px_90px_110px_110px_auto] gap-3 items-end">
                       <Field label="Zone name"><input className={inputCls} value={z.name} onChange={(e) => setZone(i, "name", e.target.value)} placeholder="e.g. Gojra city" /></Field>
                       <Field label="Areas covered (optional)"><input className={inputCls} value={z.areas} onChange={(e) => setZone(i, "areas", e.target.value)} placeholder="e.g. Model Town, Railway Road" /></Field>
                       <Field label="Fee (Rs.)"><input type="number" min="0" className={inputCls} value={z.fee} onChange={(e) => setZone(i, "fee", num(e.target.value))} /></Field>
+                      <Field label="Distance (km)"><input type="number" min="0" step="0.5" className={inputCls} value={z.distanceKm ?? ""} onChange={(e) => setZone(i, "distanceKm", e.target.value === "" ? "" : Number(e.target.value))} placeholder="e.g. 3" /></Field>
                       <Field label="Zone minimum"><input type="number" min="0" className={inputCls} value={z.minOrder} onChange={(e) => setZone(i, "minOrder", num(e.target.value))} /></Field>
                       <Field label="Travel (min)"><input type="number" min="0" className={inputCls} value={z.travelMinutes} onChange={(e) => setZone(i, "travelMinutes", num(e.target.value))} /></Field>
                       <div className="flex items-center gap-3 col-span-2 lg:col-span-1 justify-between">

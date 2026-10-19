@@ -11,7 +11,6 @@ const branch = (over = {}) => ({
   restriction: { active: false },
   ...over,
 });
-// 14:00 Pakistan time
 const noon = new Date("2026-10-19T09:00:00Z");
 
 test("delivery fee, minimum and eta", () => {
@@ -22,13 +21,22 @@ test("delivery fee, minimum and eta", () => {
 test("free delivery above threshold", () => {
   assert.equal(quoteFulfillment({ branch: branch(), method: "delivery", zoneId: "z1", subtotal: 2500, now: noon }).fee, 0);
 });
+test("free within distance, Rs 100 beyond", () => {
+  const b = branch({ delivery: { enabled: true, prepMinutes: 25, minOrder: 0, freeAbove: 1000, freeWithinKm: 4,
+    zones: [{ _id: "near", name: "Near", fee: 100, distanceKm: 3, active: true },
+            { _id: "far", name: "Far", fee: 100, distanceKm: 7, active: true }] } });
+  const q = (zoneId, subtotal) => quoteFulfillment({ branch: b, method: "delivery", zoneId, subtotal, now: noon }).fee;
+  assert.equal(q("near", 300), 0);
+  assert.equal(q("far", 300), 100);
+  assert.equal(q("far", 1000), 0);
+});
 test("unsupported zone and pickup fee", () => {
   assert.equal(quoteFulfillment({ branch: branch(), method: "delivery", zoneId: "zzz", subtotal: 1000, now: noon }).ok, false);
   const p = quoteFulfillment({ branch: branch(), method: "pickup", subtotal: 100, now: noon });
   assert.equal(p.ok, true); assert.equal(p.fee, 0); assert.equal(p.etaMin, 15);
 });
 test("closed, restricted, overnight", () => {
-  const night = new Date("2026-10-19T20:00:00Z"); // 01:00 PKT
+  const night = new Date("2026-10-19T20:00:00Z"); 
   assert.equal(quoteFulfillment({ branch: branch(), method: "pickup", subtotal: 1, now: night }).ok, false);
   assert.equal(quoteFulfillment({ branch: branch(), method: "pickup", subtotal: 1, now: night, staff: true }).ok, true);
   const late = branch({ hours: defaultHours().map((h) => ({ ...h, from: "18:00", to: "02:00" })) });

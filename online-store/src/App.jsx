@@ -4703,7 +4703,6 @@ function App() {
                       required
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      placeholder="Who's the rider asking for?"
                     />
                   </label>
 
@@ -4737,7 +4736,7 @@ function App() {
                       <IconTruck />
                       <span>
                         {fulfil.method === "pickup" ? (
-                          <><b>Pay at pickup.</b> Pay at the counter when you collect your order. We'll call you if anything changes.</>
+                          <><b>Pay at pickup.</b> Pay at the counter.</>
                         ) : (
                           <><b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this number if we can't find the address.</>
                         )}

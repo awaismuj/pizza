@@ -2,11 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { getPublicBranches, quoteFulfillment } from "./api";
 import { I } from "./AppIcons.jsx";
 
-/* Delivery / pickup selection for checkout.
-   All rules (fees, minimums, hours, restrictions) live on the server; this
-   component only asks for a quote and shows the answer, so the website and
-   the POS can never disagree. */
-
 const STORE_KEY = "gzp-fulfillment";
 const rs = (n) => `Rs. ${Math.round(Number(n) || 0).toLocaleString("en-PK")}`;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -31,8 +26,6 @@ const readSaved = () => {
     return {};
   }
 };
-
-/* ------------------------------- hook ------------------------------------ */
 
 export function useFulfillment(subtotal) {
   const saved = useMemo(readSaved, []);
@@ -64,7 +57,6 @@ export function useFulfillment(subtotal) {
     load();
   }, [load]);
 
-  // Keep the selection valid when branches/zones change on the server.
   useEffect(() => {
     if (!branches.length) return;
     const b = branches.find((x) => x._id === branchId) || branches[0];
@@ -78,14 +70,12 @@ export function useFulfillment(subtotal) {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({ method, branchId, zoneId, address }));
     } catch {
-      /* private mode */
+      /* ignore */
     }
   }, [method, branchId, zoneId, address]);
 
   const branch = branches.find((b) => b._id === branchId) || null;
 
-  // Ask the server what this choice costs. Debounced so typing/qty changes
-  // don't spam it; re-runs whenever method, branch, area or subtotal change.
   useEffect(() => {
     if (!branchId) return undefined;
     let cancelled = false;
@@ -116,7 +106,6 @@ export function useFulfillment(subtotal) {
   const ready = !!quote && quote.ok && !quoting && addressOk;
   const fee = quote?.ok ? quote.fee : 0;
 
-  // The one message shown above the Place Order button.
   const blocker = quoteError || (quote && !quote.ok ? quote.error : "") ||
     (method === "delivery" && quote?.ok && !addressOk ? "Enter your full delivery address (house, street, landmark)." : "");
 
@@ -134,9 +123,7 @@ export function useFulfillment(subtotal) {
   };
 }
 
-/* ------------------------------- picker ---------------------------------- */
-
-const OptionCard = ({ active, onClick, icon: Icon, title, desc, meta, disabled, note }) => (
+const OptionCard = ({ active, onClick, icon: Icon, title, meta, disabled, note }) => (
   <button
     type="button"
     className={`fx-opt${active ? " is-on" : ""}`}
@@ -147,7 +134,6 @@ const OptionCard = ({ active, onClick, icon: Icon, title, desc, meta, disabled, 
     <span className="fx-opt-ico"><Icon aria-hidden="true" /></span>
     <span className="fx-opt-body">
       <b>{title}</b>
-      <small>{desc}</small>
       {note ? <em className="fx-opt-note">{note}</em> : meta ? <em>{meta}</em> : null}
     </span>
     <span className="fx-opt-tick" aria-hidden="true">{active && <I.Check />}</span>
@@ -176,8 +162,10 @@ export const FulfillmentPicker = ({ f }) => {
   const pickupOff = !pickup.enabled || !!pickup.blockedReason;
   const zone = dZones.find((z) => z._id === f.zoneId);
 
-  const deliveryMeta = zone ? `${rs(zone.fee)} · ${zone.travelMinutes + delivery.prepMinutes}+ min` : dZones.length
-    ? `From ${rs(Math.min(...dZones.map((z) => z.fee)))}` : "";
+  const zoneFee = (z) => (delivery.freeWithinKm > 0 && z.distanceKm != null && z.distanceKm <= delivery.freeWithinKm ? 0 : z.fee);
+  const feeText = (z) => (zoneFee(z) > 0 ? rs(zoneFee(z)) : "Free");
+  const deliveryMeta = zone ? `${feeText(zone)} · ${zone.travelMinutes + delivery.prepMinutes}+ min` : dZones.length
+    ? `From ${feeText({ fee: Math.min(...dZones.map(zoneFee)) })}` : "";
   const pickupMeta = `Free · ready in ~${pickup.prepMinutes} min`;
 
   return (
@@ -190,7 +178,6 @@ export const FulfillmentPicker = ({ f }) => {
           onClick={() => f.setMethod("delivery")}
           icon={I.Rider}
           title="Home Delivery"
-          desc="A rider brings it to your door"
           meta={deliveryMeta}
           note={deliveryOff ? (delivery.blockedReason || "Unavailable at this branch") : ""}
         />
@@ -199,7 +186,6 @@ export const FulfillmentPicker = ({ f }) => {
           onClick={() => f.setMethod("pickup")}
           icon={I.Store}
           title="Pickup from Restaurant"
-          desc="Collect it fresh from the counter"
           meta={pickupMeta}
           note={pickupOff ? (pickup.blockedReason || "Unavailable at this branch") : ""}
         />
@@ -254,7 +240,7 @@ export const FulfillmentPicker = ({ f }) => {
                     {z.areas && <small>{z.areas}</small>}
                   </span>
                   <span className="fx-zone-fee">
-                    {z.fee > 0 ? rs(z.fee) : "Free"}
+                    {feeText(z)}
                     <small>{z.travelMinutes + delivery.prepMinutes}–{z.travelMinutes + delivery.prepMinutes + 10} min</small>
                   </span>
                 </button>
@@ -273,8 +259,13 @@ export const FulfillmentPicker = ({ f }) => {
             />
           </label>
 
-          {delivery.freeAbove > 0 && (
-            <p className="fx-hint"><I.Bolt aria-hidden="true" /> Free delivery on orders over {rs(delivery.freeAbove)} (before tax).</p>
+          {(delivery.freeAbove > 0 || delivery.freeWithinKm > 0) && (
+            <p className="fx-hint">
+              <I.Bolt aria-hidden="true" /> Free delivery
+              {delivery.freeAbove > 0 ? ` on orders of ${rs(delivery.freeAbove)} or more` : ""}
+              {delivery.freeAbove > 0 && delivery.freeWithinKm > 0 ? " or" : ""}
+              {delivery.freeWithinKm > 0 ? ` within ${delivery.freeWithinKm} km` : ""}.
+            </p>
           )}
         </div>
       ) : (
@@ -289,7 +280,6 @@ export const FulfillmentPicker = ({ f }) => {
         </div>
       )}
 
-      {/* Live summary straight from the server's quote */}
       <div className="fx-summary" aria-live="polite">
         <div>
           <small>Estimated {method === "delivery" ? "delivery" : "ready in"}</small>
