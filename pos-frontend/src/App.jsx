@@ -5,10 +5,11 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Home, Auth, Orders, Tables, Menu, Outdoor, Dashboard, OnlineOrders, EmployeePortal } from "./pages";
+import { Home, Auth, Orders, Tables, Menu, Outdoor, Dashboard, OnlineOrders } from "./pages";
 import Header from "./components/shared/Header";
 import NewOrderPopup from "./components/shared/NewOrderPopup";
 import LowStockAlert from "./components/shared/LowStockAlert";
+import PrepAlertCenter from "./components/prep/PrepAlertCenter";
 import WhatsAppButton from "./components/shared/WhatsAppButton";
 import MusicPlayerProvider from "./components/shared/MusicPlayerProvider";
 import { useSelector } from "react-redux";
@@ -27,17 +28,17 @@ function Layout() {
   // partially hiding those buttons. Support inquiries aren't the point of
   // that screen anyway, so it's simplest to just not show it there.
   const hideWhatsAppRoutes = ["/menu"];
-  const { isAuth, role } = useSelector(state => state.user);
-  const isEmployee = String(role || "").toLowerCase() === "employee";
+  const { isAuth } = useSelector(state => state.user);
 
   if(isLoading) return <FullScreenLoader />
 
   return (
     <>
-      {!isEmployee && !hideHeaderRoutes.includes(location.pathname) && <Header />}
-      {isAuth && !isEmployee && <NewOrderPopup />}
-      {isAuth && !isEmployee && <LowStockAlert />}
-      {!isEmployee && !hideWhatsAppRoutes.includes(location.pathname) && <WhatsAppButton />}
+      {!hideHeaderRoutes.includes(location.pathname) && <Header />}
+      {isAuth && <NewOrderPopup />}
+      {isAuth && <LowStockAlert />}
+      {isAuth && <PrepAlertCenter />}
+      {!hideWhatsAppRoutes.includes(location.pathname) && <WhatsAppButton />}
       <Routes>
         <Route
           path="/"
@@ -48,7 +49,6 @@ function Layout() {
           }
         />
         <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
-        <Route path="/employee" element={<ProtectedRoutes><EmployeePortal /></ProtectedRoutes>} />
         <Route
           path="/orders"
           element={
@@ -106,22 +106,19 @@ function Layout() {
 }
 
 function ProtectedRoutes({ children }) {
-  const { isAuth, role } = useSelector((state) => state.user);
-  const location = useLocation();
+  const { isAuth } = useSelector((state) => state.user);
   if (!isAuth) {
     return <Navigate to="/auth" />;
   }
-  const isEmployee = String(role || "").toLowerCase() === "employee";
-  if (isEmployee && location.pathname !== "/employee") return <Navigate to="/employee" replace />;
-  if (!isEmployee && location.pathname === "/employee") return <Navigate to="/" replace />;
 
   return children;
 }
 
-// Non-admin roles enter the dashboard only for their scoped staff or asset tabs.
+// General POS administration is still Admin-only. Asset roles are allowed
+// through to the Dashboard route, where only their Assets tab is exposed.
 function AdminRoute({ children }) {
   const { role } = useSelector((state) => state.user);
-  if (!["admin", "cashier", "accountant", "asset manager", "read only", "hr manager", "payroll manager"].includes(String(role || "").toLowerCase())) {
+  if (!["admin", "accountant", "asset manager", "read only"].includes(String(role || "").toLowerCase())) {
     return <Navigate to="/" replace />;
   }
 

@@ -1,7 +1,32 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { MdTableBar, MdCategory } from "react-icons/md";
+import {
+  MdTableBar,
+  MdCategory,
+  MdInsights,
+  MdReceiptLong,
+  MdPayments,
+  MdRestaurantMenu,
+  MdLocalOffer,
+  MdViewCarousel,
+  MdTrendingUp,
+  MdInventory2,
+  MdBadge,
+  MdTune,
+  MdAccountBalance,
+  MdMusicNote,
+  MdDevices,
+  MdRateReview,
+  MdQrCode2,
+  MdAdd,
+  MdStorefront,
+  MdMenu,
+  MdClose,
+  MdChevronLeft,
+  MdChevronRight,
+  MdTimer,
+} from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -14,10 +39,13 @@ import HeroSliderManager from "../components/dashboard/HeroSliderManager";
 import ProfitExpenses from "../components/dashboard/ProfitExpenses";
 import PaymentsOverview from "../components/dashboard/PaymentsOverview";
 import TaxManager from "../components/dashboard/TaxManager";
+import PrepSettingsManager from "../components/dashboard/PrepSettingsManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
-import FulfillmentManager from "../components/dashboard/FulfillmentManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
+import ReviewsManager from "../components/dashboard/ReviewsManager";
+import PaymentSettingsManager from "../components/dashboard/PaymentSettingsManager";
+import BranchesManager from "../components/dashboard/BranchesManager";
 import MusicPlayer from "../components/shared/MusicPlayer";
 import {
   getCategories,
@@ -27,36 +55,93 @@ import {
   reorderCategories,
   reorderDishes,
   getInventoryItems,
+  exportInventoryReport,
   addInventoryItem,
   updateInventoryItem,
   adjustInventoryItem,
   deleteInventoryItem,
 } from "../https";
 import { resolveImageUrl } from "../utils";
+import { MdSearch } from "react-icons/md";
+import ExportButtons from "../components/dashboard/ExportButtons";
+import { I, FoodIcon } from "../components/shared/AppIcons";
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
 const buttons = [
-  { label: "Add Table", icon: <MdTableBar />, action: "table" },
-  { label: "Add Category", icon: <MdCategory />, action: "category" },
-  { label: "Add Dishes", icon: <BiSolidDish />, action: "dishes" },
+  { label: "Add Table", hint: "Dine-in seating", icon: <MdTableBar />, action: "table", tint: "#3b82f6" },
+  { label: "Add Category", hint: "Group your menu", icon: <MdCategory />, action: "category", tint: "#a855f7" },
+  { label: "Add Dishes", hint: "New menu item", icon: <BiSolidDish />, action: "dishes", tint: "#f6b100" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Delivery & Pickup", "Music", "Assets"];
+// Sidebar sections. Order here is the order shown on screen.
+const tabGroups = [
+  { label: "Overview", tabs: ["Metrics", "Orders", "Payments", "Profit"] },
+  { label: "Storefront", tabs: ["Menu", "Deals", "Hero Slider", "Build Your Own", "Reviews"] },
+  { label: "Delivery & Pickup", tabs: ["Branches"] },
+  { label: "Operations", tabs: ["Inventory", "Staff", "Assets"] },
+  { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Music"] },
+];
+const tabs = tabGroups.flatMap((g) => g.tabs);
+
+// Icon per tab, so the bar can be scanned at a glance.
+const tabIcons = {
+  Metrics: <MdInsights />,
+  Orders: <MdReceiptLong />,
+  Payments: <MdPayments />,
+  "Payment Settings": <MdQrCode2 />,
+  Menu: <MdRestaurantMenu />,
+  Deals: <MdLocalOffer />,
+  "Hero Slider": <MdViewCarousel />,
+  Reviews: <MdRateReview />,
+  Profit: <MdTrendingUp />,
+  Inventory: <MdInventory2 />,
+  Staff: <MdBadge />,
+  "Build Your Own": <MdTune />,
+  "Order Prep": <MdTimer />,
+  Tax: <MdAccountBalance />,
+  Music: <MdMusicNote />,
+  Assets: <MdDevices />,
+  Branches: <MdStorefront />,
+};
+// Accent colour per section: drives the sidebar chips, the active pill and the page backdrop glow.
+const tabTheme = {
+  Metrics: "#3b82f6",
+  Orders: "#f97316",
+  Payments: "#10b981",
+  Profit: "#22c55e",
+  Menu: "#ef4444",
+  Deals: "#ec4899",
+  "Hero Slider": "#a855f7",
+  "Build Your Own": "#14b8a6",
+  Reviews: "#f6b100",
+  Branches: "#06b6d4",
+  Inventory: "#8b5cf6",
+  Staff: "#0ea5e9",
+  Assets: "#84cc16",
+  "Payment Settings": "#6366f1",
+  "Order Prep": "#fb923c",
+  Tax: "#f59e0b",
+  Music: "#f43f5e",
+};
+const groupTheme = {
+  Overview: "#3b82f6",
+  Storefront: "#ec4899",
+  "Delivery & Pickup": "#06b6d4",
+  Operations: "#8b5cf6",
+  Settings: "#f59e0b",
+};
 const assetRoles = ["admin", "accountant", "asset manager", "read only"];
-const staffRoles = ["admin", "cashier", "hr manager", "payroll manager", "accountant"];
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const role = useSelector((state) => state.user.role);
   const isAdmin = String(role || "").toLowerCase() === "admin";
-  const canSeeStaff = staffRoles.includes(String(role || "").toLowerCase());
-  const visibleTabs = isAdmin
-    ? tabs
-    : [
-      ...(canSeeStaff ? ["Staff"] : []),
-      ...(assetRoles.includes(String(role || "").toLowerCase()) ? ["Assets"] : []),
-    ];
+  const visibleTabs = isAdmin ? tabs : ["Assets"];
+  const visibleGroups = isAdmin ? tabGroups : [{ label: "Operations", tabs: ["Assets"] }];
+  const [sideOpen, setSideOpen] = useState(false); // mobile drawer
+  const [sectionSearch, setSectionSearch] = useState("");
+  const [sideCollapsed, setSideCollapsed] = useState(false); // desktop icon-only
 
   useEffect(() => {
     document.title = "POS | Admin Dashboard";
@@ -69,11 +154,10 @@ const Dashboard = () => {
   // low-stock popup's "Restock now" button).
   const [searchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  const defaultTab = isAdmin ? "Metrics" : visibleTabs[0] || "Metrics";
-  const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
+  const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
   useEffect(() => {
-    setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
-  }, [requestedTab, defaultTab]);
+    setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
+  }, [requestedTab, isAdmin]);
   const [restockAmounts, setRestockAmounts] = useState({});
   const [categorySearch, setCategorySearch] = useState("");
   const [dishSearch, setDishSearch] = useState("");
@@ -133,6 +217,7 @@ const Dashboard = () => {
   const [inventoryForm, setInventoryForm] = useState(defaultInventoryForm);
   const [editingInventory, setEditingInventory] = useState(null);
   const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryStatus, setInventoryStatus] = useState("");
   const filteredInventoryItems = inventorySearch.trim()
     ? inventoryItems.filter(
         (item) =>
@@ -326,50 +411,219 @@ const Dashboard = () => {
     });
   };
 
-  return (
-    <div className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
-      <div className="container mx-auto flex items-center justify-between py-14 px-6 md:px-4 flex-wrap gap-4">
-        {isAdmin && <div className="flex items-center gap-3 flex-wrap">
-          {buttons.map(({ label, icon, action }) => {
-            return (
-              <button
-                key={action}
-                onClick={() => handleOpenModal(action)}
-                className="bg-[#1a1a1a] hover:bg-[#262626] px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2"
-              >
-                {label} {icon}
-              </button>
-            );
-          })}
-        </div>}
+  const pickTab = (tab) => {
+    setSectionSearch("");
+    setActiveTab(tab);
+    setSideOpen(false);
+    window.scrollTo({ top: 0 });
+  };
 
-        <div className="flex items-center gap-3 flex-wrap">
-          {visibleTabs.map((tab) => {
-            return (
-              <button
-                key={tab}
-                className={`
-                px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2 ${
-                  activeTab === tab
-                    ? "bg-[#262626]"
-                    : "bg-[#1a1a1a] hover:bg-[#262626]"
-                }`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </button>
-            );
-          })}
+  // Sidebar search: matches a section's name or its group's name.
+  const sectionQuery = sectionSearch.trim().toLowerCase();
+  const matchedGroups = sectionQuery
+    ? visibleGroups
+        .map((group) => ({
+          ...group,
+          tabs: group.label.toLowerCase().includes(sectionQuery)
+            ? group.tabs
+            : group.tabs.filter((tab) => tab.toLowerCase().includes(sectionQuery)),
+        }))
+        .filter((group) => group.tabs.length)
+    : visibleGroups;
+
+  const sidebar = (collapsed) => (
+    <nav aria-label="Dashboard sections" className="flex flex-col gap-5">
+      {!collapsed && (
+        <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 focus-within:border-[#f6b100] focus-within:bg-white/10">
+          <MdSearch className="shrink-0 text-lg text-[#8a8a8a]" />
+          <span className="sr-only">Search dashboard sections</span>
+          <input
+            type="search"
+            value={sectionSearch}
+            onChange={(e) => setSectionSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && matchedGroups[0]) pickTab(matchedGroups[0].tabs[0]);
+              if (e.key === "Escape") setSectionSearch("");
+            }}
+            placeholder="Search dashboard…"
+            className="w-full min-w-0 bg-transparent text-sm text-[#f5f5f5] outline-none placeholder:text-[#6f6f6f]"
+          />
+        </label>
+      )}
+      {sectionQuery && matchedGroups.length === 0 && !collapsed && (
+        <p className="px-3 text-sm text-[#8a8a8a]">No section matches “{sectionSearch}”.</p>
+      )}
+      {matchedGroups.map((group) => (
+        <div key={group.label}>
+          {!collapsed && (
+            <p className="px-3 mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider" style={{ color: groupTheme[group.label] || "#8a8a8a" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: groupTheme[group.label] || "#8a8a8a", boxShadow: `0 0 8px ${groupTheme[group.label] || "#8a8a8a"}` }} />
+              {group.label}
+            </p>
+          )}
+          {collapsed && <div className="mx-3 mb-1.5 border-t border-[#333]" />}
+          <ul className="flex flex-col gap-1">
+            {group.tabs.map((tab) => {
+              const active = activeTab === tab;
+              const c = tabTheme[tab] || "#f6b100";
+              return (
+                <li key={tab}>
+                  <button
+                    onClick={() => pickTab(tab)}
+                    aria-current={active ? "page" : undefined}
+                    title={collapsed ? tab : undefined}
+                    style={
+                      active
+                        ? { background: `linear-gradient(135deg, ${c}, ${c}b3)`, boxShadow: `0 6px 18px ${c}55` }
+                        : undefined
+                    }
+                    className={`group w-full flex items-center gap-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      collapsed ? "justify-center px-0 py-2.5" : "px-2.5 py-2 text-left"
+                    } ${
+                      active
+                        ? "text-white"
+                        : "text-[#c4c4c4] hover:text-white hover:bg-white/5 hover:translate-x-0.5"
+                    }`}
+                  >
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg transition-colors"
+                      style={
+                        active
+                          ? { background: "rgba(255,255,255,0.22)", color: "#fff" }
+                          : { background: `${c}24`, color: c }
+                      }
+                    >
+                      {tabIcons[tab]}
+                    </span>
+                    {!collapsed && <span className="truncate">{tab}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+
+  return (
+    <div
+      className="dash-wide bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10 transition-[background] duration-500"
+      style={{
+        backgroundImage: `radial-gradient(900px 480px at 85% -5%, ${(tabTheme[activeTab] || "#f6b100")}2e, transparent 60%), radial-gradient(700px 420px at 10% 105%, ${(tabTheme[activeTab] || "#f6b100")}1f, transparent 60%), radial-gradient(500px 300px at 55% 45%, rgba(168,85,247,0.07), transparent 70%)`,
+      }}
+    >
+      {/* Mobile: top bar with the current section + a button that opens the drawer */}
+      <div className="lg:hidden sticky top-0 z-30 flex items-center gap-3 bg-[#1f1f1f]/95 backdrop-blur border-b border-[#333] px-4 py-3">
+        <button
+          onClick={() => setSideOpen(true)}
+          aria-label="Open sections menu"
+          className="w-10 h-10 rounded-xl bg-[#262626] border border-[#333] text-[#f5f5f5] flex items-center justify-center text-xl"
+        >
+          <MdMenu />
+        </button>
+        <div className="flex items-center gap-2 text-[#f5f5f5] font-semibold">
+          <span className="text-[#f6b100] text-lg">{tabIcons[activeTab]}</span>
+          {activeTab}
         </div>
       </div>
 
+      {sideOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setSideOpen(false)} aria-hidden="true" />
+          <aside
+            className="relative w-72 max-w-[85%] h-full border-r border-white/10 p-4 overflow-y-auto"
+            style={{ backgroundImage: `linear-gradient(180deg, ${(tabTheme[activeTab] || "#f6b100")}22 0%, transparent 28%), linear-gradient(180deg, #1d1d24 0%, #17171b 100%)` }}
+          >
+            <div className="flex items-center justify-between mb-4 px-1">
+              <span className="text-[#f5f5f5] font-bold text-lg">Dashboard</span>
+              <button
+                onClick={() => setSideOpen(false)}
+                aria-label="Close menu"
+                className="w-9 h-9 rounded-lg bg-[#262626] text-[#f5f5f5] flex items-center justify-center text-lg"
+              >
+                <MdClose />
+              </button>
+            </div>
+            {sidebar(false)}
+          </aside>
+        </div>
+      )}
+
+      <div className="flex items-start">
+        {/* Desktop: fixed sidebar that stays in view while the page scrolls */}
+        <aside
+          className={`hidden lg:block shrink-0 sticky top-0 self-start h-screen overflow-y-auto border-r border-white/10 py-6 transition-[width] duration-200 ${
+            sideCollapsed ? "w-[76px] px-2" : "w-64 px-3"
+          }`}
+          style={{
+            backgroundImage: `linear-gradient(180deg, ${(tabTheme[activeTab] || "#f6b100")}22 0%, transparent 28%), linear-gradient(180deg, #1d1d24 0%, #17171b 100%)`,
+          }}
+        >
+          <div className={`flex items-center mb-5 ${sideCollapsed ? "justify-center" : "justify-between px-3"}`}>
+            {!sideCollapsed && <span className="text-[#f5f5f5] font-bold text-lg">Dashboard</span>}
+            <button
+              onClick={() => setSideCollapsed((v) => !v)}
+              aria-label={sideCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="w-8 h-8 rounded-lg bg-[#262626] border border-[#333] text-[#b5b5b5] hover:text-[#f5f5f5] flex items-center justify-center"
+            >
+              {sideCollapsed ? <MdChevronRight /> : <MdChevronLeft />}
+            </button>
+          </div>
+          {sidebar(sideCollapsed)}
+        </aside>
+
+        <main className="flex-1 min-w-0">
+          <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-4">
+            {isAdmin && (
+              <div className="flex flex-col 2xl:flex-row 2xl:items-end 2xl:justify-between gap-5">
+                <div>
+                  <h1
+                    className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent"
+                    style={{ backgroundImage: `linear-gradient(90deg, #ffffff, ${tabTheme[activeTab] || "#f6b100"})` }}
+                  >
+                    {activeTab}
+                  </h1>
+                  <p className="text-[#8a8a8a] text-sm mt-1">Manage your menu, orders and storefront in one place.</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 2xl:min-w-[640px]">
+                  {buttons.map(({ label, hint, icon, action, tint }) => (
+                    <button
+                      key={action}
+                      onClick={() => handleOpenModal(action)}
+                      className="group flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left bg-white/5 hover:bg-white/10 backdrop-blur border border-white/10 hover:border-white/25 rounded-2xl px-2 sm:px-4 py-3 transition-all hover:-translate-y-0.5"
+                    >
+                      <span
+                        className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center text-2xl"
+                        style={{ background: `${tint}26`, color: tint }}
+                      >
+                        {icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[#f5f5f5] font-semibold leading-tight">{label}</span>
+                        <span className="hidden sm:block text-[#8a8a8a] text-xs mt-0.5 truncate">{hint}</span>
+                      </span>
+                      <span className="hidden sm:flex w-8 h-8 rounded-full bg-[#1f1f1f] text-[#f5f5f5] items-center justify-center text-lg group-hover:bg-[#f6b100] group-hover:text-[#1f1f1f] transition-colors">
+                        <MdAdd />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+      {activeTab === "Branches" && <BranchesManager />}
       {activeTab === "Metrics" && <Metrics />}
       {activeTab === "Orders" && <RecentOrders />}
       {activeTab === "Payments" && <PaymentsOverview />}
+      {activeTab === "Payment Settings" && <PaymentSettingsManager />}
       {activeTab === "Tax" && <TaxManager />}
-      {activeTab === "Delivery & Pickup" && <FulfillmentManager />}
+      {activeTab === "Order Prep" && <PrepSettingsManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
-      {activeTab === "Staff" && canSeeStaff && <StaffManagement />}
+      {activeTab === "Staff" && <StaffManagement />}
+      {activeTab === "Reviews" && <ReviewsManager />}
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
       {activeTab === "Assets" && assetRoles.includes(String(role || "").toLowerCase()) && <AssetManagement role={role} />}
       {activeTab === "Menu" && (
@@ -382,7 +636,7 @@ const Dashboard = () => {
                   type="text"
                   value={categorySearch}
                   onChange={(e) => setCategorySearch(e.target.value)}
-                  placeholder="🔍 Search categories…"
+                  placeholder="Search categories…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
               </div>
@@ -399,7 +653,7 @@ const Dashboard = () => {
                             {isUploadedImage(category.icon) ? (
                               <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-xl">{category.icon || "🍽️"}</span>
+                              <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
                             )}
                           </div>
                           <div className="min-w-0">
@@ -442,7 +696,7 @@ const Dashboard = () => {
                                     {isUploadedImage(category.icon) ? (
                                       <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-xl">{category.icon || "🍽️"}</span>
+                                      <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
                                     )}
                                   </div>
                                   <div className="min-w-0">
@@ -486,7 +740,7 @@ const Dashboard = () => {
                   type="text"
                   value={dishSearch}
                   onChange={(e) => setDishSearch(e.target.value)}
-                  placeholder="🔍 Search dishes…"
+                  placeholder="Search dishes…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
               </div>
@@ -503,7 +757,7 @@ const Dashboard = () => {
                             {isUploadedImage(dish.image) ? (
                               <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-xl">{dish.icon || "🍽️"}</span>
+                              <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
                             )}
                           </div>
                           <div className="min-w-0">
@@ -511,7 +765,7 @@ const Dashboard = () => {
                             <p className="text-[#ababab] text-sm truncate">
                               {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                               {dish.isInventoryTracked && (
-                                <span className="ml-2 text-green-400">🔗 Inventory linked</span>
+                                <span className="ml-2 text-green-400"><I.Check className="inline mr-1" />Inventory linked</span>
                               )}
                             </p>
                           </div>
@@ -551,7 +805,7 @@ const Dashboard = () => {
                                     {isUploadedImage(dish.image) ? (
                                       <img src={resolveImageUrl(dish.image)} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-xl">{dish.icon || "🍽️"}</span>
+                                      <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
                                     )}
                                   </div>
                                   <div className="min-w-0">
@@ -559,7 +813,7 @@ const Dashboard = () => {
                                     <p className="text-[#ababab] text-sm truncate">
                                       {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                                       {dish.isInventoryTracked && (
-                                        <span className="ml-2 text-green-400">🔗 Inventory linked</span>
+                                        <span className="ml-2 text-green-400"><I.Check className="inline mr-1" />Inventory linked</span>
                                       )}
                                     </p>
                                   </div>
@@ -710,12 +964,30 @@ const Dashboard = () => {
 
             <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Stock Overview</h3>
+              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-[#1a1a1a] p-3">
+                <select
+                  value={inventoryStatus}
+                  onChange={(e) => setInventoryStatus(e.target.value)}
+                  aria-label="Stock report filter"
+                  className="rounded-lg border border-[#333] bg-[#262626] px-3 py-2 text-sm text-white outline-none"
+                >
+                  <option value="">All items</option>
+                  <option value="low">Low stock only</option>
+                  <option value="out">Out of stock only</option>
+                  <option value="in">In stock only</option>
+                </select>
+                <ExportButtons
+                  label="Stock report"
+                  fallbackName="stock-report"
+                  request={(format) => exportInventoryReport({ format, status: inventoryStatus || undefined, search: inventorySearch.trim() || undefined })}
+                />
+              </div>
               <div className="mb-4">
                 <input
                   type="text"
                   value={inventorySearch}
                   onChange={(e) => setInventorySearch(e.target.value)}
-                  placeholder="🔍 Search inventory…"
+                  placeholder="Search inventory…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
               </div>
@@ -799,6 +1071,9 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+        </main>
+      </div>
 
       {isModalOpen && (
         <Modal action={modalAction} setIsModalOpen={setIsModalOpen} initialData={modalInitialData} />

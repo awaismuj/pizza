@@ -39,7 +39,7 @@ const addCategory = async (req, res, next) => {
     const category = await Category.create({
       name: categoryName,
       description: description || "",
-      icon: icon || "🍽️",
+      icon: icon || "utensils",
     });
 
     res.status(201).json({
@@ -98,7 +98,7 @@ const updateCategory = async (req, res, next) => {
 
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
-      { name: name.trim(), description: description || "", icon: icon || "🍽️" },
+      { name: name.trim(), description: description || "", icon: icon || "utensils" },
       { new: true }
     );
 
@@ -228,7 +228,7 @@ const addDish = async (req, res, next) => {
       variants: sanitizedVariants,
       category: categoryDoc._id,
       image: image || "",
-      icon: icon || "🍽️",
+      icon: icon || "utensils",
       inventoryItem: trackedFlag && inventoryItem ? inventoryItem : null,
       inventoryItemQty: Number(inventoryItemQty) > 0 ? Number(inventoryItemQty) : 1,
       isInventoryTracked: trackedFlag,
@@ -322,7 +322,7 @@ const updateDish = async (req, res, next) => {
       variants: sanitizedVariants,
       category: categoryDoc._id,
       image: image || "",
-      icon: icon || "🍽️",
+      icon: icon || "utensils",
       inventoryItem: trackedFlag && inventoryItem ? inventoryItem : null,
       inventoryItemQty: Number(inventoryItemQty) > 0 ? Number(inventoryItemQty) : 1,
       isInventoryTracked: trackedFlag,

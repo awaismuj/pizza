@@ -1,26 +1,21 @@
 const express = require("express");
 const {
-  addReview,
   getPublicReviews,
+  createPublicReview,
   getAllReviews,
-  updateReviewStatus,
+  toggleReviewVisibility,
   deleteReview,
 } = require("../controllers/reviewController");
 const { isVerifiedUser, requireRole } = require("../middlewares/tokenVerification");
+
 const router = express.Router();
 
-// Public - no auth. The online store (no login at all) needs to read and
-// submit reviews without a token.
-router.route("/public")
-  .get(getPublicReviews)
-  .post(addReview);
+// Public — used by the storefront's Reviews section.
+router.route("/public").get(getPublicReviews).post(createPublicReview);
 
-// Admin-only moderation.
-router.route("/")
-  .get(isVerifiedUser, requireRole("Admin"), getAllReviews);
-
-router.route("/:id")
-  .put(isVerifiedUser, requireRole("Admin"), updateReviewStatus)
-  .delete(isVerifiedUser, requireRole("Admin"), deleteReview);
+// Admin moderation.
+router.route("/").get(isVerifiedUser, requireRole("Admin"), getAllReviews);
+router.route("/:id/toggle").patch(isVerifiedUser, requireRole("Admin"), toggleReviewVisibility);
+router.route("/:id").delete(isVerifiedUser, requireRole("Admin"), deleteReview);
 
 module.exports = router;

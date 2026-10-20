@@ -7,6 +7,8 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { serveUploadedImage } = require("./controllers/uploadController");
 const app = express();
+// Behind Cloudflare/nginx: needed so req.ip is the visitor, not the proxy.
+app.set("trust proxy", 1);
 
 const PORT = config.port;
 connectDB();
@@ -71,9 +73,10 @@ app.use("/api/payment", require("./routes/paymentRoute"));
 app.use("/api/upload", require("./routes/uploadRoute"));
 app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
-app.use("/api/reviews", require("./routes/reviewRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
 app.use("/api/music", require("./routes/musicRoute"));
+app.use("/api/review", require("./routes/reviewRoute"));
+app.use("/api/branch", require("./routes/branchRoute"));
 
 // Global Error Handler
 app.use(globalErrorHandler);
@@ -90,7 +93,10 @@ require("./services/dailyReportScheduler").startDailyReportScheduler();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).
 require("./services/staffAttendanceScheduler").startStaffAttendanceScheduler();
-require("./services/staffHrScheduler").startStaffHrScheduler();
+
+// Raises kitchen preparation-countdown alerts (10/5/2 min left, overdue) once
+// per order - see services/prepAlertScheduler.js.
+require("./services/prepAlertScheduler").startPrepAlertScheduler();
 
 // Posts closed-month asset depreciation. Each asset+period has a unique
 // ledger key, so multiple checks or server processes cannot double-post.
