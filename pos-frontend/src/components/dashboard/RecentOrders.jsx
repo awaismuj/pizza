@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { GrUpdate } from "react-icons/gr";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getOrders, updateOrderStatus } from "../../https/index";
 import { formatDateAndTime, getOrderNumber } from "../../utils";
+import { paymentKind, paymentKindLabel, PAYMENT_STATUS_STYLE } from "../../utils/payments";
+import { I } from "../shared/AppIcons";
 
 const RecentOrders = () => {
   const queryClient = useQueryClient();
@@ -38,16 +40,47 @@ const RecentOrders = () => {
     enqueueSnackbar("Something went wrong!", { variant: "error" });
   }
 
-  const orders = resData?.data?.data ?? [];
+  const allOrders = resData?.data?.data ?? [];
+
+  // Order history filters: payment method (COD / JazzCash) and payment
+  // status (Pending / Verified / Rejected).
+  const [methodFilter, setMethodFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const orders = allOrders.filter(
+    (o) =>
+      (methodFilter === "all" || paymentKind(o) === methodFilter) &&
+      (statusFilter === "all" || o.paymentStatus === statusFilter)
+  );
+
+  // Method + (for JazzCash) status and TID, shared by card and table.
+  const renderPayment = (order) => (
+    <>
+      <span>{paymentKindLabel(order)}</span>
+      {paymentKind(order) !== "pos" && order.paymentStatus && (
+        <span className={`ml-2 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${PAYMENT_STATUS_STYLE[order.paymentStatus] || ""}`}>
+          {order.paymentStatus}
+        </span>
+      )}
+      {paymentKind(order) === "jazz" && order.jazzcash?.tid && (
+        <span className="block text-[11px] text-[#8a8a8a]">TID {order.jazzcash.tid}</span>
+      )}
+    </>
+  );
 
   // Shared between the mobile card and the desktop table so the two views
   // can never drift out of sync with each other.
   const renderTableWhere = (order, isOnline) =>
-    isOnline
-      ? "🌐 Online"
-      : order.table?.tableNo
-      ? `Table - ${order.table.tableNo}`
-      : "🥡 Takeaway";
+    isOnline ? (
+      <span className="inline-flex items-center gap-1.5">
+        <I.Cart /> Online{order.fulfillment?.method ? ` · ${order.fulfillment.method === "pickup" ? "Pickup" : "Delivery"}` : ""}
+      </span>
+    ) : order.table?.tableNo ? (
+      `Table - ${order.table.tableNo}`
+    ) : (
+      <span className="inline-flex items-center gap-1.5">
+        <I.Bag /> Takeaway
+      </span>
+    );
 
   const renderStatus = (order, isOnline) =>
     isOnline ? (
@@ -99,8 +132,46 @@ const RecentOrders = () => {
         Recent Orders
       </h2>
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-[#ababab]">
+          Payment method
+          <select
+            value={methodFilter}
+            onChange={(e) => setMethodFilter(e.target.value)}
+            className="rounded-lg border border-[#444] bg-[#1a1a1a] px-3 py-2 text-sm text-[#f5f5f5] outline-none"
+          >
+            <option value="all">All</option>
+            <option value="cod">Cash on Delivery</option>
+            <option value="jazz">JazzCash/Raast</option>
+            <option value="pos">Register (Cash / Online)</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm text-[#ababab]">
+          Payment status
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-[#444] bg-[#1a1a1a] px-3 py-2 text-sm text-[#f5f5f5] outline-none"
+          >
+            <option value="all">All</option>
+            <option value="Pending">Pending</option>
+            <option value="Verified">Verified</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </label>
+        {(methodFilter !== "all" || statusFilter !== "all") && (
+          <button
+            onClick={() => { setMethodFilter("all"); setStatusFilter("all"); }}
+            className="text-sm font-semibold text-[#f6b100] hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+        <span className="ml-auto text-xs text-[#8a8a8a]">{orders.length} of {allOrders.length} orders</span>
+      </div>
+
       {orders.length === 0 && (
-        <p className="p-4 text-[#ababab]">No orders yet.</p>
+        <p className="p-4 text-[#ababab]">{allOrders.length === 0 ? "No orders yet." : "No orders match these filters."}</p>
       )}
 
       {/* Mobile / tablet (below md): one self-contained card per order, so
@@ -128,7 +199,7 @@ const RecentOrders = () => {
                 <p>{order.items?.length ?? 0} Items</p>
                 <p>{renderTableWhere(order, isOnline)}</p>
                 <p className="text-[#f5f5f5]">Rs {order.bills?.totalWithTax}</p>
-                <p>{order.paymentMethod}</p>
+                <p>{renderPayment(order)}</p>
               </div>
             </div>
           );
@@ -165,9 +236,7 @@ const RecentOrders = () => {
                   <td className="p-4">{order.items?.length ?? 0} Items</td>
                   <td className="p-4">{renderTableWhere(order, isOnline)}</td>
                   <td className="p-4">Rs {order.bills?.totalWithTax}</td>
-                  <td className="p-4">
-                    {order.paymentMethod}
-                  </td>
+                  <td className="p-4">{renderPayment(order)}</td>
                 </tr>
               );
             })}

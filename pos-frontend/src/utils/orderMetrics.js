@@ -9,8 +9,14 @@
 // unless Cancelled — waiting for "Closed" (really just "ticket closed out")
 // used to delay showing that revenue for hours. Online orders may be
 // Cash-on-Delivery, so they only count once "Completed" (delivered).
-export const isEarnedOrder = (order) =>
-  order.orderSource === "Online" ? order.orderStatus === "Completed" : order.orderStatus !== "Cancelled";
+//
+// JazzCash/Raast orders additionally count ONLY once the payment is
+// Verified — money that staff haven't confirmed (or have rejected) is never
+// revenue. Mirrors utils/profitService.js on the backend.
+export const isEarnedOrder = (order) => {
+  if (order.paymentMethod === "JazzCash/Raast" && order.paymentStatus !== "Verified") return false;
+  return order.orderSource === "Online" ? order.orderStatus === "Completed" : order.orderStatus !== "Cancelled";
+};
 export const IN_PROGRESS_STATUS = "In Progress";
 
 export const isSameDay = (a, b) =>
@@ -118,5 +124,36 @@ export const computeMonthlyMetrics = (orders = []) => {
     totalOrders: { value: current.totalOrders, percentage: pctChange(current.totalOrders, previous.totalOrders) },
     totalCustomers: { value: current.totalCustomers, percentage: pctChange(current.totalCustomers, previous.totalCustomers) },
     itemsSold: { value: current.itemsSold, percentage: pctChange(current.itemsSold, previous.itemsSold) },
+  };
+};
+
+// Extra numbers for the redesigned Home page: today's order count, average
+// ticket, hourly sales (for the sparkline) and how many live orders sit in
+// each stage. Uses the same "earned" rule as every other screen.
+export const computeHomeStats = (orders = []) => {
+  const now = new Date();
+  const todays = orders.filter((o) => isSameDay(new Date(o.orderDate || o.createdAt), now));
+  const earned = todays.filter(isEarnedOrder);
+  const earnings = earned.reduce((sum, o) => sum + orderTotal(o), 0);
+
+  const hourly = Array.from({ length: 24 }, () => 0);
+  earned.forEach((o) => {
+    hourly[new Date(o.orderDate || o.createdAt).getHours()] += orderTotal(o);
+  });
+
+  const live = orders.filter((o) => !["Closed", "Completed", "Cancelled"].includes(o.orderStatus));
+  const stageCounts = live.reduce((acc, o) => {
+    acc[o.orderStatus] = (acc[o.orderStatus] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    ordersToday: todays.filter((o) => o.orderStatus !== "Cancelled").length,
+    cancelledToday: todays.filter((o) => o.orderStatus === "Cancelled").length,
+    averageTicket: earned.length ? earnings / earned.length : 0,
+    onlineToday: todays.filter((o) => o.orderSource === "Online" && o.orderStatus !== "Cancelled").length,
+    hourly,
+    liveCount: live.length,
+    stageCounts,
   };
 };

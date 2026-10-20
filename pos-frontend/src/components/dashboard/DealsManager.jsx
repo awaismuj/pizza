@@ -13,6 +13,7 @@ import {
   getCategories,
 } from "../../https";
 import { resolveImageUrl } from "../../utils";
+import { FoodIcon, foodIconKey } from "../shared/AppIcons";
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
@@ -28,14 +29,14 @@ const DAY_PRESETS = [
   { label: "Weekend (Sat+Sun)", days: [0, 6] },
 ];
 
-const EMOJI_OPTIONS = ["🔥", "🍕", "🍔", "🍗", "🥤", "🎉", "💥", "⭐", "🕒"];
+const EMOJI_OPTIONS = ["flame", "pizza", "burger", "chicken", "drink", "cake", "star", "cheese", "icecream"];
 
 const defaultDealForm = {
   name: "",
   badge: "",
   description: "",
   image: "",
-  icon: "🔥",
+  icon: "flame",
   price: "",
   originalPrice: "",
   items: [{ label: "", quantity: 1, dishId: "", size: "", crust: "", customizable: false, allowedCategories: [] }],
@@ -61,7 +62,7 @@ const buildFormFromDeal = (deal) => ({
   badge: deal?.badge ?? "",
   description: deal?.description ?? "",
   image: deal?.image ?? "",
-  icon: deal?.icon || "🔥",
+  icon: deal?.icon || "flame",
   price: deal?.price ?? "",
   originalPrice: deal?.originalPrice || "",
   items: deal?.items?.length
@@ -583,9 +584,10 @@ const DealsManager = () => {
                     type="button"
                     key={emoji}
                     onClick={() => setForm({ ...form, icon: emoji })}
-                    className={`text-xl px-2 py-1 rounded ${form.icon === emoji ? "bg-[#f6b100]" : "bg-[#1a1a1a]"}`}
+                    aria-label={`Icon: ${emoji}`}
+                    className={`text-xl px-2.5 py-2 rounded ${foodIconKey(form.icon) === emoji ? "bg-[#f6b100] text-[#1f1f1f]" : "bg-[#1a1a1a] text-[#d6d6d6]"}`}
                   >
-                    {emoji}
+                    <FoodIcon icon={emoji} />
                   </button>
                 ))}
               </div>
@@ -640,7 +642,7 @@ const DealsManager = () => {
                     />
                   ) : (
                     <div className="w-12 h-12 rounded bg-[#262626] flex items-center justify-center text-xl shrink-0">
-                      {deal.icon || "🔥"}
+                      <FoodIcon icon={deal.icon || "flame"} />
                     </div>
                   )}
                   <div className="min-w-0">
