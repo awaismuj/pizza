@@ -36,13 +36,11 @@ const Home = () => {
 
   return (
     <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden bg-[#1f1f1f] px-3 pb-36 pt-3 sm:px-5 md:px-8">
-      <div className="mx-auto grid w-full max-w-[1760px] items-start gap-4 lg:grid-cols-[230px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)] 2xl:grid-cols-[270px_minmax(0,1fr)]">
-        <QuickActions />
-
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="mx-auto w-full max-w-[1760px]">
+        <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
           <Greetings />
 
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
             <MiniCard
               title="Earnings today"
               icon={<BsCashCoin />}
@@ -75,6 +73,8 @@ const Home = () => {
               hint="per paid order"
             />
           </div>
+
+          <QuickActions />
 
           <KitchenQueue orders={orders} />
 
