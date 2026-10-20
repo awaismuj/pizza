@@ -36,54 +36,54 @@ const Home = () => {
 
   return (
     <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden bg-[#1f1f1f] px-3 pb-36 pt-3 sm:px-5 md:px-8">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
-        <Greetings />
-
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_230px]">
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MiniCard
-            title="Earnings today"
-            icon={<BsCashCoin />}
-            accent="green"
-            value={`Rs ${formatCurrency(metrics.todayEarnings)}`}
-            change={metrics.earningsChangePct}
-            hint="vs yesterday"
-            spark={stats.hourly}
-          />
-          <MiniCard
-            title="In progress"
-            icon={<GrInProgress />}
-            accent="gold"
-            value={metrics.inProgressCount}
-            change={metrics.inProgressChangePct}
-            hint="vs yesterday"
-          />
-          <MiniCard
-            title="Orders today"
-            icon={<MdReceiptLong />}
-            accent="blue"
-            value={stats.ordersToday}
-            hint={`${stats.onlineToday} online`}
-          />
-          <MiniCard
-            title="Average order"
-            icon={<FaChartLine />}
-            accent="red"
-            value={`Rs ${formatCurrency(Math.round(stats.averageTicket))}`}
-            hint="per paid order"
-          />
-        </div>
-
+      <div className="mx-auto grid w-full max-w-[1760px] items-start gap-4 lg:grid-cols-[230px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)] 2xl:grid-cols-[270px_minmax(0,1fr)]">
         <QuickActions />
-        </div>
 
-        <KitchenQueue orders={orders} />
+        <div className="flex min-w-0 flex-col gap-4">
+          <Greetings />
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <RecentOrders orders={orders} isLoading={isLoading} />
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MiniCard
+              title="Earnings today"
+              icon={<BsCashCoin />}
+              accent="green"
+              value={`Rs ${formatCurrency(metrics.todayEarnings)}`}
+              change={metrics.earningsChangePct}
+              hint="vs yesterday"
+              spark={stats.hourly}
+            />
+            <MiniCard
+              title="In progress"
+              icon={<GrInProgress />}
+              accent="gold"
+              value={metrics.inProgressCount}
+              change={metrics.inProgressChangePct}
+              hint="vs yesterday"
+            />
+            <MiniCard
+              title="Orders today"
+              icon={<MdReceiptLong />}
+              accent="blue"
+              value={stats.ordersToday}
+              hint={`${stats.onlineToday} online`}
+            />
+            <MiniCard
+              title="Average order"
+              icon={<FaChartLine />}
+              accent="red"
+              value={`Rs ${formatCurrency(Math.round(stats.averageTicket))}`}
+              hint="per paid order"
+            />
           </div>
-          <LiveStatus stageCounts={stats.stageCounts} total={stats.liveCount} cancelledToday={stats.cancelledToday} />
+
+          <KitchenQueue orders={orders} />
+
+          <div className="grid gap-4 2xl:grid-cols-3">
+            <div className="min-w-0 2xl:col-span-2">
+              <RecentOrders orders={orders} isLoading={isLoading} />
+            </div>
+            <LiveStatus stageCounts={stats.stageCounts} total={stats.liveCount} cancelledToday={stats.cancelledToday} />
+          </div>
         </div>
       </div>
       <BottomNav />
