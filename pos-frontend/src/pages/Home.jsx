@@ -39,7 +39,8 @@ const Home = () => {
       <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
         <Greetings />
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_230px]">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           <MiniCard
             title="Earnings today"
             icon={<BsCashCoin />}
@@ -74,6 +75,7 @@ const Home = () => {
         </div>
 
         <QuickActions />
+        </div>
 
         <KitchenQueue orders={orders} />
 
