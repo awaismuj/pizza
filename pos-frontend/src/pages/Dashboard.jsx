@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { MdTableBar, MdCategory } from "react-icons/md";
+import { MdTableBar, MdCategory, MdDeleteSweep } from "react-icons/md";
 import FoodIcon from "../utils/foodIcons";
 import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +23,9 @@ import MusicPlayer from "../components/shared/MusicPlayer";
 import SectionSummaryView from "../components/dashboard/SectionSummaryView";
 import InventoryDrawer from "../components/dashboard/InventoryDrawer";
 import InventoryAnalytics from "../components/dashboard/InventoryAnalytics";
+import WastageModal from "../components/dashboard/WastageModal";
+import PrinterManager from "../components/dashboard/PrinterManager";
+
 import {
   getCategories,
   getDishes,
@@ -48,6 +51,12 @@ const buttons = [
 ];
 
 export const summaryTabs = [
+  "Finance Operations",
+  "Stock Operations",
+  "Menu Operations",
+  "HR Operations",
+  "Marketing Operations",
+  "Admin Operations",
   "Inventory_Summary",
   "Menu_Summary",
   "Orders_Summary",
@@ -68,6 +77,7 @@ const tabs = [
   "Staff",
   "Build Your Own",
   "Tax",
+  "Printers",
   "Music",
   "Assets",
   ...summaryTabs,
@@ -89,11 +99,30 @@ const Dashboard = () => {
   const [modalInitialData, setModalInitialData] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const requestedTab = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
+  const legacyTabMap = {
+    Inventory_Summary: "Stock Operations",
+    Menu_Summary: "Menu Operations",
+    Orders_Summary: "Finance Operations",
+    CRM_Summary: "HR Operations",
+    Settings_Summary: "Admin Operations",
+  };
+
+  const rawTab = searchParams.get("tab");
+  const requestedTab = legacyTabMap[rawTab] || rawTab;
+
+  useEffect(() => {
+    if (rawTab && legacyTabMap[rawTab]) {
+      navigate(`/dashboard?tab=${legacyTabMap[rawTab]}`, { replace: true });
+    }
+  }, [rawTab, navigate]);
+
+  const [activeTab, setActiveTab] = useState(
+    visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets")
+  );
+
   useEffect(() => {
     setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
-  }, [requestedTab, isAdmin]);
+  }, [requestedTab, isAdmin, visibleTabs]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -188,8 +217,11 @@ const Dashboard = () => {
 
   const [editingInventory, setEditingInventory] = useState(null);
   const [isInventoryDrawerOpen, setIsInventoryDrawerOpen] = useState(false);
+  const [isWastageModalOpen, setIsWastageModalOpen] = useState(false);
+  const [wastageSelectedItem, setWastageSelectedItem] = useState(null);
   const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryStatusFilter, setInventoryStatusFilter] = useState("all");
+
 
   const existingInventoryCategories = useMemo(() => {
     return Array.from(
@@ -397,6 +429,7 @@ const Dashboard = () => {
         {activeTab === "Orders" && <RecentOrders />}
         {activeTab === "Payments" && <PaymentsOverview />}
         {activeTab === "Tax" && <TaxManager />}
+        {activeTab === "Printers" && <PrinterManager />}
         {activeTab === "Build Your Own" && <BuildYourOwnManager />}
         {activeTab === "Staff" && <StaffManagement />}
         {activeTab === "Music" && <MusicPlayer variant="manager" />}
@@ -798,15 +831,30 @@ const Dashboard = () => {
               </select>
             </div>
 
-            <button
-              type="button"
-              onClick={handleOpenAddInventory}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-xs transition flex items-center gap-1.5"
-            >
-              <FaPlus className="text-[10px]" />
-              <span>Add Item</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setWastageSelectedItem(null);
+                  setIsWastageModalOpen(true);
+                }}
+                className="bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-2xs"
+              >
+                <MdDeleteSweep className="text-sm" />
+                <span>Log Spoilage</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenAddInventory}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3.5 py-1.5 rounded-lg text-xs shadow-xs transition flex items-center gap-1.5"
+              >
+                <FaPlus className="text-[10px]" />
+                <span>Add Item</span>
+              </button>
+            </div>
           </div>
+
 
           {/* Metronic Data Table */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
@@ -899,6 +947,16 @@ const Dashboard = () => {
                         <td className="py-3 px-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
+                              onClick={() => {
+                                setWastageSelectedItem(item);
+                                setIsWastageModalOpen(true);
+                              }}
+                              className="bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 px-2 py-1 rounded-md text-xs font-semibold"
+                              title="Log spoilage/wastage on this item"
+                            >
+                              Spoilage
+                            </button>
+                            <button
                               onClick={() => startInventoryEdit(item)}
                               className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded-md text-xs font-semibold"
                             >
@@ -938,8 +996,17 @@ const Dashboard = () => {
             isSubmitting={createInventoryMutation.isPending || updateInventoryMutation.isPending}
             existingCategories={existingInventoryCategories}
           />
+
+          {/* Kitchen Spoilage & Wastage Log Modal */}
+          <WastageModal
+            isOpen={isWastageModalOpen}
+            onClose={() => setIsWastageModalOpen(false)}
+            items={inventoryItems}
+            preselectedItem={wastageSelectedItem}
+          />
         </div>
       )}
+
       </div>
 
       {isModalOpen && (

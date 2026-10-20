@@ -66,7 +66,33 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 app.use(express.json()); // parse incoming request in json format
-app.use(cookieParser())
+app.use(cookieParser());
+
+// NoSQL Query Injection Protection
+const mongoSanitize = require("express-mongo-sanitize");
+app.use(mongoSanitize());
+
+// API Rate Limiting Defense
+const rateLimit = require("express-rate-limit");
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // max 10 login attempts per 15 minutes
+    message: { success: false, message: "Too many login attempts. Please try again in 15 minutes." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 2000, // Generous threshold to accommodate live POS multi-tab polling
+    message: { success: false, message: "High request rate detected. Please slow down." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use("/api/user/login", authLimiter);
+app.use("/api", apiLimiter);
 
 // Serve uploaded images (category icons, dish images, etc.) so URLs returned by
 // the /api/upload endpoint (e.g. /uploads/xyz.png) are actually reachable.
@@ -98,6 +124,9 @@ app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
 app.use("/api/music", require("./routes/musicRoute"));
+app.use("/api/shift", require("./routes/shiftRoute"));
+app.use("/api/customer", require("./routes/customerRoute"));
+app.use("/api/print", require("./routes/printRoute"));
 
 // Global Error Handler
 app.use(globalErrorHandler);

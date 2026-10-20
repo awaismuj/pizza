@@ -13,8 +13,23 @@ import { updateTable as updateTableApi, deleteTable as deleteTableApi } from "..
 import { useUITheme } from "../../context/UIThemeContext";
 
 import TableOrderDrawer from "./TableOrderDrawer";
+import CustomerInfoModal from "../modern/CustomerInfoModal";
+import ReservationModal from "./ReservationModal";
 
-const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
+import { MdLink, MdCheck, MdCalendarMonth } from "react-icons/md";
+
+const TableCard = ({
+  id,
+  name,
+  status,
+  initials,
+  seats,
+  table,
+  onEdit,
+  isCombineMode = false,
+  isCombineSelected = false,
+  onToggleCombine,
+}) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -25,19 +40,31 @@ const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
 
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [isOrderDrawerOpen, setIsOrderDrawerOpen] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isReserveModalOpen, setIsReserveModalOpen] = useState(false);
   const [draftTableNo, setDraftTableNo] = useState(name);
   const [draftStatus, setDraftStatus] = useState(status);
   const [draftSeats, setDraftSeats] = useState(seats);
 
+  const confirmedReservations = (table?.reservations || []).filter((r) => r.status === "Confirmed");
+  const nextBooking = confirmedReservations[0];
+
   const handleClick = (name) => {
+    if (isCombineMode) {
+      if (status === "Booked") {
+        enqueueSnackbar("Occupied table cannot be combined.", { variant: "warning" });
+        return;
+      }
+      if (onToggleCombine) onToggleCombine(table);
+      return;
+    }
+
     if (status === "Booked") {
       setIsOrderDrawerOpen(true);
       return;
     }
 
-    const tableObj = { tableId: id, tableNo: name };
-    dispatch(updateTableInCart({ table: tableObj }));
-    navigate(`/menu`);
+    setIsCustomerModalOpen(true);
   };
 
   const openManage = (e) => {
@@ -88,7 +115,10 @@ const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
   };
 
   const handleForceRelease = () => {
-    updateMutation.mutate({ status: "Available" });
+    const tableIds = table?.currentOrder?.tables && table.currentOrder.tables.length > 0
+      ? table.currentOrder.tables
+      : [id];
+    updateMutation.mutate({ status: "Available", tableIds });
   };
 
   const handleDelete = () => {
@@ -101,38 +131,71 @@ const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
   };
 
   const isBooked = status === "Booked";
+  const isCombined = table?.isCombined || Boolean(table?.combinedTableNos);
 
   return (
     <div
       onClick={() => handleClick(name)}
       key={id}
       className={`relative w-full rounded-2xl p-5 cursor-pointer transition-all duration-200 border group ${
-        isClean
+        isCombineMode
           ? isBooked
-            ? "bg-white border-amber-300 shadow-sm hover:shadow-md"
+            ? "opacity-35 cursor-not-allowed bg-slate-100 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800"
+            : isCombineSelected
+            ? "bg-purple-50 dark:bg-purple-950/40 border-purple-500 ring-4 ring-purple-500/30 shadow-lg shadow-purple-500/20 scale-[1.02]"
+            : "bg-white dark:bg-slate-900 border-dashed border-2 border-purple-300 dark:border-purple-700/60 hover:border-purple-500 hover:shadow-md"
+          : isClean
+          ? isBooked
+            ? isCombined
+              ? "bg-white border-purple-300 shadow-sm hover:shadow-md"
+              : "bg-white border-amber-300 shadow-sm hover:shadow-md"
             : "bg-white border-slate-200/90 hover:border-amber-500/80 shadow-sm hover:shadow-md hover:-translate-y-0.5"
           : isBooked
-          ? "bg-slate-900/90 border-slate-800 hover:border-slate-700 opacity-90"
+          ? isCombined
+            ? "bg-slate-900/90 border-purple-800 hover:border-purple-700"
+            : "bg-slate-900/90 border-slate-800 hover:border-slate-700 opacity-90"
           : "bg-slate-900/90 border-slate-800 hover:border-amber-500/60 hover:shadow-amber-500/10 hover:-translate-y-0.5"
       }`}
     >
-      {isAdmin && (
+      {/* Top action buttons */}
+      <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-1">
         <button
-          onClick={openManage}
-          aria-label={`Manage table ${name}`}
-          className={`absolute top-4 right-4 z-10 p-1.5 rounded-lg transition ${
-            isClean
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsReserveModalOpen(true);
+          }}
+          aria-label={`Reservations for table ${name}`}
+          className={`p-1.5 rounded-lg transition ${
+            confirmedReservations.length > 0
+              ? "text-amber-500 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25"
+              : isClean
               ? "text-slate-400 hover:text-amber-600 hover:bg-slate-100"
               : "text-slate-400 hover:text-amber-400 hover:bg-slate-800"
           }`}
-          title="Configure table"
+          title="Table Bookings & Reservations"
         >
-          <FaGear size={15} />
+          <MdCalendarMonth size={16} />
         </button>
-      )}
+
+        {isAdmin && (
+          <button
+            onClick={openManage}
+            aria-label={`Manage table ${name}`}
+            className={`p-1.5 rounded-lg transition ${
+              isClean
+                ? "text-slate-400 hover:text-amber-600 hover:bg-slate-100"
+                : "text-slate-400 hover:text-amber-400 hover:bg-slate-800"
+            }`}
+            title="Configure table"
+          >
+            <FaGear size={15} />
+          </button>
+        )}
+      </div>
 
       {/* Header: Table No & Status */}
-      <div className="flex items-center justify-between pr-7 mb-4">
+      <div className="flex items-center justify-between pr-14 mb-3">
         <div>
           <span
             className={`text-[11px] font-bold uppercase tracking-wider ${
@@ -141,39 +204,67 @@ const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
           >
             Station
           </span>
-          <h2
-            className={`text-xl font-black tracking-tight flex items-center gap-1.5 ${
-              isClean ? "text-slate-900" : "text-white"
-            }`}
-          >
-            Table {name}
-          </h2>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h2
+              className={`text-xl font-black tracking-tight flex items-center gap-1.5 ${
+                isClean ? "text-slate-900" : "text-white"
+              }`}
+            >
+              Table {name}
+            </h2>
+            {isCombined && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                <MdLink size={12} />
+                <span>Joined T{table.combinedTableNos || table.combinedWith?.join("+")}</span>
+              </span>
+            )}
+          </div>
+
+          {nextBooking && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReserveModalOpen(true);
+              }}
+              className="mt-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-amber-500/25 transition"
+              title="Click to manage booking or seat party"
+            >
+              <span>📅 Booked: {nextBooking.customerName} ({new Date(nextBooking.reservationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
+            </div>
+          )}
         </div>
 
-        <span
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
-            isBooked
-              ? isClean
-                ? "bg-amber-50 text-amber-800 border-amber-300"
-                : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-              : isClean
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-          }`}
-        >
+
+        {isCombineMode && isCombineSelected ? (
+          <span className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-black shadow-md shadow-purple-600/30 animate-scaleIn">
+            <MdCheck size={14} />
+          </span>
+        ) : (
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
               isBooked
                 ? isClean
-                  ? "bg-amber-600"
-                  : "bg-amber-400"
+                  ? "bg-amber-50 text-amber-800 border-amber-300"
+                  : "bg-amber-500/10 text-amber-400 border-amber-500/30"
                 : isClean
-                ? "bg-emerald-600 animate-pulse"
-                : "bg-emerald-400 animate-pulse"
+                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
             }`}
-          ></span>
-          {status}
-        </span>
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isBooked
+                  ? isClean
+                    ? "bg-amber-600"
+                    : "bg-amber-400"
+                  : isClean
+                  ? "bg-emerald-600 animate-pulse"
+                  : "bg-emerald-400 animate-pulse"
+              }`}
+            ></span>
+            {status}
+          </span>
+        )}
       </div>
 
       {/* Avatar & Guest initials */}
@@ -208,6 +299,11 @@ const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
       >
         <span className="flex items-center gap-1">
           Capacity: <strong className={isClean ? "text-slate-800 font-bold" : "text-slate-200"}>{seats} Seats</strong>
+          {isCombined && table.combinedTotalSeats && (
+            <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold ml-1">
+              ({table.combinedTotalSeats} combined)
+            </span>
+          )}
         </span>
 
         {isBooked ? (
@@ -345,8 +441,25 @@ const TableCard = ({ id, name, status, initials, seats, table, onEdit }) => {
         table={{ ...table, _id: id, tableNo: name, status, seats }}
         onFreeTable={handleForceRelease}
       />
+
+      {/* New Dining Order Customer Details Modal */}
+      <CustomerInfoModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        title={`Table ${name} · New Dining Order`}
+        tableInfo={{ tableId: id, tableNo: name, seats }}
+        onSuccess={() => navigate("/menu")}
+      />
+
+      {/* Advance Table Reservation Modal */}
+      <ReservationModal
+        isOpen={isReserveModalOpen}
+        onClose={() => setIsReserveModalOpen(false)}
+        table={{ ...table, _id: id, tableNo: name, seats, reservations: table?.reservations }}
+      />
     </div>
   );
 };
+
 
 export default TableCard;

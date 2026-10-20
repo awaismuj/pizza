@@ -30,12 +30,34 @@ const canEditOrRole = (role) => ["cashier", "admin"].includes(String(role || "")
 
 const addOrder = async (req, res, next) => {
   try {
+    const { customerDetails, items } = req.body || {};
+    const customerName = String(customerDetails?.name || "").trim();
+    const customerPhone = String(customerDetails?.phone || "").trim();
+    const phoneDigits = customerPhone.replace(/\D/g, "");
+
+    // Customer name is mandatory across the POS system
+    if (!customerName || customerName.length < 2) {
+      return next(createHttpError(400, "Customer name is mandatory (minimum 2 characters)."));
+    }
+
+    // Customer mobile number is mandatory across the POS system
+    if (!customerPhone || phoneDigits.length < 10 || phoneDigits.length > 13) {
+      return next(createHttpError(400, "Valid customer mobile number is mandatory (10-13 digits)."));
+    }
+
     // Dine-in / POS orders are only created once staff confirm them at the
     // register, so stock is committed immediately (unlike online orders,
     // which defer this until Accept - see addPublicOrder below).
-    const deductions = await deductInventoryForOrderItems(req.body.items || []);
+    const deductions = await deductInventoryForOrderItems(items || []);
 
-    const order = new Order({ ...req.body, inventoryDeducted: true });
+    const orderPayload = { ...req.body, inventoryDeducted: true };
+    if (Array.isArray(req.body.tables) && req.body.tables.length > 0) {
+      if (!orderPayload.table) orderPayload.table = req.body.tables[0];
+    } else if (orderPayload.table) {
+      orderPayload.tables = [orderPayload.table];
+    }
+
+    const order = new Order(orderPayload);
     order.orderNumber = await generateOrderNumber(order.orderDate || new Date());
     order.costOfGoods = totalDeductionCost(deductions);
     // Seed the timeline with the status this order was created at (whatever
@@ -43,9 +65,46 @@ const addOrder = async (req, res, next) => {
     // too, not just the ones after it.
     order.statusHistory = [{ status: order.orderStatus, at: order.orderDate || new Date() }];
     await order.save();
+
+    try {
+      const { recordCustomerLoyalty } = require("./customerController");
+      const redeemed = Number(order.bills?.redeemedLoyaltyPoints || 0);
+      await recordCustomerLoyalty(
+        customerPhone,
+        customerName,
+        Number(order.bills?.totalWithTax || 0),
+        redeemed
+      );
+    } catch (crmErr) {
+      console.error("CRM Loyalty Sync Error:", crmErr);
+    }
+
+    // Zero-click background ESC/POS network thermal printing if enabled
+    (async () => {
+      try {
+        const Settings = require("../models/settingsModel");
+        const { buildReceiptBuffer, buildKitchenTicketBuffer } = require("../utils/escposEncoder");
+        const { sendToNetworkPrinter } = require("./printController");
+        const settings = await Settings.findOne({ key: "global" });
+        const pConfig = settings?.printerConfig;
+        if (pConfig?.autoPrintReceipt && pConfig?.receiptPrinterIp) {
+          const receiptBuf = buildReceiptBuffer(order);
+          await sendToNetworkPrinter(pConfig.receiptPrinterIp, pConfig.receiptPrinterPort || 9100, receiptBuf);
+        }
+        if (pConfig?.autoPrintKitchen && (pConfig?.kitchenPrinterIp || pConfig?.receiptPrinterIp)) {
+          const kitchenIp = pConfig.kitchenPrinterIp || pConfig.receiptPrinterIp;
+          const kitchenBuf = buildKitchenTicketBuffer(order);
+          await sendToNetworkPrinter(kitchenIp, pConfig.kitchenPrinterPort || 9100, kitchenBuf);
+        }
+      } catch (printErr) {
+        console.error("Auto ESC/POS Print Error:", printErr.message);
+      }
+    })();
+
     res
       .status(201)
       .json({ success: true, message: "Order created!", data: order });
+
   } catch (error) {
     next(error);
   }
@@ -505,6 +564,14 @@ const updateOrder = async (req, res, next) => {
       return res.status(200).json({ success: true, message: "Order updated", data: order });
     }
 
+    // ---- Payment & Split Payment Updates ----
+    if (Array.isArray(req.body.splitPayments) && req.body.splitPayments.length > 0) {
+      order.splitPayments = req.body.splitPayments;
+      order.paymentMethod = req.body.paymentMethod || "Split";
+    } else if (req.body.paymentMethod) {
+      order.paymentMethod = req.body.paymentMethod;
+    }
+
     // ---- 2. Status change ----
     const { orderStatus } = req.body;
 
@@ -556,11 +623,20 @@ const updateOrder = async (req, res, next) => {
     await order.save();
     invalidateAvailabilityCache(); // a Pending order accepted/cancelled changes what's reserved
 
-    if (TABLE_RELEASE_STATUSES.includes(orderStatus) && order.table) {
-      await Table.findByIdAndUpdate(
-        order.table,
-        { status: "Available", currentOrder: null },
-        { new: true }
+    if (TABLE_RELEASE_STATUSES.includes(orderStatus)) {
+      const tableIds = (order.tables && order.tables.length > 0)
+        ? order.tables
+        : (order.table ? [order.table] : []);
+
+      if (tableIds.length > 0) {
+        await Table.updateMany(
+          { _id: { $in: tableIds } },
+          { status: "Available", currentOrder: null }
+        );
+      }
+      await Table.updateMany(
+        { currentOrder: order._id },
+        { status: "Available", currentOrder: null }
       );
     }
 
@@ -608,9 +684,20 @@ const deleteOrder = async (req, res, next) => {
         stockReturned = false;
       }
     }
-    if (order.table) {
-      await Table.findByIdAndUpdate(order.table, { status: "Available", currentOrder: null }).catch(() => {});
+    const tableIds = (order.tables && order.tables.length > 0)
+      ? order.tables
+      : (order.table ? [order.table] : []);
+
+    if (tableIds.length > 0) {
+      await Table.updateMany(
+        { _id: { $in: tableIds } },
+        { status: "Available", currentOrder: null }
+      ).catch(() => {});
     }
+    await Table.updateMany(
+      { currentOrder: order._id },
+      { status: "Available", currentOrder: null }
+    ).catch(() => {});
 
     const now = new Date();
     const pad2 = (n) => String(n).padStart(2, "0");

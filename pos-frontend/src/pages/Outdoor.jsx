@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaTrash } from "react-icons/fa";
-import { MdTakeoutDining, MdShoppingCart, MdAttachMoney, MdCreditCard } from "react-icons/md";
+import { MdTakeoutDining, MdShoppingCart, MdAttachMoney, MdCreditCard, MdPerson, MdPhone } from "react-icons/md";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import MenuContainer from "../components/menu/MenuContainer";
@@ -11,6 +12,7 @@ import { addOrder, createOrderRazorpay, verifyPaymentRazorpay } from "../https";
 import useTaxRate from "../hooks/useTaxRate";
 import { useUITheme } from "../context/UIThemeContext";
 import { FoodIcon } from "../utils/foodIcons";
+import { setCustomer } from "../redux/slices/customerSlice";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -22,21 +24,42 @@ function loadScript(src) {
   });
 }
 
-// A separate, table-free order window for walk-in / takeaway customers —
-// no name, phone, or table needed. Staff pick items and submit in one tap;
-// the real customer's details are never asked for or stored, the order is
-// just tagged "Walk-in Customer" under the hood (the schema requires some
-// value there). Payment defaults to Cash and can be switched to Online
-// right before submitting. The bill prints automatically the moment the
-// order is created — no extra click needed.
+// Takeaway order window - mandatory customer name & mobile phone number
 const Outdoor = () => {
   const { isClean } = useUITheme();
+  const dispatch = useDispatch();
   const queryClient = useQueryClient();
+  const customerState = useSelector((state) => state.customer);
+
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [showInvoice, setShowInvoice] = useState(false);
   const [orderInfo, setOrderInfo] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Customer Name & Phone (Mandatory)
+  const initialName =
+    customerState.customerName &&
+    customerState.customerName !== "Customer Name" &&
+    customerState.customerName !== "Walk-In Guest" &&
+    customerState.customerName !== "Walk-In Customer"
+      ? customerState.customerName
+      : "";
+
+  const initialPhone =
+    customerState.customerPhone &&
+    !customerState.customerPhone.includes("0000000000") &&
+    customerState.customerPhone !== "N/A"
+      ? customerState.customerPhone
+      : "";
+
+  const [customerName, setCustomerName] = useState(initialName);
+  const [customerPhone, setCustomerPhone] = useState(initialPhone);
+
+  useEffect(() => {
+    if (initialName && !customerName) setCustomerName(initialName);
+    if (initialPhone && !customerPhone) setCustomerPhone(initialPhone);
+  }, [customerState]);
 
   const { taxRate } = useTaxRate();
   const total = cart.reduce((sum, item) => sum + item.price, 0);
@@ -74,8 +97,8 @@ const Outdoor = () => {
 
   const buildOrderData = (extra = {}) => ({
     customerDetails: {
-      name: "Walk-in Customer",
-      phone: "N/A",
+      name: customerName.trim(),
+      phone: customerPhone.trim(),
       guests: 1,
     },
     orderStatus: "In Progress",
@@ -86,6 +109,18 @@ const Outdoor = () => {
   });
 
   const handleSubmit = async () => {
+    const trimmedName = customerName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      enqueueSnackbar("Customer Name is mandatory (minimum 2 characters).", { variant: "warning" });
+      return;
+    }
+
+    const phoneDigits = customerPhone.replace(/\D/g, "");
+    if (!customerPhone || phoneDigits.length < 10 || phoneDigits.length > 13) {
+      enqueueSnackbar("Valid Customer Mobile Number is mandatory (10-13 digits).", { variant: "warning" });
+      return;
+    }
+
     if (cart.length === 0) {
       enqueueSnackbar("Add at least one item first.", { variant: "warning" });
       return;
@@ -199,6 +234,46 @@ const Outdoor = () => {
               Clear Cart
             </button>
           )}
+        </div>
+
+        {/* Mandatory Customer Information */}
+        <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              Customer Info <span className="text-red-500 font-black">*</span>
+            </span>
+            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              Required
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="relative">
+              <MdPerson className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => {
+                  setCustomerName(e.target.value);
+                  dispatch(setCustomer({ name: e.target.value, phone: customerPhone }));
+                }}
+                placeholder="Customer Name *"
+                className="w-full pl-7 pr-2.5 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div className="relative">
+              <MdPhone className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+              <input
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => {
+                  setCustomerPhone(e.target.value);
+                  dispatch(setCustomer({ name: customerName, phone: e.target.value }));
+                }}
+                placeholder="03001234567 *"
+                className="w-full pl-7 pr-2.5 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="max-h-[360px] overflow-y-auto p-4 space-y-3">

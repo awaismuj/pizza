@@ -19,6 +19,7 @@ import {
   FcDepartment,
   FcServices,
   FcBriefcase,
+  FcHome,
 } from "react-icons/fc";
 import {
   MdChevronLeft,
@@ -92,6 +93,13 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
   // Cashier Fast-Lane Front of House Operations Navigation Items (Minimal Titles)
   const cashierNavItems = [
     {
+      to: "/",
+      label: "Overview",
+      icon: <FcHome size={20} />,
+      badge: null,
+      desc: "Live shift dashboard & floor status",
+    },
+    {
       to: "/menu",
       label: "Counter POS",
       icon: <FcShop size={20} />,
@@ -140,13 +148,48 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
 
   const storeInventoryNav = [
     {
+      id: "finance",
+      title: "Finance",
+      icon: <FcBullish size={18} />,
+      badge: inProgressDineIn > 0 ? inProgressDineIn : null,
+      badgeColor: "bg-amber-500",
+      mainTo: "/dashboard?tab=Finance Operations",
+      summaryTab: "Finance Operations",
+      subItems: [
+        {
+          label: "Analytics",
+          to: "/dashboard?tab=Metrics",
+          tab: "Metrics",
+          icon: <FcPositiveDynamic size={15} />,
+        },
+        {
+          label: "Profit & Loss",
+          to: "/dashboard?tab=Profit",
+          tab: "Profit",
+          icon: <LuTrendingUp size={15} />,
+        },
+        {
+          label: "Order History",
+          to: "/dashboard?tab=Orders",
+          tab: "Orders",
+          icon: <LuReceipt size={15} />,
+        },
+        {
+          label: "Payments",
+          to: "/dashboard?tab=Payments",
+          tab: "Payments",
+          icon: <LuCreditCard size={15} />,
+        },
+      ],
+    },
+    {
       id: "inventory",
-      title: "Inventory & Stock",
+      title: "Inventory",
       icon: <FcMultipleInputs size={18} />,
       badge: lowStockCount > 0 ? `${lowStockCount} Low` : null,
       badgeColor: "bg-rose-500",
-      mainTo: "/dashboard?tab=Inventory_Summary",
-      summaryTab: "Inventory_Summary",
+      mainTo: "/dashboard?tab=Stock Operations",
+      summaryTab: "Stock Operations",
       subItems: [
         {
           label: "Stock Balance",
@@ -170,11 +213,11 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
       id: "products",
       title: "Menu & Dishes",
       icon: <FcRating size={18} />,
-      mainTo: "/dashboard?tab=Menu_Summary",
-      summaryTab: "Menu_Summary",
+      mainTo: "/dashboard?tab=Menu Operations",
+      summaryTab: "Menu Operations",
       subItems: [
         {
-          label: "Dishes Catalog",
+          label: "Dishes",
           to: "/dashboard?tab=Menu",
           tab: "Menu",
           icon: <LuUtensils size={15} />,
@@ -192,54 +235,18 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
           icon: <LuFlame size={15} />,
         },
         {
-          label: "BYO Builder",
+          label: "Deal Builder",
           to: "/dashboard?tab=Build Your Own",
           tab: "Build Your Own",
           icon: <LuSlidersHorizontal size={15} />,
         },
-        {
-          label: "Web Banners",
-          to: "/dashboard?tab=Hero Slider",
-          tab: "Hero Slider",
-          icon: <LuImage size={15} />,
-        },
       ],
     },
     {
-      id: "orders",
-      title: "Sales & Orders",
-      icon: <FcShipped size={18} />,
-      badge: inProgressDineIn > 0 ? inProgressDineIn : null,
-      badgeColor: "bg-amber-500",
-      mainTo: "/dashboard?tab=Orders_Summary",
-      summaryTab: "Orders_Summary",
-      subItems: [
-        {
-          label: "Order Ledger",
-          to: "/dashboard?tab=Orders",
-          tab: "Orders",
-          icon: <LuReceipt size={15} />,
-        },
-        {
-          label: "Profit & Loss",
-          to: "/dashboard?tab=Profit",
-          tab: "Profit",
-          icon: <LuTrendingUp size={15} />,
-        },
-        {
-          label: "Payments",
-          to: "/dashboard?tab=Payments",
-          tab: "Payments",
-          icon: <LuCreditCard size={15} />,
-        },
-      ],
-    },
-    {
-      id: "customer",
-      title: "Staff & Floor",
-      icon: <FcConferenceCall size={18} />,
-      mainTo: "/dashboard?tab=CRM_Summary",
-      summaryTab: "CRM_Summary",
+      id: "dining",
+      title: "Dining Tables",
+      icon: <FcPlanner size={18} />,
+      mainTo: "/tables",
       subItems: [
         {
           label: "Floor Plan",
@@ -247,8 +254,17 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
           path: "/tables",
           icon: <LuLayoutGrid size={15} />,
         },
+      ],
+    },
+    {
+      id: "hr",
+      title: "Staff & HR",
+      icon: <FcConferenceCall size={18} />,
+      mainTo: "/dashboard?tab=HR Operations",
+      summaryTab: "HR Operations",
+      subItems: [
         {
-          label: "Staff Payroll",
+          label: "Staff & Payroll",
           to: "/dashboard?tab=Staff",
           tab: "Staff",
           icon: <LuUsers size={15} />,
@@ -256,20 +272,35 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
       ],
     },
     {
-      id: "settings",
-      title: "Store Settings",
-      icon: <FcServices size={18} />,
-      mainTo: "/dashboard?tab=Settings_Summary",
-      summaryTab: "Settings_Summary",
+      id: "marketing",
+      title: "Storefront",
+      icon: <FcAdvertising size={18} />,
+      mainTo: "/dashboard?tab=Marketing Operations",
+      summaryTab: "Marketing Operations",
       subItems: [
         {
-          label: "Tax Settings",
+          label: "Website Banners",
+          to: "/dashboard?tab=Hero Slider",
+          tab: "Hero Slider",
+          icon: <LuImage size={15} />,
+        },
+      ],
+    },
+    {
+      id: "administration",
+      title: "Administration",
+      icon: <FcServices size={18} />,
+      mainTo: "/dashboard?tab=Admin Operations",
+      summaryTab: "Admin Operations",
+      subItems: [
+        {
+          label: "Tax & Billing",
           to: "/dashboard?tab=Tax",
           tab: "Tax",
           icon: <LuSettings size={15} />,
         },
         {
-          label: "Music Player",
+          label: "Store Music",
           to: "/dashboard?tab=Music",
           tab: "Music",
           icon: <LuMusic size={15} />,
@@ -290,7 +321,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
         }
       });
     } else if (location.pathname === "/tables") {
-      setExpandedSection("customer");
+      setExpandedSection("dining");
     }
   }, [currentTab, isDashboard, location.pathname]);
 
@@ -503,7 +534,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
         ) : (
           /* If in Manager Mode: Show Executive Suite & Store Operations */
           <div className="space-y-4">
-            {/* SECTION 1: EXECUTIVE DASHBOARDS */}
+            {/* SECTION 1: OPERATIONS */}
             <div>
               {!collapsed && (
                 <button
@@ -511,7 +542,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
                   onClick={() => setDashboardsOpen(!dashboardsOpen)}
                   className="w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider hover:text-slate-700 dark:hover:text-slate-300 transition"
                 >
-                  <span>Executive Dashboards</span>
+                  <span>Operations</span>
                   <MdExpandMore
                     size={16}
                     className={`transition-transform duration-200 ${dashboardsOpen ? "rotate-0" : "-rotate-90"}`}
@@ -521,6 +552,29 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
 
               {dashboardsOpen && (
                 <div className="space-y-0.5 mt-1">
+                  {/* Live Shift Overview */}
+                  <NavLink
+                    to="/"
+                    className={() => {
+                      const active = location.pathname === "/";
+                      return `flex items-center transition-all ${
+                        collapsed
+                          ? "w-11 h-11 justify-center rounded-xl mx-auto"
+                          : "gap-2.5 px-3 py-2 rounded-lg text-[13px]"
+                      } ${
+                        active
+                          ? "bg-[#F1F3F5] dark:bg-slate-800 text-slate-950 dark:text-white font-semibold"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white font-medium"
+                      }`;
+                    }}
+                    title="Overview"
+                  >
+                    <div className="shrink-0 flex items-center justify-center">
+                      <FcHome size={18} />
+                    </div>
+                    {!collapsed && <span className="truncate flex-1">Overview</span>}
+                  </NavLink>
+
                   {/* Executive Analytics Dashboard */}
                   <NavLink
                     to="/dashboard?tab=Metrics"
@@ -536,12 +590,12 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white font-medium"
                       }`;
                     }}
-                    title="Executive Analytics Overview"
+                    title="Analytics"
                   >
                     <div className="shrink-0 flex items-center justify-center">
                       <FcPositiveDynamic size={18} />
                     </div>
-                    {!collapsed && <span className="truncate flex-1">Analytics Overview</span>}
+                    {!collapsed && <span className="truncate flex-1">Analytics</span>}
                   </NavLink>
 
                   {/* POS Cashier Terminal */}
@@ -559,12 +613,12 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white font-medium"
                       }`;
                     }}
-                    title="POS Counter Billing"
+                    title="Counter POS"
                   >
                     <div className="shrink-0 flex items-center justify-center">
                       <FcShop size={18} />
                     </div>
-                    {!collapsed && <span className="truncate flex-1">POS Counter Billing</span>}
+                    {!collapsed && <span className="truncate flex-1">Counter POS</span>}
                   </NavLink>
 
                   {/* Kitchen Display */}
@@ -582,14 +636,14 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white font-medium"
                       }`;
                     }}
-                    title="Kitchen Display Queue"
+                    title="Kitchen Queue"
                   >
                     <div className="shrink-0 flex items-center justify-center">
                       <FcShipped size={18} />
                     </div>
                     {!collapsed && (
                       <div className="flex-1 min-w-0 flex items-center justify-between">
-                        <span className="truncate">Kitchen Display Queue</span>
+                        <span className="truncate">Kitchen Queue</span>
                         {inProgressDineIn > 0 && (
                           <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500 text-slate-950 shadow-2xs">
                             {inProgressDineIn}
@@ -614,14 +668,14 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white font-medium"
                       }`;
                     }}
-                    title="Online Delivery Dispatch"
+                    title="Online Delivery"
                   >
                     <div className="shrink-0 flex items-center justify-center">
                       <FcInTransit size={18} />
                     </div>
                     {!collapsed && (
                       <div className="flex-1 min-w-0 flex items-center justify-between">
-                        <span className="truncate">Online Delivery Dispatch</span>
+                        <span className="truncate">Online Delivery</span>
                         {pendingOnline > 0 && (
                           <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-emerald-500 text-white animate-pulse shadow-2xs">
                             {pendingOnline}
@@ -631,7 +685,7 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
                     )}
                   </NavLink>
 
-                  {/* Takeaway Window */}
+                  {/* Takeaway Pickup */}
                   <NavLink
                     to="/outdoor"
                     className={() => {
@@ -646,22 +700,22 @@ const ModernSidebar = ({ collapsed, setCollapsed, onOpenNewOrder }) => {
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50 hover:text-slate-950 dark:hover:text-white font-medium"
                       }`;
                     }}
-                    title="Takeaway Pickup Window"
+                    title="Takeaway Pickup"
                   >
                     <div className="shrink-0 flex items-center justify-center">
                       <FcPackage size={18} />
                     </div>
-                    {!collapsed && <span className="truncate flex-1">Takeaway Pickup Window</span>}
+                    {!collapsed && <span className="truncate flex-1">Takeaway Pickup</span>}
                   </NavLink>
                 </div>
               )}
             </div>
 
-            {/* SECTION 2: STORE OPERATIONS & ERP */}
+            {/* SECTION 2: ENTERPRISE ERP */}
             <div>
               {!collapsed && (
                 <div className="px-2.5 pt-1 pb-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Store Operations & ERP
+                  Enterprise ERP
                 </div>
               )}
 

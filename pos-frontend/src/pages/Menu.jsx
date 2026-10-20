@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import { ColoredPizzaIcon } from "../utils/foodIcons";
@@ -6,17 +6,26 @@ import MenuContainer from "../components/menu/MenuContainer";
 import CustomerInfo from "../components/menu/CustomerInfo";
 import CartInfo from "../components/menu/CartInfo";
 import Bill from "../components/menu/Bill";
+import CustomerInfoModal from "../components/modern/CustomerInfoModal";
 import { useSelector } from "react-redux";
 import { useUITheme } from "../context/UIThemeContext";
+import { LuPencil } from "react-icons/lu";
 
 const Menu = () => {
   const { isClean } = useUITheme();
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
   useEffect(() => {
     document.title = "POS | Menu";
   }, []);
 
   const customerData = useSelector((state) => state.customer);
+  const isMissingDetails =
+    !customerData.customerName ||
+    customerData.customerName === "Customer Name" ||
+    customerData.customerName === "Walk-In Guest" ||
+    !customerData.customerPhone ||
+    customerData.customerPhone === "N/A";
 
   return (
     <section className="min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-3 pb-32 lg:pb-4 transition-colors">
@@ -45,7 +54,17 @@ const Menu = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div
+            onClick={() => setIsCustomerModalOpen(true)}
+            className={`flex items-center gap-3 p-1.5 pr-3 rounded-2xl border transition cursor-pointer group ${
+              isMissingDetails
+                ? "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20"
+                : isClean
+                ? "bg-slate-50 hover:bg-slate-100/80 border-slate-200/80"
+                : "bg-slate-800/80 hover:bg-slate-800 border-slate-700/60"
+            }`}
+            title="Click to enter or edit customer name & phone"
+          >
             <div
               className={`p-2 rounded-xl flex items-center justify-center ${
                 isClean
@@ -56,23 +75,43 @@ const Menu = () => {
               <ColoredPizzaIcon size={24} />
             </div>
             <div className="flex flex-col items-start">
-              <h2
-                className={`text-xs sm:text-sm font-bold tracking-tight leading-tight ${
-                  isClean ? "text-slate-900" : "text-white"
-                }`}
-              >
-                {customerData.customerName || "Walk-In Guest"}
-              </h2>
+              <div className="flex items-center gap-1.5">
+                <h2
+                  className={`text-xs sm:text-sm font-bold tracking-tight leading-tight ${
+                    isMissingDetails
+                      ? "text-amber-700 dark:text-amber-300"
+                      : isClean
+                      ? "text-slate-900"
+                      : "text-white"
+                  }`}
+                >
+                  {customerData.customerName &&
+                  customerData.customerName !== "Customer Name" &&
+                  customerData.customerName !== "Walk-In Guest"
+                    ? customerData.customerName
+                    : "Enter Customer Name *"}
+                </h2>
+                <LuPencil size={11} className="text-amber-500 opacity-60 group-hover:opacity-100" />
+              </div>
               <p
                 className={`text-[11px] font-semibold mt-0.5 ${
                   isClean ? "text-slate-500" : "text-slate-400"
                 }`}
               >
                 Table: {customerData.table?.tableNo || "Counter / Takeaway"}
+                {customerData.customerPhone ? ` · ${customerData.customerPhone}` : " · ⚠️ Phone Required"}
               </p>
             </div>
           </div>
         </div>
+
+        <CustomerInfoModal
+          isOpen={isCustomerModalOpen}
+          onClose={() => setIsCustomerModalOpen(false)}
+          initialData={customerData}
+          title="Customer Order Details"
+          tableInfo={customerData.table}
+        />
 
         <MenuContainer />
       </div>

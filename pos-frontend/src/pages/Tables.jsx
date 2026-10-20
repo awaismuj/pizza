@@ -1,21 +1,29 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import TableCard from "../components/tables/TableCard";
 import Modal from "../components/dashboard/Modal";
+import CustomerInfoModal from "../components/modern/CustomerInfoModal";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getTables } from "../https";
 import { useUITheme } from "../context/UIThemeContext";
 import { FaPlus, FaSearch } from "react-icons/fa";
-import { MdTableRestaurant, MdChair } from "react-icons/md";
+import { MdTableRestaurant, MdChair, MdLink, MdCheck } from "react-icons/md";
 
 const Tables = () => {
+  const navigate = useNavigate();
   const [status, setStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInitialData, setModalInitialData] = useState(null);
+
+  // Combine / Merge Tables Mode
+  const [isCombineMode, setIsCombineMode] = useState(false);
+  const [selectedTablesToCombine, setSelectedTablesToCombine] = useState([]);
+  const [isCombineCustomerModalOpen, setIsCombineCustomerModalOpen] = useState(false);
 
   const { isClean } = useUITheme();
   const role = useSelector((state) => state.user.role);
@@ -33,6 +41,23 @@ const Tables = () => {
     },
     placeholderData: keepPreviousData,
   });
+
+  const handleToggleCombine = (table) => {
+    setSelectedTablesToCombine((prev) => {
+      const exists = prev.some((t) => t._id === table._id);
+      if (exists) {
+        return prev.filter((t) => t._id !== table._id);
+      } else {
+        return [...prev, table];
+      }
+    });
+  };
+
+  const combinedSeats = selectedTablesToCombine.reduce((sum, t) => sum + (Number(t.seats) || 0), 0);
+  const combinedNosStr = [...selectedTablesToCombine]
+    .map((t) => Number(t.tableNo))
+    .sort((a, b) => a - b)
+    .join(" + ");
 
   useEffect(() => {
     if (isError) {
@@ -203,6 +228,25 @@ const Tables = () => {
             </button>
           </div>
 
+          {/* Combine Tables Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsCombineMode((prev) => !prev);
+              setSelectedTablesToCombine([]);
+            }}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 border ${
+              isCombineMode
+                ? "bg-purple-600 text-white border-purple-500 shadow-md shadow-purple-500/25 ring-2 ring-purple-400/40"
+                : isClean
+                ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                : "bg-purple-950/40 text-purple-300 border-purple-800 hover:bg-purple-900/60"
+            }`}
+          >
+            <MdLink size={15} />
+            <span>{isCombineMode ? "Exit Combine Mode" : "Combine Tables"}</span>
+          </button>
+
           {/* Add Table Button (Manager CRUD) */}
           <button
             type="button"
@@ -214,6 +258,35 @@ const Tables = () => {
           </button>
         </div>
       </div>
+
+      {/* Combine Tables Mode Information Banner */}
+      {isCombineMode && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-purple-900/90 to-indigo-900/90 text-white border border-purple-500/30 shadow-lg flex items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/30 text-purple-200 flex items-center justify-center font-black">
+              <MdLink size={20} />
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-purple-200">
+                Combine Tables Mode Active
+              </h4>
+              <p className="text-xs font-medium text-purple-100">
+                Tap 2 or more available tables to join them for a large party or family gathering.
+              </p>
+            </div>
+          </div>
+
+          {selectedTablesToCombine.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedTablesToCombine([])}
+              className="text-xs font-bold text-purple-200 hover:text-white underline px-2 py-1"
+            >
+              Reset Selected ({selectedTablesToCombine.length})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Main Floor Grid / Stations List */}
       <div className="grid grid-cols-2 gap-3 pb-32 flex-1 overflow-y-auto sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -271,10 +344,86 @@ const Tables = () => {
               seats={table.seats}
               table={table}
               onEdit={handleOpenEditTable}
+              isCombineMode={isCombineMode}
+              isCombineSelected={selectedTablesToCombine.some((t) => t._id === table._id)}
+              onToggleCombine={handleToggleCombine}
             />
           );
         })}
       </div>
+
+      {/* Floating Bottom Action Bar for Combine Tables Mode */}
+      {isCombineMode && selectedTablesToCombine.length > 0 && (
+        <div className="fixed bottom-24 sm:bottom-8 left-1/2 -translate-x-1/2 z-[9999] w-[92%] max-w-2xl bg-slate-900/95 backdrop-blur-md text-white border border-purple-500/50 p-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-3 animate-slideUp">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-sm shadow-md">
+              <MdLink size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-black text-white">
+                Combined Station: Table {combinedNosStr}
+              </p>
+              <p className="text-xs text-purple-200 font-medium">
+                Total Seating: <strong>{combinedSeats} Seats</strong> · {selectedTablesToCombine.length} tables selected
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCombineMode(false);
+                setSelectedTablesToCombine([]);
+              }}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              disabled={selectedTablesToCombine.length < 2}
+              onClick={() => {
+                if (selectedTablesToCombine.length < 2) {
+                  enqueueSnackbar("Select at least 2 tables to combine.", { variant: "warning" });
+                  return;
+                }
+                setIsCombineCustomerModalOpen(true);
+              }}
+              className="px-5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white shadow-lg shadow-purple-500/30 flex items-center gap-2 disabled:opacity-40"
+            >
+              <span>Seat Large Party ({combinedSeats} Seats)</span>
+              <span>&rarr;</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Info Modal for Combined Party */}
+      {isCombineCustomerModalOpen && selectedTablesToCombine.length > 0 && (
+        <CustomerInfoModal
+          isOpen={isCombineCustomerModalOpen}
+          onClose={() => setIsCombineCustomerModalOpen(false)}
+          title={`Combined Station: Table ${combinedNosStr}`}
+          tableInfo={{
+            tableId: selectedTablesToCombine[0]?._id,
+            tableNo: combinedNosStr,
+            tableIds: selectedTablesToCombine.map((t) => t._id),
+            tables: selectedTablesToCombine,
+            combinedTableNos: combinedNosStr,
+            isCombined: true,
+            totalSeats: combinedSeats,
+            seats: combinedSeats,
+          }}
+          onSuccess={() => {
+            setIsCombineCustomerModalOpen(false);
+            setIsCombineMode(false);
+            setSelectedTablesToCombine([]);
+            navigate("/menu");
+          }}
+        />
+      )}
 
       {/* Metronic Side Drawer for Create / Edit Table */}
       {isModalOpen && (

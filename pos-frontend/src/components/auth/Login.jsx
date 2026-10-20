@@ -28,14 +28,22 @@ const Login = () => {
       mutationFn: (reqData) => login(reqData),
       onSuccess: (res) => {
           const { data } = res;
-          console.log(data);
-          const { _id, name, email, phone, role } = data.data;
-          dispatch(setUser({ _id, name, email, phone, role }));
+          const { _id, name, email, phone, role, canAccessERP } = data.data || {};
+          dispatch(setUser({
+            _id,
+            name,
+            email,
+            phone,
+            role,
+            canAccessERP: String(role).toLowerCase() === "admin" || Boolean(canAccessERP),
+          }));
+          enqueueSnackbar("Welcome back to POS Terminal!", { variant: "success" });
           navigate("/");
       },
       onError: (error) => {
         const { response } = error;
-        enqueueSnackbar(response.data.message, { variant: "error" });
+        const msg = response?.data?.message || error?.message || "Login failed. Ensure the backend server is running.";
+        enqueueSnackbar(msg, { variant: "error" });
       }
     })
 

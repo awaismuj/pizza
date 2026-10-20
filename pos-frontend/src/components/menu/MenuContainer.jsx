@@ -46,6 +46,7 @@ const MenuContainer = ({ onAddToCart }) => {
   const [itemCount, setItemCount] = useState(0);
   const [itemId, setItemId] = useState();
   const [search, setSearch] = useState("");
+  const [dietaryFilter, setDietaryFilter] = useState("all"); // "all" | "Vegetarian" | "Spicy" | "Chef Special" | "Gluten-Free"
   // { [dishId]: { size, crust } } — which size/crust is currently picked
   // for items that have variants. Defaults to the first variant once its
   // dish is seen, so there's always a valid (priced) selection.
@@ -98,11 +99,14 @@ const MenuContainer = ({ onAddToCart }) => {
           category: category.name,
           icon: dish.icon || "🍽️",
           isInventoryTracked: Boolean(dish.isInventoryTracked),
+          dietaryTags: Array.isArray(dish.dietaryTags) ? dish.dietaryTags : (Array.isArray(dish.tags) ? dish.tags : []),
+          tags: Array.isArray(dish.tags) ? dish.tags : [],
           // Live from inventory: how many can still be sold (null = untracked).
           availableQty: typeof dish.availableQty === "number" ? dish.availableQty : null,
           isDeal: false,
         })),
     }));
+
 
     // A synthetic "Deals" tab, same shape as a category, prepended so it's
     // the first thing staff see — deals are usually the fastest sell.
@@ -143,18 +147,32 @@ const MenuContainer = ({ onAddToCart }) => {
     [dynamicMenus]
   );
 
+  const matchesDietary = React.useCallback(
+    (item) => {
+      if (dietaryFilter === "all") return true;
+      const tags = [...(item.dietaryTags || []), ...(item.tags || [])];
+      return tags.includes(dietaryFilter);
+    },
+    [dietaryFilter]
+  );
+
   const searchResults = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return null;
+    if (!q) {
+      if (dietaryFilter === "all") return null;
+      return allItems.filter(matchesDietary);
+    }
     const starts = [];
     const contains = [];
     allItems.forEach((item) => {
+      if (!matchesDietary(item)) return;
       const name = item.name.toLowerCase();
       if (name.startsWith(q)) starts.push(item);
       else if (name.includes(q)) contains.push(item);
     });
     return [...starts, ...contains];
-  }, [search, allItems]);
+  }, [search, allItems, dietaryFilter, matchesDietary]);
+
 
   useEffect(() => {
     if (!selected && dynamicMenus.length > 0) {
@@ -330,7 +348,30 @@ const MenuContainer = ({ onAddToCart }) => {
                 {item.description}
               </p>
             )}
+            {item.dietaryTags && item.dietaryTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {item.dietaryTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${
+                      tag === "Vegetarian"
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
+                        : tag === "Spicy"
+                        ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25"
+                        : tag === "Chef Special"
+                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25"
+                        : tag === "Gluten-Free"
+                        ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/25"
+                        : "bg-slate-500/15 text-slate-400"
+                    }`}
+                  >
+                    {tag === "Vegetarian" ? "🌱" : tag === "Spicy" ? "🌶️" : tag === "Chef Special" ? "👑" : tag === "Gluten-Free" ? "🌾" : "👶"} {tag}
+                  </span>
+                ))}
+              </div>
+            )}
             {item.availableQty !== null && item.availableQty <= 5 && (
+
               <p
                 className={`text-[11px] font-bold mt-1.5 flex items-center gap-1 ${
                   isOutOfStock ? "text-rose-500" : "text-amber-500"
@@ -487,8 +528,39 @@ const MenuContainer = ({ onAddToCart }) => {
         </div>
       </div>
 
+      {/* Dietary Filter Chips Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none">
+        {[
+          { id: "all", label: "All Items" },
+          { id: "Vegetarian", label: "🌱 Vegetarian" },
+          { id: "Spicy", label: "🌶️ Spicy" },
+          { id: "Chef Special", label: "👑 Chef Special" },
+          { id: "Gluten-Free", label: "🌾 Gluten-Free" },
+          { id: "Kids Friendly", label: "👶 Kids Friendly" },
+        ].map((chip) => {
+          const isCurrent = dietaryFilter === chip.id;
+          return (
+            <button
+              key={chip.id}
+              type="button"
+              onClick={() => setDietaryFilter(chip.id)}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition whitespace-nowrap border shrink-0 ${
+                isCurrent
+                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-xs font-black"
+                  : isClean
+                  ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                  : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
+              }`}
+            >
+              {chip.label}
+            </button>
+          );
+        })}
+      </div>
+
       {searchResults ? (
         <div className="w-full">
+
           <p
             className={`text-xs font-bold uppercase tracking-wider mb-2.5 ${
               isClean ? "text-slate-500" : "text-slate-400"
@@ -560,8 +632,9 @@ const MenuContainer = ({ onAddToCart }) => {
 
           {/* Dishes Grid */}
           <div className="grid grid-cols-2 gap-2.5 w-full sm:grid-cols-3 xl:grid-cols-4 pt-1">
-            {selected?.items.map(renderItemCard)}
+            {(selected?.items || []).filter(matchesDietary).map(renderItemCard)}
           </div>
+
         </>
       )}
     </>

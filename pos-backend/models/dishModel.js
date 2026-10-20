@@ -137,10 +137,17 @@ const dishSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  dietaryTags: [
+    {
+      type: String,
+      enum: ["Vegetarian", "Spicy", "Chef Special", "Gluten-Free", "Kids Friendly"],
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
+
 
 module.exports = mongoose.model("Dish", dishSchema);

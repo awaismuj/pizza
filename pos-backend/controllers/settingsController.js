@@ -8,6 +8,14 @@ const SETTINGS_KEY = "global";
 const publicShape = (settings) => ({
   taxRatePercent: settings.taxRatePercent,
   buildYourOwnDeal: normalizeByoConfig(settings.buildYourOwnDeal),
+  printerConfig: settings.printerConfig || {
+    receiptPrinterIp: "",
+    receiptPrinterPort: 9100,
+    kitchenPrinterIp: "",
+    kitchenPrinterPort: 9100,
+    autoPrintReceipt: false,
+    autoPrintKitchen: false,
+  },
 });
 
 // Seeds from the old static env default (config.TAX_RATE_PERCENT) the very
@@ -82,6 +90,18 @@ const updateSettings = async (req, res, next) => {
 
       settings.buildYourOwnDeal = next_;
       messages.push("Build Your Own Deal updated!");
+    }
+
+    if (req.body.printerConfig !== undefined) {
+      if (!settings.printerConfig) settings.printerConfig = {};
+      const pc = req.body.printerConfig;
+      if (pc.receiptPrinterIp !== undefined) settings.printerConfig.receiptPrinterIp = String(pc.receiptPrinterIp || "").trim();
+      if (pc.receiptPrinterPort !== undefined) settings.printerConfig.receiptPrinterPort = Number(pc.receiptPrinterPort) || 9100;
+      if (pc.kitchenPrinterIp !== undefined) settings.printerConfig.kitchenPrinterIp = String(pc.kitchenPrinterIp || "").trim();
+      if (pc.kitchenPrinterPort !== undefined) settings.printerConfig.kitchenPrinterPort = Number(pc.kitchenPrinterPort) || 9100;
+      if (pc.autoPrintReceipt !== undefined) settings.printerConfig.autoPrintReceipt = Boolean(pc.autoPrintReceipt);
+      if (pc.autoPrintKitchen !== undefined) settings.printerConfig.autoPrintKitchen = Boolean(pc.autoPrintKitchen);
+      messages.push("Printer configuration updated!");
     }
 
     if (messages.length === 0) {

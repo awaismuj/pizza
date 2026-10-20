@@ -14,7 +14,8 @@
     "reset:sales": "node scripts/reset-sales.js",
     "backfill:order-numbers": "node scripts/backfill-order-numbers.js",
     "mongo": "node scripts/start-local-mongo.js",
-    "db:setup": "node scripts/db-bootstrap.js"
+    "db:setup": "node scripts/db-bootstrap.js",
+    "backup": "node scripts/backupDatabase.js"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +28,8 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.7.1",
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5",

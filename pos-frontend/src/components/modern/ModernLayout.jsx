@@ -26,7 +26,7 @@ const ModernLayout = ({ children }) => {
 
   return (
     <div
-      className={`min-h-screen flex overflow-x-hidden font-sans transition-colors duration-200 ${
+      className={`h-screen flex overflow-hidden font-sans transition-colors duration-200 ${
         isClean ? "bg-[#F8FAFC] text-slate-900" : "bg-[#0B0F19] text-slate-100"
       }`}
     >
@@ -40,16 +40,16 @@ const ModernLayout = ({ children }) => {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
+        className={`flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ${
           collapsed ? "ml-20" : "ml-64"
         }`}
       >
         {/* Top Header */}
         <ModernHeader collapsed={collapsed} />
 
-        {/* Page Content Container - Streamlined compact padding to maximize screen utilization */}
-        <main className="flex-1 mt-16 px-2 sm:px-3 lg:px-4 py-3 overflow-y-auto">
-          <div className="w-full max-w-[1920px] mx-auto">
+        {/* Page Content Container - Full Height POS view without window scrolling */}
+        <main className="flex-1 mt-16 px-3 sm:px-4 py-3 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
+          <div className="w-full h-full flex flex-col max-w-[1920px] mx-auto min-h-0">
             {children}
           </div>
         </main>

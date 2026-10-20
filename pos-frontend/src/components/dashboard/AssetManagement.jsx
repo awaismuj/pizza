@@ -451,8 +451,8 @@ const AssetManagement = ({ role }) => {
   const activityMutating = Object.values(actionMutations).some((mutation) => mutation.isPending);
 
   return (
-    <main className="container mx-auto space-y-6 px-0 pb-10">
-      <header className="flex flex-wrap items-end justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+    <div className="w-full space-y-5 pb-10">
+      <header className="flex flex-wrap items-end justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Fixed Asset Control</p>
           <h1 className="mt-0.5 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">Enterprise Asset Register</h1>
@@ -930,7 +930,7 @@ const AssetManagement = ({ role }) => {
         </div>
       </div>
       )}
-    </main>
+    </div>
   );
 };
 

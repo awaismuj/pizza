@@ -5,9 +5,21 @@ import { useNavigate } from "react-router-dom";
 import { setCustomer } from "../../redux/slices/customerSlice";
 import { useQuery } from "@tanstack/react-query";
 import { getTables } from "../../https";
-import { MdTableBar, MdShoppingBag, MdClose, MdPerson, MdPhone } from "react-icons/md";
+import {
+  MdTableBar,
+  MdShoppingBag,
+  MdClose,
+  MdPerson,
+  MdPhone,
+  MdCheck,
+  MdLink,
+  MdInfoOutline,
+} from "react-icons/md";
 import { BiSolidDish } from "react-icons/bi";
 import { useUITheme } from "../../context/UIThemeContext";
+import { enqueueSnackbar } from "notistack";
+
+const QUICK_GUEST_PRESETS = [1, 2, 4, 6, 8, 10];
 
 const ModernNewOrderModal = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
@@ -18,7 +30,7 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [guestCount, setGuestCount] = useState(2);
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTables, setSelectedTables] = useState([]); // array of table objects
 
   const { data: tablesData } = useQuery({
     queryKey: ["tables"],
@@ -31,12 +43,40 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  // Toggle table selection (supports multi-table combining)
+  const handleToggleTable = (table) => {
+    setSelectedTables((prev) => {
+      const exists = prev.some((t) => t._id === table._id);
+      if (exists) {
+        return prev.filter((t) => t._id !== table._id);
+      } else {
+        return [...prev, table];
+      }
+    });
+  };
+
+  const totalSeats = selectedTables.reduce((sum, t) => sum + (Number(t.seats) || 0), 0);
+  const sortedTableNos = [...selectedTables]
+    .map((t) => Number(t.tableNo))
+    .sort((a, b) => a - b);
+  const combinedTableNosStr = sortedTableNos.join(" + ");
+
   const handleStartOrder = () => {
-    // Phone normalization
+    const trimmedName = (name || "").trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      enqueueSnackbar("Customer Name is mandatory (minimum 2 characters).", { variant: "warning" });
+      return;
+    }
+
+    // Phone normalization & validation
     const raw = phone || "";
     let digits = raw.replace(/[^0-9]/g, "");
-    let full = raw.trim();
+    if (!digits || digits.length < 10) {
+      enqueueSnackbar("Customer Mobile Number is mandatory (minimum 10 digits).", { variant: "warning" });
+      return;
+    }
 
+    let full = raw.trim();
     if (full.startsWith("+")) {
       full = "+" + digits;
     } else {
@@ -58,14 +98,13 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
     ).replace(/^0+/, "");
 
     const customerPayload = {
-      name: name.trim() || "Walk-In Customer",
-      phone: full || "+920000000000",
+      name: trimmedName,
+      phone: full,
       phoneLocal: local,
       guests: guestCount,
     };
 
     if (orderType === "takeaway") {
-      // Outdoor / Takeaway order
       dispatch(setCustomer(customerPayload));
       onClose();
       navigate("/outdoor");
@@ -73,18 +112,29 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
     }
 
     // Dine-in order
-    if (selectedTable) {
-      // If table selected directly in modal, attach it and go straight to menu!
+    if (selectedTables.length > 0) {
+      const primaryTable = selectedTables[0];
+      const tableData = {
+        tableId: primaryTable._id,
+        tableNo: combinedTableNosStr,
+        tableIds: selectedTables.map((t) => t._id),
+        tables: selectedTables,
+        combinedTableNos: selectedTables.length > 1 ? combinedTableNosStr : "",
+        isCombined: selectedTables.length > 1,
+        totalSeats: totalSeats,
+        seats: totalSeats,
+      };
+
       dispatch(
         setCustomer({
           ...customerPayload,
-          table: selectedTable,
+          table: tableData,
         })
       );
       onClose();
       navigate("/menu");
     } else {
-      // Otherwise, open tables floor plan to choose
+      // If no table picked here, take customer to floor plan to select/combine
       dispatch(setCustomer(customerPayload));
       onClose();
       navigate("/tables");
@@ -93,243 +143,383 @@ const ModernNewOrderModal = ({ isOpen, onClose }) => {
 
   const modalJSX = (
     <div className="fixed inset-0 z-[9999] overflow-hidden" role="dialog" aria-modal="true">
+      {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px] transition-opacity"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
+
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`pointer-events-auto w-screen max-w-lg shadow-2xl flex flex-col h-full border-l transition-colors ${
+          className={`pointer-events-auto w-screen max-w-xl shadow-2xl flex flex-col h-full border-l transition-colors ${
             isClean
               ? "bg-white border-slate-200 text-slate-900"
-              : "bg-[#0F172A] border-slate-800 text-slate-100"
+              : "bg-[#0B1120] border-slate-800 text-slate-100"
           }`}
         >
-        {/* Modal Header */}
-        <div
-          className={`flex items-center justify-between px-6 py-4 border-b ${
-            isClean ? "bg-slate-50 border-slate-200" : "bg-slate-900/60 border-slate-800"
-          }`}
-        >
-          <div className="flex items-center gap-2.5">
-            <div
-              className={`p-2 rounded-xl ${
-                isClean ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-amber-500/10 text-amber-400"
-              }`}
-            >
-              <BiSolidDish size={22} />
-            </div>
-            <div>
-              <h3 className={`text-base font-extrabold leading-tight ${isClean ? "text-slate-900" : "text-white"}`}>
-                Create New Order
-              </h3>
-              <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
-                Quick Billing & Kitchen Flow
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className={`p-1.5 rounded-lg transition ${
-              isClean ? "text-slate-400 hover:text-slate-800 hover:bg-slate-100" : "text-slate-400 hover:text-white hover:bg-slate-800"
-            }`}
-          >
-            <MdClose size={20} />
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-6 space-y-5 overflow-y-auto flex-1">
-          {/* Order Type Toggle: Dine In vs Takeaway */}
+          {/* Header */}
           <div
-            className={`grid grid-cols-2 gap-3 p-1 rounded-xl border ${
-              isClean ? "bg-slate-100 border-slate-200" : "bg-slate-900/80 border-slate-800"
+            className={`flex items-center justify-between px-6 py-4 border-b ${
+              isClean ? "bg-slate-50/90 border-slate-200" : "bg-slate-900/90 border-slate-800"
             }`}
           >
-            <button
-              type="button"
-              onClick={() => setOrderType("dineIn")}
-              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition ${
-                orderType === "dineIn"
-                  ? "bg-amber-500 text-slate-950 shadow-sm font-black"
-                  : isClean
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <MdTableBar size={18} />
-              <span>Dine-In (Table)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOrderType("takeaway")}
-              className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition ${
-                orderType === "takeaway"
-                  ? "bg-amber-500 text-slate-950 shadow-sm font-black"
-                  : isClean
-                  ? "text-slate-600 hover:text-slate-900"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <MdShoppingBag size={18} />
-              <span>Takeaway / Outdoor</span>
-            </button>
-          </div>
-
-          {/* Customer Name */}
-          <div>
-            <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
-              Customer Name
-            </label>
-            <div className="relative">
-              <MdPerson className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Walk-In Customer (or enter name)"
-                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition outline-none ${
-                  isClean
-                    ? "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
-                    : "bg-slate-900 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500"
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Customer Phone */}
-          <div>
-            <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
-              Customer Phone
-            </label>
-            <div className="relative">
-              <MdPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+923001234567"
-                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition outline-none ${
-                  isClean
-                    ? "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
-                    : "bg-slate-900 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500"
-                }`}
-              />
-            </div>
-          </div>
-
-          {orderType === "dineIn" && (
-            <>
-              {/* Guest Count */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center shadow-md shadow-amber-500/20 font-black">
+                <BiSolidDish size={22} />
+              </div>
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
-                  Guest Count
-                </label>
-                <div
-                  className={`flex items-center justify-between p-2 rounded-xl border ${
-                    isClean ? "bg-slate-50 border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
+                <h3 className={`text-base sm:text-lg font-black leading-tight ${isClean ? "text-slate-900" : "text-white"}`}>
+                  Create New Order
+                </h3>
+                <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+                  Front-of-House Dining & Takeaway Billing
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              className={`p-2 rounded-xl transition ${
+                isClean
+                  ? "text-slate-400 hover:text-slate-800 hover:bg-slate-100"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              <MdClose size={20} />
+            </button>
+          </div>
+
+          {/* Modal Body */}
+          <div className="p-6 space-y-5 overflow-y-auto flex-1 scrollbar-thin">
+            {/* Order Type Toggle: Dine In vs Takeaway */}
+            <div>
+              <div
+                className={`grid grid-cols-2 p-1 rounded-xl border ${
+                  isClean ? "bg-slate-100/90 border-slate-200" : "bg-slate-900/90 border-slate-800"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOrderType("dineIn")}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition duration-150 ${
+                    orderType === "dineIn"
+                      ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black"
+                      : isClean
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setGuestCount((g) => Math.max(1, g - 1))}
-                    className={`w-9 h-9 rounded-lg font-bold text-lg flex items-center justify-center transition border ${
+                  <MdTableBar size={17} />
+                  <span>Dine-In (Table)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOrderType("takeaway")}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-xs transition duration-150 ${
+                    orderType === "takeaway"
+                      ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black"
+                      : isClean
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <MdShoppingBag size={17} />
+                  <span>Takeaway / Outdoor</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Customer Inputs (Mandatory) */}
+            <div className="space-y-4">
+              {/* Customer Name */}
+              <div>
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-600" : "text-slate-300"}`}>
+                  Customer Name <span className="text-red-500 font-black">*</span>
+                </label>
+                <div className="relative">
+                  <MdPerson className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter customer name (e.g. Ahmad Khan)"
+                    required
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm font-semibold transition outline-none ${
                       isClean
-                        ? "bg-white text-slate-800 border-slate-200 hover:bg-slate-100 shadow-xs"
-                        : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
+                        ? "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                        : "bg-slate-900/90 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
                     }`}
-                  >
-                    -
-                  </button>
-                  <span className={`text-sm font-black ${isClean ? "text-slate-900" : "text-white"}`}>
-                    {guestCount} {guestCount === 1 ? "Person" : "Persons"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setGuestCount((g) => Math.min(20, g + 1))}
-                    className={`w-9 h-9 rounded-lg font-bold text-lg flex items-center justify-center transition border ${
-                      isClean
-                        ? "bg-white text-slate-800 border-slate-200 hover:bg-slate-100 shadow-xs"
-                        : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
-                    }`}
-                  >
-                    +
-                  </button>
+                  />
                 </div>
               </div>
 
-              {/* Direct Table Picker in Modal */}
+              {/* Customer Phone */}
               <div>
-                <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isClean ? "text-slate-500" : "text-slate-400"}`}>
-                  Assign Table (Optional - Or select on floor plan)
-                </label>
-                <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 scrollbar-hide">
-                  {availableTables.map((table) => {
-                    const isSelected = selectedTable?._id === table._id;
-                    return (
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className={`block text-xs font-bold uppercase tracking-wider ${isClean ? "text-slate-600" : "text-slate-300"}`}>
+                    Mobile Number <span className="text-red-500 font-black">*</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-slate-400">
+                    Format: 03001234567 or +923001234567
+                  </span>
+                </div>
+                <div className="relative">
+                  <MdPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Enter 10-11 digit mobile number"
+                    required
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm font-semibold transition outline-none ${
+                      isClean
+                        ? "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                        : "bg-slate-900/90 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                    }`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {orderType === "dineIn" && (
+              <>
+                {/* Guest Count with Quick Pickers */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${isClean ? "text-slate-600" : "text-slate-300"}`}>
+                      Guest Count
+                    </label>
+                    <span className="text-[11px] font-semibold text-slate-400">
+                      Party Size
+                    </span>
+                  </div>
+
+                  {/* Stepper + Quick Presets */}
+                  <div className="space-y-2">
+                    <div
+                      className={`flex items-center justify-between p-2 rounded-xl border ${
+                        isClean ? "bg-slate-50 border-slate-200 text-slate-900" : "bg-slate-900/90 border-slate-800 text-white"
+                      }`}
+                    >
                       <button
-                        key={table._id}
                         type="button"
-                        onClick={() => setSelectedTable(isSelected ? null : table)}
-                        className={`p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${
-                          isSelected
-                            ? "bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-md shadow-amber-500/20"
-                            : isClean
-                            ? "bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-xs"
-                            : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300"
+                        onClick={() => setGuestCount((g) => Math.max(1, g - 1))}
+                        className={`w-9 h-9 rounded-lg font-bold text-lg flex items-center justify-center transition border ${
+                          isClean
+                            ? "bg-white text-slate-800 border-slate-200 hover:bg-slate-100 shadow-xs"
+                            : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
                         }`}
                       >
-                        <span className="text-xs font-bold leading-tight">
-                          Table {table.tableNo}
-                        </span>
-                        <span className={`text-[10px] ${isClean ? "text-slate-500" : "opacity-75"}`}>
-                          {table.seats} seats
-                        </span>
+                        -
                       </button>
-                    );
-                  })}
-                  {availableTables.length === 0 && (
-                    <p className={`col-span-full text-xs py-2 ${isClean ? "text-slate-500" : "text-slate-500"}`}>
-                      No tables currently available.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+                      <div className="text-center">
+                        <span className={`text-base font-black ${isClean ? "text-slate-900" : "text-white"}`}>
+                          {guestCount} {guestCount === 1 ? "Person" : "Persons"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setGuestCount((g) => Math.min(30, g + 1))}
+                        className={`w-9 h-9 rounded-lg font-bold text-lg flex items-center justify-center transition border ${
+                          isClean
+                            ? "bg-white text-slate-800 border-slate-200 hover:bg-slate-100 shadow-xs"
+                            : "bg-slate-800 hover:bg-slate-700 text-white border-transparent"
+                        }`}
+                      >
+                        +
+                      </button>
+                    </div>
 
-        {/* Modal Footer */}
-        <div
-          className={`flex items-center justify-end gap-3 px-6 py-4 border-t ${
-            isClean ? "bg-slate-50 border-slate-200" : "bg-slate-900/60 border-slate-800"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition border ${
-              isClean
-                ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                : "border-slate-700 text-slate-300 hover:bg-slate-800"
+                    {/* Quick chips */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] font-bold text-slate-400 mr-1">Quick:</span>
+                      {QUICK_GUEST_PRESETS.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setGuestCount(preset)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                            guestCount === preset
+                              ? "bg-amber-500 text-slate-950 border-amber-400 shadow-xs"
+                              : isClean
+                              ? "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                              : "bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700"
+                          }`}
+                        >
+                          {preset} {preset === 1 ? "Guest" : "Guests"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table Station Picker & Combine Tables Feature */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <label className={`block text-xs font-bold uppercase tracking-wider ${isClean ? "text-slate-600" : "text-slate-300"}`}>
+                        Assign Table Stations
+                      </label>
+                      <p className="text-[11px] text-slate-400 font-medium">
+                        Select one or tap multiple tables to <span className="font-bold text-amber-500">combine</span> for larger parties
+                      </p>
+                    </div>
+
+                    {selectedTables.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTables([])}
+                        className="text-[11px] font-bold text-rose-500 hover:underline"
+                      >
+                        Clear Selection
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Multi-Table Combined Status Card */}
+                  {selectedTables.length > 0 && (
+                    <div
+                      className={`mb-3 p-3 rounded-xl border flex items-center justify-between gap-3 ${
+                        totalSeats >= guestCount
+                          ? isClean
+                            ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+                            : "bg-emerald-950/30 border-emerald-800/60 text-emerald-300"
+                          : isClean
+                          ? "bg-amber-50/80 border-amber-200 text-amber-900"
+                          : "bg-amber-950/30 border-amber-800/60 text-amber-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {selectedTables.length > 1 && (
+                          <div className="p-1 rounded-md bg-amber-500 text-slate-950">
+                            <MdLink size={16} />
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs font-black">
+                            {selectedTables.length > 1 ? (
+                              <span>Combined Station: Table {combinedTableNosStr}</span>
+                            ) : (
+                              <span>Station: Table {combinedTableNosStr}</span>
+                            )}
+                          </p>
+                          <p className="text-[11px] font-medium opacity-90">
+                            Total Capacity: <strong>{totalSeats} Seats</strong> · Party: <strong>{guestCount} Guests</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      {totalSeats < guestCount ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 shrink-0">
+                          +{guestCount - totalSeats} more seats needed
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shrink-0">
+                          Fits Party
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tables Grid */}
+                  <div className="grid grid-cols-4 gap-2.5 max-h-52 overflow-y-auto p-1 scrollbar-thin">
+                    {availableTables.map((table) => {
+                      const isSelected = selectedTables.some((t) => t._id === table._id);
+                      return (
+                        <button
+                          key={table._id}
+                          type="button"
+                          onClick={() => handleToggleTable(table)}
+                          className={`relative p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center min-h-[66px] ${
+                            isSelected
+                              ? "bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 border-amber-400 font-bold shadow-md shadow-amber-500/20 ring-2 ring-amber-400/50"
+                              : isClean
+                              ? "bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-xs hover:border-slate-300"
+                              : "bg-slate-900/90 hover:bg-slate-800 border-slate-800 text-slate-200"
+                          }`}
+                        >
+                          {isSelected && (
+                            <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-slate-950 text-amber-400 flex items-center justify-center text-[10px] font-black shadow-xs">
+                              <MdCheck size={11} />
+                            </span>
+                          )}
+
+                          <span className="text-xs font-extrabold leading-tight">
+                            Table {table.tableNo}
+                          </span>
+
+                          <span
+                            className={`text-[10px] font-semibold mt-0.5 px-1.5 py-0.2 rounded-md ${
+                              isSelected
+                                ? "bg-slate-950/20 text-slate-950"
+                                : isClean
+                                ? "bg-slate-100 text-slate-600"
+                                : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {table.seats} seats
+                          </span>
+                        </button>
+                      );
+                    })}
+
+                    {availableTables.length === 0 && (
+                      <p className={`col-span-full text-xs py-4 text-center font-medium ${isClean ? "text-slate-500" : "text-slate-400"}`}>
+                        No tables currently available.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div
+            className={`flex items-center justify-between gap-3 px-6 py-4 border-t ${
+              isClean ? "bg-slate-50/90 border-slate-200" : "bg-slate-900/90 border-slate-800"
             }`}
           >
-            Cancel
-          </button>
+            {/* Live Summary */}
+            <div className="text-left hidden sm:block">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Order Summary
+              </p>
+              <p className={`text-xs font-black truncate max-w-[220px] ${isClean ? "text-slate-800" : "text-slate-200"}`}>
+                {orderType === "takeaway"
+                  ? "Takeaway / Outdoor"
+                  : selectedTables.length > 0
+                  ? `Table ${combinedTableNosStr} (${totalSeats}s · ${guestCount}g)`
+                  : `Floor Plan (${guestCount} Guests)`}
+              </p>
+            </div>
 
-          <button
-            type="button"
-            onClick={handleStartOrder}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition shadow-md shadow-amber-500/20 flex items-center gap-2"
-          >
-            <span>Proceed to Menu</span>
-            <span>&rarr;</span>
-          </button>
+            <div className="flex items-center gap-2.5 ml-auto">
+              <button
+                type="button"
+                onClick={onClose}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition border ${
+                  isClean
+                    ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                    : "border-slate-700 text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleStartOrder}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition shadow-md shadow-amber-500/25 flex items-center gap-2 active:scale-[0.98]"
+              >
+                <span>Proceed to Menu</span>
+                <span>&rarr;</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );

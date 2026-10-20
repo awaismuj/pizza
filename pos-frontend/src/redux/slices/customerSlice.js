@@ -6,6 +6,7 @@ const initialState = {
     customerName: "",
     customerPhone: "",
     customerPhoneLocal: "",
+    loyaltyPoints: 0,
     guests: 0,
     table: null
 }
@@ -16,10 +17,11 @@ const customerSlice = createSlice({
     initialState,
     reducers : {
         setCustomer: (state, action) => {
-            const { name, phone, phoneLocal, guests } = action.payload;
+            const { name, phone, phoneLocal, guests, loyaltyPoints } = action.payload;
             state.orderId = action.payload.orderId || `${Date.now()}`;
             state.existingOrderId = action.payload.existingOrderId || null;
             state.customerName = name;
+            state.loyaltyPoints = Number(loyaltyPoints || 0);
             // normalize phone: remove spaces/dashes
             const normalized = phone ? ("" + phone).replace(/[^+0-9]/g, "") : "";
             state.customerPhone = normalized;

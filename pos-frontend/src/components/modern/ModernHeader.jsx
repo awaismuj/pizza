@@ -16,12 +16,14 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { logout, getTables, getOrders, getLowStockItems } from "../../https";
-import { removeUser } from "../../redux/slices/userSlice";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUITheme } from "../../context/UIThemeContext";
 import { isStockRole, LOW_STOCK_QUERY_KEY } from "../shared/LowStockAlert";
 import MusicPlayer from "../shared/MusicPlayer";
 import AlertsDrawer from "./AlertsDrawer";
+import ShiftDrawer from "./ShiftDrawer";
+import { getCurrentShift } from "../../https";
+import { MdPointOfSale } from "react-icons/md";
 
 const ModernHeader = ({ collapsed }) => {
   const userData = useSelector((state) => state.user);
@@ -32,7 +34,15 @@ const ModernHeader = ({ collapsed }) => {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAllAlertsModal, setShowAllAlertsModal] = useState(false);
+  const [showShiftModal, setShowShiftModal] = useState(false);
   const notifRef = useRef(null);
+
+  const { data: shiftStatusData } = useQuery({
+    queryKey: ["currentShift"],
+    queryFn: async () => (await getCurrentShift()).data,
+    refetchInterval: 15000,
+  });
+  const isShiftOpen = shiftStatusData?.isOpen;
 
   // Close notifications dropdown on click outside
   useEffect(() => {
@@ -100,7 +110,7 @@ const ModernHeader = ({ collapsed }) => {
   const getPageTitle = (path) => {
     switch (path) {
       case "/":
-        return "Executive Overview";
+        return "Live Shift Overview";
       case "/menu":
         return "Point of Sale & Billing";
       case "/tables":
@@ -114,26 +124,94 @@ const ModernHeader = ({ collapsed }) => {
       case "/dashboard": {
         const tab = new URLSearchParams(location.search).get("tab");
         const tabLabels = {
-          Metrics: "Analytics & Executive KPIs",
-          Orders: "Order Audit Ledger",
-          Profit: "Profit & Loss Financial Statement",
-          Payments: "Payment Settlements & Gateways",
-          Menu: "Menu Engineering & Dish Catalog",
-          Inventory: "Inventory & Stock Control",
-          Staff: "Staff & Payroll Management",
-          Deals: "Deals & Promotions Manager",
-          "Hero Slider": "Web Hero Banner Manager",
-          Tax: "Store Settings & Tax Configuration",
-          Assets: "Fixed Asset Management",
-          Music: "In-Store Ambient Music Player",
-          "Build Your Own": "Build Your Own Pizza Configurator",
+          Metrics: "Sales Analytics",
+          Orders: "Order History",
+          Profit: "Profit & Loss",
+          Payments: "Payment Audits",
+          Menu: "Dishes Catalog",
+          Inventory: "Stock Balance",
+          Staff: "Staff & Payroll",
+          Deals: "Combo Deals",
+          "Hero Slider": "Website Banners",
+          Tax: "Tax & Billing Settings",
+          Printers: "Thermal Hardware Printers",
+          Assets: "Fixed Asset Register",
+          Music: "In-Store Ambient Music",
+          "Build Your Own": "Build Your Own Deal",
+          "Finance Operations": "Finance Overview",
+          "Stock Operations": "Inventory Overview",
+          "Menu Operations": "Menu Overview",
+          "HR Operations": "Staff Overview",
+          "Marketing Operations": "Storefront Overview",
+          "Admin Operations": "Administration Overview",
         };
-        return tab && tabLabels[tab] ? `ERP Portal · ${tabLabels[tab]}` : "Food & Beverage ERP Portal";
+        const label = (tab && tabLabels[tab]) ? tabLabels[tab] : (tab ? tab.replace(/_/g, " ") : "Enterprise ERP");
+        return `ERP Portal · ${label}`;
       }
       default:
         return "Restaurant POS";
     }
   };
+
+  const getBreadcrumbInfo = () => {
+    if (location.pathname === "/dashboard") {
+      const tab = new URLSearchParams(location.search).get("tab") || "Metrics";
+
+      const tabToDept = {
+        Metrics: { dept: "Finance", title: "Analytics" },
+        Profit: { dept: "Finance", title: "Profit & Loss" },
+        Orders: { dept: "Finance", title: "Order History" },
+        Payments: { dept: "Finance", title: "Payments" },
+        "Finance Operations": { dept: "Finance", title: "Finance Overview" },
+        Orders_Summary: { dept: "Finance", title: "Finance Overview" },
+
+        Inventory: { dept: "Inventory", title: "Stock Balance" },
+        Assets: { dept: "Inventory", title: "Fixed Assets" },
+        "Stock Operations": { dept: "Inventory", title: "Inventory Overview" },
+        Inventory_Summary: { dept: "Inventory", title: "Inventory Overview" },
+
+        Menu: { dept: "Menu & Dishes", title: "Dishes" },
+        Categories: { dept: "Menu & Dishes", title: "Categories" },
+        Deals: { dept: "Menu & Dishes", title: "Combo Deals" },
+        "Build Your Own": { dept: "Menu & Dishes", title: "Deal Builder" },
+        "Menu Operations": { dept: "Menu & Dishes", title: "Menu Overview" },
+        Menu_Summary: { dept: "Menu & Dishes", title: "Menu Overview" },
+
+        Staff: { dept: "Staff & HR", title: "Staff & Payroll" },
+        "HR Operations": { dept: "Staff & HR", title: "Staff Overview" },
+        CRM_Summary: { dept: "Staff & HR", title: "Staff Overview" },
+
+        "Hero Slider": { dept: "Storefront", title: "Website Banners" },
+        "Marketing Operations": { dept: "Storefront", title: "Storefront Overview" },
+
+        Tax: { dept: "Administration", title: "Tax & Billing" },
+        Printers: { dept: "Administration", title: "Thermal Printers" },
+        Music: { dept: "Administration", title: "Store Music" },
+        "Admin Operations": { dept: "Administration", title: "Admin Overview" },
+        Settings_Summary: { dept: "Administration", title: "Admin Overview" },
+      };
+
+      if (tabToDept[tab]) {
+        return tabToDept[tab];
+      }
+
+      const cleanTitle = tab ? tab.replace(/_/g, " ") : "Overview";
+      return { dept: "Enterprise ERP", title: cleanTitle };
+    }
+
+    const pathMap = {
+      "/": { dept: "Operations", title: "Overview" },
+      "/menu": { dept: "Operations", title: "Counter POS" },
+      "/tables": { dept: "Dining Tables", title: "Floor Plan" },
+      "/orders": { dept: "Operations", title: "Kitchen Queue" },
+      "/online-orders": { dept: "Operations", title: "Online Delivery" },
+      "/outdoor": { dept: "Operations", title: "Takeaway Pickup" },
+    };
+
+    return pathMap[location.pathname] || { dept: "Operations", title: "Counter POS" };
+  };
+
+  const breadcrumb = getBreadcrumbInfo();
 
   return (
     <header
@@ -143,16 +221,14 @@ const ModernHeader = ({ collapsed }) => {
           : "bg-[#0B0F19]/95 border-b border-slate-800/80 text-white"
       } ${collapsed ? "left-20" : "left-64"}`}
     >
-      {/* Left: Clean Breadcrumb Navigation */}
+      {/* Left: Clean Enterprise Breadcrumb Navigation */}
       <div className="flex items-center gap-2.5 text-[13px] font-medium">
-        <span className="text-slate-600 dark:text-slate-300">
-          {location.pathname === "/dashboard" ? "Store Operations" : "Front-of-House"}
+        <span className="text-slate-500 dark:text-slate-400 font-semibold">
+          {breadcrumb.dept}
         </span>
-        <span className="text-slate-400 dark:text-slate-500 text-xs font-bold">›</span>
-        <span className="text-slate-900 dark:text-white font-semibold tracking-tight">
-          {location.pathname === "/dashboard"
-            ? new URLSearchParams(location.search).get("tab") || "Analytics Overview"
-            : getPageTitle(location.pathname)}
+        <span className="text-slate-300 dark:text-slate-600 text-xs font-bold">›</span>
+        <span className="text-slate-900 dark:text-white font-bold tracking-tight">
+          {breadcrumb.title}
         </span>
       </div>
 
@@ -322,6 +398,25 @@ const ModernHeader = ({ collapsed }) => {
           />
         </div>
 
+        {/* CASH DRAWER & SHIFT RECONCILIATION BUTTON */}
+        <button
+          type="button"
+          onClick={() => setShowShiftModal(true)}
+          className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-xs ${
+            isShiftOpen
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+              : "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+          }`}
+          title={
+            isShiftOpen
+              ? "Cash drawer shift is active. Click for live tally & reconciliation."
+              : "No active shift open. Click to input opening float."
+          }
+        >
+          <MdPointOfSale size={15} />
+          <span className="hidden md:inline">{isShiftOpen ? "Till Active" : "Open Till"}</span>
+        </button>
+
         {/* LIGHT / DARK COLOR THEME TOGGLE */}
         <button
           type="button"
@@ -360,7 +455,14 @@ const ModernHeader = ({ collapsed }) => {
         isOpen={showAllAlertsModal}
         onClose={() => setShowAllAlertsModal(false)}
       />
+
+      {/* Cash Drawer Shift Side Drawer */}
+      <ShiftDrawer
+        isOpen={showShiftModal}
+        onClose={() => setShowShiftModal(false)}
+      />
     </header>
+
   );
 };
 

@@ -604,6 +604,104 @@ const restoreInventoryForOrderItems = async (items = []) => {
   return restored;
 };
 
+const InventoryWastage = require("../models/inventoryWastageModel");
+const Expense = require("../models/expenseModel");
+
+// POST /api/inventory/wastage
+const recordInventoryWastage = async (req, res, next) => {
+  try {
+    const { itemId, quantityWasted, reason, notes } = req.body;
+    const qty = Number(quantityWasted);
+
+    if (!itemId || isNaN(qty) || qty <= 0) {
+      return next(createHttpError(400, "Valid inventory item and quantity wasted are required."));
+    }
+
+    const item = await InventoryItem.findById(itemId);
+    if (!item) {
+      return next(createHttpError(404, "Inventory item not found."));
+    }
+
+    if (item.quantity < qty) {
+      return next(
+        createHttpError(
+          400,
+          `Cannot log wastage of ${qty} ${item.unit}. Only ${item.quantity} ${item.unit} available in stock.`
+        )
+      );
+    }
+
+    const unitCost = Number(item.costPrice || item.sellingPrice || 0);
+    const totalLossAmount = Math.round(qty * unitCost * 100) / 100;
+
+    // Deduct stock
+    item.quantity = Math.max(0, item.quantity - qty);
+    item.lastUpdatedAt = new Date();
+    await item.save();
+
+    // Log wastage record
+    const wastageRecord = new InventoryWastage({
+      itemId: item._id,
+      itemName: item.name,
+      quantityWasted: qty,
+      unit: item.unit,
+      unitCost,
+      totalLossAmount,
+      reason: reason || "Prep Error",
+      loggedBy: req.user?.name || "Staff",
+      notes: notes || "",
+    });
+    await wastageRecord.save();
+
+    // Also register in Expense ledger so it is factored into P&L
+    if (totalLossAmount > 0) {
+      const today = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const dayKey = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+      await Expense.create({
+        dayKey,
+        amount: totalLossAmount,
+        description: `Wastage: ${item.name} (${qty} ${item.unit}) - ${reason || "Spoilage"}`,
+      });
+    }
+
+    invalidateAvailabilityCache();
+
+    res.status(201).json({
+      success: true,
+      message: `Recorded ${qty} ${item.unit} spoilage/wastage for ${item.name} (Loss: Rs ${totalLossAmount}).`,
+      data: {
+        wastageRecord,
+        updatedStock: item.quantity,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/inventory/wastage
+const getInventoryWastageHistory = async (req, res, next) => {
+  try {
+    const history = await InventoryWastage.find()
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    const totalWastageLoss = history.reduce((sum, h) => sum + (h.totalLossAmount || 0), 0);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        records: history,
+        totalLossAmount: totalWastageLoss,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createInventoryItem,
   getInventoryItems,
@@ -611,8 +709,11 @@ module.exports = {
   updateInventoryItem,
   adjustInventoryItem,
   deleteInventoryItem,
+  recordInventoryWastage,
+  getInventoryWastageHistory,
   deductInventoryForOrderItems,
   restoreInventoryForOrderItems,
   totalDeductionCost,
   getStockStatus,
 };
+

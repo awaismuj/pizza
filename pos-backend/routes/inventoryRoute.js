@@ -6,6 +6,8 @@ const {
   updateInventoryItem,
   adjustInventoryItem,
   deleteInventoryItem,
+  recordInventoryWastage,
+  getInventoryWastageHistory,
 } = require("../controllers/inventoryController");
 const { isVerifiedUser, requireRole } = require("../middlewares/tokenVerification");
 
@@ -21,7 +23,13 @@ router.route("/")
 // Declared before "/:id" so "low-stock" isn't mistaken for an id.
 router.route("/low-stock").get(isVerifiedUser, requireRole("Admin", "Cashier"), getLowStockItems);
 
+// Spoilage, Wastage & Shrinkage Ledger
+router.route("/wastage")
+  .post(isVerifiedUser, requireRole("Admin"), recordInventoryWastage)
+  .get(isVerifiedUser, getInventoryWastageHistory);
+
 router.route("/:id")
+
   .put(isVerifiedUser, requireRole("Admin"), updateInventoryItem)
   .delete(isVerifiedUser, requireRole("Admin"), deleteInventoryItem);
 

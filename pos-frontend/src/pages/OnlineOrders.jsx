@@ -17,6 +17,7 @@ import { useUITheme } from "../context/UIThemeContext";
 //   Pending -> (Accept | Accept & Process | Cancel)
 //   Accepted -> Preparing (processing) -> Ready to Deliver -> Completed
 const TABS = [
+  { key: "all", label: "All" },
   { key: "Pending", label: "New" },
   { key: "Accepted", label: "Accepted" },
   { key: "Preparing", label: "Processing" },
@@ -25,6 +26,15 @@ const TABS = [
   { key: "Cancelled", label: "Cancelled" },
 ];
 
+const matchesTab = (order, tabKey) => {
+  if (tabKey === "all") return true;
+  const status = order.orderStatus === "Closed" ? "Completed" : order.orderStatus;
+  if (tabKey === "Completed") return status === "Completed" || order.orderStatus === "Closed";
+  if (tabKey === "Preparing") return status === "Preparing" || order.orderStatus === "In Progress";
+  if (tabKey === "Ready to Deliver") return status === "Ready to Deliver" || order.orderStatus === "Ready";
+  return status === tabKey;
+};
+
 const OnlineOrders = () => {
   const { isClean } = useUITheme();
 
@@ -32,7 +42,7 @@ const OnlineOrders = () => {
     document.title = "POS | Online Orders";
   }, []);
 
-  const [activeTab, setActiveTab] = useState("Pending");
+  const [activeTab, setActiveTab] = useState("all");
   const [editingOrder, setEditingOrder] = useState(null);
   const queryClient = useQueryClient();
   const role = useSelector((state) => state.user.role);
@@ -83,7 +93,7 @@ const OnlineOrders = () => {
   };
 
   const orders = (resData?.data?.data ?? []).filter((o) => o.orderSource === "Online");
-  const visibleOrders = orders.filter((o) => o.orderStatus === activeTab);
+  const visibleOrders = orders.filter((o) => matchesTab(o, activeTab));
 
   const setStatus = (order, orderStatus) => {
     statusMutation.mutate({ orderId: order._id, orderStatus });
@@ -136,13 +146,13 @@ const OnlineOrders = () => {
           }`}
         >
           {TABS.map((tab) => {
-            const count = orders.filter((o) => o.orderStatus === tab.key).length;
+            const count = orders.filter((o) => matchesTab(o, tab.key)).length;
             const isActive = activeTab === tab.key;
             return (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                className={`whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                   isActive
                     ? "bg-amber-500 text-slate-950 shadow-sm font-black"
                     : isClean
@@ -173,7 +183,7 @@ const OnlineOrders = () => {
       <div className="grid w-full grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 pb-24">
         {visibleOrders.length === 0 && (
           <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No {activeTab} online orders at the moment.</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No {activeTab === "all" ? "online" : activeTab} orders at the moment.</p>
           </div>
         )}
 

@@ -39,6 +39,8 @@ console.log("\x1b[1m🚀 Starting GenZ Pizza Land Services...\x1b[0m\n");
 
 const processes = [];
 
+let isShuttingDown = false;
+
 function startService(service) {
   const proc = spawn(service.cmd, service.args, {
     cwd: service.cwd,
@@ -64,6 +66,10 @@ function startService(service) {
 
   proc.on("close", (code) => {
     console.log(`${prefix}exited with code ${code}`);
+    if (service.isDatabase && code !== 0 && !isShuttingDown) {
+      console.log(`${prefix}Database exited with code ${code}. Reconnecting in 2s...`);
+      setTimeout(() => startService(service), 2000);
+    }
   });
 
   processes.push(proc);
@@ -96,6 +102,7 @@ if (dbService) {
 }
 
 function shutdown() {
+  isShuttingDown = true;
   console.log("\n\x1b[33m🛑 Stopping all services...\x1b[0m");
   processes.forEach((proc) => {
     try {

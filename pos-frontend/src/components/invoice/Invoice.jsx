@@ -143,26 +143,45 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           {/* Payment Details */}
 
           <div className="mb-2 mt-2 text-xs">
-            {orderInfo.paymentMethod === "Cash" ? (
+            {orderInfo.splitPayments && orderInfo.splitPayments.length > 0 ? (
+              <div className="space-y-1">
+                <p>
+                  <strong>Payment Method:</strong> Split Payment
+                </p>
+                <div className="pl-2 border-l-2 border-gray-300 space-y-0.5">
+                  {orderInfo.splitPayments.map((p, i) => (
+                    <p key={i} className="flex justify-between">
+                      <span>• {p.method}:</span>
+                      <span>Rs {Number(p.amount).toFixed(2)}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ) : orderInfo.paymentMethod === "Cash" ? (
               <p>
-                <strong>Payment Method:</strong> {orderInfo.paymentMethod}
+                <strong>Payment Method:</strong> Cash
               </p>
             ) : (
               <>
                 <p>
                   <strong>Payment Method:</strong> {orderInfo.paymentMethod}
                 </p>
-                <p>
-                  <strong>Razorpay Order ID:</strong>{" "}
-                  {orderInfo.paymentData?.razorpay_order_id}
-                </p>
-                <p>
-                  <strong>Razorpay Payment ID:</strong>{" "}
-                  {orderInfo.paymentData?.razorpay_payment_id}
-                </p>
+                {orderInfo.paymentData?.razorpay_order_id && (
+                  <p>
+                    <strong>Razorpay Order ID:</strong>{" "}
+                    {orderInfo.paymentData.razorpay_order_id}
+                  </p>
+                )}
+                {orderInfo.paymentData?.razorpay_payment_id && (
+                  <p>
+                    <strong>Razorpay Payment ID:</strong>{" "}
+                    {orderInfo.paymentData.razorpay_payment_id}
+                  </p>
+                )}
               </>
             )}
           </div>
+
 
           <ReceiptFooter />
         </div>

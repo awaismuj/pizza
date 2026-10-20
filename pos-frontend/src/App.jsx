@@ -1,3 +1,4 @@
+import React, { Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -5,7 +6,16 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Home, Auth, Orders, Tables, Menu, Outdoor, Dashboard, OnlineOrders } from "./pages";
+import Home from "./pages/Home.jsx";
+import Auth from "./pages/Auth.jsx";
+
+const Orders = lazy(() => import("./pages/Orders.jsx"));
+const Tables = lazy(() => import("./pages/Tables.jsx"));
+const Menu = lazy(() => import("./pages/Menu.jsx"));
+const Outdoor = lazy(() => import("./pages/Outdoor.jsx"));
+const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const OnlineOrders = lazy(() => import("./pages/OnlineOrders.jsx"));
+
 import Header from "./components/shared/Header";
 import NewOrderPopup from "./components/shared/NewOrderPopup";
 import LowStockAlert from "./components/shared/LowStockAlert";
@@ -22,15 +32,17 @@ function AppRoutes() {
   const { isAuth } = useSelector((state) => state.user);
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <ProtectedRoutes>
-            <Home />
-          </ProtectedRoutes>
-        }
-      />
+    <Suspense fallback={<FullScreenLoader />}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoutes>
+              <Home />
+            </ProtectedRoutes>
+          }
+        />
+
       <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
       <Route
         path="/orders"
@@ -84,6 +96,7 @@ function AppRoutes() {
       />
       <Route path="*" element={<div className="p-10 text-center text-slate-400">Page Not Found</div>} />
     </Routes>
+    </Suspense>
   );
 }
 

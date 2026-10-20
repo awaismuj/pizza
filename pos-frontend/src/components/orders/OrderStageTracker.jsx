@@ -7,7 +7,7 @@ import { useUITheme } from "../../context/UIThemeContext";
 const OrderStageTracker = ({ order }) => {
   const { isClean } = useUITheme();
   const stages = stagesFor(order);
-  const status = order.orderStatus;
+  const status = order.orderStatus === "Closed" ? "Completed" : order.orderStatus;
 
   if (status === "Cancelled") {
     return (

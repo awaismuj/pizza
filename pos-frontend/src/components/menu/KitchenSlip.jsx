@@ -48,7 +48,12 @@ const KitchenSlip = ({ orderInfo, onClose }) => {
               #{getOrderNumber(orderInfo)}
             </p>
             <p>
-              <strong>Table:</strong> {orderInfo.table?.tableNo ?? "N/A"}
+              <strong>Table:</strong>{" "}
+              {orderInfo.combinedTableNos
+                ? `Table ${orderInfo.combinedTableNos} (Combined)`
+                : orderInfo.table?.tableNo
+                ? `Table ${orderInfo.table?.tableNo}`
+                : "N/A"}
             </p>
             {!isWalkIn && (
               <p>

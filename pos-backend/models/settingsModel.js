@@ -30,6 +30,14 @@ const settingsSchema = new mongoose.Schema(
       currency: { type: String, default: "PKR", match: /^[A-Z]{3}$/ },
       financialYearStartMonth: { type: Number, default: 1, min: 1, max: 12 },
     },
+    printerConfig: {
+      receiptPrinterIp: { type: String, default: "" },
+      receiptPrinterPort: { type: Number, default: 9100 },
+      kitchenPrinterIp: { type: String, default: "" },
+      kitchenPrinterPort: { type: Number, default: 9100 },
+      autoPrintReceipt: { type: Boolean, default: false },
+      autoPrintKitchen: { type: Boolean, default: false },
+    },
   },
   { timestamps: true }
 );

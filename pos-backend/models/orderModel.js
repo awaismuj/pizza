@@ -12,8 +12,8 @@ const ORDER_STATUSES = [
 
 const orderSchema = new mongoose.Schema({
     customerDetails: {
-        name: { type: String, required: true },
-        phone: { type: String, requried: true},
+        name: { type: String, required: true, trim: true },
+        phone: { type: String, required: true, trim: true },
         guests: { type: Number, required: true },
         address: { type: String, default: "" },
     },
@@ -88,6 +88,8 @@ const orderSchema = new mongoose.Schema({
     },
     items: [],
     table: { type: mongoose.Schema.Types.ObjectId, ref: "Table" },
+    tables: [{ type: mongoose.Schema.Types.ObjectId, ref: "Table" }],
+    combinedTableNos: { type: String, default: "" },
     // Tracks whether stock has actually been taken out of inventory for this
     // order, so cancellation logic knows whether there is anything to give
     // back and never restores/deducts the same order twice.
@@ -96,6 +98,15 @@ const orderSchema = new mongoose.Schema({
         default: false,
     },
     paymentMethod: String,
+    splitPayments: [
+        {
+            method: { type: String, enum: ["Cash", "Card", "Online", "Digital Wallet"], required: true },
+            amount: { type: Number, required: true },
+            paidAt: { type: Date, default: Date.now },
+            collectedBy: { type: String, default: "" },
+            reference: { type: String, default: "" },
+        }
+    ],
     paymentData: {
         razorpay_order_id: String,
         razorpay_payment_id: String

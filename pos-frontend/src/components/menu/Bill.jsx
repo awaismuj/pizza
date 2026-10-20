@@ -7,6 +7,8 @@ import {
   updateTable,
   updateOrderItems,
   verifyPaymentRazorpay,
+  printKitchenRaw,
+  printReceiptRaw,
 } from "../../https/index";
 import { enqueueSnackbar } from "notistack";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,8 +17,9 @@ import { removeCustomer } from "../../redux/slices/customerSlice";
 import useTaxRate from "../../hooks/useTaxRate";
 import PendingReceipt from "./PendingReceipt";
 import KitchenSlip from "./KitchenSlip";
+import CustomerInfoModal from "../modern/CustomerInfoModal";
 import { useUITheme } from "../../context/UIThemeContext";
-import { MdAttachMoney, MdCreditCard, MdPrint } from "react-icons/md";
+import { MdAttachMoney, MdCreditCard, MdPrint, MdCallSplit, MdAdd, MdDelete, MdCheckCircle, MdStars } from "react-icons/md";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -44,19 +47,95 @@ const Bill = () => {
   const tax = (total * taxRate) / 100;
   const totalPriceWithTax = total + tax;
 
+  const [redeemPoints, setRedeemPoints] = useState(false);
+  const maxRedeemablePoints = Math.min(
+    customerData.loyaltyPoints || 0,
+    Math.floor(totalPriceWithTax / 5)
+  );
+  const loyaltyDiscount = redeemPoints ? maxRedeemablePoints * 5 : 0;
+  const netPayableTotal = Math.max(0, Math.round((totalPriceWithTax - loyaltyDiscount) * 100) / 100);
+
   const [paymentMethod, setPaymentMethod] = useState();
   const [orderInfo, setOrderInfo] = useState();
+  const [splitRows, setSplitRows] = useState([
+    { id: 1, method: "Cash", amount: "" },
+    { id: 2, method: "Card", amount: "" },
+  ]);
   // Fires once the order is actually placed — the Kitchen Order Slip (items
   // + quantities only) that gets sent to the kitchen printer so prep can
   // start straight away. The full priced bill only prints later, when the
   // table is cleared (see OrderCard.jsx) — that's the second and last of
   // the two prints a table order gets.
   const [showKitchenSlip, setShowKitchenSlip] = useState(false);
-  // Prints the bill as it stands right now (before the order is placed) —
-  // a kitchen/customer copy of what's currently in the cart.
   const [showPendingReceipt, setShowPendingReceipt] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+
+  const splitTotal = splitRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  const splitDifference = Math.round((netPayableTotal - splitTotal) * 100) / 100;
+
+  const handleSelectSplit = () => {
+    setPaymentMethod("Split");
+    if (!splitRows[0].amount && !splitRows[1].amount && netPayableTotal > 0) {
+      const half = Math.floor(netPayableTotal / 2);
+      const remainingHalf = Math.round((netPayableTotal - half) * 100) / 100;
+      setSplitRows([
+        { id: 1, method: "Cash", amount: half },
+        { id: 2, method: "Card", amount: remainingHalf },
+      ]);
+    }
+  };
+
+  const handleSplitRowChange = (id, field, value) => {
+    setSplitRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  const handleAddSplitRow = () => {
+    const nextAmount = splitDifference > 0 ? splitDifference : "";
+    setSplitRows((prev) => [
+      ...prev,
+      { id: Date.now(), method: "Digital Wallet", amount: nextAmount },
+    ]);
+  };
+
+  const handleRemoveSplitRow = (id) => {
+    if (splitRows.length <= 2) {
+      enqueueSnackbar("At least 2 payment split lines are required.", { variant: "info" });
+      return;
+    }
+    setSplitRows((prev) => prev.filter((r) => r.id !== id));
+  };
 
   const handlePlaceOrder = async () => {
+    // Enforce mandatory Customer Name and Mobile Phone
+    const hasValidName =
+      customerData.customerName &&
+      customerData.customerName.trim().length >= 2 &&
+      customerData.customerName !== "Customer Name" &&
+      customerData.customerName !== "Walk-In Guest" &&
+      customerData.customerName !== "Walk-In Customer";
+
+    const cleanDigits = (customerData.customerPhone || "").replace(/\D/g, "");
+    const hasValidPhone =
+      cleanDigits.length >= 10 &&
+      !cleanDigits.includes("0000000000") &&
+      customerData.customerPhone !== "N/A";
+
+    if (!hasValidName || !hasValidPhone) {
+      if (!hasValidName) {
+        enqueueSnackbar("Customer Name is mandatory to place order!", {
+          variant: "warning",
+        });
+      } else {
+        enqueueSnackbar("Customer Mobile Number is mandatory to place order!", {
+          variant: "warning",
+        });
+      }
+      setIsCustomerModalOpen(true);
+      return;
+    }
+
     if (customerData.existingOrderId) {
       updateOrderMutation.mutate({
         orderId: customerData.existingOrderId,
@@ -133,10 +212,14 @@ const Bill = () => {
                 bills: {
                   total: total,
                   tax: tax,
-                  totalWithTax: totalPriceWithTax,
+                  discount: loyaltyDiscount,
+                  redeemedLoyaltyPoints: redeemPoints ? maxRedeemablePoints : 0,
+                  totalWithTax: netPayableTotal,
                 },
                 items: cartData,
-                table: customerData.table.tableId,
+                table: customerData.table?.tableId,
+                tables: customerData.table?.tableIds || (customerData.table?.tableId ? [customerData.table.tableId] : []),
+                combinedTableNos: customerData.table?.combinedTableNos || "",
                 paymentMethod: paymentMethod,
                 paymentData: {
                   razorpay_order_id: response.razorpay_order_id,
@@ -171,8 +254,20 @@ const Bill = () => {
           variant: "error",
         });
       }
-    } else {
-      // Place the order
+    } else if (paymentMethod === "Split") {
+      const validRows = splitRows.filter((r) => Number(r.amount) > 0);
+      if (validRows.length < 2) {
+        enqueueSnackbar("Please configure at least 2 split payment lines.", { variant: "warning" });
+        return;
+      }
+      if (Math.abs(splitDifference) > 1) {
+        enqueueSnackbar(
+          `Split amounts do not balance! Difference is Rs ${Math.abs(splitDifference)}. Total must equal Rs ${netPayableTotal.toFixed(2)}.`,
+          { variant: "warning" }
+        );
+        return;
+      }
+
       const orderData = {
         customerDetails: {
           name: customerData.customerName,
@@ -183,10 +278,43 @@ const Bill = () => {
         bills: {
           total: total,
           tax: tax,
-          totalWithTax: totalPriceWithTax,
+          discount: loyaltyDiscount,
+          redeemedLoyaltyPoints: redeemPoints ? maxRedeemablePoints : 0,
+          totalWithTax: netPayableTotal,
         },
         items: cartData,
-        table: customerData.table.tableId,
+        table: customerData.table?.tableId,
+        tables: customerData.table?.tableIds || (customerData.table?.tableId ? [customerData.table.tableId] : []),
+        combinedTableNos: customerData.table?.combinedTableNos || "",
+        paymentMethod: "Split",
+        splitPayments: validRows.map((r) => ({
+          method: r.method,
+          amount: Number(r.amount),
+          paidAt: new Date(),
+        })),
+      };
+      orderMutation.mutate(orderData);
+    } else {
+      // Place the order
+
+      const orderData = {
+        customerDetails: {
+          name: customerData.customerName,
+          phone: customerData.customerPhone,
+          guests: customerData.guests,
+        },
+        orderStatus: "In Progress",
+        bills: {
+          total: total,
+          tax: tax,
+          discount: loyaltyDiscount,
+          redeemedLoyaltyPoints: redeemPoints ? maxRedeemablePoints : 0,
+          totalWithTax: netPayableTotal,
+        },
+        items: cartData,
+        table: customerData.table?.tableId,
+        tables: customerData.table?.tableIds || (customerData.table?.tableId ? [customerData.table.tableId] : []),
+        combinedTableNos: customerData.table?.combinedTableNos || "",
         paymentMethod: paymentMethod,
       };
       orderMutation.mutate(orderData);
@@ -201,6 +329,9 @@ const Bill = () => {
 
       setOrderInfo(data);
 
+      // Attempt Zero-Click Hardware ESC/POS Kitchen Print
+      printKitchenRaw({ orderData: data }).catch(() => {});
+
       // The order is paid for right now (Cash was just handed over, or the
       // Razorpay charge just went through) — the Payments/Profit/Home
       // dashboards should reflect that immediately, not next time someone
@@ -209,11 +340,16 @@ const Bill = () => {
       queryClient.invalidateQueries(["dailyProfit"]);
       queryClient.invalidateQueries(["monthlyProfit"]);
 
-      // Update Table
+      // Update Table (both primary and any joined tables)
+      const allTableIds = customerData.table?.tableIds && customerData.table.tableIds.length > 0
+        ? customerData.table.tableIds
+        : (data.table ? [data.table] : []);
+
       const tableData = {
         status: "Booked",
         orderId: data._id,
         tableId: data.table,
+        tableIds: allTableIds,
       };
 
       setTimeout(() => {
@@ -291,6 +427,37 @@ const Bill = () => {
               Rs {tax.toFixed(2)}
             </span>
           </div>
+          {customerData.loyaltyPoints > 0 && maxRedeemablePoints > 0 && (
+            <div className="pt-1.5 pb-0.5">
+              <button
+                type="button"
+                onClick={() => setRedeemPoints((prev) => !prev)}
+                className={`w-full py-1.5 px-2.5 rounded-lg border text-xs font-bold transition flex items-center justify-between ${
+                  redeemPoints
+                    ? "bg-amber-500 text-slate-950 border-amber-400 shadow-xs"
+                    : isClean
+                    ? "bg-amber-50 border-amber-200/80 text-amber-900 hover:bg-amber-100/70"
+                    : "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <MdStars size={15} />
+                  <span>
+                    {redeemPoints ? "Redeeming Loyalty Points" : `Redeem Loyalty Points (${customerData.loyaltyPoints} avail)`}
+                  </span>
+                </div>
+                <span className="font-mono font-black">
+                  {redeemPoints ? `-Rs ${loyaltyDiscount}` : `Save Rs ${maxRedeemablePoints * 5}`}
+                </span>
+              </button>
+            </div>
+          )}
+          {redeemPoints && loyaltyDiscount > 0 && (
+            <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 font-bold">
+              <span>Loyalty Discount ({maxRedeemablePoints} pts)</span>
+              <span className="font-mono font-bold">-Rs {loyaltyDiscount.toFixed(2)}</span>
+            </div>
+          )}
           <div
             className={`flex items-center justify-between pt-2 border-t text-sm font-bold ${
               isClean ? "border-slate-200 text-slate-900" : "border-slate-800 text-white"
@@ -304,17 +471,17 @@ const Bill = () => {
                 isClean ? "text-amber-600" : "text-amber-400"
               }`}
             >
-              Rs {totalPriceWithTax.toFixed(2)}
+              Rs {netPayableTotal.toFixed(2)}
             </span>
           </div>
         </div>
 
         {/* Payment Method Selector */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
+        <div className="grid grid-cols-3 gap-1.5 pt-2">
           <button
             type="button"
             onClick={() => setPaymentMethod("Cash")}
-            className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-2 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1 ${
               paymentMethod === "Cash"
                 ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-bold"
                 : isClean
@@ -322,14 +489,14 @@ const Bill = () => {
                 : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
             }`}
           >
-            <MdAttachMoney size={16} />
+            <MdAttachMoney size={15} />
             <span>Cash</span>
           </button>
 
           <button
             type="button"
             onClick={() => setPaymentMethod("Online")}
-            className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-2 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1 ${
               paymentMethod === "Online"
                 ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
                 : isClean
@@ -337,10 +504,135 @@ const Bill = () => {
                 : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
             }`}
           >
-            <MdCreditCard size={16} />
-            <span>Online / Card</span>
+            <MdCreditCard size={15} />
+            <span>Card</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSelectSplit}
+            className={`py-2 px-2 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1 ${
+              paymentMethod === "Split"
+                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
+                : isClean
+                ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
+            }`}
+          >
+            <MdCallSplit size={15} />
+            <span>Split Bill</span>
           </button>
         </div>
+
+        {/* Split Payment Allocation Panel */}
+        {paymentMethod === "Split" && (
+          <div
+            className={`p-3 rounded-xl border text-xs space-y-2.5 transition animate-fadeIn ${
+              isClean
+                ? "bg-amber-50/70 border-amber-200/90 text-slate-800"
+                : "bg-amber-950/20 border-amber-500/30 text-amber-100"
+            }`}
+          >
+            <div className="flex items-center justify-between font-bold pb-1 border-b border-amber-500/20">
+              <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <MdCallSplit size={14} /> Multi-Instrument Split
+              </span>
+              <button
+                type="button"
+                onClick={handleAddSplitRow}
+                className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+              >
+                <MdAdd size={14} /> Add Line
+              </button>
+            </div>
+
+            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {splitRows.map((row, idx) => (
+                <div key={row.id} className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400 font-mono w-3">{idx + 1}</span>
+                  <select
+                    value={row.method}
+                    onChange={(e) => handleSplitRowChange(row.id, "method", e.target.value)}
+                    className={`text-xs py-1 px-1.5 rounded-lg border font-medium outline-hidden ${
+                      isClean
+                        ? "bg-white border-slate-200 text-slate-800"
+                        : "bg-slate-900 border-slate-700 text-slate-200"
+                    }`}
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="Online">Online</option>
+                    <option value="Digital Wallet">Digital Wallet</option>
+                  </select>
+
+                  <div className="relative flex-1">
+                    <span className="absolute left-2 top-1.5 text-[10px] text-slate-400 font-mono">Rs</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder="0.00"
+                      value={row.amount}
+                      onChange={(e) => handleSplitRowChange(row.id, "amount", e.target.value)}
+                      className={`w-full text-xs py-1 pl-7 pr-2 rounded-lg border font-mono font-bold outline-hidden ${
+                        isClean
+                          ? "bg-white border-slate-200 text-slate-900 focus:border-amber-500"
+                          : "bg-slate-900 border-slate-700 text-white focus:border-amber-400"
+                      }`}
+                    />
+                  </div>
+
+                  {splitRows.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSplitRow(row.id)}
+                      className="text-red-500 hover:text-red-600 p-1"
+                      title="Remove line"
+                    >
+                      <MdDelete size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Split Balance Summary */}
+            <div className="pt-1.5 border-t border-amber-500/20 flex items-center justify-between text-[11px]">
+              <div>
+                <span>Allocated: </span>
+                <span className="font-mono font-bold">Rs {splitTotal.toFixed(2)}</span>
+              </div>
+              {Math.abs(splitDifference) <= 0.05 ? (
+                <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                  <MdCheckCircle size={13} />
+                  <span>Balanced</span>
+                </div>
+              ) : splitDifference > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                    Left: Rs {splitDifference.toFixed(2)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lastId = splitRows[splitRows.length - 1].id;
+                      const cur = Number(splitRows[splitRows.length - 1].amount) || 0;
+                      handleSplitRowChange(lastId, "amount", (cur + splitDifference).toFixed(2));
+                    }}
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 hover:bg-amber-500/30"
+                  >
+                    Auto Fill
+                  </button>
+                </div>
+              ) : (
+                <span className="text-rose-500 font-semibold">
+                  Over: Rs {Math.abs(splitDifference).toFixed(2)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
 
         {/* Action Buttons: Print Receipt & Place Order */}
         <div className="grid grid-cols-2 gap-2 pt-2">
@@ -388,6 +680,14 @@ const Bill = () => {
           onClose={() => setShowPendingReceipt(false)}
         />
       )}
+
+      <CustomerInfoModal
+        isOpen={isCustomerModalOpen}
+        onClose={() => setIsCustomerModalOpen(false)}
+        initialData={customerData}
+        title="Required Customer Details"
+        tableInfo={customerData.table}
+      />
     </>
   );
 };

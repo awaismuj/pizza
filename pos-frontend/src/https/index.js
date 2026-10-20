@@ -15,6 +15,11 @@ export const updateTable = ({ tableId, ...tableData }) =>
   axiosWrapper.put(`/api/table/${tableId}`, tableData);
 export const deleteTable = (tableId) =>
   axiosWrapper.delete(`/api/table/${tableId}`);
+export const reserveTable = ({ tableId, ...data }) =>
+  axiosWrapper.post(`/api/table/${tableId}/reserve`, data);
+export const updateReservationStatus = ({ tableId, reservationId, status }) =>
+  axiosWrapper.patch(`/api/table/${tableId}/reserve/${reservationId}`, { status });
+
 
 // Settings Endpoints
 export const getSettings = () => axiosWrapper.get("/api/settings");
@@ -126,6 +131,10 @@ export const updateInventoryItem = ({ inventoryId, ...data }) =>
 export const adjustInventoryItem = ({ inventoryId, quantityChange, note }) =>
   axiosWrapper.patch(`/api/inventory/${inventoryId}/adjust`, { quantityChange, note });
 export const deleteInventoryItem = (inventoryId) => axiosWrapper.delete(`/api/inventory/${inventoryId}`);
+export const recordInventoryWastage = (data) => axiosWrapper.post("/api/inventory/wastage", data);
+export const getInventoryWastage = () => axiosWrapper.get("/api/inventory/wastage");
+
+
 
 // Expense Endpoints
 export const getExpenses = (date) => axiosWrapper.get("/api/expense", { params: { date } });
@@ -221,4 +230,21 @@ export const updateSystemUser = ({ id, ...data }) => axiosWrapper.put(`/api/user
 export const deleteSystemUser = (id) => axiosWrapper.delete(`/api/user/${id}`);
 export const updateUserPermissions = ({ userId, canAccessERP, role, permissions }) =>
   axiosWrapper.patch(`/api/user/permissions/${userId}`, { canAccessERP, role, permissions });
+
+// Shift & Cash Drawer Float Endpoints
+export const getCurrentShift = () => axiosWrapper.get("/api/shift/current");
+export const openShift = (data) => axiosWrapper.post("/api/shift/open", data);
+export const closeShift = (data) => axiosWrapper.post("/api/shift/close", data);
+export const getShiftHistory = () => axiosWrapper.get("/api/shift/history");
+
+// Customer Loyalty & CRM Endpoints
+export const lookupCustomerByPhone = (phone) => axiosWrapper.get("/api/customer/lookup", { params: { phone } });
+export const getAllCustomers = () => axiosWrapper.get("/api/customer/all");
+
+// ESC/POS Thermal Printing Endpoints
+export const printReceiptRaw = (data) => axiosWrapper.post("/api/print/receipt", data);
+export const printKitchenRaw = (data) => axiosWrapper.post("/api/print/kitchen", data);
+export const testPrinterConnection = (data) => axiosWrapper.post("/api/print/test", data);
+
+
 

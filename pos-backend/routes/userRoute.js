@@ -12,11 +12,14 @@ const {
     deleteUser,
     updateUserPermissions,
 } = require("../controllers/userController");
+const createHttpError = require("http-errors");
 const { isVerifiedUser } = require("../middlewares/tokenVerification");
 const router = express.Router();
 
-// Authentication Routes
-router.route("/register").post(register);
+// Authentication Routes (Public self-registration is disabled: accounts provisioned by Manager/Owner)
+router.route("/register").post((req, res, next) => {
+    return next(createHttpError(403, "Public employee self-registration is disabled. Staff accounts must be created by the Hotel Manager or Owner in the Enterprise ERP Portal."));
+});
 router.route("/login").post(login);
 router.route("/logout").post(isVerifiedUser, logout);
 

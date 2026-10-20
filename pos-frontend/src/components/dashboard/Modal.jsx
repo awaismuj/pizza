@@ -24,7 +24,8 @@ import { FoodIcon, VECTOR_FOOD_ICONS } from "../../utils/foodIcons";
 
 const UNIT_OPTIONS = ["pcs", "g", "kg", "ml", "l"];
 const EMOJI_OPTIONS = ["🍕", "🍔", "🌯", "🍟", "🥤", "🍗", "🥪", "🥗", "🍰", "☕"];
-const POPULAR_TAGS = ["Spicy", "Chef Special", "Bestseller", "New", "Cheese Burst", "Vegetarian", "Crispy", "Popular"];
+const POPULAR_TAGS = ["Vegetarian", "Spicy", "Chef Special", "Gluten-Free", "Kids Friendly", "Bestseller", "New", "Cheese Burst", "Crispy"];
+
 
 // Usual pizza recipe — auto-filled the first time a NEW dish is put into a
 // category whose name contains "pizza" (see applyPizzaDefaults below), so
@@ -80,8 +81,13 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
     brand: initialData?.brand ?? "In-House",
     isFeatured: Boolean(initialData?.isFeatured),
     status: initialData?.status ?? "active",
-    tags: Array.isArray(initialData?.tags) ? initialData.tags : (initialData?.tags ? [initialData.tags] : []),
+    tags: Array.isArray(initialData?.tags) && initialData.tags.length > 0
+      ? initialData.tags
+      : Array.isArray(initialData?.dietaryTags)
+      ? initialData.dietaryTags
+      : (initialData?.tags ? [initialData.tags] : []),
     isInventoryTracked: Boolean(initialData?.isInventoryTracked),
+
     // A dish whose stock rows are all counted in items/pieces (e.g. Coke
     // 1.5 Liter x 1) reopens in "Single item" mode; anything using weight or
     // volume units (g, kg, ml, l) reopens in "Recipe" mode.
@@ -589,7 +595,11 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
         isFeatured: formData.isFeatured,
         status: formData.status,
         tags: formData.tags,
+        dietaryTags: (formData.tags || []).filter((t) =>
+          ["Vegetarian", "Spicy", "Chef Special", "Gluten-Free", "Kids Friendly"].includes(t)
+        ),
         category: formData.category,
+
         image: formData.image,
         icon: formData.icon,
         isInventoryTracked: formData.isInventoryTracked,

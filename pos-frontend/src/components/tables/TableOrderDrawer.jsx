@@ -50,14 +50,23 @@ const TableOrderDrawer = ({ isOpen, onClose, table, onFreeTable }) => {
     });
 
     // Populate customer slice with precise active table and customer info
+    const isCombined = table.isCombined || Boolean(table.combinedTableNos);
+    const stationLabel = table.combinedTableNos || table.tableNo;
+
     dispatch(
       loadTableOrder({
-        orderId: currentOrder?.orderNumber ? `#${currentOrder.orderNumber}` : `Table ${table.tableNo}`,
+        orderId: currentOrder?.orderNumber ? `#${currentOrder.orderNumber}` : `Table ${stationLabel}`,
         existingOrderId: currentOrder?._id || null,
-        customerName: customer?.name || `Table ${table.tableNo} Guest`,
+        customerName: customer?.name || `Table ${stationLabel} Guest`,
         customerPhone: customer?.phone || "",
-        guests: customer?.guests || table.seats || 2,
-        table: { tableId: table._id, tableNo: table.tableNo },
+        guests: customer?.guests || table.combinedTotalSeats || table.seats || 2,
+        table: {
+          tableId: table._id,
+          tableNo: stationLabel,
+          combinedTableNos: table.combinedTableNos || "",
+          isCombined: isCombined,
+          totalSeats: table.combinedTotalSeats || table.seats,
+        },
       })
     );
 
@@ -73,6 +82,10 @@ const TableOrderDrawer = ({ isOpen, onClose, table, onFreeTable }) => {
       printReceipt(currentOrder);
     }
   };
+
+  const isCombined = table.isCombined || Boolean(table.combinedTableNos);
+  const stationLabel = table.combinedTableNos || table.tableNo;
+  const capacityLabel = table.combinedTotalSeats || table.seats;
 
   const drawerContent = (
     <div
@@ -96,20 +109,30 @@ const TableOrderDrawer = ({ isOpen, onClose, table, onFreeTable }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-base shadow-2xs border border-amber-500/20">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shadow-2xs border ${
+              isCombined
+                ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/25"
+                : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"
+            }`}>
               T{table.tableNo}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
-                  Table {table.tableNo} Order Details
+                  {isCombined ? `Station: Table ${stationLabel}` : `Table ${table.tableNo} Order`}
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                  {table.status}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                  isCombined
+                    ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                }`}>
+                  {isCombined ? "🔗 Joined" : table.status}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Capacity: {table.seats} Seats · Active Table Station
+                {isCombined
+                  ? `Combined Capacity: ${capacityLabel} Seats · Multi-Table Station`
+                  : `Capacity: ${table.seats} Seats · Active Table Station`}
               </p>
             </div>
           </div>

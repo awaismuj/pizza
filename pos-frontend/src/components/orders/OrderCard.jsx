@@ -139,7 +139,9 @@ const OrderCard = ({ order }) => {
               ) : (
                 <>
                   <MdTableBar size={13} className="text-emerald-500" />
-                  <span>Table {order.table?.tableNo ?? "—"}</span>
+                  <span>
+                    Table {order.combinedTableNos ? `${order.combinedTableNos} (Combined)` : order.table?.tableNo ?? "—"}
+                  </span>
                 </>
               )}
             </div>

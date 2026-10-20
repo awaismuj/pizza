@@ -187,7 +187,8 @@ const sanitizeVariantIngredients = (variantIngredients, variants) => {
 
 const addDish = async (req, res, next) => {
   try {
-    const { name, price, originalPrice, description, variants, category, image, icon, inventoryItem, inventoryItemQty, isInventoryTracked, ingredients, variantIngredients } = req.body;
+    const { name, price, originalPrice, description, variants, category, image, icon, inventoryItem, inventoryItemQty, isInventoryTracked, ingredients, variantIngredients, dietaryTags } = req.body;
+
 
     if (!name || !name.trim()) {
       const error = createHttpError(400, "Please provide dish name!");
@@ -234,9 +235,11 @@ const addDish = async (req, res, next) => {
       isInventoryTracked: trackedFlag,
       ingredients: trackedFlag && Array.isArray(ingredients) ? ingredients : [],
       variantIngredients: trackedFlag ? sanitizeVariantIngredients(variantIngredients, sanitizedVariants) : [],
+      dietaryTags: Array.isArray(dietaryTags) ? dietaryTags : [],
     };
 
     const dish = await Dish.create(dishData);
+
 
     const populatedDish = await dish.populate({ path: "category", select: "name" });
 
@@ -287,7 +290,7 @@ const reorderDishes = async (req, res, next) => {
 const updateDish = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, price, originalPrice, description, variants, category, image, icon, inventoryItem, inventoryItemQty, isInventoryTracked, ingredients, variantIngredients } = req.body;
+    const { name, price, originalPrice, description, variants, category, image, icon, inventoryItem, inventoryItemQty, isInventoryTracked, ingredients, variantIngredients, dietaryTags } = req.body;
 
     if (!id) {
       const error = createHttpError(400, "Dish id is required!");
@@ -328,7 +331,9 @@ const updateDish = async (req, res, next) => {
       isInventoryTracked: trackedFlag,
       ingredients: trackedFlag && Array.isArray(ingredients) ? ingredients : [],
       variantIngredients: trackedFlag ? sanitizeVariantIngredients(variantIngredients, sanitizedVariants) : [],
+      ...(Array.isArray(dietaryTags) ? { dietaryTags } : {}),
     };
+
 
     // Remove undefined so we don't overwrite unintentionally
     Object.keys(updateData).forEach((k) => updateData[k] === undefined && delete updateData[k]);
