@@ -12,7 +12,7 @@ const ACTIONS = [
 const QuickActions = () => {
   const navigate = useNavigate();
   return (
-    <section aria-label="Quick actions" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section aria-label="Quick actions" className="grid grid-cols-2 gap-3 lg:sticky lg:top-24 lg:grid-cols-1 lg:gap-2.5">
       {ACTIONS.map((action) => (
         <button
           key={action.to}
