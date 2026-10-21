@@ -4,6 +4,7 @@ const config = require("../config/config");
 const { normalizeByoConfig } = require("../utils/byoDiscount");
 const { publicPaymentsShape, paymentsConfig, cleanText } = require("../utils/paymentUtils");
 const { normalizePrepSettings, mergePrepSettings } = require("../utils/prepTimer");
+const { normalizePasswordPolicy } = require("../utils/passwordPolicy");
 
 const SETTINGS_KEY = "global";
 
@@ -12,6 +13,7 @@ const publicShape = (settings) => ({
   buildYourOwnDeal: normalizeByoConfig(settings.buildYourOwnDeal),
   payments: publicPaymentsShape(settings),
   orderPrep: normalizePrepSettings(settings.orderPrep),
+  passwordPolicy: normalizePasswordPolicy(settings.passwordPolicy),
 });
 
 // Seeds from the old static env default (config.TAX_RATE_PERCENT) the very
@@ -46,7 +48,7 @@ const getSettings = async (req, res, next) => {
 // "apply everywhere".
 const updateSettings = async (req, res, next) => {
   try {
-    const { taxRatePercent, buildYourOwnDeal, payments, orderPrep } = req.body;
+    const { taxRatePercent, buildYourOwnDeal, payments, orderPrep, passwordPolicy } = req.body;
     const settings = await getOrCreateSettings();
     const messages = [];
 
@@ -135,6 +137,33 @@ const updateSettings = async (req, res, next) => {
       if (merged.error) return next(createHttpError(400, merged.error));
       settings.orderPrep = merged.settings;
       messages.push("Order preparation settings saved!");
+    }
+
+    if (passwordPolicy !== undefined) {
+      if (!passwordPolicy || typeof passwordPolicy !== "object" || Array.isArray(passwordPolicy)) {
+        return next(createHttpError(400, "Invalid password policy settings."));
+      }
+      const current = normalizePasswordPolicy(settings.passwordPolicy);
+      const nextPolicy = { ...current };
+
+      if (passwordPolicy.minLength !== undefined) {
+        const minLength = Number(passwordPolicy.minLength);
+        if (!Number.isInteger(minLength) || minLength < 8 || minLength > 64) {
+          return next(createHttpError(400, "Minimum password length must be a whole number from 8 to 64."));
+        }
+        nextPolicy.minLength = minLength;
+      }
+
+      for (const flag of ["requireUppercase", "requireLowercase", "requireNumber", "requireSymbol"]) {
+        if (passwordPolicy[flag] === undefined) continue;
+        if (typeof passwordPolicy[flag] !== "boolean") {
+          return next(createHttpError(400, "Password policy requirements must be enabled or disabled."));
+        }
+        nextPolicy[flag] = passwordPolicy[flag];
+      }
+
+      settings.passwordPolicy = nextPolicy;
+      messages.push("Password policy updated!");
     }
 
     if (messages.length === 0) {

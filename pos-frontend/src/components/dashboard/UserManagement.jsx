@@ -1,7 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { enqueueSnackbar } from "notistack";
+import {
+  DEFAULT_PASSWORD_POLICY,
+  describePasswordPolicy,
+  getPasswordPolicyError,
+} from "../../utils/passwordPolicy";
 import {
   changeManagedUserRole,
   createManagedUser,
@@ -9,12 +14,14 @@ import {
   getManagedRoles,
   getManagedUsers,
   getPermissionCatalog,
+  getSettings,
   getUserAuditLogs,
   resetManagedUserPassword,
   saveManagedRole,
   updateManagedUser,
   updateManagedUserPermissions,
   updateManagedUserStatus,
+  updateSettings,
 } from "../../https";
 
 const emptyForm = {
@@ -34,7 +41,6 @@ const emptyForm = {
 const errorMessage = (error) => error.response?.data?.message || "The request could not be completed.";
 const keyOf = (role) => String(role || "").trim().toLowerCase();
 const formatDate = (value) => value ? new Date(value).toLocaleString() : "Never";
-
 const UserManagement = () => {
   const queryClient = useQueryClient();
   const { _id: currentUserId, role: currentRole, permissions = [] } = useSelector((state) => state.user);
@@ -53,6 +59,7 @@ const UserManagement = () => {
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [confirmTemporaryPassword, setConfirmTemporaryPassword] = useState("");
   const [roleDraft, setRoleDraft] = useState({ name: "", permissions: [] });
+  const [passwordPolicyDraft, setPasswordPolicyDraft] = useState(DEFAULT_PASSWORD_POLICY);
 
   const usersQuery = useQuery({
     queryKey: ["managed-users", search, roleFilter, statusFilter, page],
@@ -75,6 +82,10 @@ const UserManagement = () => {
     queryFn: getPermissionCatalog,
     enabled: can("users.view"),
   });
+  const settingsQuery = useQuery({
+    queryKey: ["settings"],
+    queryFn: getSettings,
+  });
   const auditQuery = useQuery({
     queryKey: ["user-audit-log"],
     queryFn: () => getUserAuditLogs({ page: 1, limit: 50 }),
@@ -86,7 +97,12 @@ const UserManagement = () => {
   const roles = rolesQuery.data?.data?.data || [];
   const catalog = permissionsQuery.data?.data?.data || [];
   const auditEvents = auditQuery.data?.data?.data || [];
+  const passwordPolicy = settingsQuery.data?.data?.data?.passwordPolicy || DEFAULT_PASSWORD_POLICY;
   const rolesByKey = useMemo(() => new Map(roles.map((item) => [keyOf(item.name), item])), [roles]);
+
+  useEffect(() => {
+    setPasswordPolicyDraft(passwordPolicy);
+  }, [passwordPolicy]);
 
   const refreshUsers = () => queryClient.invalidateQueries({ queryKey: ["managed-users"] });
   const saveUserMutation = useMutation({
@@ -158,6 +174,14 @@ const UserManagement = () => {
     },
     onError: (error) => enqueueSnackbar(errorMessage(error), { variant: "error" }),
   });
+  const passwordPolicyMutation = useMutation({
+    mutationFn: (policy) => updateSettings({ passwordPolicy: policy }),
+    onSuccess: async () => {
+      enqueueSnackbar("Password policy saved.", { variant: "success" });
+      await queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (error) => enqueueSnackbar(errorMessage(error), { variant: "error" }),
+  });
 
   const rolePermissions = (roleName) => rolesByKey.get(keyOf(roleName))?.permissions || [];
   const permissionOverrides = (selected, baseline) => ({
@@ -215,8 +239,9 @@ const UserManagement = () => {
       saveUserMutation.mutate(common);
       return;
     }
-    if (form.password.length < 12) {
-      enqueueSnackbar("Use at least 12 characters for the password.", { variant: "error" });
+    const passwordError = getPasswordPolicyError(form.password, passwordPolicy);
+    if (passwordError) {
+      enqueueSnackbar(passwordError, { variant: "error" });
       return;
     }
     const baseline = rolePermissions(form.role);
@@ -353,7 +378,7 @@ const UserManagement = () => {
         <form onSubmit={submitUser} className="space-y-6 rounded-xl border border-[#333] bg-[#1f1f1f] p-5 sm:p-7">
           <div>
             <h3 className="text-xl font-bold">{editingUser ? "Edit Employee" : "Create New User"}</h3>
-            <p className="mt-1 text-sm text-gray-400">Passwords are hashed on the server and are never returned to the browser.</p>
+            <p className="mt-1 text-sm text-gray-400">Password policy: {describePasswordPolicy(passwordPolicy)}. Passwords are hashed on the server and are never returned to the browser.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
@@ -434,13 +459,64 @@ const UserManagement = () => {
         <div className="space-y-4 rounded-xl border border-[#333] bg-[#1f1f1f] p-5 sm:p-7">
           <h3 className="text-xl font-bold">Account Security</h3>
           <ul className="list-disc space-y-2 pl-5 text-sm text-gray-300">
-            <li>Passwords require at least 12 characters, including uppercase, lowercase, a number, and a symbol.</li>
+            <li>Current password policy: {describePasswordPolicy(passwordPolicy)}.</li>
             <li>Passwords are hashed with the existing bcrypt authentication flow; hashes and current passwords are never exposed.</li>
             <li>Temporary passwords require a password change before other protected APIs are available.</li>
             <li>Sessions expire after 24 hours. Deactivation, role changes, permission changes, and password resets invalidate existing sessions.</li>
             <li>Only an existing active Admin can be promoted to Super Admin by an operator-run setup command. Admin accounts cannot manage the owner account.</li>
           </ul>
-          {!isOwner && <p className="rounded-lg border border-amber-800 bg-amber-950/40 p-3 text-sm text-amber-200">Owner-level security settings are available only to the Super Admin.</p>}
+          {can("settings.manage") && (
+            <div className="space-y-4 rounded-lg border border-[#383838] bg-[#191919] p-4">
+              <div>
+                <h4 className="font-semibold">Password policy</h4>
+                <p className="mt-1 text-xs text-gray-400">This policy applies to signups, new user accounts, password resets, and password changes.</p>
+              </div>
+              <label className="block max-w-xs space-y-1.5 text-sm">
+                <span>Minimum length (8–64)</span>
+                <input
+                  type="number"
+                  min="8"
+                  max="64"
+                  value={passwordPolicyDraft.minLength}
+                  onChange={(event) => setPasswordPolicyDraft({
+                    ...passwordPolicyDraft,
+                    minLength: Number(event.target.value),
+                  })}
+                  className="w-full rounded-lg border border-[#444] bg-[#171717] px-3 py-2.5"
+                />
+              </label>
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                {[
+                  ["requireUppercase", "Require an uppercase letter"],
+                  ["requireLowercase", "Require a lowercase letter"],
+                  ["requireNumber", "Require a number"],
+                  ["requireSymbol", "Require a symbol"],
+                ].map(([field, label]) => (
+                  <label key={field} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={passwordPolicyDraft[field]}
+                      onChange={(event) => setPasswordPolicyDraft({
+                        ...passwordPolicyDraft,
+                        [field]: event.target.checked,
+                      })}
+                      className="accent-yellow-400"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <button
+                type="button"
+                disabled={passwordPolicyMutation.isPending || settingsQuery.isLoading}
+                onClick={() => passwordPolicyMutation.mutate(passwordPolicyDraft)}
+                className="rounded-lg bg-yellow-400 px-4 py-2 font-semibold text-black disabled:opacity-50"
+              >
+                {passwordPolicyMutation.isPending ? "Saving…" : "Save Password Policy"}
+              </button>
+            </div>
+          )}
+          {!isOwner && <p className="rounded-lg border border-amber-800 bg-amber-950/40 p-3 text-sm text-amber-200">Managing the Super Admin account remains restricted to the owner.</p>}
         </div>
       )}
 
@@ -473,10 +549,15 @@ const UserManagement = () => {
               }} className="rounded-lg bg-yellow-400 px-4 py-2 font-semibold text-black">Save Permissions</button>
             </div>}
             {dialog === "password" && <div className="space-y-3">
-              <p className="text-sm text-gray-400">Set a temporary password. The employee will be required to change it at their next sign-in.</p>
-              <input type="password" autoComplete="new-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} placeholder="Temporary password (12+ characters)" className="w-full rounded-lg border border-[#444] bg-[#171717] px-3 py-2.5" />
+              <p className="text-sm text-gray-400">Set a temporary password ({describePasswordPolicy(passwordPolicy)}). The employee will be required to change it at their next sign-in.</p>
+              <input type="password" autoComplete="new-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} placeholder="Temporary password" className="w-full rounded-lg border border-[#444] bg-[#171717] px-3 py-2.5" />
               <input type="password" autoComplete="new-password" value={confirmTemporaryPassword} onChange={(event) => setConfirmTemporaryPassword(event.target.value)} placeholder="Confirm temporary password" className="w-full rounded-lg border border-[#444] bg-[#171717] px-3 py-2.5" />
               <button disabled={passwordMutation.isPending} onClick={() => {
+                const passwordError = getPasswordPolicyError(temporaryPassword, passwordPolicy);
+                if (passwordError) {
+                  enqueueSnackbar(passwordError, { variant: "error" });
+                  return;
+                }
                 if (!window.confirm(`Reset ${selectedUser.name}'s password? They will need to change it at next login.`)) return;
                 passwordMutation.mutate({ userId: selectedUser._id, password: temporaryPassword, confirmPassword: confirmTemporaryPassword });
               }} className="rounded-lg bg-yellow-400 px-4 py-2 font-semibold text-black disabled:opacity-50">Reset Password</button>
