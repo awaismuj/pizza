@@ -313,6 +313,20 @@ const updateDish = async (req, res, next) => {
 
     const trackedFlag = isInventoryTracked === true || isInventoryTracked === "true";
     const sanitizedVariants = sanitizeVariants(variants);
+    const existingDish = await Dish.findById(id);
+    if (!existingDish) return next(createHttpError(404, "Dish not found!"));
+    const pricesChanged =
+      existingDish.price !== Number(price) ||
+      existingDish.originalPrice !== (originalPrice ? Number(originalPrice) : 0) ||
+      JSON.stringify((existingDish.variants || []).map(({ size, price: variantPrice, originalPrice: variantOriginal }) =>
+        [size, variantPrice, variantOriginal || 0]
+      )) !== JSON.stringify(sanitizedVariants.map(({ size, price: variantPrice, originalPrice: variantOriginal }) =>
+        [size, variantPrice, variantOriginal || 0]
+      ));
+    if (pricesChanged && !req.permissions?.includes("menu.changePrice")) {
+      return next(createHttpError(403, "You do not have permission to change dish prices."));
+    }
+    if (pricesChanged) req.auditActionOverride = "dish.price.changed";
 
     const updateData = {
       name: name.trim(),

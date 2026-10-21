@@ -16,12 +16,12 @@ const {
 } = require("../utils/assetAccounting");
 
 const VALID_ROLES = ["admin", "accountant", "asset manager", "read only"];
-const FINANCIAL_ROLES = ["admin", "accountant"];
 const ASSET_STATUSES = ["Active", "Archived", "Sold", "Disposed", "Damaged", "Lost"];
 const validId = (value) => mongoose.Types.ObjectId.isValid(value);
 const normalizedRole = (req) => String(req.user?.role || "").toLowerCase();
-const isFinancialUser = (req) => FINANCIAL_ROLES.includes(normalizedRole(req));
-const isReadOnlyUser = (req) => normalizedRole(req) === "read only";
+const isFinancialUser = (req) => req.permissions?.includes("assets.financial") || false;
+const canViewAssetValuations = (req) =>
+  isFinancialUser(req) || req.permissions?.includes("assets.viewValuation") || false;
 const actorFor = (req) => ({
   actor: req.user?._id || null,
   actorName: req.user?.name || "Unknown user",
@@ -64,7 +64,7 @@ const decorateAssets = async (assets, req, asOf = new Date()) => {
     if (!byAsset.has(id)) byAsset.set(id, []);
     byAsset.get(id).push(row);
   });
-  const canSeeFinance = isFinancialUser(req) || normalizedRole(req) === "read only";
+  const canSeeFinance = canViewAssetValuations(req);
   return assets.map((asset) => {
     const raw = asset.toObject ? asset.toObject() : asset;
     const values = bookValueAt({
@@ -147,7 +147,7 @@ const getAssets = async (req, res, next) => {
     const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit) || 20)));
     const filter = parseFilterQuery(req.query);
     const sortableFields = ["purchaseDate", "name", "acquisitionCost", "status", "category", "location"];
-    const requestedSort = req.query.sort === "acquisitionCost" && !isFinancialUser(req) && !isReadOnlyUser(req)
+    const requestedSort = req.query.sort === "acquisitionCost" && !canViewAssetValuations(req)
       ? "purchaseDate"
       : req.query.sort;
     const sortField = sortableFields.includes(requestedSort) ? requestedSort : "purchaseDate";
@@ -960,7 +960,7 @@ const getDashboard = async (req, res, next) => {
         status: entry.status,
       })),
     };
-    if (!isFinancialUser(req) && normalizedRole(req) !== "read only") {
+    if (!canViewAssetValuations(req)) {
       result.originalPurchaseCost = null;
       result.accumulatedDepreciation = null;
       result.currentBookValue = null;

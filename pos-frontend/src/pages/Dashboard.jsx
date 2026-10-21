@@ -17,6 +17,7 @@ import TaxManager from "../components/dashboard/TaxManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import FulfillmentManager from "../components/dashboard/FulfillmentManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
+import UserManagement from "../components/dashboard/UserManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
 import MusicPlayer from "../components/shared/MusicPlayer";
 import {
@@ -43,20 +44,43 @@ const buttons = [
 ];
 
 const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Delivery & Pickup", "Music", "Assets"];
-const assetRoles = ["admin", "accountant", "asset manager", "read only"];
-const staffRoles = ["admin", "cashier", "hr manager", "payroll manager", "accountant"];
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
-  const role = useSelector((state) => state.user.role);
-  const isAdmin = String(role || "").toLowerCase() === "admin";
-  const canSeeStaff = staffRoles.includes(String(role || "").toLowerCase());
-  const visibleTabs = isAdmin
+  const { role, permissions = [] } = useSelector((state) => state.user);
+  const isAdmin = ["admin", "super admin"].includes(String(role || "").toLowerCase());
+  const can = (permission) => permissions.includes(permission);
+  const canSeeStaff = can("staff.view");
+  const roleTabs = isAdmin
     ? tabs
     : [
       ...(canSeeStaff ? ["Staff"] : []),
-      ...(assetRoles.includes(String(role || "").toLowerCase()) ? ["Assets"] : []),
+      ...(can("assets.view") ? ["Assets"] : []),
+      ...(can("inventory.view") ? ["Inventory"] : []),
+      ...(can("menu.view") ? ["Menu"] : []),
+      ...(can("deals.manage") ? ["Deals"] : []),
+      ...(can("hero.manage") ? ["Hero Slider"] : []),
+      ...(can("menu.edit") ? ["Build Your Own"] : []),
+      ...(can("orders.view") ? ["Orders"] : []),
+      ...(can("payments.process") ? ["Payments"] : []),
+      ...(can("finance.view") && can("expenses.view") ? ["Profit"] : []),
+      ...(can("settings.manage") ? ["Tax"] : []),
+      ...(can("orders.update") ? ["Delivery & Pickup"] : []),
+      ...(can("settings.view") ? ["Music"] : []),
     ];
+  const tabPermissions = {
+    Metrics: "dashboard.view", Orders: "orders.view", Payments: "payments.process",
+    Menu: "menu.view", Deals: "deals.manage", "Hero Slider": "hero.manage",
+    Profit: "finance.view", Inventory: "inventory.view", Staff: "staff.view",
+    "Build Your Own": "menu.edit", Tax: "settings.manage",
+    "Delivery & Pickup": "orders.update", Music: "settings.view", Assets: "assets.view",
+  };
+  const visibleTabs = [
+    ...roleTabs.filter((tab) => can(tabPermissions[tab]) && (tab !== "Metrics" ||
+      (can("orders.view") && can("menu.view") && can("tables.view"))) &&
+      (tab !== "Profit" || can("expenses.view"))),
+    ...(can("users.view") ? ["User & Employees"] : []),
+  ];
 
   useEffect(() => {
     document.title = "POS | Admin Dashboard";
@@ -69,7 +93,7 @@ const Dashboard = () => {
   // low-stock popup's "Restock now" button).
   const [searchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
-  const defaultTab = isAdmin ? "Metrics" : visibleTabs[0] || "Metrics";
+  const defaultTab = visibleTabs.includes("Metrics") ? "Metrics" : visibleTabs[0] || "Metrics";
   const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
   useEffect(() => {
     setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
@@ -82,14 +106,14 @@ const Dashboard = () => {
     queryKey: ["categories"],
     queryFn: getCategories,
     placeholderData: keepPreviousData,
-    enabled: isAdmin,
+    enabled: can("menu.view"),
   });
 
   const { data: dishesData } = useQuery({
     queryKey: ["dishes"],
     queryFn: getDishes,
     placeholderData: keepPreviousData,
-    enabled: isAdmin,
+    enabled: can("menu.view"),
   });
 
   const { data: inventoryData } = useQuery({
@@ -97,7 +121,7 @@ const Dashboard = () => {
     queryFn: getInventoryItems,
     placeholderData: keepPreviousData,
     refetchInterval: 15000, // stock changes with every order
-    enabled: isAdmin,
+    enabled: can("inventory.view"),
   });
 
   const categories = categoriesData?.data?.data ?? [];
@@ -255,6 +279,7 @@ const Dashboard = () => {
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
     if (destination.droppableId === "categories") {
+      if (!can("categories.manage")) return;
       const newOrder = Array.from(categories);
       const [moved] = newOrder.splice(source.index, 1);
       newOrder.splice(destination.index, 0, moved);
@@ -263,6 +288,7 @@ const Dashboard = () => {
     }
 
     if (destination.droppableId === "dishes") {
+      if (!can("menu.edit")) return;
       const newOrder = Array.from(dishes);
       const [moved] = newOrder.splice(source.index, 1);
       newOrder.splice(destination.index, 0, moved);
@@ -329,8 +355,12 @@ const Dashboard = () => {
   return (
     <div className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] pb-10">
       <div className="container mx-auto flex items-center justify-between py-14 px-6 md:px-4 flex-wrap gap-4">
-        {isAdmin && <div className="flex items-center gap-3 flex-wrap">
-          {buttons.map(({ label, icon, action }) => {
+        {(can("tables.manage") || can("categories.manage") || can("menu.create")) && <div className="flex items-center gap-3 flex-wrap">
+          {buttons.filter(({ action }) =>
+            (action === "table" && can("tables.manage")) ||
+            (action === "category" && can("categories.manage")) ||
+            (action === "dishes" && can("menu.create"))
+          ).map(({ label, icon, action }) => {
             return (
               <button
                 key={action}
@@ -371,7 +401,8 @@ const Dashboard = () => {
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && canSeeStaff && <StaffManagement />}
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
-      {activeTab === "Assets" && assetRoles.includes(String(role || "").toLowerCase()) && <AssetManagement role={role} />}
+      {activeTab === "Assets" && can("assets.view") && <AssetManagement role={role} />}
+      {activeTab === "User & Employees" && can("users.view") && <UserManagement />}
       {activeTab === "Menu" && (
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -408,18 +439,18 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <div className="flex gap-2 shrink-0">
-                          <button
+                          {can("categories.manage") && <button
                             onClick={() => handleOpenModal("category", category)}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
                           >
                             Edit
-                          </button>
-                          <button
+                          </button>}
+                          {can("categories.manage") && <button
                             onClick={() => handleDeleteCategory(category)}
                             className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
                           >
                             Delete
-                          </button>
+                          </button>}
                         </div>
                       </div>
                     ))
@@ -434,7 +465,7 @@ const Dashboard = () => {
                     <div className="space-y-3" ref={provided.innerRef} {...provided.droppableProps}>
                       {categories.length > 0 ? (
                         categories.map((category, index) => (
-                          <Draggable key={category._id} draggableId={category._id} index={index}>
+                          <Draggable key={category._id} draggableId={category._id} index={index} isDragDisabled={!can("categories.manage")}>
                             {(providedDraggable) => (
                               <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-lg bg-[#1a1a1a] p-3 gap-2">
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -451,18 +482,18 @@ const Dashboard = () => {
                                   </div>
                                 </div>
                                 <div className="flex gap-2 shrink-0">
-                                  <button
+                                  {can("categories.manage") && <button
                                     onClick={() => handleOpenModal("category", category)}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
                                   >
                                     Edit
-                                  </button>
-                                  <button
+                                  </button>}
+                                  {can("categories.manage") && <button
                                     onClick={() => handleDeleteCategory(category)}
                                     className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
                                   >
                                     Delete
-                                  </button>
+                                  </button>}
                                 </div>
                               </div>
                             )}
@@ -517,18 +548,18 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <div className="flex gap-2 shrink-0">
-                          <button
+                          {can("menu.edit") && <button
                             onClick={() => handleOpenModal("dishes", dish)}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
                           >
                             Edit
-                          </button>
-                          <button
+                          </button>}
+                          {can("menu.delete") && <button
                             onClick={() => handleDeleteDish(dish)}
                             className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
                           >
                             Delete
-                          </button>
+                          </button>}
                         </div>
                       </div>
                     ))
@@ -543,7 +574,7 @@ const Dashboard = () => {
                     <div className="space-y-3" ref={provided.innerRef} {...provided.droppableProps}>
                       {dishes.length > 0 ? (
                         dishes.map((dish, index) => (
-                          <Draggable key={dish._id} draggableId={dish._id} index={index}>
+                          <Draggable key={dish._id} draggableId={dish._id} index={index} isDragDisabled={!can("menu.edit")}>
                             {(providedDraggable) => (
                               <div ref={providedDraggable.innerRef} {...providedDraggable.draggableProps} {...providedDraggable.dragHandleProps} className="flex items-center justify-between rounded-lg bg-[#1a1a1a] p-3 gap-4">
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -565,18 +596,18 @@ const Dashboard = () => {
                                   </div>
                                 </div>
                                 <div className="flex gap-2 shrink-0">
-                                  <button
+                                  {can("menu.edit") && <button
                                     onClick={() => handleOpenModal("dishes", dish)}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm"
                                   >
                                     Edit
-                                  </button>
-                                  <button
+                                  </button>}
+                                  {can("menu.delete") && <button
                                     onClick={() => handleDeleteDish(dish)}
                                     className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm"
                                   >
                                     Delete
-                                  </button>
+                                  </button>}
                                 </div>
                               </div>
                             )}
@@ -617,7 +648,7 @@ const Dashboard = () => {
       {activeTab === "Inventory" && (
         <div className="container mx-auto px-6 pb-10">
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
-            <div className="bg-[#262626] rounded-lg p-5">
+            {can("inventory.manage") && <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">
                 {editingInventory ? "Edit Inventory Item" : "Add Inventory Item"}
               </h3>
@@ -706,7 +737,7 @@ const Dashboard = () => {
                   )}
                 </div>
               </form>
-            </div>
+            </div>}
 
             <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Stock Overview</h3>
@@ -735,7 +766,8 @@ const Dashboard = () => {
                         </span>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {can("inventory.adjust") || can("inventory.manage") || can("inventory.delete") ? <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {can("inventory.adjust") && <>
                         <input
                           type="number"
                           min="0"
@@ -770,13 +802,14 @@ const Dashboard = () => {
                         >
                           -1
                         </button>
-                        <button
+                        </>}
+                        {can("inventory.manage") && <button
                           onClick={() => startInventoryEdit(item)}
                           className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-sm"
                         >
                           Edit
-                        </button>
-                        <button
+                        </button>}
+                        {can("inventory.delete") && <button
                           onClick={() => {
                             if (window.confirm(`Delete inventory item "${item.name}"?`)) {
                               deleteInventoryMutation.mutate(item._id);
@@ -785,8 +818,9 @@ const Dashboard = () => {
                           className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
                         >
                           Delete
-                        </button>
+                        </button>}
                       </div>
+                      : null}
                     </div>
                   ))
                 ) : (

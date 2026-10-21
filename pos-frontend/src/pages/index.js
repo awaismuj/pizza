@@ -7,3 +7,4 @@ export { default as Outdoor } from './Outdoor.jsx'
 export { default as Dashboard } from "./Dashboard.jsx"
 export { default as OnlineOrders } from "./OnlineOrders.jsx"
 export { default as EmployeePortal } from "./EmployeePortal.jsx"
+export { default as ChangePassword } from "./ChangePassword.jsx"

@@ -29,9 +29,9 @@ const Login = () => {
       onSuccess: (res) => {
           const { data } = res;
           console.log(data);
-          const { _id, name, email, phone, role } = data.data;
-          dispatch(setUser({ _id, name, email, phone, role }));
-          navigate("/");
+          const { _id, name, email, phone, role, permissions, forcePasswordChange } = data.data;
+          dispatch(setUser({ _id, name, email, phone, role, permissions, forcePasswordChange }));
+          navigate(forcePasswordChange ? "/change-password" : "/");
       },
       onError: (error) => {
         const { response } = error;
@@ -48,11 +48,11 @@ const Login = () => {
           </label>
           <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
             <input
-              type="email"
+              type="text"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter employee email"
+              placeholder="Enter employee email or username"
               className="bg-transparent flex-1 text-white focus:outline-none"
               required
             />

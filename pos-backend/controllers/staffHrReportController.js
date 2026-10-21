@@ -151,8 +151,7 @@ const buildRows = async (req, range) => {
     });
   }
 
-  const role = String(req.user?.role || "").toLowerCase();
-  if (!["admin", "payroll manager", "accountant"].includes(role)) {
+  if (!req.permissions?.some((permission) => ["hr.view", "payroll.view", "reports.view"].includes(permission))) {
     throw createHttpError(403, "Only payroll-authorized users can access payroll reports.");
   }
   if (!MONTH_RE.test(range.from.slice(0, 7)) || !MONTH_RE.test(range.to.slice(0, 7))) {

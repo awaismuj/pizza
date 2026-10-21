@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { IoLogOut } from "react-icons/io5";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { logout, getLowStockItems } from "../../https";
-import { LOW_STOCK_QUERY_KEY, OPEN_LOW_STOCK_EVENT, isStockRole } from "./LowStockAlert";
+import { LOW_STOCK_QUERY_KEY, OPEN_LOW_STOCK_EVENT } from "./LowStockAlert";
 import { removeUser } from "../../redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
 import { MdDashboard, MdDeliveryDining, MdReceiptLong } from "react-icons/md";
@@ -34,7 +34,10 @@ const Header = () => {
 
   // Bell badge = how many inventory items are low / out of stock. Same query
   // as the popup, so it costs no extra requests. Admin + Cashier only.
-  const canSeeStock = userData.isAuth && isStockRole(userData.role);
+  const canSeeStock = userData.isAuth && userData.permissions?.includes("inventory.view");
+  const canSeeDashboard = userData.permissions?.some((permission) =>
+    ["dashboard.view", "users.view", "staff.view", "assets.view"].includes(permission)
+  );
   const { data: lowStockData } = useQuery({
     queryKey: LOW_STOCK_QUERY_KEY,
     queryFn: getLowStockItems,
@@ -90,7 +93,7 @@ const Header = () => {
 
       {/* LOGGED USER DETAILS */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 lg:gap-3">
-        {["admin", "cashier", "accountant", "asset manager", "read only", "hr manager", "payroll manager"].includes(String(userData.role || "").toLowerCase()) && (
+        {canSeeDashboard && (
           <div
             onClick={() => navigate("/dashboard")}
             title="Dashboard"
@@ -99,20 +102,20 @@ const Header = () => {
             <MdDashboard className="text-[#f5f5f5] text-xl lg:text-2xl" />
           </div>
         )}
-        <div
+        {userData.permissions?.includes("orders.view") && <div
           onClick={() => navigate("/online-orders")}
           title="Online orders"
           className="hidden rounded-[12px] bg-[#1f1f1f] p-2.5 cursor-pointer md:block lg:rounded-[15px] lg:p-3"
         >
           <MdDeliveryDining className="text-[#f5f5f5] text-xl lg:text-2xl" />
-        </div>
-        <div
+        </div>}
+        {userData.permissions?.includes("expenses.create") && <div
           onClick={() => setExpenseOpen(true)}
           title="Add expense"
           className="hidden rounded-[12px] bg-[#1f1f1f] p-2.5 cursor-pointer md:block lg:rounded-[15px] lg:p-3"
         >
           <MdReceiptLong className="text-[#f5f5f5] text-xl lg:text-2xl" />
-        </div>
+        </div>}
         <div
           onClick={() => canSeeStock && window.dispatchEvent(new Event(OPEN_LOW_STOCK_EVENT))}
           title={lowStockCount > 0 ? `${lowStockCount} item(s) low on stock` : "No stock alerts"}
