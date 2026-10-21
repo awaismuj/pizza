@@ -217,7 +217,7 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
                       aria-label={`Play ${track.title}`}
                       className="min-w-0 flex-1 truncate py-3 text-left text-sm text-gray-100"
                     >
-                      <span className="mr-2 text-red-400">{track.id === currentTrack?.id && isPlaying ? "♫" : `${index + 1}.`}</span>
+                      <span className="mr-2 text-red-400">{track.id === currentTrack?.id && isPlaying ? "•" : `${index + 1}.`}</span>
                       {track.title}
                     </button>
                     <button

@@ -6,10 +6,14 @@ import { enqueueSnackbar } from "notistack";
 import { formatDateAndTime, getAvatarName, getOrderNumber } from "../../utils/index";
 import { updateOrderStatus, deleteOrder as deleteOrderApi } from "../../https";
 import { NEXT_ACTION, STAGE_LABELS, TERMINAL_STATUSES, statusPillClass } from "../../utils/orderStages";
-import { canEditOrder, canCancelOrder, canDeleteOrder } from "../../utils/orderPermissions";
+import { canEditOrder, canCancelOrder, canDeleteOrder, canExtendPrep } from "../../utils/orderPermissions";
+import { isPrepActive } from "../../utils/prepTimer";
+import PrepBadge from "../prep/PrepBadge";
+import ExtendTimeModal from "../prep/ExtendTimeModal";
 import OrderStageTracker from "./OrderStageTracker";
 import Invoice from "../invoice/Invoice";
 import EditOrderModal from "./EditOrderModal";
+import { I } from "../shared/AppIcons";
 
 // Orders finish on different final statuses depending on source (dine-in/
 // takeaway end at "Closed", online orders end at "Completed") — either one
@@ -33,6 +37,7 @@ const OrderCard = ({ order }) => {
   const [printOrder, setPrintOrder] = useState(null);
   // Edit-items modal — Cashier/Admin only (see orderPermissions.js).
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showExtend, setShowExtend] = useState(false);
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
@@ -93,9 +98,9 @@ const OrderCard = ({ order }) => {
               {isOnline ? "Online delivery" : isTakeaway ? "Outdoor / Takeaway" : "Dine in"}
             </p>
             {isOnline ? (
-              <p className="text-[#025cca] text-sm">🌐 Online order</p>
+              <p className="text-[#025cca] text-sm"><I.Cart className="inline mr-1.5" />Online order</p>
             ) : isTakeaway ? (
-              <p className="text-[#f6b100] text-sm">🥡 Takeaway</p>
+              <p className="text-[#f6b100] text-sm"><I.Bag className="inline mr-1.5" />Takeaway</p>
             ) : (
               <p className="text-[#ababab] text-sm">
                 Table <FaLongArrowAltRight className="text-[#ababab] ml-2 inline" /> {order.table?.tableNo ?? "—"}
@@ -109,6 +114,8 @@ const OrderCard = ({ order }) => {
           </div>
         </div>
       </div>
+
+      <PrepBadge order={order} showNumber className="mt-3" />
 
       {/* Stage-by-stage progress: Processing -> Ready -> Completed */}
       <OrderStageTracker order={order} />
@@ -136,6 +143,14 @@ const OrderCard = ({ order }) => {
               className="flex-1 rounded-lg bg-[#02ca3a] py-2 font-semibold text-[#1f1f1f] disabled:opacity-60"
             >
               {next.label}
+            </button>
+          )}
+          {canExtendPrep(role) && isPrepActive(order) && (
+            <button
+              onClick={() => setShowExtend(true)}
+              className="rounded-lg border border-[#f6b100]/50 bg-[#f6b100]/10 px-3 py-2 font-semibold text-[#f6b100]"
+            >
+              Extend Time
             </button>
           )}
           {canEditOrder(role) && (
@@ -183,6 +198,7 @@ const OrderCard = ({ order }) => {
       )}
 
       {showEditModal && <EditOrderModal order={order} onClose={() => setShowEditModal(false)} />}
+      {showExtend && <ExtendTimeModal order={order} onClose={() => setShowExtend(false)} />}
     </div>
   );
 };

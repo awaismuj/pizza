@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
-import { FaPlus, FaUserSlash, FaDownload, FaPen } from "react-icons/fa";
-import StaffHrWorkspace from "./StaffHrWorkspace";
-import StaffHrDocumentsPanel from "./StaffHrDocumentsPanel";
+import { FaPlus, FaUserSlash, FaEnvelope, FaDownload, FaCheck, FaTimes, FaPen } from "react-icons/fa";
 import {
   getStaff,
   addStaff,
@@ -16,6 +14,8 @@ import {
   getStaffMonthlySummary,
   addStaffAdjustment,
   deleteStaffAdjustment,
+  setStaffSalaryPaid,
+  sendStaffSlips,
 } from "../../https";
 import { formatCurrency } from "../../utils/orderMetrics";
 
@@ -24,19 +24,13 @@ const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 };
-const localDateTimeValue = (value) => {
-  if (!value) return "";
-  const date = new Date(value);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
-};
 const thisMonthStr = () => todayStr().slice(0, 7);
 const prettyMonth = (monthKey) => {
   const [y, m] = monthKey.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 };
 
-const SUB_TABS = ["Staff", "Attendance", "Payroll", "HR & Payroll"];
+const SUB_TABS = ["Staff", "Attendance", "Payroll"];
 
 const defaultStaffForm = {
   name: "",
@@ -46,50 +40,24 @@ const defaultStaffForm = {
   cnic: "",
   address: "",
   joinDate: todayStr(),
-  effectiveAt: todayStr(),
-  department: "",
-  branch: "",
-  employmentType: "Permanent",
-  employmentStatus: "Active",
-  contractEndDate: "",
-  probationEndDate: "",
-  salaryComponents: [],
   baseSalary: "",
-};
-const defaultSalaryComponentDraft = {
-  code: "",
-  name: "",
-  type: "Earning",
-  amount: "",
-  effectiveFrom: todayStr(),
-  recurring: true,
-  taxable: false,
-  pensionable: false,
 };
 
 // Full Staff Management screen: staff records, daily attendance (auto
 // Present, Cashier/Admin can mark Absent/Leave), and monthly payroll.
-// Salary fields are rendered only for payroll-authorized roles; the backend
-// independently strips confidential fields from all other responses.
+// Salary figures only ever render when `isAdmin` — the backend also
+// strips them for non-admins, this is the second layer.
 const StaffManagement = () => {
   const role = useSelector((state) => state.user.role);
-  const roleName = String(role || "").toLowerCase();
-  const canEditStaff = ["admin", "hr manager"].includes(roleName);
-  const canViewPayroll = ["admin", "payroll manager", "accountant"].includes(roleName);
-  const canEditPayroll = ["admin", "payroll manager"].includes(roleName);
-  const canManageAttendance = ["admin", "cashier", "hr manager"].includes(roleName);
-  const canManageHr = ["admin", "hr manager"].includes(roleName);
+  const isAdmin = String(role || "").toLowerCase() === "admin";
   const queryClient = useQueryClient();
 
   const [subTab, setSubTab] = useState("Staff");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [form, setForm] = useState(defaultStaffForm);
-  const [staffSearch, setStaffSearch] = useState("");
-  const [salaryComponentDraft, setSalaryComponentDraft] = useState(defaultSalaryComponentDraft);
 
   const [attendanceDate, setAttendanceDate] = useState(todayStr());
-  const [attendanceDrafts, setAttendanceDrafts] = useState({});
   const [payrollMonth, setPayrollMonth] = useState(thisMonthStr());
   const [adjustmentFor, setAdjustmentFor] = useState(null); // staffId
   const [adjustmentForm, setAdjustmentForm] = useState({ type: "Advance", amount: "", note: "" });
@@ -101,10 +69,6 @@ const StaffManagement = () => {
     placeholderData: keepPreviousData,
   });
   const staff = staffData?.data?.data ?? [];
-  const filteredStaff = staff.filter((person) =>
-    [person.name, person.employeeId, person.designation, person.department, person.branch]
-      .some((value) => String(value || "").toLowerCase().includes(staffSearch.toLowerCase()))
-  );
 
   const { data: attendanceData, isLoading: attendanceLoading } = useQuery({
     queryKey: ["staffAttendance", attendanceDate],
@@ -172,7 +136,6 @@ const StaffManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(["staffAttendance"]);
       queryClient.invalidateQueries(["staffSummary"]);
-      setAttendanceDrafts({});
     },
     onError: (e) => onError(e, "Failed to update attendance."),
   });
@@ -191,16 +154,37 @@ const StaffManagement = () => {
     onSuccess: () => queryClient.invalidateQueries(["staffSummary"]),
     onError: (e) => onError(e, "Failed to delete."),
   });
+  const paidMutation = useMutation({
+    mutationFn: setStaffSalaryPaid,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(["staffSummary"]);
+      const slip = res?.data?.slip;
+      if (slip?.sent) enqueueSnackbar("Marked paid — salary slip emailed.", { variant: "success" });
+      else if (slip?.skipped) enqueueSnackbar(`Marked paid. Slip not emailed: ${slip.reason}`, { variant: "warning" });
+      else enqueueSnackbar("Salary status updated.", { variant: "success" });
+    },
+    onError: (e) => onError(e, "Failed to update salary status."),
+  });
+  const sendSlipsMutation = useMutation({
+    mutationFn: sendStaffSlips,
+    onSuccess: (res) => {
+      const results = res?.data?.data ?? [];
+      const sent = results.filter((r) => r.sent).length;
+      const skipped = results.filter((r) => r.skipped).length;
+      enqueueSnackbar(`Slips emailed: ${sent}${skipped ? `, ${skipped} skipped (no email on file)` : ""}.`, {
+        variant: sent > 0 ? "success" : "warning",
+      });
+    },
+    onError: (e) => onError(e, "Failed to send slips."),
+  });
 
   const openAddForm = () => {
     setEditingStaff(null);
     setForm(defaultStaffForm);
-    setSalaryComponentDraft({ ...defaultSalaryComponentDraft, effectiveFrom: todayStr() });
     setIsFormOpen(true);
   };
   const openEditForm = (s) => {
     setEditingStaff(s);
-    setSalaryComponentDraft({ ...defaultSalaryComponentDraft, effectiveFrom: todayStr() });
     setForm({
       name: s.name || "",
       phone: s.phone || "",
@@ -209,15 +193,7 @@ const StaffManagement = () => {
       cnic: s.cnic || "",
       address: s.address || "",
       joinDate: s.joinDate || todayStr(),
-      effectiveAt: todayStr(),
-      department: s.department || "",
-      branch: s.branch || "",
-      employmentType: s.employmentType || "Permanent",
-      employmentStatus: s.employmentStatus || "Active",
-      contractEndDate: s.contractEndDate || "",
-      probationEndDate: s.probationEndDate || "",
-      salaryComponents: canViewPayroll ? s.salaryComponents || [] : [],
-      baseSalary: canViewPayroll ? s.baseSalary ?? "" : "",
+      baseSalary: isAdmin ? s.baseSalary ?? "" : "",
     });
     setIsFormOpen(true);
   };
@@ -228,9 +204,7 @@ const StaffManagement = () => {
       enqueueSnackbar("Enter a name.", { variant: "error" });
       return;
     }
-    const payload = { ...form };
-    if (canViewPayroll) payload.baseSalary = form.baseSalary === "" ? 0 : Number(form.baseSalary);
-    else delete payload.baseSalary;
+    const payload = { ...form, baseSalary: form.baseSalary === "" ? 0 : Number(form.baseSalary) };
     if (editingStaff) updateMutation.mutate({ staffId: editingStaff._id, ...payload });
     else addMutation.mutate(payload);
   };
@@ -251,9 +225,7 @@ const StaffManagement = () => {
   return (
     <div className="px-4 sm:px-10 pb-10">
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        {SUB_TABS.filter((t) => (t !== "Attendance" || canManageAttendance) &&
-          (t !== "Payroll" || canViewPayroll) &&
-          (t !== "HR & Payroll" || canManageHr || canViewPayroll)).map((t) => (
+        {SUB_TABS.filter((t) => t !== "Payroll" || isAdmin).map((t) => (
           <button
             key={t}
             onClick={() => setSubTab(t)}
@@ -271,7 +243,7 @@ const StaffManagement = () => {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[#f5f5f5] text-lg font-semibold">Staff members</h3>
-            {canEditStaff && (
+            {isAdmin && (
               <button
                 onClick={openAddForm}
                 className="flex items-center gap-2 bg-[#f6b100] text-[#1f1f1f] font-semibold px-4 py-2 rounded-lg"
@@ -280,15 +252,14 @@ const StaffManagement = () => {
               </button>
             )}
           </div>
-          <input value={staffSearch} onChange={(event) => setStaffSearch(event.target.value)} placeholder="Search employees, department, branch…" className="mb-3 w-full max-w-md rounded-lg bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none" />
 
           {staffLoading ? (
             <p className="text-[#ababab]">Loading…</p>
-          ) : filteredStaff.length === 0 ? (
+          ) : staff.length === 0 ? (
             <p className="text-[#ababab]">No staff added yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm text-left">
+              <table className="w-full min-w-[640px] text-sm text-left">
                 <thead>
                   <tr className="text-[#ababab] border-b border-[#333]">
                     <th className="py-2 pr-3">Name</th>
@@ -296,26 +267,20 @@ const StaffManagement = () => {
                     <th className="py-2 pr-3">Phone</th>
                     <th className="py-2 pr-3">Email</th>
                     <th className="py-2 pr-3">Joined</th>
-                    <th className="py-2 pr-3">Employee ID</th>
-                    <th className="py-2 pr-3">Department / branch</th>
-                    <th className="py-2 pr-3">Status</th>
-                    {canViewPayroll && <th className="py-2 pr-3">Salary</th>}
-                    {canEditStaff && <th className="py-2 pr-3" />}
+                    {isAdmin && <th className="py-2 pr-3">Salary</th>}
+                    {isAdmin && <th className="py-2 pr-3" />}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStaff.map((s) => (
+                  {staff.map((s) => (
                     <tr key={s._id} className="text-[#f5f5f5] border-b border-[#262626]">
                       <td className="py-2 pr-3 font-medium">{s.name}</td>
                       <td className="py-2 pr-3 text-[#ababab]">{s.designation || "—"}</td>
                       <td className="py-2 pr-3 text-[#ababab]">{s.phone || "—"}</td>
                       <td className="py-2 pr-3 text-[#ababab]">{s.email || "—"}</td>
                       <td className="py-2 pr-3 text-[#ababab]">{s.joinDate}</td>
-                      <td className="py-2 pr-3">{s.employeeId || "—"}</td>
-                      <td className="py-2 pr-3 text-[#ababab]">{[s.department, s.branch].filter(Boolean).join(" / ") || "—"}</td>
-                      <td className="py-2 pr-3">{s.employmentStatus || (s.isActive ? "Active" : "Inactive")}</td>
-                      {canViewPayroll && <td className="py-2 pr-3">{formatCurrency(s.baseSalary)}/mo</td>}
-                      {canEditStaff && (
+                      {isAdmin && <td className="py-2 pr-3">{formatCurrency(s.baseSalary)}/mo</td>}
+                      {isAdmin && (
                         <td className="py-2 pr-3">
                           <div className="flex gap-3">
                             <button onClick={() => openEditForm(s)} className="text-[#ababab] hover:text-[#f5f5f5]" title="Edit">
@@ -353,10 +318,7 @@ const StaffManagement = () => {
               type="date"
               value={attendanceDate}
               max={todayStr()}
-              onChange={(e) => {
-                setAttendanceDate(e.target.value);
-                setAttendanceDrafts({});
-              }}
+              onChange={(e) => setAttendanceDate(e.target.value)}
               className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none text-sm"
             />
           </div>
@@ -382,7 +344,7 @@ const StaffManagement = () => {
                       {!row.auto && row.markedBy ? ` · marked by ${row.markedBy}` : ""}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex gap-2">
                     {["Present", "Absent", "Leave"].map((st) => (
                       <button
                         key={st}
@@ -413,25 +375,6 @@ const StaffManagement = () => {
                       History
                     </button>
                   </div>
-                  <div className="flex w-full flex-wrap items-end gap-2 border-t border-[#383838] pt-3">
-                    <label className="text-[10px] text-[#888]">Check in<input type="datetime-local" value={attendanceDrafts[row.staffId]?.checkIn ?? localDateTimeValue(row.actualCheckIn)} onChange={(event) => setAttendanceDrafts((current) => ({ ...current, [row.staffId]: { ...current[row.staffId], checkIn: event.target.value } }))} className="mt-1 block rounded bg-[#1a1a1a] px-2 py-1 text-xs text-white" /></label>
-                    <label className="text-[10px] text-[#888]">Check out<input type="datetime-local" value={attendanceDrafts[row.staffId]?.checkOut ?? localDateTimeValue(row.actualCheckOut)} onChange={(event) => setAttendanceDrafts((current) => ({ ...current, [row.staffId]: { ...current[row.staffId], checkOut: event.target.value } }))} className="mt-1 block rounded bg-[#1a1a1a] px-2 py-1 text-xs text-white" /></label>
-                    <label className="text-[10px] text-[#888]">Break minutes<input type="number" min="0" value={attendanceDrafts[row.staffId]?.breakMinutes ?? row.breakMinutes} onChange={(event) => setAttendanceDrafts((current) => ({ ...current, [row.staffId]: { ...current[row.staffId], breakMinutes: event.target.value } }))} className="mt-1 block w-24 rounded bg-[#1a1a1a] px-2 py-1 text-xs text-white" /></label>
-                    <button type="button" disabled={markMutation.isPending} onClick={() => {
-                      const draft = attendanceDrafts[row.staffId] || {};
-                      const checkIn = draft.checkIn ?? localDateTimeValue(row.actualCheckIn);
-                      const checkOut = draft.checkOut ?? localDateTimeValue(row.actualCheckOut);
-                      markMutation.mutate({
-                        staffId: row.staffId,
-                        date: attendanceDate,
-                        status: row.status,
-                        actualCheckIn: checkIn ? new Date(checkIn).toISOString() : null,
-                        actualCheckOut: checkOut ? new Date(checkOut).toISOString() : null,
-                        breakMinutes: Number(draft.breakMinutes ?? row.breakMinutes),
-                        correctionReason: "Attendance time details updated",
-                      });
-                    }} className="rounded border border-[#555] px-3 py-1.5 text-xs text-white">Save times · {row.totalWorkingHours} h</button>
-                  </div>
                 </div>
               ))}
             </div>
@@ -440,11 +383,8 @@ const StaffManagement = () => {
       )}
 
       {/* ---------------- Payroll (Admin only tab, but guard anyway) ---------------- */}
-      {subTab === "Payroll" && canViewPayroll && (
+      {subTab === "Payroll" && isAdmin && (
         <div>
-          <p className="mb-3 text-xs text-amber-300">
-            This is a reference summary only. Prepare, approve, finalize, and record payments in HR &amp; Payroll.
-          </p>
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <h3 className="text-[#f5f5f5] text-lg font-semibold mr-auto">
               Payroll — {prettyMonth(payrollMonth)}
@@ -457,10 +397,11 @@ const StaffManagement = () => {
               className="bg-[#1a1a1a] text-white rounded px-3 py-2 outline-none text-sm"
             />
             <button
-              onClick={() => setSubTab("HR & Payroll")}
-              className="bg-[#1a1a1a] text-[#ababab] hover:text-[#f5f5f5] px-3 py-2 rounded-lg text-sm"
+              onClick={() => sendSlipsMutation.mutate({ month: payrollMonth })}
+              disabled={sendSlipsMutation.isPending}
+              className="flex items-center gap-2 bg-[#1a1a1a] text-[#ababab] hover:text-[#f5f5f5] px-3 py-2 rounded-lg text-sm"
             >
-              Open payroll approvals and payments
+              <FaEnvelope /> Email all slips
             </button>
           </div>
 
@@ -518,12 +459,35 @@ const StaffManagement = () => {
                       </td>
                       <td className="py-2 pr-3">
                         <div className="flex flex-wrap gap-2">
-                          {canEditPayroll && <button
+                          <button
                             onClick={() => setAdjustmentFor(r.staffId)}
                             className="text-xs px-2 py-1 rounded bg-[#1a1a1a] text-[#ababab] hover:text-[#f5f5f5]"
                           >
                             + Advance/Deduction
-                          </button>}
+                          </button>
+                          <button
+                            onClick={() =>
+                              paidMutation.mutate({
+                                staffId: r.staffId,
+                                month: payrollMonth,
+                                paid: r.status !== "Paid",
+                              })
+                            }
+                            disabled={paidMutation.isPending}
+                            className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${
+                              r.status === "Paid" ? "bg-[#1a1a1a] text-[#ababab]" : "bg-[#34c76f] text-[#0f1f14]"
+                            }`}
+                          >
+                            {r.status === "Paid" ? (
+                              <>
+                                <FaTimes /> Mark unpaid
+                              </>
+                            ) : (
+                              <>
+                                <FaCheck /> Mark paid &amp; email slip
+                              </>
+                            )}
+                          </button>
                         </div>
                         {r.adjustments?.length > 0 && (
                           <ul className="mt-1 text-[10px] text-[#7a7a7a] space-y-0.5">
@@ -550,8 +514,6 @@ const StaffManagement = () => {
           )}
         </div>
       )}
-
-      {subTab === "HR & Payroll" && (canManageHr || canViewPayroll) && <StaffHrWorkspace role={role} />}
 
       {/* ---- Add/Edit staff form ---- */}
       {isFormOpen && (
@@ -610,20 +572,7 @@ const StaffManagement = () => {
               placeholder="Address (optional)"
               className="w-full bg-[#262626] text-white rounded px-3 py-2 outline-none"
             />
-            <div className="grid grid-cols-2 gap-2">
-              <input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Department" className="bg-[#262626] text-white rounded px-3 py-2 outline-none" />
-              <input value={form.branch} onChange={(e) => setForm({ ...form, branch: e.target.value })} placeholder="Branch / location" className="bg-[#262626] text-white rounded px-3 py-2 outline-none" />
-              <select value={form.employmentType} onChange={(e) => setForm({ ...form, employmentType: e.target.value })} className="bg-[#262626] text-white rounded px-3 py-2 outline-none">
-                {["Permanent", "Contract", "Part-Time", "Temporary", "Intern", "Daily Wage", "Hourly Employee"].map((value) => <option key={value}>{value}</option>)}
-              </select>
-              <select value={form.employmentStatus} onChange={(e) => setForm({ ...form, employmentStatus: e.target.value })} className="bg-[#262626] text-white rounded px-3 py-2 outline-none">
-                {["Active", "On Probation", "On Leave", "Suspended", "Resigned", "Terminated", "Retired"].map((value) => <option key={value}>{value}</option>)}
-              </select>
-              <label className="text-xs text-[#aaa]">Probation end<input type="date" value={form.probationEndDate} onChange={(e) => setForm({ ...form, probationEndDate: e.target.value })} className="mt-1 w-full bg-[#262626] text-white rounded px-3 py-2 outline-none" /></label>
-              <label className="text-xs text-[#aaa]">Contract end<input type="date" value={form.contractEndDate} onChange={(e) => setForm({ ...form, contractEndDate: e.target.value })} className="mt-1 w-full bg-[#262626] text-white rounded px-3 py-2 outline-none" /></label>
-              <label className="text-xs text-[#aaa]">Changes effective from<input type="date" value={form.effectiveAt} onChange={(e) => setForm({ ...form, effectiveAt: e.target.value })} className="mt-1 w-full bg-[#262626] text-white rounded px-3 py-2 outline-none" /></label>
-            </div>
-            {canEditPayroll && (
+            {isAdmin && (
               <input
                 type="number"
                 min="0"
@@ -633,49 +582,6 @@ const StaffManagement = () => {
                 className="w-full bg-[#262626] text-white rounded px-3 py-2 outline-none"
               />
             )}
-            {canEditPayroll && (
-              <section className="space-y-2 rounded-lg border border-[#383838] p-3">
-                <h4 className="text-sm font-semibold text-white">Recurring salary components</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <input value={salaryComponentDraft.name} onChange={(event) => setSalaryComponentDraft({ ...salaryComponentDraft, name: event.target.value, code: event.target.value.toUpperCase().replace(/[^A-Z0-9]+/g, "_") })} placeholder="Component name" className="bg-[#262626] text-white rounded px-3 py-2 outline-none" />
-                  <select value={salaryComponentDraft.type} onChange={(event) => setSalaryComponentDraft({ ...salaryComponentDraft, type: event.target.value })} className="bg-[#262626] text-white rounded px-3 py-2 outline-none">
-                    {["Earning", "Deduction", "EmployerContribution"].map((type) => <option key={type}>{type}</option>)}
-                  </select>
-                  <input type="number" min="0" step="0.01" value={salaryComponentDraft.amount} onChange={(event) => setSalaryComponentDraft({ ...salaryComponentDraft, amount: event.target.value })} placeholder="Amount" className="bg-[#262626] text-white rounded px-3 py-2 outline-none" />
-                  <input type="date" value={salaryComponentDraft.effectiveFrom} onChange={(event) => setSalaryComponentDraft({ ...salaryComponentDraft, effectiveFrom: event.target.value })} className="bg-[#262626] text-white rounded px-3 py-2 outline-none" />
-                </div>
-                <div className="flex flex-wrap gap-3 text-xs text-[#bbb]">
-                  <label><input type="checkbox" checked={salaryComponentDraft.taxable} onChange={(event) => setSalaryComponentDraft({ ...salaryComponentDraft, taxable: event.target.checked })} /> Taxable</label>
-                  <label><input type="checkbox" checked={salaryComponentDraft.pensionable} onChange={(event) => setSalaryComponentDraft({ ...salaryComponentDraft, pensionable: event.target.checked })} /> Pensionable</label>
-                </div>
-                <button type="button" onClick={() => {
-                  const amount = Number(salaryComponentDraft.amount);
-                  if (!salaryComponentDraft.name.trim() || salaryComponentDraft.amount === "" ||
-                      !(amount >= 0) || !salaryComponentDraft.effectiveFrom) {
-                    enqueueSnackbar("Enter a component name, effective date, and valid amount.", { variant: "error" });
-                    return;
-                  }
-                  setForm((current) => ({
-                    ...current,
-                    salaryComponents: [...(current.salaryComponents || []), {
-                      ...salaryComponentDraft,
-                      amount,
-                      recurring: true,
-                    }],
-                  }));
-                  setSalaryComponentDraft({ ...defaultSalaryComponentDraft, effectiveFrom: todayStr() });
-                }} className="rounded border border-[#555] px-3 py-1.5 text-xs text-white">Add component</button>
-                <ul className="space-y-1 text-xs text-[#aaa]">
-                  {(form.salaryComponents || []).map((component, index) => (
-                    <li key={`${component.code}-${index}`} className="flex justify-between gap-2">
-                      <span>{component.name} · {component.type} · {formatCurrency(component.amount)} · from {component.effectiveFrom}</span>
-                      <button type="button" onClick={() => setForm((current) => ({ ...current, salaryComponents: current.salaryComponents.filter((_, itemIndex) => itemIndex !== index) }))} className="text-red-300">Remove</button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            {editingStaff && canEditStaff && <StaffHrDocumentsPanel staff={editingStaff} />}
             <div className="flex gap-2 pt-2">
               <button
                 type="button"

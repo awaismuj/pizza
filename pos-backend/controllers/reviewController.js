@@ -1,114 +1,115 @@
 const createHttpError = require("http-errors");
 const Review = require("../models/reviewModel");
 
-// ---- Public (genzpizza.online storefront) endpoints ---------------------
+// Light in-memory throttle: max 3 reviews per IP per hour. Enough to stop
+// accidental double-posts and casual spam without needing extra infra.
+const WINDOW_MS = 60 * 60 * 1000;
+const MAX_PER_WINDOW = 3;
+const hits = new Map();
 
-// Submit a new review. No login required (the storefront has no auth), but
-// ratings and text are validated server-side. One review per customer per
-// product; duplicate submissions are rejected.
-const addReview = async (req, res, next) => {
-  try {
-    const { customerName, rating, reviewText, productName } = req.body;
-
-    if (!customerName || !customerName.trim()) {
-      return next(createHttpError(400, "Please provide your name."));
-    }
-    const name = String(customerName).trim();
-    if (name.length < 2 || name.length > 60) {
-      return next(createHttpError(400, "Name must be between 2 and 60 characters."));
-    }
-
-    const stars = Number(rating);
-    if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
-      return next(createHttpError(400, "Please select a rating of 1-5 stars."));
-    }
-
-    if (!reviewText || !reviewText.trim()) {
-      return next(createHttpError(400, "Please write your review."));
-    }
-    const text = String(reviewText).trim();
-    if (text.length < 5 || text.length > 1000) {
-      return next(createHttpError(400, "Review must be between 5 and 1000 characters."));
-    }
-
-    const product = productName ? String(productName).trim().slice(0, 120) : "";
-
-    // Prevent duplicate reviews for the same customer + product.
-    const existing = await Review.findOne({ customerName: name, productName: product });
-    if (existing) {
-      return next(createHttpError(409, "You've already reviewed this item."));
-    }
-
-    const review = await Review.create({
-      customerName: name,
-      rating: stars,
-      reviewText: text,
-      productName: product,
-      status: "pending",
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Thanks! Your review is awaiting moderation.",
-      data: review,
-    });
-  } catch (error) {
-    next(error);
+const throttled = (ip) => {
+  const now = Date.now();
+  const recent = (hits.get(ip) || []).filter((t) => now - t < WINDOW_MS);
+  if (recent.length >= MAX_PER_WINDOW) {
+    hits.set(ip, recent);
+    return true;
   }
+  recent.push(now);
+  hits.set(ip, recent);
+  return false;
 };
 
-// Approved reviews only - what customers see on the storefront.
+const clean = (value, max) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+// ---- public --------------------------------------------------------
+
 const getPublicReviews = async (req, res, next) => {
   try {
-    const reviews = await Review.find({ status: "approved" })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-    res.status(200).json({ success: true, data: reviews });
-  } catch (error) {
-    next(error);
-  }
-};
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 30, 1), 100);
+    const [reviews, stats] = await Promise.all([
+      Review.find({ isVisible: true })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .select("name rating title comment dish createdAt"),
+      Review.aggregate([
+        { $match: { isVisible: true } },
+        { $group: { _id: "$rating", count: { $sum: 1 } } },
+      ]),
+    ]);
 
-// ---- Admin (POS dashboard) endpoints -----------------------------------
-
-// All reviews with their moderation status, newest first.
-const getAllReviews = async (req, res, next) => {
-  try {
-    const reviews = await Review.find().sort({ createdAt: -1 }).lean();
-    res.status(200).json({ success: true, data: reviews });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Update a review's status (approve / reject / hide) and optional staff note.
-const updateReviewStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status, moderationNote } = req.body;
-
-    if (!id) {
-      return next(createHttpError(400, "Review id is required."));
-    }
-    if (!["approved", "rejected", "hidden"].includes(status)) {
-      return next(createHttpError(400, "Invalid status."));
-    }
-
-    const review = await Review.findByIdAndUpdate(
-      id,
-      { status, moderationNote: moderationNote ? String(moderationNote).trim() : "" },
-      { new: true }
-    );
-    if (!review) {
-      return next(createHttpError(404, "Review not found."));
-    }
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let total = 0;
+    let sum = 0;
+    stats.forEach(({ _id, count }) => {
+      distribution[_id] = count;
+      total += count;
+      sum += _id * count;
+    });
 
     res.status(200).json({
       success: true,
-      message: `Review ${status}.`,
-      data: review,
+      data: {
+        reviews,
+        summary: {
+          total,
+          average: total ? Math.round((sum / total) * 10) / 10 : 0,
+          distribution,
+        },
+      },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createPublicReview = async (req, res, next) => {
+  try {
+    const name = clean(req.body.name, 60);
+    const comment = clean(req.body.comment, 1200);
+    const title = clean(req.body.title, 100);
+    const dish = clean(req.body.dish, 80);
+    const rating = Number(req.body.rating);
+
+    // Honeypot: real people never fill this hidden field.
+    if (req.body.website) {
+      return res.status(201).json({ success: true, message: "Thanks for your review!" });
+    }
+    if (!name) throw createHttpError(400, "Please enter your name.");
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw createHttpError(400, "Please choose a star rating from 1 to 5.");
+    }
+    if (comment.length < 10) {
+      throw createHttpError(400, "Please write at least a few words (10+ characters).");
+    }
+    if (throttled(req.ip)) {
+      throw createHttpError(429, "You've sent a few reviews already. Please try again later.");
+    }
+
+    const review = await Review.create({ name, rating, title, comment, dish });
+    res.status(201).json({ success: true, message: "Thanks for your review!", data: review });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ---- admin (POS dashboard) -----------------------------------------
+
+const getAllReviews = async (req, res, next) => {
+  try {
+    const reviews = await Review.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: reviews });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const toggleReviewVisibility = async (req, res, next) => {
+  try {
+    const review = await Review.findById(req.params.id);
+    if (!review) throw createHttpError(404, "Review not found!");
+    review.isVisible = !review.isVisible;
+    await review.save();
+    res.status(200).json({ success: true, data: review });
   } catch (error) {
     next(error);
   }
@@ -116,14 +117,8 @@ const updateReviewStatus = async (req, res, next) => {
 
 const deleteReview = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    if (!id) {
-      return next(createHttpError(400, "Review id is required."));
-    }
-    const review = await Review.findByIdAndDelete(id);
-    if (!review) {
-      return next(createHttpError(404, "Review not found."));
-    }
+    const review = await Review.findByIdAndDelete(req.params.id);
+    if (!review) throw createHttpError(404, "Review not found!");
     res.status(200).json({ success: true, message: "Review deleted." });
   } catch (error) {
     next(error);
@@ -131,9 +126,9 @@ const deleteReview = async (req, res, next) => {
 };
 
 module.exports = {
-  addReview,
   getPublicReviews,
+  createPublicReview,
   getAllReviews,
-  updateReviewStatus,
+  toggleReviewVisibility,
   deleteReview,
 };

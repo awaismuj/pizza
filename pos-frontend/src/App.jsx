@@ -10,6 +10,7 @@ import ChangePassword from "./pages/ChangePassword";
 import Header from "./components/shared/Header";
 import NewOrderPopup from "./components/shared/NewOrderPopup";
 import LowStockAlert from "./components/shared/LowStockAlert";
+import PrepAlertCenter from "./components/prep/PrepAlertCenter";
 import WhatsAppButton from "./components/shared/WhatsAppButton";
 import MusicPlayerProvider from "./components/shared/MusicPlayerProvider";
 import { useSelector } from "react-redux";
@@ -28,7 +29,7 @@ function Layout() {
   // partially hiding those buttons. Support inquiries aren't the point of
   // that screen anyway, so it's simplest to just not show it there.
   const hideWhatsAppRoutes = ["/menu"];
-  const { isAuth, role } = useSelector(state => state.user);
+  const { isAuth, role, permissions = [] } = useSelector(state => state.user);
   const isEmployee = String(role || "").toLowerCase() === "employee";
   const canCreateOrder = useHasPermission("orders.create");
   const canViewInventory = useHasPermission("inventory.view");
@@ -38,8 +39,9 @@ function Layout() {
   return (
     <>
       {!isEmployee && !hideHeaderRoutes.includes(location.pathname) && <Header />}
-      {isAuth && !isEmployee && canCreateOrder && <NewOrderPopup />}
-      {isAuth && !isEmployee && canViewInventory && <LowStockAlert />}
+      {!isEmployee && isAuth && canCreateOrder && <NewOrderPopup />}
+      {!isEmployee && isAuth && canViewInventory && <LowStockAlert />}
+      {!isEmployee && isAuth && permissions.includes("orders.view") && <PrepAlertCenter />}
       {!isEmployee && !hideWhatsAppRoutes.includes(location.pathname) && <WhatsAppButton />}
       <Routes>
         <Route

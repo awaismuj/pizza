@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { I } from "./AppIcons.jsx";
 
 /* ---------------------------------------------------------------------------
    Animated storefront background.
@@ -15,22 +17,27 @@ import React, { useEffect, useRef } from "react";
    motion.
    --------------------------------------------------------------------------- */
 
-const ICONS = ["🍕", "🍔", "🍟", "🌭", "🌮", "🥤", "🍗", "🍩", "🥪", "🍦"];
-const CLICK_FOODS = ["🍔", "🍕", "🍟", "🍗", "🌭", "🥪", "🌯", "🌮", "🍩"];
-const CLICK_SPARKLES = ["✨", "⭐"];
+const ICONS = [I.Pizza, I.Burger, I.Hotdog, I.Chicken, I.IceCream, I.Cookie, I.Drink, I.Bread, I.Cheese, I.Cake];
+const CLICK_FOODS = [I.Burger, I.Pizza, I.Chicken, I.Hotdog, I.Bread, I.Cookie, I.Cheese, I.IceCream];
+const CLICK_SPARKLES = [I.Sparkles, I.Star];
+const PALETTE = ["#E6392F", "#F59E0B", "#D97706", "#C2410C", "#B45309"];
 const rand = (a, b) => a + Math.random() * (b - a);
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
-function makeSprite(char, size) {
+// A react-icons component -> standalone SVG markup in a fixed colour.
+function svgMarkup(Cmp, color, size) {
+  let markup = renderToStaticMarkup(React.createElement(Cmp, { size }));
+  markup = markup.replace(/currentColor/g, color);
+  if (!/xmlns=/.test(markup)) markup = markup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+  return markup;
+}
+
+function makeSprite(Cmp, size) {
   const px = Math.ceil(size * 1.6);
-  const c = document.createElement("canvas");
-  c.width = px;
-  c.height = px;
-  const g = c.getContext("2d");
-  g.textAlign = "center";
-  g.textBaseline = "middle";
-  g.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-  g.fillText(char, px / 2, px / 2 + size * 0.05);
-  return c;
+  const img = new Image(px, px);
+  const markup = svgMarkup(Cmp, pick(PALETTE), size);
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
+  return img;
 }
 
 export default function BgFx() {
@@ -88,7 +95,7 @@ export default function BgFx() {
         temp: false,
       }));
 
-      sprites = ICONS.map((ch) => makeSprite(ch, 28));
+      sprites = ICONS.map((Cmp) => makeSprite(Cmp, 28));
       icons = Array.from({ length: iconCount }, (_, i) => ({
         s: sprites[i % sprites.length],
         x: rand(0, W),
@@ -121,23 +128,25 @@ export default function BgFx() {
       const count = 2 + Math.floor(Math.random() * 3);
       const sparkleCount = count > 2 && Math.random() < 0.35 ? 2 : 1;
       const burst = Array.from({ length: count - sparkleCount }, () => ({
-        emoji: CLICK_FOODS[Math.floor(Math.random() * CLICK_FOODS.length)],
+        Icon: pick(CLICK_FOODS),
+        color: pick(PALETTE),
         size: rand(22, 34),
       }));
       for (let i = 0; i < sparkleCount; i++) {
         burst.push({
-          emoji: CLICK_SPARKLES[Math.floor(Math.random() * CLICK_SPARKLES.length)],
+          Icon: pick(CLICK_SPARKLES),
+          color: "#F5A524",
           size: rand(15, 23),
         });
       }
 
-      burst.forEach(({ emoji, size }, index) => {
+      burst.forEach(({ Icon, color, size }, index) => {
         const angle = (index / burst.length) * Math.PI * 2 + rand(-0.35, 0.35);
         const distance = rand(55, 115);
         const driftX = Math.cos(angle) * distance;
         const driftY = Math.sin(angle) * distance - rand(18, 48);
         const item = document.createElement("span");
-        item.textContent = emoji;
+        item.innerHTML = svgMarkup(Icon, color, size);
         Object.assign(item.style, {
           position: "absolute",
           left: `${x}px`,

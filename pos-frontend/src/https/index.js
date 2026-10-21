@@ -135,6 +135,8 @@ export const uploadImage = async (file, onProgress) => {
 };
 
 // Inventory Endpoints
+export const exportInventoryReport = (params) =>
+  axiosWrapper.get("/api/inventory/export", { params, responseType: "blob" });
 export const getInventoryItems = () => axiosWrapper.get("/api/inventory");
 export const addInventoryItem = (data) => axiosWrapper.post("/api/inventory/", data);
 export const updateInventoryItem = ({ inventoryId, ...data }) =>
@@ -153,6 +155,8 @@ export const getDailyProfit = (date) => axiosWrapper.get("/api/profit/day", { pa
 export const getMonthlyProfit = (month) => axiosWrapper.get("/api/profit/month", { params: { month } });
 // Per-order breakdown behind a day's Daily Profit summary — every order
 // placed that day with its own revenue/cost/profit.
+export const exportProfitReport = (params) =>
+  axiosWrapper.get("/api/profit/export", { params, responseType: "blob" });
 export const getDailyOrders = (date) => axiosWrapper.get("/api/profit/day/orders", { params: { date } });
 
 // Report Endpoints (PDF download / send to WhatsApp)
@@ -168,12 +172,24 @@ export const unlinkWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-
 // Order Endpoints
 export const addOrder = (data) => axiosWrapper.post("/api/order/", data);
 export const getOrders = () => axiosWrapper.get("/api/order");
+// JazzCash/Raast payment review (Cashier/Admin). The screenshot is private,
+// so it is fetched with the staff cookie and shown from a blob URL.
+export const verifyOrderPayment = (orderId) => axiosWrapper.patch(`/api/order/${orderId}/payment/verify`);
+export const rejectOrderPayment = ({ orderId, reason }) =>
+  axiosWrapper.patch(`/api/order/${orderId}/payment/reject`, { reason });
+export const getPaymentProofBlob = (orderId) =>
+  axiosWrapper.get(`/api/order/${orderId}/payment-proof`, { responseType: "blob" });
 export const updateOrderStatus = ({ orderId, orderStatus }) =>
   axiosWrapper.put(`/api/order/${orderId}`, { orderStatus });
 // Edit an order's items (add/remove/change quantity) — Cashier/Admin only,
 // enforced server-side. `items` is the FULL replacement item list.
 export const updateOrderItems = ({ orderId, items }) =>
   axiosWrapper.put(`/api/order/${orderId}`, { items });
+// Preparation countdown: add minutes to ONE order's deadline (Admin/Cashier/
+// Waiter, enforced server-side) and the Admin/Cashier performance report.
+export const extendPrepTime = ({ orderId, minutes, reason }) =>
+  axiosWrapper.patch(`/api/order/${orderId}/prep/extend`, { minutes, reason });
+export const getPrepReport = (params) => axiosWrapper.get("/api/order/prep/report", { params });
 // Delete an order outright — Admin only, enforced server-side.
 export const deleteOrder = (orderId) => axiosWrapper.delete(`/api/order/${orderId}`);
 
@@ -196,70 +212,6 @@ export const addStaffAdjustment = (data) => axiosWrapper.post("/api/staff/adjust
 export const deleteStaffAdjustment = (id) => axiosWrapper.delete(`/api/staff/adjustment/${id}`);
 export const setStaffSalaryPaid = (data) => axiosWrapper.put("/api/staff/salary/paid", data);
 export const sendStaffSlips = (data) => axiosWrapper.post("/api/staff/salary/slips", data);
-
-// HR, shift, leave, overtime, and locked payroll workflows
-export const getHrShifts = () => axiosWrapper.get("/api/staff/hr/shifts");
-export const createHrShift = (data) => axiosWrapper.post("/api/staff/hr/shifts", data);
-export const assignHrShift = ({ shiftId, ...data }) => axiosWrapper.post(`/api/staff/hr/shifts/${shiftId}/assign`, data);
-export const endHrShiftAssignment = (assignmentId, data) =>
-  axiosWrapper.patch(`/api/staff/hr/shifts/assignments/${assignmentId}/end`, data);
-export const getHrLeaveTypes = () => axiosWrapper.get("/api/staff/hr/leave/types");
-export const createHrLeaveType = (data) => axiosWrapper.post("/api/staff/hr/leave/types", data);
-export const getHrLeaveRequests = (params) => axiosWrapper.get("/api/staff/hr/leave", { params });
-export const getHrLeaveBalances = (params) => axiosWrapper.get("/api/staff/hr/leave/balances", { params });
-export const runHrLeaveAccrual = (data) => axiosWrapper.post("/api/staff/hr/leave/accrual/run", data);
-export const getHrLoans = () => axiosWrapper.get("/api/staff/hr/loans");
-export const reviewHrLoan = ({ loanId, ...data }) => axiosWrapper.patch(`/api/staff/hr/loans/${loanId}`, data);
-export const createHrLeaveRequest = (data) => axiosWrapper.post("/api/staff/hr/leave", data);
-export const reviewHrLeaveRequest = ({ requestId, ...data }) => axiosWrapper.patch(`/api/staff/hr/leave/${requestId}`, data);
-export const getHrOvertime = (params) => axiosWrapper.get("/api/staff/hr/overtime", { params });
-export const createHrOvertime = (data) => axiosWrapper.post("/api/staff/hr/overtime", data);
-export const reviewHrOvertime = ({ overtimeId, ...data }) => axiosWrapper.patch(`/api/staff/hr/overtime/${overtimeId}`, data);
-export const getHrPayrollPolicy = () => axiosWrapper.get("/api/staff/hr/payroll/policy");
-export const updateHrPayrollPolicy = (data) => axiosWrapper.put("/api/staff/hr/payroll/policy", data);
-export const getHrPayrollRuns = () => axiosWrapper.get("/api/staff/hr/payroll/runs");
-export const createHrPayrollPreview = (data) => axiosWrapper.post("/api/staff/hr/payroll/preview", data);
-export const transitionHrPayroll = ({ monthKey, ...data }) => axiosWrapper.patch(`/api/staff/hr/payroll/${monthKey}`, data);
-export const recordHrSalaryPayment = ({ monthKey, ...data }) => axiosWrapper.put(`/api/staff/hr/payroll/${monthKey}/payment`, data);
-export const linkEmployeeAccount = ({ staffId, email }) => axiosWrapper.post(`/api/staff/hr/staff/${staffId}/account`, { email });
-export const unlinkEmployeeAccount = (staffId) => axiosWrapper.delete(`/api/staff/hr/staff/${staffId}/account`);
-export const getEmployeeSelf = () => axiosWrapper.get("/api/staff/hr/me");
-export const getEmployeeAttendanceSelf = (params) => axiosWrapper.get("/api/staff/hr/me/attendance", { params });
-export const clockEmployeeAttendance = (action) => axiosWrapper.post("/api/staff/hr/me/attendance/clock", { action });
-export const getEmployeeLeaveTypes = () => axiosWrapper.get("/api/staff/hr/me/leave/types");
-export const getEmployeeLeaveRequests = () => axiosWrapper.get("/api/staff/hr/me/leave");
-export const getEmployeeLeaveBalances = (params) => axiosWrapper.get("/api/staff/hr/me/leave/balances", { params });
-export const getEmployeeLoans = () => axiosWrapper.get("/api/staff/hr/me/loans");
-export const createEmployeeLoanRequest = (data) => axiosWrapper.post("/api/staff/hr/me/loans", data);
-export const getEmployeeNotifications = () => axiosWrapper.get("/api/staff/hr/me/notifications");
-export const createEmployeeLeaveRequest = (data) => axiosWrapper.post("/api/staff/hr/me/leave", data);
-export const getEmployeeDocuments = () => axiosWrapper.get("/api/staff/hr/me/documents");
-export const uploadEmployeeDocument = ({ file, category }) => {
-  const formData = new FormData();
-  formData.append("document", file);
-  formData.append("category", category);
-  return axiosWrapper.post("/api/staff/hr/me/documents", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-    timeout: 60000,
-  });
-};
-export const downloadStaffHrDocument = (documentId) =>
-  axiosWrapper.get(`/api/staff/hr/documents/${documentId}/download`, { responseType: "blob" });
-export const getStaffHrDocuments = (staffId) => axiosWrapper.get(`/api/staff/hr/staff/${staffId}/documents`);
-export const uploadHrStaffDocument = ({ staffId, file, category, visibility }) => {
-  const formData = new FormData();
-  formData.append("document", file);
-  formData.append("category", category);
-  formData.append("visibility", visibility);
-  return axiosWrapper.post(`/api/staff/hr/staff/${staffId}/documents`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-    timeout: 60000,
-  });
-};
-export const archiveStaffHrDocument = (documentId) => axiosWrapper.delete(`/api/staff/hr/documents/${documentId}`);
-export const getStaffHrReport = (params) => axiosWrapper.get("/api/staff/hr/reports", { params });
-export const exportStaffHrReport = (params) =>
-  axiosWrapper.get("/api/staff/hr/reports/export", { params, responseType: "blob" });
 
 // Business asset management
 export const getAssets = (params) => axiosWrapper.get("/api/assets", { params });
@@ -292,3 +244,16 @@ export const uploadAssetDocument = (file) => {
 };
 export const downloadAssetDocument = (filename) =>
   axiosWrapper.get(`/api/assets/documents/${encodeURIComponent(filename)}`, { responseType: "blob" });
+
+// Customer reviews (storefront "Write a Review") — admin moderation.
+export const getReviews = () => axiosWrapper.get("/api/review");
+export const toggleReview = (reviewId) => axiosWrapper.patch(`/api/review/${reviewId}/toggle`);
+export const deleteReview = (reviewId) => axiosWrapper.delete(`/api/review/${reviewId}`);
+
+// Branches + delivery/pickup rules. Same rules are enforced server-side for
+// the website and the POS (see pos-backend/utils/fulfillment.js).
+export const getBranches = () => axiosWrapper.get("/api/branch");
+export const addBranch = (data) => axiosWrapper.post("/api/branch", data);
+export const updateBranch = ({ id, ...data }) => axiosWrapper.put(`/api/branch/${id}`, data);
+export const deleteBranch = (id) => axiosWrapper.delete(`/api/branch/${id}`);
+export const quoteFulfillment = (data) => axiosWrapper.post("/api/branch/quote", data);

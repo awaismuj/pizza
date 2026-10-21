@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { enqueueSnackbar } from "notistack";
 import { getLowStockItems, adjustInventoryItem } from "../../https";
+import { I } from "./AppIcons";
 
 export const LOW_STOCK_QUERY_KEY = ["low-stock"];
 export const OPEN_LOW_STOCK_EVENT = "open-low-stock";
@@ -140,7 +141,7 @@ const LowStockAlert = () => {
       >
         <div className="flex items-center gap-3 bg-[#be3e3f] px-5 py-3">
           <span className="text-2xl" aria-hidden="true">
-            ⚠️
+            <I.Warning />
           </span>
           <div>
             <h2 className="text-lg font-bold text-[#f5f5f5]">Stock is going low</h2>

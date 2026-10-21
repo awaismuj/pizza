@@ -2,34 +2,16 @@ const Settings = require("../models/settingsModel");
 const createHttpError = require("http-errors");
 const config = require("../config/config");
 const { normalizeByoConfig } = require("../utils/byoDiscount");
+const { publicPaymentsShape, paymentsConfig, cleanText } = require("../utils/paymentUtils");
+const { normalizePrepSettings, mergePrepSettings } = require("../utils/prepTimer");
 
 const SETTINGS_KEY = "global";
 
 const publicShape = (settings) => ({
   taxRatePercent: settings.taxRatePercent,
   buildYourOwnDeal: normalizeByoConfig(settings.buildYourOwnDeal),
-  // Delivery / pickup fulfilment configuration. Public - no auth - because
-  // the online store (no login at all) must apply the same branch, zone, fee
-  // and opening-hour rules the POS admin configures here. Prices and
-  // eligibility are always re-validated and re-calculated server-side at
-  // checkout, so nothing the browser sends is trusted for money decisions.
-  deliveryFulfillment: {
-    timeZone: settings.deliveryFulfillment?.timeZone ?? "Asia/Karachi",
-    branches: (settings.deliveryFulfillment?.branches ?? []).map((b) => ({
-      branchId: b.branchId,
-      name: b.name,
-      address: b.address,
-      enabled: b.enabled,
-      pickupEnabled: b.pickupEnabled,
-      deliveryEnabled: b.deliveryEnabled,
-      preparationMinutes: b.preparationMinutes,
-      pickupInstructions: b.pickupInstructions,
-      deliveryRestrictionActive: b.deliveryRestrictionActive,
-      deliveryRestrictionMessage: b.deliveryRestrictionMessage,
-      openingHours: b.openingHours,
-      deliveryZones: b.deliveryZones,
-    })),
-  },
+  payments: publicPaymentsShape(settings),
+  orderPrep: normalizePrepSettings(settings.orderPrep),
 });
 
 // Seeds from the old static env default (config.TAX_RATE_PERCENT) the very
@@ -64,7 +46,7 @@ const getSettings = async (req, res, next) => {
 // "apply everywhere".
 const updateSettings = async (req, res, next) => {
   try {
-    const { taxRatePercent, buildYourOwnDeal, deliveryFulfillment } = req.body;
+    const { taxRatePercent, buildYourOwnDeal, payments, orderPrep } = req.body;
     const settings = await getOrCreateSettings();
     const messages = [];
 
@@ -106,19 +88,53 @@ const updateSettings = async (req, res, next) => {
       messages.push("Build Your Own Deal updated!");
     }
 
-    if (deliveryFulfillment !== undefined) {
-      if (!deliveryFulfillment || typeof deliveryFulfillment !== "object") {
-        return next(createHttpError(400, "Invalid delivery fulfilment settings."));
+    if (payments !== undefined) {
+      if (!payments || typeof payments !== "object") {
+        return next(createHttpError(400, "Invalid payment settings."));
       }
-      const nextFulfilment = { ...settings.deliveryFulfillment };
-      if (deliveryFulfillment.timeZone !== undefined) {
-        nextFulfilment.timeZone = String(deliveryFulfillment.timeZone).trim() || "Asia/Karachi";
+      const current = paymentsConfig(settings);
+      const updated = { ...current };
+
+      for (const flag of ["codEnabled", "jazzcashEnabled"]) {
+        if (payments[flag] !== undefined) updated[flag] = Boolean(payments[flag]);
       }
-      if (Array.isArray(deliveryFulfillment.branches)) {
-        nextFulfilment.branches = deliveryFulfillment.branches;
+      if (!updated.codEnabled && !updated.jazzcashEnabled) {
+        return next(createHttpError(400, "At least one payment method must stay turned on."));
       }
-      settings.deliveryFulfillment = nextFulfilment;
-      messages.push("Delivery & pickup settings updated!");
+
+      if (payments.merchantName !== undefined) {
+        const name = cleanText(payments.merchantName, 60);
+        if (name.length < 2) return next(createHttpError(400, "Enter the merchant name (at least 2 characters)."));
+        updated.merchantName = name;
+      }
+      if (payments.tillId !== undefined) {
+        const till = String(payments.tillId).replace(/\s+/g, "");
+        if (!/^\d{6,20}$/.test(till)) return next(createHttpError(400, "The Till ID must be 6 to 20 digits."));
+        updated.tillId = till;
+      }
+      if (payments.dialCode !== undefined) {
+        const dial = String(payments.dialCode).trim();
+        if (!/^[*#0-9]{3,20}$/.test(dial)) return next(createHttpError(400, "The dial code can only contain digits, * and #."));
+        updated.dialCode = dial;
+      }
+      if (payments.qrImage !== undefined) {
+        const img = String(payments.qrImage).trim();
+        // Only images uploaded through this system (or empty = bundled default).
+        if (img && !/^\/uploads\/[A-Za-z0-9._-]+$/.test(img)) {
+          return next(createHttpError(400, "Please upload the QR image using the upload button."));
+        }
+        updated.qrImage = img;
+      }
+
+      settings.payments = updated;
+      messages.push("Payment settings updated!");
+    }
+
+    if (orderPrep !== undefined) {
+      const merged = mergePrepSettings(settings.orderPrep, orderPrep);
+      if (merged.error) return next(createHttpError(400, merged.error));
+      settings.orderPrep = merged.settings;
+      messages.push("Order preparation settings saved!");
     }
 
     if (messages.length === 0) {
