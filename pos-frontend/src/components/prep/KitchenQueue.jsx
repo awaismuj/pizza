@@ -140,21 +140,15 @@ const KitchenQueue = ({ orders = [] }) => {
   });
 
   const { cards, counts } = useMemo(() => {
-    const c = { new: 0, preparing: 0, almost: 0, overdue: 0, ready: 0 };
+    const c = { new: 0, preparing: 0, almost: 0, overdue: 0 };
     const active = [];
-    const ready = [];
     for (const o of orders) {
       const g = kitchenGroup(o);
-      if (!g) continue;
-      if (g === "ready") {
-        c.ready += 1;
-        ready.push(o);
-        continue;
-      }
+      if (!g || g === "ready") continue;
       c[g] += 1;
       active.push(o);
     }
-    return { cards: { active, ready }, counts: c };
+    return { cards: { active }, counts: c };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
 
@@ -176,7 +170,6 @@ const KitchenQueue = ({ orders = [] }) => {
   }, [cards.active, now]);
 
   const visible = showAll ? sorted : sorted.slice(0, INITIAL_VISIBLE);
-  const readyList = cards.ready.slice(0, showAll ? 12 : 3);
   const canExtend = canExtendPrep(role);
 
   const onView = (order) => navigate(order.orderSource === "Online" ? "/online-orders" : "/orders");
@@ -202,10 +195,9 @@ const KitchenQueue = ({ orders = [] }) => {
         <SummaryChip label="Preparing" value={counts.preparing} color="#f6b100" icon="👨‍🍳" />
         <SummaryChip label="Almost Due" value={almost} color="#fb923c" icon="⏳" />
         <SummaryChip label="Overdue" value={overdue} color="#ef4444" icon="⏰" />
-        <SummaryChip label="Ready for Delivery" value={counts.ready} color="#02ca3a" icon="✅" />
       </div>
 
-      {sorted.length === 0 && readyList.length === 0 ? (
+      {sorted.length === 0 ? (
         <p className="mt-4 rounded-xl bg-[#222] px-3 py-5 text-center text-sm text-[#8a8a8a]">The kitchen is clear — no orders being prepared. 🍕</p>
       ) : (
         <>
@@ -216,19 +208,9 @@ const KitchenQueue = ({ orders = [] }) => {
               ))}
             </div>
           )}
-          {readyList.length > 0 && (
-            <>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-[#02ca3a]">Ready for delivery</p>
-              <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {readyList.map((order) => (
-                  <QueueCard key={order._id} order={order} {...cardProps} />
-                ))}
-              </div>
-            </>
-          )}
-          {(sorted.length > INITIAL_VISIBLE || cards.ready.length > 3) && (
+          {sorted.length > INITIAL_VISIBLE && (
             <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-4 w-full rounded-xl bg-[#262626] py-2 text-sm font-semibold text-[#f6b100] hover:bg-[#2e2e2e]">
-              {showAll ? "Show fewer" : `Show all (${sorted.length + cards.ready.length})`}
+              {showAll ? "Show fewer" : `Show all (${sorted.length})`}
             </button>
           )}
         </>

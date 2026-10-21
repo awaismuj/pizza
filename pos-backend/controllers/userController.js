@@ -10,6 +10,7 @@ const Staff = require("../models/staffModel");
 const UserAuditLog = require("../models/userAuditLogModel");
 const { permissions: permissionCatalog, allPermissions, roleDefaults, getEffectivePermissions } = require("../utils/rbac");
 const { normalizeApprovalStatus } = require("../utils/userStatus");
+const { getPasswordPolicy, getPasswordPolicyError } = require("../utils/passwordPolicy");
 
 const normalizeUser = (user) => {
     const result = user.toObject ? user.toObject() : user;
@@ -30,14 +31,6 @@ const audit = (req, action, targetUserId = null, details = {}, outcome = "succes
         details,
     });
 };
-
-const passwordIsStrong = (password) =>
-    typeof password === "string" &&
-    password.length >= 12 &&
-    /[a-z]/.test(password) &&
-    /[A-Z]/.test(password) &&
-    /\d/.test(password) &&
-    /[^A-Za-z0-9]/.test(password);
 
 const isSuperAdmin = (user) => String(user?.role || "").trim().toLowerCase() === "super admin";
 
@@ -77,6 +70,8 @@ const register = async (req, res, next) => {
             const error = createHttpError(400, "All fields are required!");
             return next(error);
         }
+        const passwordError = getPasswordPolicyError(password, await getPasswordPolicy());
+        if (passwordError) return next(createHttpError(400, passwordError));
         if (!allowedRoles.includes(role)) {
             return next(createHttpError(400, "Choose a valid account role."));
         }
@@ -312,7 +307,8 @@ const getUserData = async (req, res, next) => {
                 return next(createHttpError(400, "Enter a valid phone number."));
             }
             if (!/^[a-zA-Z0-9._-]{3,32}$/.test(String(username).trim())) return next(createHttpError(400, "Username must be 3–32 characters using letters, numbers, dots, underscores, or hyphens."));
-            if (!passwordIsStrong(password)) return next(createHttpError(400, "Password must be at least 12 characters and include uppercase, lowercase, number, and symbol characters."));
+            const passwordError = getPasswordPolicyError(password, await getPasswordPolicy());
+            if (passwordError) return next(createHttpError(400, passwordError));
             if (typeof active !== "boolean") return next(createHttpError(400, "Account status must be active or inactive."));
             const roleKey = String(role).trim().toLowerCase();
             const existingRole = await Role.findOne({ key: roleKey }).lean();
@@ -561,7 +557,8 @@ const getUserData = async (req, res, next) => {
                 return next(createHttpError(403, "Only the Super Admin may reset an administrator password."));
             }
             if (req.body.password !== req.body.confirmPassword) return next(createHttpError(400, "Passwords do not match."));
-            if (!passwordIsStrong(req.body.password)) return next(createHttpError(400, "Temporary password must be at least 12 characters and include uppercase, lowercase, number, and symbol characters."));
+            const passwordError = getPasswordPolicyError(req.body.password, await getPasswordPolicy());
+            if (passwordError) return next(createHttpError(400, passwordError));
             user.password = req.body.password;
             user.forcePasswordChange = true;
             user.authVersion += 1;
@@ -578,7 +575,8 @@ const getUserData = async (req, res, next) => {
             const { currentPassword, newPassword } = req.body;
             if (!await bcrypt.compare(String(currentPassword || ""), req.user.password)) return next(createHttpError(400, "Current password is incorrect."));
             if (newPassword !== req.body.confirmPassword) return next(createHttpError(400, "Passwords do not match."));
-            if (!passwordIsStrong(newPassword)) return next(createHttpError(400, "Password must be at least 12 characters and include uppercase, lowercase, number, and symbol characters."));
+            const passwordError = getPasswordPolicyError(newPassword, await getPasswordPolicy());
+            if (passwordError) return next(createHttpError(400, passwordError));
             req.user.password = newPassword;
             req.user.forcePasswordChange = false;
             req.user.authVersion += 1;

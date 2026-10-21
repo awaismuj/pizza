@@ -58,6 +58,13 @@ const settingsSchema = new mongoose.Schema(
       currency: { type: String, default: "PKR", match: /^[A-Z]{3}$/ },
       financialYearStartMonth: { type: Number, default: 1, min: 1, max: 12 },
     },
+    passwordPolicy: {
+      minLength: { type: Number, default: 8, min: 8, max: 64 },
+      requireUppercase: { type: Boolean, default: false },
+      requireLowercase: { type: Boolean, default: false },
+      requireNumber: { type: Boolean, default: false },
+      requireSymbol: { type: Boolean, default: false },
+    },
   },
   { timestamps: true }
 );

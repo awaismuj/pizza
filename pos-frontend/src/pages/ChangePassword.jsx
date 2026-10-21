@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { changeOwnPassword } from "../https";
+import { changeOwnPassword, getSettings } from "../https";
 import { setPasswordChangeRequired } from "../redux/slices/userSlice";
+import { DEFAULT_PASSWORD_POLICY, describePasswordPolicy } from "../utils/passwordPolicy";
 
 const ChangePassword = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: getSettings });
+  const passwordPolicy = settingsQuery.data?.data?.data?.passwordPolicy || DEFAULT_PASSWORD_POLICY;
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const mutation = useMutation({
     mutationFn: changeOwnPassword,
@@ -34,7 +37,7 @@ const ChangePassword = () => {
       <form onSubmit={submit} className="mx-auto max-w-lg space-y-5 rounded-2xl bg-[#262626] p-6 sm:p-8">
         <div>
           <h1 className="text-2xl font-bold">Change your temporary password</h1>
-          <p className="mt-2 text-sm text-gray-400">Choose at least 12 characters with uppercase, lowercase, a number, and a symbol.</p>
+          <p className="mt-2 text-sm text-gray-400">Password policy: {describePasswordPolicy(passwordPolicy)}.</p>
         </div>
         {[
           ["currentPassword", "Temporary password"],
