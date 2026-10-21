@@ -5,6 +5,7 @@ const User = require("../models/userModel");
 const Role = require("../models/roleModel");
 const { getEffectivePermissions, routePermission } = require("../utils/rbac");
 const UserAuditLog = require("../models/userAuditLogModel");
+const { normalizeApprovalStatus } = require("../utils/userStatus");
 
 
 const isVerifiedUser = async (req, res, next) => {
@@ -29,6 +30,7 @@ const isVerifiedUser = async (req, res, next) => {
         if ((decodeToken.authVersion ?? 0) !== user.authVersion) {
             return next(createHttpError(401, "Your session has expired. Please sign in again."));
         }
+        user.status = normalizeApprovalStatus(user.status);
         if (!user.active || user.status !== "Approved") {
             return next(createHttpError(401, "This account is inactive or not approved."));
         }

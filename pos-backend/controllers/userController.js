@@ -8,6 +8,7 @@ const { sendSignupApprovalRequest } = require("../utils/mailer");
 const Role = require("../models/roleModel");
 const UserAuditLog = require("../models/userAuditLogModel");
 const { permissions: permissionCatalog, allPermissions, roleDefaults, getEffectivePermissions } = require("../utils/rbac");
+const { normalizeApprovalStatus } = require("../utils/userStatus");
 
 const normalizeUser = (user) => {
     const result = user.toObject ? user.toObject() : user;
@@ -90,17 +91,19 @@ const register = async (req, res, next) => {
         const newUser = User(user);
         await newUser.save();
 
+        let approvalEmailSent = false;
         try {
-            await sendSignupApprovalRequest(newUser);
+            const mailResult = await sendSignupApprovalRequest(newUser);
+            approvalEmailSent = !mailResult?.skipped;
         } catch (mailError) {
-            // Don't fail the signup just because the notification email
-            // couldn't be sent — the admin can still approve manually.
             console.error("Failed to send signup approval email:", mailError.message);
         }
 
         res.status(201).json({
             success: true,
-            message: `Account created! An admin will review and approve your ${role} access before you can log in.`,
+            message: approvalEmailSent
+                ? `Account created! An admin will review and approve your ${role} access before you can log in.`
+                : "Account created, but the approval email could not be sent. Contact the administrator to approve it.",
             data: { name: newUser.name, email: newUser.email, role: newUser.role, status: newUser.status },
         });
 
@@ -148,6 +151,7 @@ const login = async (req, res, next) => {
             return next(error);
         }
 
+        isUserPresent.status = normalizeApprovalStatus(isUserPresent.status);
         if (!isUserPresent.active) {
             await UserAuditLog.create({
                 targetUserId: isUserPresent._id,
@@ -167,6 +171,10 @@ const login = async (req, res, next) => {
             await UserAuditLog.create({ targetUserId: isUserPresent._id, action: "login.failed", outcome: "failure", reason: "Account rejected" });
             const error = createHttpError(403, "Your account request was not approved. Contact your admin for details.");
             return next(error);
+        }
+        if (isUserPresent.status !== "Approved") {
+            await UserAuditLog.create({ targetUserId: isUserPresent._id, action: "login.failed", outcome: "failure", reason: "Account not approved" });
+            return next(createHttpError(403, "Your account is not approved. Contact your administrator."));
         }
 
         isUserPresent.lastLoginAt = new Date();
@@ -203,6 +211,7 @@ const approveUser = async (req, res, next) => {
         }
 
         user.status = "Approved";
+        user.active = true;
         user.approvalToken = null;
         await user.save();
 
@@ -222,6 +231,7 @@ const rejectUser = async (req, res, next) => {
         }
 
         user.status = "Rejected";
+        user.active = false;
         user.approvalToken = null;
         await user.save();
 
@@ -336,13 +346,27 @@ const getUserData = async (req, res, next) => {
                 notes: String(notes || "").trim(),
                 password,
                 role: String(role).trim(),
-                status: "Approved",
+                status: "Pending",
+                approvalToken: crypto.randomBytes(24).toString("hex"),
                 active,
                 permissionOverrides: { granted: permissions, denied },
             });
             await user.save();
-            await audit(req, "user.created", user._id, { role: user.role, active: user.active });
-            res.status(201).json({ success: true, message: "Employee account created.", data: normalizeUser(user) });
+            let approvalEmailSent = false;
+            try {
+                const mailResult = await sendSignupApprovalRequest(user);
+                approvalEmailSent = !mailResult?.skipped;
+            } catch (mailError) {
+                console.error("Failed to send managed-user approval email:", mailError.message);
+            }
+            await audit(req, "user.created", user._id, { role: user.role, active: user.active, status: user.status });
+            res.status(201).json({
+                success: true,
+                message: approvalEmailSent
+                    ? "Employee account created and an approval request was emailed to the administrator."
+                    : "Employee account created, but the approval email could not be sent. Contact the administrator to approve it.",
+                data: normalizeUser(user),
+            });
         } catch (error) {
             next(error);
         }
