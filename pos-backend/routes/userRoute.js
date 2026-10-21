@@ -7,7 +7,8 @@ const router = express.Router();
 // Authentication Routes
 router.route("/register").post(register);
 router.route("/login").post(login);
-router.route("/logout").post(isVerifiedUser, logout)
+// Logout must still clear the auth cookie if the session token has expired.
+router.route("/logout").post(logout)
 
 // Clicked from the admin's approval email — no auth required, the random
 // token in the URL is what authorizes the action.

@@ -34,8 +34,10 @@ const Login = () => {
           navigate("/");
       },
       onError: (error) => {
-        const { response } = error;
-        enqueueSnackbar(response.data.message, { variant: "error" });
+        enqueueSnackbar(
+          error?.response?.data?.message || error?.message || "Unable to sign in. Please try again.",
+          { variant: "error" }
+        );
       }
     })
 

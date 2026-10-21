@@ -169,7 +169,16 @@ const getUserData = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
     try {
-        const clearCookieOptions = config.cookieDomain ? { domain: config.cookieDomain } : {};
+        const isProd = config.nodeEnv === "production";
+        const clearCookieOptions = {
+            httpOnly: true,
+            sameSite: isProd ? "none" : "lax",
+            secure: isProd,
+            path: "/",
+        };
+        if (config.cookieDomain) {
+            clearCookieOptions.domain = config.cookieDomain;
+        }
         res.clearCookie('accessToken', clearCookieOptions);
         res.status(200).json({success: true, message: "User logout successfully!"});
 

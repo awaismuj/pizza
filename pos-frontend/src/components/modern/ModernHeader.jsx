@@ -3,28 +3,34 @@ import { FaUserCircle, FaSun, FaMoon } from "react-icons/fa";
 import { IoLogOut } from "react-icons/io5";
 import { MdTableBar, MdDeliveryDining } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { logout, getTables, getOrders } from "../../https";
 import { removeUser } from "../../redux/slices/userSlice";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUITheme } from "../../context/UIThemeContext";
 import MusicPlayer from "../shared/MusicPlayer";
+import { enqueueSnackbar } from "notistack";
 
 const ModernHeader = ({ collapsed }) => {
   const userData = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { isClean, toggleColorTheme } = useUITheme();
 
   const logoutMutation = useMutation({
     mutationFn: () => logout(),
-    onSuccess: () => {
+    onSettled: (_data, error) => {
+      queryClient.removeQueries();
       dispatch(removeUser());
       navigate("/auth");
-    },
-    onError: (err) => {
-      console.error("Logout error", err);
+      if (error) {
+        enqueueSnackbar(
+          "You have been signed out on this device, but the server could not confirm cookie removal. Check your connection.",
+          { variant: "warning" }
+        );
+      }
     },
   });
 
@@ -205,13 +211,16 @@ const ModernHeader = ({ collapsed }) => {
 
           {/* Logout */}
           <button
+            type="button"
             onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
             className={`p-1.5 rounded-lg transition ${
               isClean
                 ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                 : "text-slate-400 hover:text-rose-400 hover:bg-rose-500/10"
             }`}
-            title="Log out of terminal"
+            title={logoutMutation.isPending ? "Signing out…" : "Log out of terminal"}
+            aria-label="Log out"
           >
             <IoLogOut size={20} />
           </button>

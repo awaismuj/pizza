@@ -4,7 +4,7 @@ import { FaUserCircle } from "react-icons/fa";
 import { FaBell } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { IoLogOut } from "react-icons/io5";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { logout, getLowStockItems } from "../../https";
 import { LOW_STOCK_QUERY_KEY, OPEN_LOW_STOCK_EVENT, isStockRole } from "./LowStockAlert";
 import { removeUser } from "../../redux/slices/userSlice";
@@ -14,22 +14,27 @@ import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import ExpenseQuickAdd from "./ExpenseQuickAdd";
 import MusicPlayer from "./MusicPlayer";
 import { useUITheme } from "../../context/UIThemeContext";
+import { enqueueSnackbar } from "notistack";
 
 const Header = () => {
   const userData = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [expenseOpen, setExpenseOpen] = useState(false);
 
   const logoutMutation = useMutation({
     mutationFn: () => logout(),
-    onSuccess: (data) => {
-      console.log(data);
+    onSettled: (_data, error) => {
+      queryClient.removeQueries();
       dispatch(removeUser());
       navigate("/auth");
-    },
-    onError: (error) => {
-      console.log(error);
+      if (error) {
+        enqueueSnackbar(
+          "You have been signed out on this device, but the server could not confirm cookie removal. Check your connection.",
+          { variant: "warning" }
+        );
+      }
     },
   });
 
@@ -150,11 +155,16 @@ const Header = () => {
               {userData.role || "Role"}
             </p>
           </div>
-          <IoLogOut
+          <button
+            type="button"
             onClick={handleLogout}
-            className="shrink-0 text-[#f5f5f5] ml-1 lg:ml-2"
-            size={28}
-          />
+            disabled={logoutMutation.isPending}
+            aria-label="Log out"
+            title={logoutMutation.isPending ? "Signing out…" : "Log out"}
+            className="shrink-0 text-[#f5f5f5] ml-1 lg:ml-2 disabled:opacity-50"
+          >
+            <IoLogOut size={28} />
+          </button>
         </div>
       </div>
 
