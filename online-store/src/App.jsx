@@ -9,6 +9,7 @@ import {
   cancelOrder,
   lookupOrderByPhone,
   getPublicSettings,
+  validateCoupon,
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
@@ -2773,6 +2774,9 @@ function App() {
   const [trackingDismissed, setTrackingDismissed] = useState(false);
   const orderStillActive = order && !["Completed", "Closed", "Cancelled"].includes(order.orderStatus);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  const [couponCode, setCouponCode] = useState("");
+  const [couponQuote, setCouponQuote] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const [activeSection, setActiveSection] = useState(DEALS_SECTION_ID);
 
@@ -3076,10 +3080,15 @@ function App() {
   // can't be ordered as-is - the customer is shown why instead of an error.
   const byoBlocked = byoUnits > 0 && (byoShort > 0 || !byoConfig.enabled);
 
-  const subtotal = grossSubtotal - byoDiscount; // after discount: what tax is charged on
+  const couponDiscount = Number(couponQuote?.discountAmount || 0);
+  const subtotal = Math.max(0, grossSubtotal - byoDiscount - couponDiscount); // tax follows all eligible item discounts
   const tax = (subtotal * taxRatePercent) / 100;
   const total = subtotal + tax;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
+
+  useEffect(() => {
+    setCouponQuote(null);
+  }, [cart, form.phone]);
 
   const showToast = useCallback((message, duration = 2000) => {
     setToast(message);
@@ -3359,6 +3368,44 @@ function App() {
 
   /* ---------------- Checkout / tracking ---------------- */
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    if (!isValidPhone(form.phone)) {
+      setError("Enter your mobile number before applying a coupon.");
+      return;
+    }
+
+    setValidatingCoupon(true);
+    setError("");
+    try {
+      const response = await validateCoupon({
+        code: couponCode,
+        phone: form.phone,
+        channel: "online",
+        existingDiscount: byoDiscount,
+        items: cartLines.map((line) =>
+          line.type === "deal"
+            ? { dealId: line.item._id, quantity: line.qty }
+            : {
+                dishId: line.item._id,
+                quantity: line.qty,
+                size: line.size || undefined,
+                crust: line.crust || undefined,
+                byo: line.type === "byo" ? true : undefined,
+              }
+        ),
+      });
+      setCouponQuote(response.data);
+      setCouponCode(response.data?.code || couponCode.trim().toUpperCase());
+      showToast(`Coupon applied: ${formatRs(response.data?.discountAmount || 0)} off`);
+    } catch (err) {
+      setCouponQuote(null);
+      setError(err.message || "Could not apply coupon.");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (cartLines.length === 0) return;
@@ -3384,6 +3431,7 @@ function App() {
         customerName: form.name,
         customerPhone: form.phone,
         address: form.address,
+        ...(couponQuote ? { couponCode: couponQuote.code } : {}),
         items: cartLines.map((l) =>
           l.type === "deal"
             ? { dealId: l.item._id, quantity: l.qty, dealSelections: l.dealSelections || undefined }
@@ -4580,6 +4628,44 @@ function App() {
                     />
                   </label>
 
+                  <div className="gzp-field">
+                    <span>Coupon code</span>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={couponCode}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value.toUpperCase());
+                          setCouponQuote(null);
+                        }}
+                        placeholder="Enter coupon code"
+                        aria-label="Coupon code"
+                      />
+                      {couponQuote ? (
+                        <button
+                          className="gzp-btn gzp-btn-ghost"
+                          type="button"
+                          onClick={() => { setCouponQuote(null); setCouponCode(""); }}
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          className="gzp-btn gzp-btn-ghost"
+                          type="button"
+                          disabled={validatingCoupon || !couponCode.trim()}
+                          onClick={handleApplyCoupon}
+                        >
+                          {validatingCoupon ? "Checking…" : "Apply"}
+                        </button>
+                      )}
+                    </div>
+                    {couponQuote && (
+                      <small style={{ color: "var(--basil)" }}>
+                        {couponQuote.name}: −{formatRs(couponDiscount)}
+                      </small>
+                    )}
+                  </div>
+
                   <p className="gzp-note">
                     <IconTruck />
                     <span>
@@ -4594,6 +4680,22 @@ function App() {
 
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
+                  {byoDiscount > 0 && (
+                    <div>
+                      <span>Build Your Own discount</span>
+                      <span>−{formatRs(byoDiscount)}</span>
+                    </div>
+                  )}
+                  {couponDiscount > 0 && (
+                    <div>
+                      <span>Coupon discount</span>
+                      <span>−{formatRs(couponDiscount)}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span>Tax ({taxRatePercent}%)</span>
+                    <span>{formatRs(tax)}</span>
+                  </div>
                   <div className="gzp-grand">
                     <span>Total to pay</span>
                     <span>{formatRs(total)}</span>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getTotalPrice } from "../../redux/slices/cartSlice";
 import {
@@ -6,6 +6,7 @@ import {
   createOrderRazorpay,
   updateTable,
   verifyPaymentRazorpay,
+  validateCouponCode,
 } from "../../https/index";
 import { enqueueSnackbar } from "notistack";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,8 +41,13 @@ const Bill = () => {
   const cartData = useSelector((state) => state.cart);
   const total = useSelector(getTotalPrice);
   const { taxRate } = useTaxRate();
-  const tax = (total * taxRate) / 100;
-  const totalPriceWithTax = total + tax;
+  const [couponCode, setCouponCode] = useState("");
+  const [couponQuote, setCouponQuote] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const couponDiscount = Number(couponQuote?.discountAmount || 0);
+  const discountedTotal = Math.max(0, total - couponDiscount);
+  const tax = (discountedTotal * taxRate) / 100;
+  const totalPriceWithTax = discountedTotal + tax;
 
   const [paymentMethod, setPaymentMethod] = useState();
   const [orderInfo, setOrderInfo] = useState();
@@ -54,6 +60,34 @@ const Bill = () => {
   // Prints the bill as it stands right now (before the order is placed) —
   // a kitchen/customer copy of what's currently in the cart.
   const [showPendingReceipt, setShowPendingReceipt] = useState(false);
+
+  useEffect(() => {
+    setCouponQuote(null);
+  }, [cartData, customerData.customerPhone]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const response = await validateCouponCode({
+        code: couponCode,
+        phone: customerData.customerPhone,
+        channel: "pos",
+        items: cartData,
+      });
+      const quote = response.data?.data;
+      setCouponQuote(quote);
+      setCouponCode(quote?.code || couponCode.trim().toUpperCase());
+      enqueueSnackbar(`Coupon applied: Rs ${Number(quote?.discountAmount || 0).toFixed(2)} off`, {
+        variant: "success",
+      });
+    } catch (error) {
+      setCouponQuote(null);
+      enqueueSnackbar(error?.response?.data?.message || "Could not apply coupon.", { variant: "error" });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
 
   const handlePlaceOrder = async () => {
     if (!paymentMethod) {
@@ -122,10 +156,11 @@ const Bill = () => {
                 },
                 orderStatus: "In Progress",
                 bills: {
-                  total: total,
+                  total: discountedTotal,
                   tax: tax,
                   totalWithTax: totalPriceWithTax,
                 },
+                ...(couponQuote ? { couponCode: couponQuote.code } : {}),
                 items: cartData,
                 table: customerData.table.tableId,
                 paymentMethod: paymentMethod,
@@ -172,10 +207,11 @@ const Bill = () => {
         },
         orderStatus: "In Progress",
         bills: {
-          total: total,
+          total: discountedTotal,
           tax: tax,
           totalWithTax: totalPriceWithTax,
         },
+        ...(couponQuote ? { couponCode: couponQuote.code } : {}),
         items: cartData,
         table: customerData.table.tableId,
         paymentMethod: paymentMethod,
@@ -249,12 +285,51 @@ const Bill = () => {
           isClean ? "bg-slate-50/80 border-t border-slate-200/90" : "bg-slate-950/70"
         }`}
       >
+        <div className="flex items-center gap-2">
+          <input
+            value={couponCode}
+            onChange={(event) => {
+              setCouponCode(event.target.value.toUpperCase());
+              setCouponQuote(null);
+            }}
+            placeholder="Coupon code"
+            aria-label="Coupon code"
+            className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none ${
+              isClean
+                ? "border-slate-200 bg-white text-slate-900"
+                : "border-slate-800 bg-slate-900 text-white"
+            }`}
+          />
+          {couponQuote ? (
+            <button
+              type="button"
+              onClick={() => { setCouponQuote(null); setCouponCode(""); }}
+              className="rounded-lg bg-slate-700 px-3 py-2 text-sm text-white"
+            >
+              Remove
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleApplyCoupon}
+              disabled={validatingCoupon || !couponCode.trim() || cartData.length === 0}
+              className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+            >
+              {validatingCoupon ? "Checking…" : "Apply"}
+            </button>
+          )}
+        </div>
+        {couponQuote && (
+          <p className="text-xs text-green-500">
+            {couponQuote.name}: −Rs {couponDiscount.toFixed(2)}
+          </p>
+        )}
         {/* Financial Summary */}
         <div className={`space-y-1.5 text-xs ${isClean ? "text-slate-600 font-medium" : "text-slate-400"}`}>
           <div className="flex items-center justify-between">
             <span>Subtotal ({cartData.length} lines)</span>
             <span className={`font-mono font-bold ${isClean ? "text-slate-900" : "text-white"}`}>
-              Rs {total.toFixed(2)}
+              Rs {discountedTotal.toFixed(2)}
             </span>
           </div>
           <div className="flex items-center justify-between">
@@ -349,7 +424,7 @@ const Bill = () => {
         <PendingReceipt
           customerData={customerData}
           cartData={cartData}
-          total={total}
+          total={discountedTotal}
           tax={tax}
           taxRate={taxRate}
           totalPriceWithTax={totalPriceWithTax}

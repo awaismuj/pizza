@@ -50,6 +50,12 @@ export const placeOrder = (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const validateCoupon = (payload) =>
+  request("/api/coupon/validate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
 export const getOrderStatus = (orderId) => request(`/api/order/public/${orderId}`);
 
 // Customer cancelling their OWN order — only works while it's still

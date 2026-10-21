@@ -285,6 +285,18 @@ The inventory schema is defined in:
 
 This is designed for MongoDB. The inventory collection is created automatically when you run the app and seed the database. You can update the seed file at `pos-backend/scripts/seed.js` to add your own default stock items.
 
+## Coupon management
+
+The POS backend supports shared and customer-phone-restricted coupon codes for percentage and fixed-amount discounts. Coupon definitions, codes, assignments, usage counters, first-order locks, and redemption history are stored separately in MongoDB. Order records snapshot the applied code/name/discount so later campaign edits do not change historical receipts.
+
+Admins manage coupons from **Dashboard → Coupons**. Coupons can have channel, eligible/excluded dish/category, minimum subtotal, date window, first-order, stacking, campaign-use, and per-customer-use restrictions. Customer-specific codes can be assigned, inspected by phone, regenerated, and revoked. Private codes are not returned in shared coupon listings.
+
+Online checkout validates codes through `POST /api/coupon/validate` and revalidates at `POST /api/order/public/checkout`. POS preview uses authenticated `POST /api/coupon/validate/pos`; the final order rechecks the code and computes the final bill on the server. For POS orders, only Cashier/Admin users may apply a code. The order bill calculation is item subtotal → eligible coupon/Build Your Own discounts → configured sales tax. Delivery fees are not currently modeled by the application.
+
+Coupon collections and indexes are created by the existing `npm run db:setup` bootstrap command; no existing collection is dropped. Public and POS coupon validation is limited to 30 requests per minute per backend process/IP; production deployments with multiple instances should also enforce a shared edge/API-gateway limit. Deploy the backend and both frontends together, then run the bootstrap command against the intended MongoDB database to create coupon indexes. To roll back the feature, first disable coupon campaigns, deploy the previous application code, and retain the coupon collections and order snapshots for audit; deleting collections is not a safe rollback.
+
+The current customer identity model is the phone captured on orders, not a verified customer account. Consequently phone-keyed eligibility is not equivalent to authenticated customer identity. Start and expiry are stored as absolute dates; `datetime-local` input is interpreted in the admin browser's timezone, while the coupon timezone field is validated/stored but does not currently convert that input. This implementation covers percentage/fixed item discounts and basic first-order rules; automated reward assignment, loyalty/birthday/referral/win-back targeting, free product/BOGO/free delivery, customer-facing assigned-coupon discovery, full customer groups, exports, campaign revenue attribution, and refund workflows are not implemented.
+
 ### 🍕 Pizza Land recipe seeder (`seed:pizzaland`)
 
 `pos-backend/scripts/seedPizzaLandRecipes.js` bulk-creates the raw

@@ -118,7 +118,7 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
                 </p>
                 <p>
                   <strong>
-                    Build Your Own Deal ({orderInfo.bills.discountPercent}% off):
+                    {orderInfo.bills.discountLabel || "Discount"}:
                   </strong>{" "}
                   -Rs {Number(orderInfo.bills.discount).toFixed(2)}
                 </p>

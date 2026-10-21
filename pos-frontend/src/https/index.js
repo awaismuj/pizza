@@ -46,6 +46,21 @@ export const toggleDeal = (dealId) => axiosWrapper.patch(`/api/deal/${dealId}/to
 export const reorderDeals = (order) => axiosWrapper.post(`/api/deal/reorder`, { order });
 export const deleteDeal = (dealId) => axiosWrapper.delete(`/api/deal/${dealId}`);
 
+// Coupons & promotions
+export const getCoupons = (params) => axiosWrapper.get("/api/coupon", { params });
+export const createCoupon = (data) => axiosWrapper.post("/api/coupon", data);
+export const updateCoupon = ({ couponId, ...data }) => axiosWrapper.put(`/api/coupon/${couponId}`, data);
+export const setCouponStatus = ({ couponId, status }) =>
+  axiosWrapper.patch(`/api/coupon/${couponId}/status`, { status });
+export const assignCoupon = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
+export const getCustomerCouponAssignments = (params) => axiosWrapper.get("/api/coupon/assignments", { params });
+export const revokeCustomerCoupon = ({ couponId, assignmentId }) =>
+  axiosWrapper.delete(`/api/coupon/${couponId}/assignments/${assignmentId}`);
+export const regenerateCustomerCoupon = ({ couponId, assignmentId }) =>
+  axiosWrapper.post(`/api/coupon/${couponId}/assignments/${assignmentId}/regenerate`);
+export const getCouponRedemptions = (params) => axiosWrapper.get("/api/coupon/redemptions", { params });
+export const validateCouponCode = (data) => axiosWrapper.post("/api/coupon/validate/pos", data);
+
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");
 export const addHeroSlide = (data) => axiosWrapper.post("/api/hero-slide/", data);

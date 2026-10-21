@@ -3,6 +3,12 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const Order = require("../models/orderModel");
+const Coupon = require("../models/couponModel");
+const CouponCode = require("../models/couponCodeModel");
+const CustomerCoupon = require("../models/customerCouponModel");
+const CouponRedemption = require("../models/couponRedemptionModel");
+const CouponCustomerUsage = require("../models/couponCustomerUsageModel");
+const FirstOrderCouponLock = require("../models/firstOrderCouponLockModel");
 const config = require("../config/config");
 
 const bootstrap = async () => {
@@ -30,6 +36,18 @@ const bootstrap = async () => {
     console.log("✅ Order indexes synced");
   } catch (error) {
     console.warn(`⚠️ Could not sync Order indexes: ${error.message}`);
+  }
+
+  for (const [name, model] of [
+    ["Coupon", Coupon],
+    ["CouponCode", CouponCode],
+    ["CustomerCoupon", CustomerCoupon],
+    ["CouponRedemption", CouponRedemption],
+    ["CouponCustomerUsage", CouponCustomerUsage],
+    ["FirstOrderCouponLock", FirstOrderCouponLock],
+  ]) {
+    await model.createIndexes();
+    console.log(`✅ ${name} indexes created`);
   }
 
   const adminEmail = String(config.defaultAdmin.email).trim().toLowerCase();
