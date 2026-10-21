@@ -15,9 +15,9 @@ const {
 } = require("../utils/staffService");
 
 const roleOf = (req) => String(req.user?.role || "").toLowerCase();
-const isAdmin = (req) => roleOf(req) === "admin";
-const canViewPayroll = (req) => ["admin", "payroll manager", "accountant"].includes(roleOf(req));
-const canEditPayroll = (req) => ["admin", "payroll manager"].includes(roleOf(req));
+const isAdmin = (req) => ["admin", "super admin"].includes(roleOf(req));
+const canViewPayroll = (req) => req.permissions?.includes("payroll.view") || false;
+const canEditPayroll = (req) => req.permissions?.includes("payroll.compensation") || false;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -74,7 +74,7 @@ const shape = (staff, req) => {
       return safeEntry;
     });
   }
-  if (!["admin", "hr manager"].includes(roleOf(req))) {
+  if (!req.permissions?.includes("hr.manage")) {
     ["cnic", "address", "dateOfBirth", "guardianName", "emergencyContact",
       "emergencyRelationship", "nationality", "notes"].forEach((key) => delete o[key]);
     delete o.linkedUser;

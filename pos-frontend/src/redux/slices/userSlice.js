@@ -6,6 +6,8 @@ const initialState = {
     email : "",
     phone: "",
     role: "",
+    permissions: [],
+    forcePasswordChange: false,
     isAuth: false
 }
 
@@ -14,13 +16,19 @@ const userSlice = createSlice({
     initialState,
     reducers: {
         setUser: (state, action) => {
-            const { _id, name, phone, email, role  } = action.payload;
+            const { _id, name, phone, email, role, permissions = [], forcePasswordChange = false } = action.payload;
             state._id = _id;
             state.name = name;
             state.phone = phone;
             state.email = email;
             state.role = role;
+            state.permissions = permissions;
+            state.forcePasswordChange = forcePasswordChange;
             state.isAuth = true;
+        },
+
+        setPasswordChangeRequired: (state, action) => {
+            state.forcePasswordChange = action.payload;
         },
 
         removeUser: (state) => {
@@ -29,10 +37,12 @@ const userSlice = createSlice({
             state.name = "";
             state.phone = "";
             state.role = "";
+            state.permissions = [];
+            state.forcePasswordChange = false;
             state.isAuth = false;
         }
     }
 })
 
-export const { setUser, removeUser } = userSlice.actions;
+export const { setUser, setPasswordChangeRequired, removeUser } = userSlice.actions;
 export default userSlice.reducer;

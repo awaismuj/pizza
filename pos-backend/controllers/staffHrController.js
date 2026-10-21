@@ -34,7 +34,8 @@ const validDay = (value) => {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
 const actorId = (req) => req.user._id;
-const isHrUser = (req) => ["admin", "hr manager"].includes(String(req.user?.role || "").toLowerCase());
+const isHrUser = (req) =>
+  req.permissions?.includes("hr.manage") || req.permissions?.includes("hr.view") || false;
 const requireText = (value, label) => {
   const result = String(value || "").trim();
   if (!result) throw createHttpError(400, `${label} is required.`);

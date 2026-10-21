@@ -132,6 +132,13 @@ const updateInventoryItem = async (req, res, next) => {
       const error = createHttpError(404, "Inventory item not found!");
       return next(error);
     }
+    if (quantity !== undefined && Number(quantity) !== item.quantity &&
+        !req.permissions?.includes("inventory.adjust")) {
+      return next(createHttpError(403, "You do not have permission to adjust stock."));
+    }
+    if (quantity !== undefined && Number(quantity) !== item.quantity) {
+      req.auditActionOverride = "stock.adjusted";
+    }
 
     const trimmedName = name ? String(name).trim() : "";
     const trimmedCategory = category ? String(category).trim() : "";

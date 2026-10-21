@@ -7,6 +7,22 @@ export const login = (data) => axiosWrapper.post("/api/user/login", data);
 export const register = (data) => axiosWrapper.post("/api/user/register", data);
 export const getUserData = () => axiosWrapper.get("/api/user");
 export const logout = () => axiosWrapper.post("/api/user/logout");
+export const getManagedUsers = (params) => axiosWrapper.get("/api/user/management", { params });
+export const getManagedUser = (userId) => axiosWrapper.get(`/api/user/management/${userId}`);
+export const createManagedUser = (data) => axiosWrapper.post("/api/user/management", data);
+export const updateManagedUser = ({ userId, ...data }) => axiosWrapper.put(`/api/user/management/${userId}`, data);
+export const changeManagedUserRole = ({ userId, role }) => axiosWrapper.patch(`/api/user/management/${userId}/role`, { role });
+export const updateManagedUserPermissions = ({ userId, granted, denied }) =>
+  axiosWrapper.patch(`/api/user/management/${userId}/permissions`, { granted, denied });
+export const updateManagedUserStatus = ({ userId, active }) =>
+  axiosWrapper.patch(`/api/user/management/${userId}/status`, { active });
+export const resetManagedUserPassword = ({ userId, password, confirmPassword }) =>
+  axiosWrapper.post(`/api/user/management/${userId}/reset-password`, { password, confirmPassword });
+export const getManagedRoles = () => axiosWrapper.get("/api/user/roles");
+export const saveManagedRole = (data) => axiosWrapper.post("/api/user/roles", data);
+export const getPermissionCatalog = () => axiosWrapper.get("/api/user/permissions");
+export const getUserAuditLogs = (params) => axiosWrapper.get("/api/user/audit", { params });
+export const changeOwnPassword = (data) => axiosWrapper.patch("/api/user/me/password", data);
 
 // Table Endpoints
 export const addTable = (data) => axiosWrapper.post("/api/table/", data);

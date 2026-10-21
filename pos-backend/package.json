@@ -13,7 +13,9 @@
     "seed:pizzaland": "node scripts/seedPizzaLandRecipes.js",
     "reset:sales": "node scripts/reset-sales.js",
     "backfill:order-numbers": "node scripts/backfill-order-numbers.js",
-    "db:setup": "node scripts/db-bootstrap.js"
+    "db:setup": "node scripts/db-bootstrap.js",
+    "migrate:rbac": "node scripts/migrate-rbac.js",
+    "rbac:promote-owner": "node scripts/promote-owner.js"
   },
   "keywords": [],
   "author": "",

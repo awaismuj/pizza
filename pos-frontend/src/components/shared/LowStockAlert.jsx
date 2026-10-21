@@ -23,18 +23,16 @@ const readSnoozed = () => {
   }
 };
 
-export const isStockRole = (role) => ["admin", "cashier"].includes(String(role || "").toLowerCase());
-
 // Popup that warns Admin and Cashier when inventory is running low:
 //   < 1000 g (1 kg) / 1000 ml (1 l) / 10 pcs, or already out of stock.
 // Admin gets a "Restock" button that opens the Inventory tab. Cashier only
 // sees the warning - stock can only be changed by the Admin.
 const LowStockAlert = () => {
-  const { isAuth, role } = useSelector((state) => state.user);
+  const { isAuth, permissions = [] } = useSelector((state) => state.user);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const enabled = isAuth && isStockRole(role);
-  const isAdmin = String(role || "").toLowerCase() === "admin";
+  const enabled = isAuth && permissions.includes("inventory.view");
+  const canRestock = permissions.includes("inventory.adjust");
 
   const [snoozed, setSnoozed] = useState(readSnoozed);
   const [forceOpen, setForceOpen] = useState(false);
@@ -172,7 +170,7 @@ const LowStockAlert = () => {
                     <p className={`font-bold ${out ? "text-red-500" : "text-yellow-400"}`}>
                       {out ? "Out of stock" : `${Number(item.quantity.toFixed(2))} ${item.unit} left`}
                     </p>
-                    {isAdmin && (
+                    {canRestock && (
                       <div className="mt-1 flex items-center gap-1">
                         <input
                           type="number"
@@ -200,7 +198,7 @@ const LowStockAlert = () => {
             })}
           </ul>
 
-          {isAdmin ? (
+          {canRestock ? (
             <p className="mt-4 text-sm text-[#ababab]">
               Type how much stock arrived and hit "Add" next to any item above — no need to leave this page.
               Online customers can no longer order more than what is left.
@@ -216,9 +214,9 @@ const LowStockAlert = () => {
               onClick={dismiss}
               className="flex-1 rounded-lg bg-[#383838] py-3 font-semibold text-[#f5f5f5]"
             >
-              {isAdmin ? "Remind me later" : "OK, got it"}
+              {canRestock ? "Remind me later" : "OK, got it"}
             </button>
-            {isAdmin && (
+            {canRestock && (
               <button
                 onClick={takeAction}
                 className="flex-1 rounded-lg bg-[#f6b100] py-3 font-semibold text-[#1f1f1f]"

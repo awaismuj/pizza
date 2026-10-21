@@ -26,7 +26,13 @@ const TERMINAL_STATUSES = ["Closed", "Completed", "Cancelled"];
 //    Closed, or Accepted -> Preparing -> ... for online).
 //  - Editing an order's items, or cancelling it, is Cashier/Admin only.
 //  - Deleting an order outright is Admin only (see the DELETE route).
-const canEditOrRole = (role) => ["cashier", "admin"].includes(String(role || "").toLowerCase());
+const canEditOrder = (req) =>
+  req.permissions?.includes("orders.edit") ||
+  ["cashier", "admin"].includes(String(req.user?.role || "").toLowerCase());
+
+const canCancelOrder = (req) =>
+  req.permissions?.includes("orders.cancel") ||
+  ["cashier", "admin"].includes(String(req.user?.role || "").toLowerCase());
 
 const addOrder = async (req, res, next) => {
   try {
@@ -405,6 +411,10 @@ const getOrderById = async (req, res, next) => {
       return next(error);
     }
 
+    if (req.body.orderStatus === "Cancelled" && !canCancelOrder(req)) {
+      return next(createHttpError(403, "You do not have permission to cancel orders."));
+    }
+
     res.status(200).json({ success: true, data: order });
   } catch (error) {
     next(error);
@@ -524,7 +534,7 @@ const updateOrder = async (req, res, next) => {
 
     // ---- 1. Editing items ----
     if (Array.isArray(req.body.items)) {
-      if (!canEditOrRole(req.user?.role)) {
+      if (!canEditOrder(req)) {
         const error = createHttpError(403, "Only Cashier or Admin can edit an order's items.");
         return next(error);
       }
@@ -615,10 +625,16 @@ const updateOrder = async (req, res, next) => {
       return next(error);
     }
 
+    if ((String(req.user?.role || "").toLowerCase() === "kitchen staff" ||
+        (req.permissions?.includes("kitchen.update") && !req.permissions?.includes("orders.update"))) &&
+        !["Ready", "Preparing", "Ready to Deliver"].includes(orderStatus)) {
+      return next(createHttpError(403, "Kitchen staff can only update preparation statuses."));
+    }
+
     // Cancelling is Cashier/Admin only — a Waiter can still move an order
     // forward (In Progress -> Ready, Accepted -> Preparing, etc.) but can't
     // cancel it or edit its items.
-    if (orderStatus === "Cancelled" && !canEditOrRole(req.user?.role)) {
+    if (orderStatus === "Cancelled" && !canCancelOrder(req)) {
       const error = createHttpError(403, "Only Cashier or Admin can cancel an order.");
       return next(error);
     }

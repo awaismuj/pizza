@@ -40,6 +40,11 @@ const bootstrap = async () => {
     return;
   }
 
+  if (!config.defaultAdmin.password) {
+    console.log("ℹ️ No default admin was created. Set ADMIN_PASSWORD explicitly or create an account through the secure owner setup process.");
+    return;
+  }
+
   const adminUser = new User({
     name: config.defaultAdmin.name,
     email: adminEmail,
@@ -50,7 +55,7 @@ const bootstrap = async () => {
   });
 
   await adminUser.save();
-  console.log(`✅ Seeded default admin user: ${adminEmail} / ${config.defaultAdmin.password}`);
+  console.log(`✅ Seeded admin user: ${adminEmail}`);
 };
 
 bootstrap()
