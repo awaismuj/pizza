@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const { normalizeApprovalStatus } = require("../utils/userStatus");
 
 const userSchema = new mongoose.Schema({
     name : {
@@ -68,6 +69,10 @@ const userSchema = new mongoose.Schema({
         default: null,
     },
 }, { timestamps : true })
+
+userSchema.pre('validate', function () {
+    this.status = normalizeApprovalStatus(this.status);
+});
 
 userSchema.pre('save', async function () {
     if (!this.isModified('password')) return;
