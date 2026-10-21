@@ -2,7 +2,7 @@ const express = require("express");
 const {
     register, login, getUserData, logout, approveUser, rejectUser,
     listUsers, getManagedUser, createManagedUser, updateManagedUser,
-    changeUserRole, updateUserPermissions, updateUserStatus,
+    changeUserRole, updateUserPermissions, updateUserStatus, deleteManagedUser,
     resetManagedPassword, changeOwnPassword, listRoles, saveRole, listAuditLogs,
     getPermissionCatalog,
 } = require("../controllers/userController");
@@ -19,6 +19,7 @@ router.route("/management/:id").get(isVerifiedUser, getManagedUser).put(isVerifi
 router.route("/management/:id/role").patch(isVerifiedUser, changeUserRole);
 router.route("/management/:id/permissions").patch(isVerifiedUser, updateUserPermissions);
 router.route("/management/:id/status").patch(isVerifiedUser, updateUserStatus);
+router.route("/management/:id").delete(isVerifiedUser, deleteManagedUser);
 router.route("/management/:id/reset-password").post(isVerifiedUser, resetManagedPassword);
 router.route("/roles").get(isVerifiedUser, listRoles).post(isVerifiedUser, saveRole);
 router.route("/audit").get(isVerifiedUser, listAuditLogs);

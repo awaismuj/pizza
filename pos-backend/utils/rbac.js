@@ -37,6 +37,7 @@ const permissions = [
   ["users.create", "Create employee accounts"],
   ["users.edit", "Edit employee accounts"],
   ["users.deactivate", "Activate or deactivate accounts"],
+  ["users.delete", "Delete employee accounts"],
   ["users.resetPassword", "Reset employee passwords"],
   ["users.assignRole", "Assign roles"],
   ["users.managePermissions", "Manage permissions"],
@@ -111,6 +112,7 @@ const routePermission = (baseUrl, path, method, body = {}, user = {}, effectiveP
       if (route.endsWith("/permissions")) return "users.managePermissions";
       if (route.endsWith("/role")) return "users.assignRole";
       if (route.endsWith("/status")) return "users.deactivate";
+      if (verb === "DELETE") return "users.delete";
       if (verb === "GET") return "users.view";
       return "users.edit";
     }
