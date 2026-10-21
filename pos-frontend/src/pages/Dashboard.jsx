@@ -7,7 +7,7 @@ import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { enqueueSnackbar } from "notistack";
-import { FaSearch, FaEdit, FaTrash } from "react-icons/fa";
+import { FaSearch, FaEdit, FaTrash, FaMoon, FaSun } from "react-icons/fa";
 import Metrics from "../components/dashboard/Metrics";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Modal from "../components/dashboard/Modal";
@@ -35,6 +35,7 @@ import {
   deleteInventoryItem,
 } from "../https";
 import { resolveImageUrl } from "../utils";
+import { useUITheme } from "../context/UIThemeContext";
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
@@ -50,6 +51,7 @@ const assetRoles = ["admin", "accountant", "asset manager", "read only"];
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const role = useSelector((state) => state.user.role);
+  const { isClean, toggleColorTheme } = useUITheme();
   const isAdmin = String(role || "").toLowerCase() === "admin";
   const visibleTabs = isAdmin ? tabs : ["Assets"];
 
@@ -326,6 +328,35 @@ const Dashboard = () => {
 
   return (
     <div className="pos-page-container space-y-4">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 shadow-xs ${
+          isClean
+            ? "border-slate-200 bg-white text-slate-900"
+            : "border-slate-800 bg-slate-900 text-white"
+        }`}
+      >
+        <div>
+          <h2 className="text-sm font-bold">Appearance</h2>
+          <p className={`mt-0.5 text-xs ${isClean ? "text-slate-500" : "text-slate-400"}`}>
+            Current mode: {isClean ? "Clean light" : "Dark"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleColorTheme}
+          aria-label={isClean ? "Switch to dark mode" : "Switch to clean light mode"}
+          title={isClean ? "Switch to dark mode" : "Switch to clean light mode"}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            isClean
+              ? "bg-slate-900 text-white hover:bg-slate-700"
+              : "bg-amber-400 text-slate-950 hover:bg-amber-300"
+          }`}
+        >
+          {isClean ? <FaMoon aria-hidden="true" /> : <FaSun aria-hidden="true" />}
+          {isClean ? "Switch to Dark Mode" : "Switch to Clean Light Mode"}
+        </button>
+      </div>
+
       {/* Contextual Action Bar when managing catalog dishes & tables */}
       {isAdmin && activeTab === "Menu" && (
         <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
