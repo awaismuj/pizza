@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const Order = require("../models/orderModel");
 const config = require("../config/config");
+const { getPasswordPolicy, getPasswordPolicyError } = require("../utils/passwordPolicy");
 
 const bootstrap = async () => {
   if (!config.databaseURI) {
@@ -40,6 +41,14 @@ const bootstrap = async () => {
     return;
   }
 
+  if (!config.defaultAdmin.password) {
+    console.log("ℹ️ No default admin was created. Set ADMIN_PASSWORD explicitly or create an account through the secure owner setup process.");
+    return;
+  }
+
+  const passwordError = getPasswordPolicyError(config.defaultAdmin.password, await getPasswordPolicy());
+  if (passwordError) throw new Error(`Default admin password does not meet the current policy: ${passwordError}`);
+
   const adminUser = new User({
     name: config.defaultAdmin.name,
     email: adminEmail,
@@ -50,7 +59,7 @@ const bootstrap = async () => {
   });
 
   await adminUser.save();
-  console.log(`✅ Seeded default admin user: ${adminEmail} / ${config.defaultAdmin.password}`);
+  console.log(`✅ Seeded admin user: ${adminEmail}`);
 };
 
 bootstrap()

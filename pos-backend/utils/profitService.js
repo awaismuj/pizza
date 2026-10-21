@@ -14,10 +14,22 @@ const Expense = require("../models/expenseModel");
 // Mirrors isEarnedOrder() in the pos-frontend's orderMetrics.js so the two
 // never disagree. Returned as a Mongo filter (rather than a plain status
 // list) because "earned" now depends on orderSource too, not status alone.
+//  - JazzCash/Raast orders count only once the payment is Verified (the
+//    "Verify & Accept" step), never while awaiting verification or rejected.
 const earnedOrderFilter = () => ({
-  $or: [
-    { orderSource: { $ne: "Online" }, orderStatus: { $ne: "Cancelled" } },
-    { orderSource: "Online", orderStatus: "Completed" },
+  $and: [
+    {
+      $or: [
+        { orderSource: { $ne: "Online" }, orderStatus: { $ne: "Cancelled" } },
+        { orderSource: "Online", orderStatus: "Completed" },
+      ],
+    },
+    {
+      $or: [
+        { paymentMethod: { $ne: "JazzCash/Raast" } },
+        { paymentMethod: "JazzCash/Raast", paymentStatus: "Verified" },
+      ],
+    },
   ],
 });
 

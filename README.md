@@ -53,8 +53,8 @@ JWT_SECRET=change_this_to_a_long_random_secret_key
 ADMIN_NAME=System Admin
 ADMIN_EMAIL=devops.awais@gmail.com
 ADMIN_PHONE=9999999999
-ADMIN_PASSWORD=admin123
-ADMIN_ROLE=Admin
+# Set a strong, unique password before running the database bootstrap.
+ADMIN_PASSWORD=
 
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
@@ -128,29 +128,102 @@ This does the following:
 
 - connects to MongoDB
 - syncs database indexes
-- creates the default admin user if it does not already exist
-- sets up the app for immediate login after startup
+- creates an initial Admin only when `ADMIN_PASSWORD` is explicitly set
+- does not create or print a default password
 
 ### Individual commands
 
 ```bash
 npm run migrate
+npm run migrate:staff-hr
+npm run migrate:staff-hr
 npm run migrate:asset-depreciation
 npm run seed
 ```
 
 `migrate` runs the database bootstrap process. Run `migrate:asset-depreciation` when deploying asset management to create its depreciation ledger indexes. `seed` is useful when you want to create the initial admin account and default data only.
 
-### Default admin user
+### HR and payroll
 
-The app seeds a default admin account automatically when no admin exists:
+Run `migrate:staff-hr` once before using HR/payroll in an existing database.
+It creates employee IDs and HR indexes, and records legacy salary values as
+effective from the migration date because earlier salary history cannot be
+reconstructed. It also creates the private HR document, leave accrual, loan
+repayment, and report audit indexes.
 
-```text
-Email: devops.awais@gmail.com
-Password: admin123
+The HR/payroll workspace covers employee profiles, shift-aware attendance
+and assignment history, employee self-service, private HR documents, leave
+requests and monthly accrual/carry-forward, approved overtime, fixed-interest-
+free staff loans, payroll previews and approval/finalization, payment tracking,
+payslips, and filtered employee/attendance/leave/overtime/payroll/payment
+reports. Reports export to CSV, Excel-compatible SpreadsheetML `.xls`, and
+PDF. HR document files are kept in MongoDB and are available only through
+authenticated, role-checked routes; do not expose them through the public
+`/uploads` path.
+
+Payroll tax and statutory contributions remain configurable rates rather than
+jurisdiction-certified legal calculations. Configure and review these rules
+with a qualified accountant before production payroll. Email notifications
+require configured SMTP.
+
+### User roles and access control
+
+The existing `User` accounts and cookie-based JWT login are reused. Run the
+safe, additive RBAC index migration when deploying the user/employee
+management feature:
+
+```bash
+cd pos-backend
+npm run migrate:rbac
 ```
 
-Change the password immediately after your first login in production.
+Existing accounts keep their existing roles and passwords. Built-in role
+permissions are resolved at request time; custom roles and security audit
+events are stored in the `roles` and `userauditlogs` collections. Individual
+permission overrides use this rule: role permissions are the baseline,
+explicit grants add permissions, and explicit denials always win.
+
+The RBAC migration only creates indexes; it does not rewrite or delete
+existing users, passwords, orders, or other business records. Back up the
+database before deployment as usual. To roll back the application, redeploy
+the previous application version and leave the additive indexes, user fields,
+roles, and audit records in place. Do not drop the RBAC collections or indexes
+as part of rollback: they may contain employee permissions and security history
+needed if the feature is redeployed.
+
+#### Provisioning the first Super Admin
+
+The application does not create a default-password owner account. Use an
+existing, active, approved Admin account and explicitly promote it from an
+operator-controlled environment with database access:
+
+```bash
+cd pos-backend
+RBAC_OWNER_EMAIL=owner@example.com npm run rbac:promote-owner
+```
+
+The command does not create an account or display/change a password. It
+refuses to run if an active Super Admin already exists, promotes only the
+specified existing Admin, records the provisioning event, and invalidates
+that account's existing sessions. Set `ADMIN_PASSWORD` explicitly if using
+the separate fresh-database bootstrap to create an initial Admin. Never use
+a shared or default credential.
+
+#### Managing employee accounts
+
+Sign in as an authorized Admin or Super Admin, then open **Dashboard →
+User & Employees**. The form creates active accounts with a selected
+predefined or custom role. The Users page supports search, role/status
+filters, pagination, profile editing, role changes, permission overrides,
+password resets, activation/deactivation, and audit history. Password
+resets use administrator-set temporary passwords; employees must change
+them before accessing other protected APIs.
+
+Admin accounts can delegate only permissions they themselves have and
+cannot create, manage, or promote Admin/Super Admin accounts. Owner-only
+actions require the Super Admin role. Deactivation, role/permission changes,
+and password resets revoke existing JWT sessions; permissions are reloaded
+from MongoDB on each authenticated request.
 
 ---
 

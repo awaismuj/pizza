@@ -16,3 +16,12 @@ export const canCancelOrder = (role) => ["cashier", "admin"].includes(norm(role)
 // Cashier/Admin — but never for a finished order (Completed/Closed).
 export const canDeleteOrder = (role, orderStatus) =>
   ["cashier", "admin"].includes(norm(role)) && !["Completed", "Closed"].includes(orderStatus);
+
+// Verifying / rejecting a JazzCash/Raast payment — Cashier/Admin only
+// (mirrors requireRole("Admin", "Cashier") on the /payment routes).
+export const canVerifyPayment = (role) => ["cashier", "admin"].includes(norm(role));
+
+// Extending one order's preparation time - kitchen/counter staff (Admin,
+// Cashier, Waiter). Mirrors requireRole("Admin", "Cashier", "Waiter") on
+// PATCH /api/order/:id/prep/extend.
+export const canExtendPrep = (role) => ["admin", "cashier", "waiter"].includes(norm(role));

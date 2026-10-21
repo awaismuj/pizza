@@ -167,7 +167,7 @@ const buildDealPayload = (body) => {
     badge: badge ? String(badge).trim() : "",
     description: description || "",
     image: image || "",
-    icon: icon || "🔥",
+    icon: icon || "flame",
     items: normalizedItems,
     price: Number(price),
     originalPrice: originalPrice ? Number(originalPrice) : 0,

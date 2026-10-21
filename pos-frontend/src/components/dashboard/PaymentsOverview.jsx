@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getOrders } from "../../https";
 import { isEarnedOrder, orderTotal, formatCurrency } from "../../utils/orderMetrics";
+import { I } from "../shared/AppIcons";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const dayKeyOf = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -192,7 +193,7 @@ const PaymentsOverview = () => {
                         })}
                       </td>
                       <td className="py-2 pr-3">{o.customerDetails?.name || "—"}</td>
-                      <td className="py-2 pr-3 text-[#ababab]">{o.orderSource === "Online" ? "🌐 Online" : "🧾 POS"}</td>
+                      <td className="py-2 pr-3 text-[#ababab]"><span className="inline-flex items-center gap-1.5">{o.orderSource === "Online" ? <><I.Cart /> Online</> : <><I.Store /> POS</>}</span></td>
                       <td className="py-2 pr-3 text-[#ababab]">{methodLabel(o.paymentMethod)}</td>
                       <td className="py-2 text-right font-semibold">Rs {formatCurrency(orderTotal(o))}</td>
                     </tr>
