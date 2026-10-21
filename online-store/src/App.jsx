@@ -9,10 +9,25 @@ import {
   cancelOrder,
   lookupOrderByPhone,
   getPublicSettings,
+  getPublicReviews,
+  submitReview,
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
 import sindbadLogo from "./assets/sindbad-solution-logo.png";
+import { DESIGN_STYLES } from "./design";
+import {
+  PAY_COD,
+  PAY_JAZZ,
+  DEFAULT_PAYMENTS,
+  useJazzForm,
+  PaymentMethodPicker,
+  JazzCashCard,
+  PaymentStatusBanner,
+} from "./Payment.jsx";
+import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection, SiteFooter, SECTIONS_STYLES } from "./Sections.jsx";
+import { I, FoodIcon } from "./AppIcons.jsx";
+import { FulfillmentPicker, FULFILLMENT_STYLES, useFulfillment } from "./Fulfillment.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
 
 /* ---------------------------------------------------------------------------
@@ -60,7 +75,8 @@ const STYLES = `
 
   --header-h: 60px;
   --nav-h: 54px;
-  --shell: 1200px;
+  --shell: 100%;
+  --gutter: clamp(16px, 2.6vw, 56px);
 }
 
 * {
@@ -168,7 +184,7 @@ select {
 
 @media (min-width: 900px) {
   .gzp-shell {
-    padding: 0 28px;
+    padding: 0 var(--gutter);
   }
 }
 
@@ -198,7 +214,7 @@ select {
 
 @media (min-width: 900px) {
   .gzp-header-inner {
-    padding: 0 28px;
+    padding: 0 var(--gutter);
   }
 }
 
@@ -470,7 +486,7 @@ select {
 
 @media (min-width: 900px) {
   .gzp-navbar-inner {
-    padding: 0 28px;
+    padding: 0 var(--gutter);
   }
 }
 
@@ -2153,6 +2169,357 @@ textarea::placeholder {
     transition-duration: 0.001ms !important;
   }
 }
+/* ---------- Reviews section ---------- */
+
+.gzp-reviews-section {
+  padding: 56px 0 80px;
+  background: var(--ink-900);
+}
+
+.gzp-reviews-section .gzp-shell {
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.gzp-reviews-header {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 40px;
+  text-align: left;
+}
+
+@media (min-width: 768px) {
+  .gzp-reviews-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+.gzp-reviews-intro h2 {
+  font-family: "Archivo", "Hanken Grotesk", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 8px;
+  color: var(--flour);
+}
+
+.gzp-reviews-intro p {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--flour-dim);
+}
+
+.gzp-reviews-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gzp-stats-rating {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.gzp-stats-average {
+  font-family: "Archivo", "Hanken Grotesk", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--flour);
+  line-height: 1;
+}
+
+.gzp-stats-stars {
+  display: flex;
+  gap: 4px;
+  color: var(--gold);
+}
+
+.gzp-stats-count {
+  font-size: 1rem;
+  color: var(--flour-dim);
+}
+
+.gzp-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.gzp-review-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--ink-850);
+  padding: 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gzp-review-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+.gzp-review-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 480px) {
+  .gzp-review-head {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.gzp-review-head > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gzp-review-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--flour);
+}
+
+.gzp-review-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--basil);
+  background: rgba(26, 158, 86, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+}
+
+.gzp-review-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (min-width: 480px) {
+  .gzp-review-meta {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+}
+
+.gzp-review-stars {
+  display: flex;
+  gap: 4px;
+  color: var(--gold);
+}
+
+.gzp-review-product {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ember);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gzp-review-date {
+  font-size: 0.8rem;
+  color: var(--flour-faint);
+}
+
+.gzp-review-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--flour);
+}
+
+.gzp-reviews-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.gzp-empty-reviews {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  color: var(--flour-dim);
+}
+
+.gzp-rating-picker {
+  display: flex;
+  direction: rtl;
+  gap: 6px;
+  justify-content: center;
+}
+
+.gzp-star-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #ccc;
+  transition: transform 0.1s ease;
+}
+
+.gzp-star-btn:hover,
+.gzp-star-btn.is-active {
+  color: var(--gold);
+}
+
+.gzp-star-btn:active {
+  transform: scale(0.9);
+}
+
+.gzp-star-btn svg {
+  display: block;
+}
+
+.gzp-review-form-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.gzp-review-success {
+  color: var(--basil);
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+/* ---------- All reviews page ---------- */
+
+.gzp-all-reviews-page {
+  padding: 26px 0 120px;
+}
+
+.gzp-all-reviews-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+
+.gzp-all-reviews-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gzp-all-reviews-intro h2 {
+  font-weight: 800;
+  font-variation-settings: "wdth" 114;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: -0.03em;
+}
+
+.gzp-all-reviews-intro p {
+  color: var(--flour-dim);
+  font-size: 0.95rem;
+}
+
+.gzp-all-reviews-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.gzp-all-reviews-average {
+  font-family: "Archivo", sans-serif;
+  font-variation-settings: "wdth" 108;
+  font-weight: 800;
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+  color: var(--flour);
+}
+
+.gzp-all-reviews-stars {
+  display: flex;
+  gap: 4px;
+  color: var(--gold);
+}
+
+.gzp-all-reviews-count {
+  color: var(--flour-faint);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.gzp-all-reviews-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+@media (min-width: 720px) {
+  .gzp-all-reviews-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .gzp-all-reviews-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.gzp-all-reviews-foot {
+  margin-top: 34px;
+  display: flex;
+  justify-content: center;
+}
+
+.gzp-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  color: var(--flour-dim);
+  text-align: center;
+}
+
+.gzp-empty p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  .gzp-reviews-section {
+    padding: 40px 0 60px;
+  }
+  .gzp-reviews-grid {
+    grid-template-columns: 1fr;
+  }
+}
 `;
 
 // Injected once, on first import, so the stylesheet is in place before the
@@ -2185,7 +2552,7 @@ textarea::placeholder {
     tag.id = "gzp-styles";
     document.head.appendChild(tag);
   }
-  tag.textContent = STYLES + BYO_STYLES;
+  tag.textContent = STYLES + BYO_STYLES + DESIGN_STYLES + FULFILLMENT_STYLES + SECTIONS_STYLES;
 
   // Dark browser chrome on mobile, so the notch area matches the page.
   if (!document.querySelector('meta[name="theme-color"]')) {
@@ -2202,8 +2569,12 @@ textarea::placeholder {
 const FALLBACK_TAX_RATE_PERCENT = 16;
 
 const STATUS_STEPS = ["Pending", "Accepted", "Preparing", "Ready to Deliver", "Completed"];
+// JazzCash/Raast orders start one step earlier: staff confirm the money first.
+const PAID_STATUS_STEPS = ["Payment Pending Verification", "Accepted", "Preparing", "Ready to Deliver", "Completed"];
+const WAITING_STATUS = "Payment Pending Verification";
 
 const STATUS_LABELS = {
+  [WAITING_STATUS]: "Verifying your payment",
   Pending: "Order received",
   Accepted: "Accepted by the kitchen",
   Preparing: "Preparing your food",
@@ -2213,6 +2584,7 @@ const STATUS_LABELS = {
 };
 
 const STATUS_HEADLINES = {
+  [WAITING_STATUS]: "Verifying your payment",
   Pending: "We've got your order",
   Accepted: "The kitchen is on it",
   Preparing: "Your food is cooking",
@@ -2361,7 +2733,7 @@ const Media = ({ src, alt, icon, className }) => {
   return src && !failed ? (
     <img src={src} alt={alt} className={className} loading="lazy" onError={() => setFailed(true)} />
   ) : (
-    <div className="gzp-media-fallback">{icon || "🍽️"}</div>
+    <div className="gzp-media-fallback"><FoodIcon icon={icon} /></div>
   );
 };
 
@@ -2495,10 +2867,10 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
   return (
     <div className="gzp-thankyou-overlay" role="dialog" aria-modal="true" aria-label="Order confirmed">
       <div className="gzp-thankyou-card">
-        <span className="gzp-thankyou-sticker tl" aria-hidden="true">🎉</span>
-        <span className="gzp-thankyou-sticker tr" aria-hidden="true">🍕</span>
-        <span className="gzp-thankyou-sticker bl" aria-hidden="true">🧀</span>
-        <span className="gzp-thankyou-sticker br" aria-hidden="true">🎊</span>
+        <span className="gzp-thankyou-sticker tl" aria-hidden="true"><I.Sparkles /></span>
+        <span className="gzp-thankyou-sticker tr" aria-hidden="true"><I.Pizza /></span>
+        <span className="gzp-thankyou-sticker bl" aria-hidden="true"><I.Cheese /></span>
+        <span className="gzp-thankyou-sticker br" aria-hidden="true"><I.Star /></span>
 
         <div className="gzp-thankyou-badge">
           <img src={genzLogo} alt="GenZ Pizza Land" />
@@ -2506,8 +2878,12 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
 
         <PizzaMascot />
 
-        <h2 className="gzp-thankyou-title">Thank you! 🎉</h2>
-        <p className="gzp-thankyou-sub">Your order's in and the kitchen's already looking at it.</p>
+        <h2 className="gzp-thankyou-title">Thank you!</h2>
+        <p className="gzp-thankyou-sub">
+          {order?.orderStatus === WAITING_STATUS
+            ? "We'll verify your payment and confirm your order shortly."
+            : "Your order's in and the kitchen's already looking at it."}
+        </p>
 
         {orderNumber && <span className="gzp-thankyou-pill">Order #{orderNumber}</span>}
 
@@ -2696,7 +3072,7 @@ const WhatsAppButton = () => (
   </a>
 );
 
-const Header = ({ minimal, cartCount, onSearch, onCart }) => (
+const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) => (
   <header className="gzp-header">
     <div className="gzp-header-inner">
       <button
@@ -2713,6 +3089,15 @@ const Header = ({ minimal, cartCount, onSearch, onCart }) => (
 
       {!minimal && (
         <>
+          <nav className="v2-links" aria-label="Site">
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("menu")}>Menu</button>
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("deals")}>Deals</button>
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("reviews")}>Reviews</button>
+            <button type="button" className="v2-link" onClick={() => onNavigate?.("contact")}>Contact</button>
+          </nav>
+          <button className="v2-track-btn" onClick={onTrack} type="button">
+            <IconTruck /> Track order
+          </button>
           <button
             className="gzp-icon-btn"
             onClick={onSearch}
@@ -2758,6 +3143,21 @@ function App() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  /* ---------- Customer reviews ---------- */
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [avgRating, setAvgRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [newReview, setNewReview] = useState({
+    customerName: "",
+    rating: 5,
+    reviewText: "",
+    productName: "",
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSubmitMessage, setReviewSubmitMessage] = useState({ type: "", text: "" });
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [refreshingStatus, setRefreshingStatus] = useState(false);
 
@@ -2848,6 +3248,11 @@ function App() {
   // Manual "Track order" lookup (footer button) — lets a customer pull up
   // status on any device/browser, not just the one that placed the order.
   const [trackOpen, setTrackOpen] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState(null);
+  // Payment options + merchant details, live from Dashboard > Payment Settings.
+  const [payments, setPayments] = useState(DEFAULT_PAYMENTS);
+  const [payMethod, setPayMethod] = useState(PAY_COD);
+  const jazz = useJazzForm();
   const [trackInput, setTrackInput] = useState("");
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState("");
@@ -2882,6 +3287,7 @@ function App() {
         setAdminHeroSlides(heroRes.data || []);
         const liveTaxRate = settingsRes?.data?.taxRatePercent;
         if (typeof liveTaxRate === "number") setTaxRatePercent(liveTaxRate);
+        if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
         if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
       } catch (err) {
         setError(err.message);
@@ -2953,7 +3359,7 @@ function App() {
     const known = new Set(categories.map((c) => c._id));
     const loose = dishes.filter((d) => !known.has(d.category?._id || d.category));
     if (loose.length > 0) {
-      ordered.push({ id: "other", name: "More to eat", icon: "🍽️", items: loose });
+      ordered.push({ id: "other", name: "More to eat", icon: "utensils", items: loose });
     }
     return ordered;
   }, [categories, dishes]);
@@ -3078,7 +3484,11 @@ function App() {
 
   const subtotal = grossSubtotal - byoDiscount; // after discount: what tax is charged on
   const tax = (subtotal * taxRatePercent) / 100;
-  const total = subtotal + tax;
+  const cartTotal = subtotal + tax; // before any delivery fee
+  // Delivery / pickup: the server prices and validates the choice; the fee
+  // is added here so the total updates the moment the method changes.
+  const fulfil = useFulfillment(subtotal);
+  const total = cartTotal + fulfil.fee;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
 
   const showToast = useCallback((message, duration = 2000) => {
@@ -3163,6 +3573,7 @@ function App() {
       // admin panel reaches customers who already have the page open.
       if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
       if (typeof settingsRes?.data?.taxRatePercent === "number") setTaxRatePercent(settingsRes.data.taxRatePercent);
+      if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
     } catch (err) {
       // Transient network hiccup - keep showing the last known menu.
     }
@@ -3228,11 +3639,44 @@ function App() {
 
   /* ---------------- Navigation ---------------- */
 
+  // Smooth-scrolls to a section and then double-checks it actually arrived.
+  // (scrollIntoView on its own can be cut short — by the chip bar's own
+  // scroll, or by images loading and shifting the layout mid-scroll —
+  // which left the page stopping halfway.)
+  const scrollToElement = (el) => {
+    if (!el) return;
+    const stickyOffset = (document.querySelector(".gzp-header")?.offsetHeight || 0) +
+      (document.querySelector(".gzp-navbar")?.offsetHeight || 0) + 8;
+    const targetFor = () => Math.max(0, el.getBoundingClientRect().top + window.scrollY - stickyOffset);
+    window.scrollTo({ top: targetFor(), behavior: "smooth" });
+    let tries = 0;
+    const settle = () => {
+      tries += 1;
+      const diff = targetFor() - window.scrollY;
+      if (Math.abs(diff) > 6 && tries <= 4) {
+        window.scrollTo({ top: targetFor(), behavior: tries < 3 ? "smooth" : "auto" });
+        window.setTimeout(settle, 450);
+      }
+    };
+    window.setTimeout(settle, 650);
+  };
+
   const goToSection = (id) => {
     const el = document.getElementById(`section-${id}`);
     if (!el) return;
     setActiveSection(id);
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToElement(el);
+  };
+
+  // Header / hero / footer links: "menu" lands on the first menu section,
+  // everything else scrolls to its own section if it exists.
+  const navigateTo = (target) => {
+    if (target === "menu") {
+      const first = deals.length > 0 ? DEALS_SECTION_ID : navItems[0]?.id;
+      if (first) return goToSection(first);
+    }
+    if (target === "deals" && deals.length === 0) return goToSection(navItems[0]?.id);
+    scrollToElement(document.getElementById(`section-${target}`));
   };
 
   // Highlight the chip for whichever section is currently under the sticky
@@ -3264,8 +3708,14 @@ function App() {
   }, [navItems, loading, orderId]);
 
   useEffect(() => {
-    const chip = chipsRef.current?.querySelector(".is-active");
-    chip?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+    // Only scroll the chip bar itself — never scrollIntoView, which also
+    // nudges the page and fights the user's own scrolling.
+    const bar = chipsRef.current;
+    const chip = bar?.querySelector(".is-active");
+    if (bar && chip) {
+      const left = chip.offsetLeft - (bar.clientWidth - chip.offsetWidth) / 2;
+      bar.scrollTo({ left: Math.max(0, left), behavior: "auto" });
+    }
   }, [activeSection]);
 
   const scrollRail = (direction) => {
@@ -3359,6 +3809,16 @@ function App() {
 
   /* ---------------- Checkout / tracking ---------------- */
 
+  // If staff switch a method off while the customer has it selected, fall
+  // back to whichever one is still available.
+  useEffect(() => {
+    if (payMethod === PAY_COD && !payments.codEnabled && payments.jazzcashEnabled) setPayMethod(PAY_JAZZ);
+    if (payMethod === PAY_JAZZ && !payments.jazzcashEnabled && payments.codEnabled) setPayMethod(PAY_COD);
+  }, [payments, payMethod]);
+
+  const jazzSelected = payMethod === PAY_JAZZ && payments.jazzcashEnabled;
+  const canPlace = !placing && fulfil.ready && (!jazzSelected || jazz.ready);
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (cartLines.length === 0) return;
@@ -3376,6 +3836,16 @@ function App() {
       return;
     }
 
+    if (!fulfil.ready) {
+      setError(fulfil.blocker || "Please choose delivery or pickup and fill in the details.");
+      return;
+    }
+
+    if (jazzSelected && !jazz.ready) {
+      setError("Please add your Transaction ID, sender name/number and payment screenshot first.");
+      return;
+    }
+
     setPlacing(true);
     setError("");
 
@@ -3383,7 +3853,16 @@ function App() {
       const res = await placeOrder({
         customerName: form.name,
         customerPhone: form.phone,
-        address: form.address,
+        address: fulfil.method === "delivery" ? fulfil.address : "",
+        fulfillment: fulfil.payload(),
+        ...(jazzSelected
+          ? {
+              paymentMethod: "jazzcash",
+              tid: jazz.tid,
+              senderInfo: jazz.sender,
+              proofId: jazz.proofId,
+            }
+          : { paymentMethod: "cod" }),
         items: cartLines.map((l) =>
           l.type === "deal"
             ? { dealId: l.item._id, quantity: l.qty, dealSelections: l.dealSelections || undefined }
@@ -3403,6 +3882,7 @@ function App() {
       setOrder(res.data);
       setShowThankYou(true);
       setTrackingDismissed(false);
+      jazz.reset();
       setCart({});
       setCheckoutOpen(false);
       setCartOpen(false);
@@ -3545,7 +4025,7 @@ function App() {
       {resolveImageUrl(l.item.image) ? (
         <img src={resolveImageUrl(l.item.image)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
       ) : (
-        <span className="gzp-line-icon">{l.item.icon || "🍽️"}</span>
+        <span className="gzp-line-icon"><FoodIcon icon={l.item.icon} /></span>
       )}
       <div className="gzp-line-main">
         <h4>
@@ -3600,8 +4080,14 @@ function App() {
   }
 
   if (orderId && order && !trackingDismissed) {
-    const stepIndex = STATUS_STEPS.indexOf(order.orderStatus);
+    const isPaidFlow = order.payment?.method === "JazzCash/Raast";
+    const steps = isPaidFlow ? PAID_STATUS_STEPS : STATUS_STEPS;
+    const stepIndex = steps.indexOf(order.orderStatus);
     const isCancelled = order.orderStatus === "Cancelled";
+    const orderRef = String(order._id || "").slice(-6).toUpperCase();
+    const helpHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      `Hello GenZ Pizza Land, I need help with order #${orderRef}.`
+    )}`;
 
     return (
       <div className="gzp-app">
@@ -3628,17 +4114,21 @@ function App() {
                 </button>
               </div>
 
+              <PaymentStatusBanner order={order} whatsappHref={helpHref} />
+
               {isCancelled ? (
-                <p className="gzp-cancelled">
-                  This order was cancelled. Nothing has been charged — you can order again any time.
-                </p>
+                isPaidFlow ? null : (
+                  <p className="gzp-cancelled">
+                    This order was cancelled. Nothing has been charged — you can order again any time.
+                  </p>
+                )
               ) : (
                 <>
                   <p className="gzp-eta">
                     This page updates itself every few seconds. Keep it open and watch it move.
                   </p>
                   <ol className="gzp-steps">
-                    {STATUS_STEPS.map((step, i) => (
+                    {steps.map((step, i) => (
                       <li
                         key={step}
                         className={
@@ -3692,25 +4182,53 @@ function App() {
                     <span>−{formatRs(order.bills.discount)}</span>
                   </div>
                 )}
+                {Number(order.bills?.deliveryFee) > 0 && (
+                  <div>
+                    <span>Delivery fee</span>
+                    <span>{formatRs(order.bills.deliveryFee)}</span>
+                  </div>
+                )}
                 <div className="gzp-grand">
-                  <span>Pay on delivery</span>
+                  <span>
+                    {isPaidFlow
+                      ? order.payment?.status === "Verified"
+                        ? "Paid via JazzCash/Raast"
+                        : "Total (JazzCash/Raast)"
+                      : order.fulfillment?.method === "pickup" ? "Pay at pickup" : "Pay on delivery"}
+                  </span>
                   <span>{formatRs(order.bills?.totalWithTax || 0)}</span>
                 </div>
               </div>
             </div>
 
-            {order.customerDetails?.address && (
+            {order.fulfillment?.method && (
               <div className="gzp-panel">
-                <h3>Delivering to</h3>
-                <p style={{ margin: 0, color: "var(--flour-dim)", fontSize: "0.93rem" }}>
-                  {order.customerDetails.address}
+                <h3>{order.fulfillment.method === "pickup" ? "Pickup from" : "Delivering to"}</h3>
+                <p style={{ margin: 0, color: "var(--flour-dim)", fontSize: "0.93rem", lineHeight: 1.5 }}>
+                  {order.fulfillment.method === "pickup"
+                    ? order.fulfillment.branchName
+                    : order.customerDetails?.address}
+                  {order.fulfillment.method === "delivery" && order.fulfillment.zoneName ? ` (${order.fulfillment.zoneName})` : ""}
+                  {order.fulfillment.method === "delivery" && order.fulfillment.branchName ? <><br />From {order.fulfillment.branchName}</> : null}
+                  {order.fulfillment.estimatedMinutes?.min != null && (
+                    <><br />Estimated {order.fulfillment.method === "pickup" ? "ready time" : "arrival"}: {order.fulfillment.estimatedMinutes.min}–{order.fulfillment.estimatedMinutes.max} min after confirmation</>
+                  )}
                 </p>
               </div>
             )}
 
+            <a
+              className="gzp-btn gzp-btn-ghost gzp-btn-block pay-help"
+              href={helpHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <I.Chat aria-hidden="true" style={{ marginRight: 8, verticalAlign: "-2px" }} />Need help? Chat with us on WhatsApp
+            </a>
+
             <button
               className="gzp-btn gzp-btn-ghost gzp-btn-block"
-              style={{ marginTop: 16 }}
+              style={{ marginTop: 12 }}
               onClick={startNewOrder}
               type="button"
             >
@@ -3724,13 +4242,268 @@ function App() {
 
   /* ---------------- Menu view ---------------- */
 
+  /* ---------- Review components ---------- */
 
+  const starsFor = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(i <= Math.round(rating));
+    }
+    return stars;
+  };
+
+  const formatReviewDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  };
+
+  const ReviewCard = ({ review, size = "small" }) => (
+    <article
+      className={`gzp-review-card gzp-review-card--${size}`}
+      role="listitem"
+    >
+      <div className="gzp-review-head">
+        <div>
+          <span className="gzp-review-name">{review.customerName}</span>
+          {review.verified && (
+            <span className="gzp-review-verified" aria-label="Verified purchase">
+              <IconCheck /> <span className="gzp-visually-hidden">Verified purchase</span>
+            </span>
+          )}
+        </div>
+        <div className="gzp-review-meta">
+          <div className="gzp-review-stars" aria-label={`Rating of ${review.rating} out of 5 stars`}>
+            {starsFor(review.rating).map((filled, i) => (
+              <IconStar key={i} filled={filled} size={size === "large" ? 22 : 18} />
+            ))}
+          </div>
+          {review.productName && (
+            <span className="gzp-review-product">{review.productName}</span>
+          )}
+          <span className="gzp-review-date">{formatReviewDate(review.createdAt)}</span>
+        </div>
+      </div>
+      <p className="gzp-review-text">{review.reviewText}</p>
+    </article>
+  );
+
+  const ReviewForm = () => (
+    <div className="gzp-sheet-overlay" onClick={() => setReviewFormOpen(false)}>
+      <div className="gzp-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Leave a review">
+        <div className="gzp-sheet-head">
+          <h2>Leave a Review</h2>
+          <button className="gzp-icon-btn" onClick={() => setReviewFormOpen(false)} aria-label="Close" type="button">
+            ✕
+          </button>
+        </div>
+        <div className="gzp-sheet-body">
+          {reviewSubmitMessage.type && (
+            <p
+              className={`gzp-error ${reviewSubmitMessage.type === "success" ? "gzp-review-success" : ""}`}
+              role="status"
+              aria-live="polite"
+            >
+              {reviewSubmitMessage.text}
+            </p>
+          )}
+          <form onSubmit={handleSubmitReview} className="gzp-review-form">
+            <div className="gzp-form">
+              <label className="gzp-field">
+                <span>Your name or nickname</span>
+                <input
+                  required
+                  type="text"
+                  maxLength={60}
+                  value={newReview.customerName}
+                  onChange={(e) => setNewReview({ ...newReview, customerName: e.target.value })}
+                  placeholder="e.g. Ayesha"
+                />
+              </label>
+              <label className="gzp-field">
+                <span>Your rating</span>
+                <div className="gzp-rating-picker" role="radiogroup" aria-label="Select your rating">
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      role="radio"
+                      aria-checked={newReview.rating === star}
+                      aria-label={`${star} star${star === 1 ? "" : "s"}`}
+                      className={`gzp-star-btn${newReview.rating === star ? " is-active" : ""}`}
+                      onClick={() => setNewReview({ ...newReview, rating: star })}
+                    >
+                      <IconStar filled={newReview.rating >= star} size={24} />
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <label className="gzp-field">
+                <span>Your review</span>
+                <textarea
+                  required
+                  maxLength={1000}
+                  value={newReview.reviewText}
+                  onChange={(e) => setNewReview({ ...newReview, reviewText: e.target.value })}
+                  rows={4}
+                  placeholder="Tell us what you loved about your order…"
+                />
+              </label>
+              <label className="gzp-field">
+                <span>Product (optional)</span>
+                <input
+                  type="text"
+                  maxLength={120}
+                  value={newReview.productName}
+                  onChange={(e) => setNewReview({ ...newReview, productName: e.target.value })}
+                  placeholder="e.g. Large Pepperoni Pizza"
+                />
+              </label>
+            </div>
+            <div className="gzp-review-form-foot">
+              <button
+                type="button"
+                className="gzp-btn gzp-btn-ghost"
+                onClick={() => setReviewFormOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="gzp-btn gzp-btn-primary"
+                disabled={submittingReview}
+              >
+                {submittingReview ? "Sending…" : "Submit review"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ---------- All Reviews (full-page view) ---------- */
+
+  const AllReviewsPage = () => (
+    <section className="gzp-all-reviews-page" aria-label="All customer reviews">
+      <div className="gzp-shell">
+        <div className="gzp-all-reviews-header">
+          <button
+            className="gzp-btn gzp-btn-ghost"
+            onClick={() => setShowAllReviews(false)}
+            aria-label="Back to homepage"
+          >
+            ← Back
+          </button>
+          <div className="gzp-all-reviews-intro">
+            <h2>Loved by Pizza Lovers</h2>
+            <p>See what our customers have to say.</p>
+          </div>
+          {reviewCount > 0 && (
+            <div className="gzp-all-reviews-stats">
+              <span className="gzp-all-reviews-average">{avgRating.toFixed(1)}</span>
+              <div className="gzp-all-reviews-stars" aria-hidden="true">
+                {starsFor(avgRating).map((filled, i) => (
+                  <IconStar key={i} filled={filled} size={32} />
+                ))}
+              </div>
+              <span className="gzp-all-reviews-count">
+                {reviewCount} review{reviewCount === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="gzp-all-reviews-grid">
+          {reviews.length > 0 ? (
+            <ul role="list">
+              {reviews.map((review) => (
+                <ReviewCard key={review._id} review={review} size="large" />
+              ))}
+            </ul>
+          ) : (
+            <div className="gzp-empty gzp-empty-reviews">
+              <p>No reviews yet. Be the first to share your experience.</p>
+            </div>
+          )}
+        </div>
+
+        {reviewCount > 0 && (
+          <div className="gzp-all-reviews-foot">
+            <button
+              className="gzp-btn gzp-btn-primary"
+              onClick={() => setReviewFormOpen(true)}
+            >
+              Write a review
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
+  /* ---------- Reviews Section (homepage) ---------- */
+
+  const ReviewsSection = () => (
+    <section className="gzp-section gzp-reviews-section" id="section-reviews" aria-label="Customer reviews">
+      <div className="gzp-shell">
+        <div className="gzp-reviews-header">
+          <div className="gzp-reviews-intro">
+            <h2>Loved by Pizza Lovers</h2>
+            <p>See what our customers have to say.</p>
+          </div>
+          {reviewCount > 0 && (
+            <div className="gzp-reviews-stats">
+              <span className="gzp-stats-average">{avgRating.toFixed(1)}</span>
+              <div className="gzp-stats-stars" aria-hidden="true">
+                {starsFor(avgRating).map((filled, i) => (
+                  <IconStar key={i} filled={filled} size={20} />
+                ))}
+              </div>
+              <span className="gzp-stats-count">{reviewCount} review{reviewCount === 1 ? "" : "s"}</span>
+            </div>
+          )}
+          <button
+            className="gzp-btn gzp-btn-ghost"
+            onClick={() => setReviewFormOpen(true)}
+          >
+            Write a review
+          </button>
+        </div>
+
+        <div className="gzp-reviews-grid">
+          {reviews.length > 0 ? (
+            <ul role="list">
+              {reviews.map((review) => (
+                <ReviewCard key={review._id} review={review} size="small" />
+              ))}
+            </ul>
+          ) : (
+            <div className="gzp-empty gzp-empty-reviews">
+              <p>No reviews yet. Be the first to share your experience.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="gzp-reviews-foot">
+          <button
+            className="gzp-btn gzp-btn-outline"
+            onClick={() => setShowAllReviews(true)}
+          >
+            Read All Reviews
+          </button>
+        </div>
+      </div>
+    </section>
+  );
   return (
     <div className="gzp-app">
       <Header
         cartCount={cartCount}
         onSearch={() => setSearchOpen(true)}
         onCart={() => setCartOpen(true)}
+        onNavigate={navigateTo}
+        onTrack={() => setTrackOpen(true)}
       />
 
       {/* Left up after "Click for more order" on the Thank You screen, so
@@ -3754,6 +4527,12 @@ function App() {
 
       {/* ---- Hero: full-width slider only, staff-managed from the POS
              dashboard (Dashboard > Hero Slider) ---- */}
+      <HeroIntro
+        summary={reviewSummary}
+        onOrder={() => navigateTo("menu")}
+        onTrack={() => setTrackOpen(true)}
+      />
+
       <section className="gzp-hero">
         <HeroSlider
           slides={heroSlides}
@@ -3875,7 +4654,7 @@ function App() {
                           }
                         >
                           <div className="gzp-deal-media">
-                            <Media src={resolveImageUrl(deal.image)} alt={deal.name} icon={deal.icon || "🔥"} />
+                            <Media src={resolveImageUrl(deal.image)} alt={deal.name} icon={deal.icon || "flame"} />
                             {deal.badge && <span className="gzp-badge">{deal.badge}</span>}
                             {saving > 0 && <span className="gzp-save">Save {saving}%</span>}
                             {stockLabel(deal.availableQty) && (
@@ -3987,24 +4766,17 @@ function App() {
           </>
         )}
 
-        <footer className="gzp-footer">
-          <div className="gzp-footer-inner">
-            <p>
-              <strong>GenZ Pizza Land</strong>
-              Prices are in rupees. {taxRatePercent}% tax is added at checkout and the rider
-              collects the total in cash.
-            </p>
-            <button className="gzp-btn gzp-btn-ghost" onClick={() => setTrackOpen(true)} type="button">
-              <IconTruck /> Track an order
-            </button>
-          </div>
-          <div className="gzp-footer-credit">
-            <span>Developed by</span>
-            <img src={sindbadLogo} alt="" />
-            <strong>Sindbad Solution</strong>
-          </div>
-        </footer>
+        <FeaturesSection />
+        <ReviewsSection onSummary={setReviewSummary} />
+        <HowItWorks />
+        <ContactSection whatsappLink={WHATSAPP_LINK} onTrack={() => setTrackOpen(true)} />
       </div>
+
+      <SiteFooter
+        taxRatePercent={taxRatePercent}
+        onNavigate={navigateTo}
+        onTrack={() => setTrackOpen(true)}
+      />
 
       {/* ---- Bottom cart bar ---- */}
       {cartCount > 0 && !cartOpen && !checkoutOpen && (
@@ -4013,7 +4785,7 @@ function App() {
             <small>
               {cartCount} item{cartCount === 1 ? "" : "s"} in your order
             </small>
-            <b>{formatRs(total)}</b>
+            <b>{formatRs(cartTotal)}</b>
           </span>
           <span className="gzp-cartbar-cta">View order</span>
         </button>
@@ -4023,7 +4795,7 @@ function App() {
 
       {toast && (
         <div className="gzp-toast" role="status">
-          <i>✓</i>
+          <i><I.Check /></i>
           {toast}
         </div>
       )}
@@ -4064,7 +4836,7 @@ function App() {
                 {resolveImageUrl(item.image) ? (
                   <img src={resolveImageUrl(item.image)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 ) : (
-                  <span className="gzp-result-icon">{item.icon || "🍽️"}</span>
+                  <span className="gzp-result-icon"><FoodIcon icon={item.icon} /></span>
                 )}
                 <span className="gzp-result-name">
                   {item.name}
@@ -4103,7 +4875,7 @@ function App() {
                 aria-label="Close"
                 type="button"
               >
-                ✕
+                <I.Close aria-hidden="true" />
               </button>
             </div>
 
@@ -4411,14 +5183,14 @@ function App() {
             <div className="gzp-sheet-head">
               <h2>Your order</h2>
               <button className="gzp-icon-btn" onClick={() => setCartOpen(false)} aria-label="Close" type="button">
-                ✕
+                <I.Close aria-hidden="true" />
               </button>
             </div>
 
             {cartLines.length === 0 ? (
               <div className="gzp-sheet-body">
                 <div className="gzp-empty">
-                  <span>🛒</span>
+                  <span><I.Cart aria-hidden="true" /></span>
                   Nothing here yet. Add a deal or a pizza and it'll show up.
                 </div>
                 <button className="gzp-btn gzp-btn-primary" onClick={() => setCartOpen(false)} type="button">
@@ -4433,7 +5205,7 @@ function App() {
                   {byoLines.length > 0 && (
                     <div className="gzp-byo-cart">
                       <div className="gzp-byo-cart-head">
-                        <h4>🎯 Your custom deal</h4>
+                        <h4><I.Target aria-hidden="true" style={{ marginRight: 6, verticalAlign: "-2px" }} />Your custom deal</h4>
                         <button type="button" onClick={() => { setCartOpen(false); setByoOpen(true); }}>
                           Edit
                         </button>
@@ -4469,9 +5241,13 @@ function App() {
                       <span>Tax ({taxRatePercent}%)</span>
                       <span>{formatRs(tax)}</span>
                     </div>
+                    <div>
+                      <span>Delivery</span>
+                      <span>Chosen at checkout</span>
+                    </div>
                     <div className="gzp-grand">
                       <span>Total</span>
-                      <span>{formatRs(total)}</span>
+                      <span>{formatRs(cartTotal)}</span>
                     </div>
                   </div>
                   {byoBlocked && (
@@ -4490,7 +5266,7 @@ function App() {
                     disabled={byoBlocked}
                     type="button"
                   >
-                    Add delivery details
+                    Choose delivery or pickup
                   </button>
                   {byoBlocked && (
                     <button
@@ -4519,7 +5295,7 @@ function App() {
       {/* ---- Checkout ---- */}
       {checkoutOpen && (
         <div className="gzp-sheet-overlay" onClick={() => setCheckoutOpen(false)}>
-          <div className="gzp-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Delivery details">
+          <div className="gzp-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Delivery or pickup details">
             <div className="gzp-sheet-head">
               <button
                 className="gzp-icon-btn"
@@ -4532,19 +5308,20 @@ function App() {
               >
                 <IconChevron dir="left" />
               </button>
-              <h2>Where should we send it?</h2>
+              <h2>Delivery or pickup</h2>
             </div>
 
             <form onSubmit={handleCheckout} style={{ display: "contents" }}>
               <div className="gzp-sheet-body">
                 <div className="gzp-form">
+                  <FulfillmentPicker f={fulfil} />
+
                   <label className="gzp-field">
                     <span>Your name</span>
                     <input
                       required
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      placeholder="Who's the rider asking for?"
                     />
                   </label>
 
@@ -4569,24 +5346,22 @@ function App() {
                     />
                   </label>
 
-                  <label className="gzp-field">
-                    <span>Delivery address</span>
-                    <textarea
-                      required
-                      rows={3}
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      placeholder="House or flat number, street, area, nearest landmark"
-                    />
-                  </label>
+                  <PaymentMethodPicker cfg={payments} value={payMethod} onChange={setPayMethod} pickup={fulfil.method === "pickup"} />
 
-                  <p className="gzp-note">
-                    <IconTruck />
-                    <span>
-                      <b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this
-                      number if we can't find the address.
-                    </span>
-                  </p>
+                  {jazzSelected ? (
+                    <JazzCashCard cfg={payments} amountLabel={formatRs(total)} jazz={jazz} />
+                  ) : (
+                    <p className="gzp-note">
+                      <IconTruck />
+                      <span>
+                        {fulfil.method === "pickup" ? (
+                          <><b>Pay at pickup.</b> Pay at the counter.</>
+                        ) : (
+                          <><b>Cash on delivery.</b> Pay the rider when the food arrives. We'll call this number if we can't find the address.</>
+                        )}
+                      </span>
+                    </p>
+                  )}
 
                   {error && <p className="gzp-error">{error}</p>}
                 </div>
@@ -4594,6 +5369,14 @@ function App() {
 
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
+                  <div>
+                    <span>Subtotal + tax</span>
+                    <span>{formatRs(cartTotal)}</span>
+                  </div>
+                  <div>
+                    <span>{fulfil.method === "pickup" ? "Pickup" : "Delivery fee"}</span>
+                    <span>{fulfil.quote?.ok ? (fulfil.fee > 0 ? formatRs(fulfil.fee) : "Free") : "—"}</span>
+                  </div>
                   <div className="gzp-grand">
                     <span>Total to pay</span>
                     <span>{formatRs(total)}</span>
@@ -4602,9 +5385,17 @@ function App() {
                 <button
                   type="submit"
                   className="gzp-btn gzp-btn-primary gzp-btn-block"
-                  disabled={placing}
+                  disabled={!canPlace}
                 >
-                  {placing ? "Sending to the kitchen…" : "Place order"}
+                  {placing
+                    ? "Sending to the kitchen…"
+                    : !fulfil.ready
+                    ? fulfil.quoting ? "Checking…" : fulfil.method === "delivery" ? "Complete delivery details" : "Check pickup details"
+                    : jazzSelected && !jazz.ready
+                    ? jazz.uploading
+                      ? "Uploading screenshot…"
+                      : "Add payment details to continue"
+                    : "Place order"}
                 </button>
               </div>
             </form>
@@ -4619,7 +5410,7 @@ function App() {
             <div className="gzp-sheet-head">
               <h2>Track your order</h2>
               <button className="gzp-icon-btn" onClick={() => setTrackOpen(false)} aria-label="Close" type="button">
-                ✕
+                <I.Close aria-hidden="true" />
               </button>
             </div>
 
@@ -4662,6 +5453,12 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* ---- Write a review sheet ---- */}
+      {reviewFormOpen && <ReviewForm />}
+
+      {/* ---- All reviews page ---- */}
+      {showAllReviews && <AllReviewsPage />}
     </div>
   );
 }

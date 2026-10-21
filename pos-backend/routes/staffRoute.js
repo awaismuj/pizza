@@ -1,24 +1,70 @@
 const express = require("express");
 const c = require("../controllers/staffController");
+const hr = require("../controllers/staffHrController");
+const hrReports = require("../controllers/staffHrReportController");
 const { isVerifiedUser, requireRole } = require("../middlewares/tokenVerification");
+const { handleStaffDocumentUpload } = require("../middlewares/staffDocumentUploadMiddleware");
 const router = express.Router();
+const HR_ROLES = ["Admin", "HR Manager"];
+const PAYROLL_ROLES = ["Admin", "Payroll Manager", "Accountant"];
 
-// Staff list + attendance: Cashier and Admin. (Salary fields are stripped
-// from the staff list for Cashier inside the controller.)
-router.get("/", isVerifiedUser, requireRole("Admin", "Cashier"), c.getStaff);
-router.get("/attendance", isVerifiedUser, requireRole("Admin", "Cashier"), c.getAttendanceForDay);
-router.put("/attendance", isVerifiedUser, requireRole("Admin", "Cashier"), c.markAttendance);
-router.get("/attendance/history", isVerifiedUser, requireRole("Admin", "Cashier"), c.getAttendanceHistory);
-router.get("/summary", isVerifiedUser, requireRole("Admin", "Cashier"), c.getMonthlySummary);
+// Staff and attendance routes are separately limited by role and response shaping.
+router.get("/", isVerifiedUser, requireRole("Admin", "Cashier", "HR Manager", "Payroll Manager", "Accountant"), c.getStaff);
+router.get("/attendance", isVerifiedUser, requireRole("Admin", "Cashier", "HR Manager"), c.getAttendanceForDay);
+router.put("/attendance", isVerifiedUser, requireRole("Admin", "Cashier", "HR Manager"), c.markAttendance);
+router.get("/attendance/history", isVerifiedUser, requireRole("Admin", "Cashier", "HR Manager"), c.getAttendanceHistory);
+router.get("/summary", isVerifiedUser, requireRole("Admin", "Cashier", "HR Manager", "Payroll Manager", "Accountant"), c.getMonthlySummary);
 
-// Everything below involves salary/money or staff records: Admin only.
-router.post("/", isVerifiedUser, requireRole("Admin"), c.addStaff);
-router.post("/adjustment", isVerifiedUser, requireRole("Admin"), c.addAdjustment);
-router.delete("/adjustment/:id", isVerifiedUser, requireRole("Admin"), c.deleteAdjustment);
-router.put("/salary/paid", isVerifiedUser, requireRole("Admin"), c.setSalaryPaid);
-router.post("/salary/slips", isVerifiedUser, requireRole("Admin"), c.sendSlips);
-router.get("/salary/slip", isVerifiedUser, requireRole("Admin"), c.downloadSlip);
-router.put("/:id", isVerifiedUser, requireRole("Admin"), c.updateStaff);
-router.delete("/:id", isVerifiedUser, requireRole("Admin"), c.deactivateStaff);
+// HR records and payroll operations use separate role gates.
+router.post("/", isVerifiedUser, requireRole(...HR_ROLES), c.addStaff);
+router.post("/hr/shifts", isVerifiedUser, requireRole("Admin", "HR Manager"), hr.createShift);
+router.get("/hr/shifts", isVerifiedUser, requireRole(...HR_ROLES), hr.listShifts);
+router.post("/hr/shifts/:shiftId/assign", isVerifiedUser, requireRole("Admin", "HR Manager"), hr.assignShift);
+router.patch("/hr/shifts/assignments/:assignmentId/end", isVerifiedUser, requireRole("Admin", "HR Manager"), hr.endShiftAssignment);
+router.get("/hr/leave/types", isVerifiedUser, requireRole(...HR_ROLES), hr.listLeaveTypes);
+router.post("/hr/leave/types", isVerifiedUser, requireRole("Admin", "HR Manager"), hr.createLeaveType);
+router.get("/hr/leave", isVerifiedUser, requireRole(...HR_ROLES), hr.listLeaveRequests);
+router.get("/hr/leave/balances", isVerifiedUser, requireRole(...HR_ROLES), hr.listLeaveBalances);
+router.post("/hr/leave/accrual/run", isVerifiedUser, requireRole(...HR_ROLES), hr.runLeaveAccrual);
+router.get("/hr/loans", isVerifiedUser, requireRole(...HR_ROLES), hr.listLoans);
+router.patch("/hr/loans/:loanId", isVerifiedUser, requireRole(...HR_ROLES), hr.reviewLoan);
+router.post("/hr/leave", isVerifiedUser, requireRole(...HR_ROLES), hr.createLeaveRequest);
+router.patch("/hr/leave/:requestId", isVerifiedUser, requireRole(...HR_ROLES), hr.reviewLeaveRequest);
+router.post("/hr/overtime", isVerifiedUser, requireRole(...HR_ROLES), hr.createOvertime);
+router.get("/hr/overtime", isVerifiedUser, requireRole(...HR_ROLES, ...PAYROLL_ROLES), hr.listOvertime);
+router.patch("/hr/overtime/:overtimeId", isVerifiedUser, requireRole(...HR_ROLES), hr.reviewOvertime);
+router.get("/hr/payroll/policy", isVerifiedUser, requireRole(...PAYROLL_ROLES), hr.getPayrollPolicyEndpoint);
+router.put("/hr/payroll/policy", isVerifiedUser, requireRole("Admin", "Payroll Manager"), hr.updatePayrollPolicy);
+router.get("/hr/payroll/runs", isVerifiedUser, requireRole(...PAYROLL_ROLES), hr.listPayrollRuns);
+router.post("/hr/payroll/preview", isVerifiedUser, requireRole(...PAYROLL_ROLES), hr.createPayrollPreview);
+router.patch("/hr/payroll/:monthKey", isVerifiedUser, requireRole(...PAYROLL_ROLES), hr.transitionPayroll);
+router.put("/hr/payroll/:monthKey/payment", isVerifiedUser, requireRole("Admin", "Payroll Manager", "Accountant"), hr.recordPayment);
+router.post("/hr/staff/:staffId/account", isVerifiedUser, requireRole(...HR_ROLES), hr.linkEmployeeAccount);
+router.delete("/hr/staff/:staffId/account", isVerifiedUser, requireRole(...HR_ROLES), hr.unlinkEmployeeAccount);
+router.get("/hr/staff/:staffId/documents", isVerifiedUser, requireRole(...HR_ROLES, "Employee"), hr.listEmployeeDocuments);
+router.post("/hr/staff/:staffId/documents", isVerifiedUser, requireRole(...HR_ROLES), handleStaffDocumentUpload, hr.uploadEmployeeDocument);
+router.get("/hr/documents/:documentId/download", isVerifiedUser, requireRole(...HR_ROLES, "Employee"), hr.downloadEmployeeDocument);
+router.delete("/hr/documents/:documentId", isVerifiedUser, requireRole(...HR_ROLES), hr.archiveEmployeeDocument);
+router.get("/hr/me", isVerifiedUser, requireRole("Employee"), hr.getEmployeeSelf);
+router.get("/hr/me/attendance", isVerifiedUser, requireRole("Employee"), hr.getEmployeeAttendance);
+router.post("/hr/me/attendance/clock", isVerifiedUser, requireRole("Employee"), hr.clockEmployeeAttendance);
+router.get("/hr/me/leave/types", isVerifiedUser, requireRole("Employee"), hr.getEmployeeLeaveTypes);
+router.get("/hr/me/leave", isVerifiedUser, requireRole("Employee"), hr.getEmployeeLeaveRequests);
+router.get("/hr/me/leave/balances", isVerifiedUser, requireRole("Employee"), hr.getEmployeeLeaveBalances);
+router.post("/hr/me/leave", isVerifiedUser, requireRole("Employee"), hr.createEmployeeLeaveRequest);
+router.get("/hr/me/loans", isVerifiedUser, requireRole("Employee"), hr.getEmployeeLoans);
+router.post("/hr/me/loans", isVerifiedUser, requireRole("Employee"), hr.createEmployeeLoanRequest);
+router.get("/hr/me/notifications", isVerifiedUser, requireRole("Employee"), hr.getEmployeeNotifications);
+router.get("/hr/me/documents", isVerifiedUser, requireRole("Employee"), hr.listMyEmployeeDocuments);
+router.post("/hr/me/documents", isVerifiedUser, requireRole("Employee"), handleStaffDocumentUpload, hr.uploadMyEmployeeDocument);
+router.get("/hr/reports", isVerifiedUser, requireRole(...HR_ROLES, ...PAYROLL_ROLES), hrReports.getStaffHrReport);
+router.get("/hr/reports/export", isVerifiedUser, requireRole(...HR_ROLES, ...PAYROLL_ROLES), hrReports.exportStaffHrReport);
+router.post("/adjustment", isVerifiedUser, requireRole("Admin", "Payroll Manager"), c.addAdjustment);
+router.delete("/adjustment/:id", isVerifiedUser, requireRole("Admin", "Payroll Manager"), c.deleteAdjustment);
+router.put("/salary/paid", isVerifiedUser, requireRole(...PAYROLL_ROLES), c.setSalaryPaid);
+router.post("/salary/slips", isVerifiedUser, requireRole(...PAYROLL_ROLES), c.sendSlips);
+router.get("/salary/slip", isVerifiedUser, requireRole(...PAYROLL_ROLES), c.downloadSlip);
+router.put("/:id", isVerifiedUser, requireRole(...HR_ROLES), c.updateStaff);
+router.delete("/:id", isVerifiedUser, requireRole(...HR_ROLES), c.deactivateStaff);
 
 module.exports = router;

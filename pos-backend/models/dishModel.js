@@ -59,7 +59,7 @@ const dishSchema = new mongoose.Schema({
   // Emoji shown for this item on the menu (used instead of a fixed category icon set).
   icon: {
     type: String,
-    default: "🍽️",
+    default: "utensils",
   },
   inventoryItem: {
     type: mongoose.Schema.Types.ObjectId,

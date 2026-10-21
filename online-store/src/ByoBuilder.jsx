@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { I, FoodIcon } from "./AppIcons.jsx";
 import { resolveImageUrl } from "./utils";
 
 /* ---------------------------------------------------------------------------
@@ -688,7 +689,7 @@ export const ByoBanner = ({ cfg, pickedCount, onStart }) => (
     <div className="gzp-shell">
       <div className="gzp-byo-banner">
         <div style={{ position: "relative", zIndex: 1 }}>
-          <span className="gzp-byo-eyebrow">🎯 Make it yours</span>
+          <span className="gzp-byo-eyebrow"><I.Target aria-hidden="true" /> Make it yours</span>
           <h2>
             Build your <em>own deal</em>
           </h2>
@@ -775,7 +776,7 @@ const ByoTile = ({ dish, picks, dishQty, stockLeft, onAdd, onRemove }) => {
         {img && !imgFailed ? (
           <img src={img} alt={dish.name} loading="lazy" onError={() => setImgFailed(true)} />
         ) : (
-          <span aria-hidden="true">{dish.icon || "🍽️"}</span>
+          <span aria-hidden="true"><FoodIcon icon={dish.icon} /></span>
         )}
         {totalForDish > 0 && <span className="gzp-byo-badge">×{totalForDish}</span>}
       </div>
@@ -929,13 +930,13 @@ export const ByoBuilder = ({ cfg, dishes, categories, initialPicks, getOtherQty,
       <div className="gzp-byo-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Build your own deal">
         <div className="gzp-byo-head">
           <div>
-            <h2>🎯 Build your own deal</h2>
+            <h2><I.Target aria-hidden="true" style={{ marginRight: 8, verticalAlign: "-3px" }} />Build your own deal</h2>
             <p>
               Choose at least {cfg.minItems} items — your discount grows with every item.
             </p>
           </div>
           <button className="gzp-icon-btn" type="button" onClick={onClose} aria-label="Close">
-            ✕
+            <I.Close aria-hidden="true" />
           </button>
         </div>
 

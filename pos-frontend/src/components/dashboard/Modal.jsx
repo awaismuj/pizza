@@ -16,12 +16,10 @@ import {
 } from "../../https";
 import { enqueueSnackbar } from "notistack";
 import { resolveImageUrl } from "../../utils";
+import { I, FoodIcon, FOOD_ICON_OPTIONS, foodIconKey } from "../shared/AppIcons";
 
-// Emoji choices used for both category and dish icons.
-const EMOJI_OPTIONS = [
-  "🍽️", "🍲", "🍛", "🍹", "🍜", "🍰", "🍕", "🥗",
-  "🍔", "🌭", "🍟", "🍗", "🥤", "☕", "🍺", "🍷", "🧃", "🍣", "🍩", "🥪",
-];
+// Icon choices used for both category and dish icons (saved as a key like "pizza").
+const EMOJI_OPTIONS = FOOD_ICON_OPTIONS.map((o) => o.key);
 
 const UNIT_OPTIONS = ["pcs", "g", "kg", "ml", "l"];
 
@@ -68,7 +66,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
     // category
     name: initialData?.name ?? "",
     description: initialData?.description ?? "",
-    icon: initialData?.icon || "🍽️",
+    icon: initialData?.icon || "utensils",
     // dish
     price: initialData?.price ?? "",
     originalPrice: initialData?.originalPrice ? initialData.originalPrice : "",
@@ -451,7 +449,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
       </span>
       {canRemove && (
         <button type="button" onClick={onRemove} className="text-red-400 hover:text-red-500 px-2">
-          ✕
+          <I.Close aria-hidden="true" />
         </button>
       )}
     </div>
@@ -670,7 +668,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                     {isUploadedImage(formData.icon) ? (
                       <img src={resolveImageUrl(formData.icon)} alt="Category icon" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-3xl">{formData.icon || "🍽️"}</span>
+                      <span className="text-3xl text-[#f6b100]"><FoodIcon icon={formData.icon} /></span>
                     )}
                   </div>
                   <label className="flex items-center gap-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] cursor-pointer text-[#f5f5f5] px-4 py-3 rounded-lg text-sm font-medium">
@@ -685,18 +683,20 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                     />
                   </label>
                 </div>
-                <p className="text-[#767676] text-xs mb-2">Or pick an emoji instead:</p>
+                <p className="text-[#767676] text-xs mb-2">Or pick an icon instead:</p>
                 <div className="flex flex-wrap gap-2">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <button
                       type="button"
                       key={emoji}
                       onClick={() => setFormData((prev) => ({ ...prev, icon: emoji }))}
+                      title={emoji}
+                      aria-label={`Icon: ${emoji}`}
                       className={`text-xl w-10 h-10 rounded-lg flex items-center justify-center ${
-                        formData.icon === emoji ? "bg-yellow-400" : "bg-[#1f1f1f] hover:bg-[#2a2a2a]"
+                        foodIconKey(formData.icon) === emoji ? "bg-yellow-400 text-[#1f1f1f]" : "bg-[#1f1f1f] text-[#d6d6d6] hover:bg-[#2a2a2a]"
                       }`}
                     >
-                      {emoji}
+                      <FoodIcon icon={emoji} />
                     </button>
                   ))}
                 </div>
@@ -838,7 +838,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                         className="text-red-400 hover:text-red-300 px-2"
                         aria-label="Remove option"
                       >
-                        ✕
+                        <I.Close aria-hidden="true" />
                       </button>
                     </div>
                   ))}
@@ -877,18 +877,20 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               </div>
 
               <div>
-                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Item Emoji</label>
+                <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Item Icon</label>
                 <div className="flex flex-wrap gap-2">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <button
                       type="button"
                       key={emoji}
                       onClick={() => setFormData((prev) => ({ ...prev, icon: emoji }))}
+                      title={emoji}
+                      aria-label={`Icon: ${emoji}`}
                       className={`text-xl w-10 h-10 rounded-lg flex items-center justify-center ${
-                        formData.icon === emoji ? "bg-yellow-400" : "bg-[#1f1f1f] hover:bg-[#2a2a2a]"
+                        foodIconKey(formData.icon) === emoji ? "bg-yellow-400 text-[#1f1f1f]" : "bg-[#1f1f1f] text-[#d6d6d6] hover:bg-[#2a2a2a]"
                       }`}
                     >
-                      {emoji}
+                      <FoodIcon icon={emoji} />
                     </button>
                   ))}
                 </div>
@@ -1092,7 +1094,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                                           onClick={() => removeVariantIngredientRow(size, rowIndex)}
                                           className="text-red-400 hover:text-red-500 px-2"
                                         >
-                                          ✕
+                                          <I.Close aria-hidden="true" />
                                         </button>
                                       </div>
                                     ))}
@@ -1159,7 +1161,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                                   onClick={() => removeIngredientRow(index)}
                                   className="text-red-400 hover:text-red-500 px-2"
                                 >
-                                  ✕
+                                  <I.Close aria-hidden="true" />
                                 </button>
                               </div>
                             ))}

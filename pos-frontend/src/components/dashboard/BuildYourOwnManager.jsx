@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getSettings, updateSettings } from "../../https";
+import { FoodIcon } from "../shared/AppIcons";
 
 // Dashboard > Build Your Own.
 //
@@ -22,9 +23,9 @@ const DEFAULTS = {
 };
 
 const TIERS = [
-  { field: "discount3", title: "3 items", hint: "Minimum to unlock the deal", icon: "🍕" },
-  { field: "discount4", title: "4 items", hint: "Exactly four items", icon: "🍔" },
-  { field: "discount5Plus", title: "5+ items", hint: "Five or more items", icon: "🔥" },
+  { field: "discount3", title: "3 items", hint: "Minimum to unlock the deal", icon: "pizza" },
+  { field: "discount4", title: "4 items", hint: "Exactly four items", icon: "burger" },
+  { field: "discount5Plus", title: "5+ items", hint: "Five or more items", icon: "flame" },
 ];
 
 const toDraft = (cfg) => ({
@@ -173,7 +174,7 @@ const BuildYourOwnManager = () => {
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl" aria-hidden="true">{t.icon}</span>
+                      <span className="text-xl" aria-hidden="true"><FoodIcon icon={t.icon} /></span>
                       <span className="text-[#f5f5f5] font-semibold">{t.title}</span>
                     </div>
                     <p className="text-[#7a7a7a] text-xs mb-3">{t.hint}</p>

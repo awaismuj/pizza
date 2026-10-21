@@ -3,6 +3,7 @@ const {
   createInventoryItem,
   getInventoryItems,
   getLowStockItems,
+  exportInventoryReport,
   updateInventoryItem,
   adjustInventoryItem,
   deleteInventoryItem,
@@ -20,6 +21,8 @@ router.route("/")
 // Low / out-of-stock items — feeds the popup for Admin and Cashier.
 // Declared before "/:id" so "low-stock" isn't mistaken for an id.
 router.route("/low-stock").get(isVerifiedUser, requireRole("Admin", "Cashier"), getLowStockItems);
+
+router.route("/export").get(isVerifiedUser, requireRole("Admin"), exportInventoryReport);
 
 router.route("/:id")
   .put(isVerifiedUser, requireRole("Admin"), updateInventoryItem)
