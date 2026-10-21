@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { FaSearch } from "react-icons/fa";
 import { FaUserCircle } from "react-icons/fa";
 import { FaBell } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { MdDashboard, MdDeliveryDining, MdReceiptLong } from "react-icons/md";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import ExpenseQuickAdd from "./ExpenseQuickAdd";
+import OrderSearch from "../menu/OrderSearch";
 import MusicPlayer from "./MusicPlayer";
 
 const Header = () => {
@@ -82,13 +82,8 @@ const Header = () => {
 
       {/* SEARCH - only where there's real room for it, so it never competes
           with the icons for space in the tight 1024-1366px band. */}
-      <div className="order-last hidden min-w-0 flex-1 items-center gap-3 rounded-[15px] bg-[#1f1f1f] px-4 py-2 lg:order-none lg:flex lg:max-w-xs lg:px-5 xl:max-w-[500px]">
-        <FaSearch className="shrink-0 text-[#f5f5f5]" />
-        <input
-          type="text"
-          placeholder="Search"
-          className="w-full min-w-0 bg-[#1f1f1f] outline-none text-[#f5f5f5]"
-        />
+      <div className="order-last hidden min-w-0 flex-1 lg:order-none lg:block lg:max-w-xs xl:max-w-[500px]">
+        <OrderSearch variant="header" />
       </div>
 
       {/* LOGGED USER DETAILS */}

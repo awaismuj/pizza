@@ -8,7 +8,8 @@ import Invoice from "../invoice/Invoice";
 // Search past orders by order #, mobile number, or customer name. Selecting
 // a result opens its invoice for review; it only prints when the person
 // clicks "Print Receipt" inside that invoice, same as any other receipt.
-const OrderSearch = () => {
+const OrderSearch = ({ variant = "panel" }) => {
+  const inHeader = variant === "header";
   const [query, setQuery] = useState("");
   const [printOrder, setPrintOrder] = useState(null);
 
@@ -49,20 +50,20 @@ const OrderSearch = () => {
   };
 
   return (
-    <div className="px-4 pt-3 relative">
-      <div className="flex items-center gap-2 bg-[#1f1f1f] rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-[#f6b100]">
+    <div className={inHeader ? "relative w-full" : "px-4 pt-3 relative"}>
+      <div className={`flex items-center gap-2 bg-[#1f1f1f] focus-within:ring-1 focus-within:ring-[#f6b100] ${inHeader ? "rounded-[15px] px-4 py-2 gap-3" : "rounded-lg px-3 py-2"}`}>
         <FaSearch className="text-[#767676] text-sm shrink-0" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search order # / mobile / name"
+          placeholder={inHeader ? "Search orders" : "Search order # / mobile / name"}
           className="bg-transparent flex-1 text-white text-sm outline-none placeholder:text-[#767676] min-w-0"
         />
       </div>
 
       {query.trim() && (
-        <div className="absolute z-20 left-4 right-4 mt-1 bg-[#1f1f1f] rounded-lg shadow-lg max-h-64 overflow-y-auto border border-[#2a2a2a]">
+        <div className={`absolute z-50 mt-1 ${inHeader ? "left-0 right-0 top-full" : "left-4 right-4"} bg-[#1f1f1f] rounded-lg shadow-lg max-h-64 overflow-y-auto border border-[#2a2a2a]`}>
           {results.length === 0 ? (
             <p className="text-[#767676] text-xs px-3 py-3">No matching orders.</p>
           ) : (

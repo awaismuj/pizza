@@ -187,7 +187,7 @@ const Outdoor = () => {
       <div className="w-full lg:flex-[1] bg-[#1a1a1a] mx-3 mb-4 lg:mx-0 lg:mt-4 lg:mr-3 lg:mb-36 lg:h-auto rounded-lg pt-2 flex flex-col">
         <div className="px-5 pt-3 pb-2">
           <h1 className="text-lg text-[#f5f5f5] font-semibold tracking-wide">
-            🥡 Takeaway Order
+            Takeaway Order
           </h1>
           <p className="text-xs text-[#ababab] font-medium">
             {cart.length} item{cart.length === 1 ? "" : "s"}
@@ -198,7 +198,7 @@ const Outdoor = () => {
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {cart.length === 0 ? (
             <p className="text-[#5f5f5f] text-sm text-center mt-10">
-              No items yet — tap 🛒 on any menu item to add it here.
+              No items yet — tap the cart button on any menu item to add it here.
             </p>
           ) : (
             <div className="flex flex-col gap-3">
@@ -248,7 +248,7 @@ const Outdoor = () => {
               paymentMethod === "Cash" ? "bg-[#383737] text-[#f5f5f5]" : ""
             }`}
           >
-            💵 Cash
+            Cash
           </button>
           <button
             onClick={() => setPaymentMethod("Online")}
@@ -256,7 +256,7 @@ const Outdoor = () => {
               paymentMethod === "Online" ? "bg-[#383737] text-[#f5f5f5]" : ""
             }`}
           >
-            💳 Online
+            Online
           </button>
         </div>
 

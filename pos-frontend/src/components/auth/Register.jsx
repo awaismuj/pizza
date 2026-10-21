@@ -122,7 +122,7 @@ const Register = ({setIsRegister}) => {
           </label>
 
           <div className="flex flex-wrap items-center gap-3 mt-4">
-            {["Waiter", "Cashier", "Admin", "Accountant", "Asset Manager", "Read Only", "HR Manager", "Payroll Manager", "Employee"].map((role) => {
+            {["Waiter", "Cashier", "Admin", "Accountant", "Asset Manager", "Read Only"].map((role) => {
               return (
                 <button
                   key={role}
