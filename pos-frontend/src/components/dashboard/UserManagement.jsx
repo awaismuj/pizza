@@ -529,6 +529,21 @@ const UserManagement = () => {
             {dialog === "view" && selectedUser && <dl className="grid gap-3 text-sm sm:grid-cols-2">
               {[["Username", selectedUser.username], ["Phone", selectedUser.phone], ["Employee ID", selectedUser.employeeId], ["Role", selectedUser.role], ["Status", selectedUser.active === false ? "Inactive" : selectedUser.status], ["Last login", formatDate(selectedUser.lastLoginAt)], ["Permissions", (selectedUser.permissions || []).join(", ") || "None"], ["Notes", selectedUser.notes]].map(([label, value]) => <div key={label} className="rounded-lg bg-[#292929] p-3"><dt className="text-xs text-gray-400">{label}</dt><dd className="mt-1 break-words">{value || "—"}</dd></div>)}
             </dl>}
+            {dialog === "view" && selectedUser && selectedUser._id !== currentUserId &&
+              (isOwner || !["admin", "super admin"].includes(keyOf(selectedUser.role))) &&
+              can("users.resetPassword") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTemporaryPassword("");
+                    setConfirmTemporaryPassword("");
+                    setDialog("password");
+                  }}
+                  className="rounded-lg bg-yellow-400 px-4 py-2 font-semibold text-black"
+                >
+                  Reset Password
+                </button>
+              )}
             {dialog === "role" && <div className="space-y-3"><label className="block space-y-2 text-sm"><span>New role</span><select id="managed-user-role" defaultValue={selectedUser?.role} className="w-full rounded-lg border border-[#444] bg-[#171717] px-3 py-2.5">
               {roles.filter((item) => isOwner || !["super admin", "admin"].includes(keyOf(item.name))).map((item) => <option key={item.key} value={item.name}>{item.name}</option>)}
             </select></label><button onClick={() => {

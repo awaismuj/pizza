@@ -21,7 +21,7 @@ const Greetings = () => {
   const date = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <header className="relative overflow-hidden rounded-2xl border border-[#2b2b2b] bg-gradient-to-br from-[#262626] via-[#1c1c1c] to-[#171717] px-5 py-6 sm:px-8 sm:py-7">
+    <header className="relative overflow-hidden rounded-2xl border border-[#2b2b2b] bg-gradient-to-br from-[#262626] via-[#1c1c1c] to-[#171717] px-5 py-4 sm:px-8 sm:py-5">
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#f6b100]/10 blur-3xl" />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">

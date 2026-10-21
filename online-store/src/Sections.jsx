@@ -114,16 +114,13 @@ export const HeroIntro = ({ onOrder, onTrack, summary }) => (
         </div>
       </div>
 
-      <ul className="v2-chips" aria-label="Highlights">
-        <li><I.Cash aria-hidden="true" /> Cash on delivery</li>
-        <li><I.Pin aria-hidden="true" /> Live order tracking</li>
-        <li><I.Puzzle aria-hidden="true" /> Build your own deal</li>
-        {summary?.total > 0 && (
+      {summary?.total > 0 && (
+        <ul className="v2-chips" aria-label="Highlights">
           <li className="rating">
             <StarIcon /> {summary.average} · {summary.total} review{summary.total === 1 ? "" : "s"}
           </li>
-        )}
-      </ul>
+        </ul>
+      )}
     </div>
   </section>
 );
