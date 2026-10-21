@@ -16,6 +16,7 @@ export const updateManagedUserPermissions = ({ userId, granted, denied }) =>
   axiosWrapper.patch(`/api/user/management/${userId}/permissions`, { granted, denied });
 export const updateManagedUserStatus = ({ userId, active }) =>
   axiosWrapper.patch(`/api/user/management/${userId}/status`, { active });
+export const deleteManagedUser = (userId) => axiosWrapper.delete(`/api/user/management/${userId}`);
 export const resetManagedUserPassword = ({ userId, password, confirmPassword }) =>
   axiosWrapper.post(`/api/user/management/${userId}/reset-password`, { password, confirmPassword });
 export const getManagedRoles = () => axiosWrapper.get("/api/user/roles");

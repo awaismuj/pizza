@@ -26,7 +26,7 @@ const useLoadData = () => {
           "hero.manage", "inventory.view", "inventory.manage", "inventory.adjust", "inventory.delete",
           "expenses.view", "expenses.create", "expenses.delete", "finance.view", "reports.view",
           "reports.manage", "settings.view", "settings.manage", "users.view", "users.create",
-          "users.edit", "users.deactivate", "users.resetPassword", "users.assignRole",
+          "users.edit", "users.deactivate", "users.delete", "users.resetPassword", "users.assignRole",
           "users.managePermissions", "users.manageRoles", "users.viewAudit", "assets.view",
           "assets.manage", "assets.financial", "assets.export", "assets.viewValuation",
           "staff.view", "staff.manage", "attendance.view", "attendance.manage", "hr.view",

@@ -5,6 +5,7 @@ import { enqueueSnackbar } from "notistack";
 import {
   changeManagedUserRole,
   createManagedUser,
+  deleteManagedUser,
   getManagedRoles,
   getManagedUsers,
   getPermissionCatalog,
@@ -36,7 +37,7 @@ const formatDate = (value) => value ? new Date(value).toLocaleString() : "Never"
 
 const UserManagement = () => {
   const queryClient = useQueryClient();
-  const { role: currentRole, permissions = [] } = useSelector((state) => state.user);
+  const { _id: currentUserId, role: currentRole, permissions = [] } = useSelector((state) => state.user);
   const can = (permission) => permissions.includes(permission);
   const isOwner = keyOf(currentRole) === "super admin";
   const [section, setSection] = useState("users");
@@ -125,6 +126,14 @@ const UserManagement = () => {
     mutationFn: updateManagedUserStatus,
     onSuccess: async () => {
       enqueueSnackbar("Account status updated.", { variant: "success" });
+      await refreshUsers();
+    },
+    onError: (error) => enqueueSnackbar(errorMessage(error), { variant: "error" }),
+  });
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteManagedUser,
+    onSuccess: async () => {
+      enqueueSnackbar("User deleted.", { variant: "success" });
       await refreshUsers();
     },
     onError: (error) => enqueueSnackbar(errorMessage(error), { variant: "error" }),
@@ -313,6 +322,11 @@ const UserManagement = () => {
                               statusMutation.mutate({ userId: user._id, active: user.active === false });
                             }
                           }} className="action-button">{user.active === false ? "Activate" : "Deactivate"}</button>}
+                          {user._id !== currentUserId && mayManageAccount && can("users.delete") && <button onClick={() => {
+                            if (window.confirm(`Permanently delete ${user.name}'s account? This action cannot be undone.`)) {
+                              deleteUserMutation.mutate(user._id);
+                            }
+                          }} className="action-button text-red-300">Delete</button>}
                             </>;
                           })()}
                         </div>
@@ -405,7 +419,7 @@ const UserManagement = () => {
               {auditEvents.map((event) => <tr key={event._id}>
                 <td className="px-4 py-3 text-xs text-gray-400">{formatDate(event.createdAt)}</td>
                 <td className="px-4 py-3">{event.actorId?.name || "System"}</td>
-                <td className="px-4 py-3">{event.targetUserId?.name || "—"}</td>
+                <td className="px-4 py-3">{event.targetUserId?.name || event.details?.name || "—"}</td>
                 <td className="px-4 py-3 font-medium">{event.action}</td>
                 <td className={`px-4 py-3 ${event.outcome === "failure" ? "text-red-300" : "text-green-300"}`}>{event.outcome}</td>
                 <td className="px-4 py-3 text-gray-400">{event.reason || "—"}</td>

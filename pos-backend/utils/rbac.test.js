@@ -29,6 +29,7 @@ test("API policy separates sensitive operations", () => {
   assert.equal(routePermission("/api/inventory", "/item-id", "PUT"), "inventory.manage");
   assert.equal(routePermission("/api/report", "/download", "GET"), "reports.view");
   assert.equal(routePermission("/api/user", "/management", "POST"), "users.create");
+  assert.equal(routePermission("/api/user", "/management/user-id", "DELETE"), "users.delete");
   assert.equal(routePermission("/api/order", "/order-id", "PUT", { orderStatus: "Cancelled" }), "orders.cancel");
   assert.equal(routePermission("/api/table", "/table-id", "DELETE"), "tables.delete");
 });

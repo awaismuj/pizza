@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const config = require("../config/config");
 const { sendSignupApprovalRequest } = require("../utils/mailer");
 const Role = require("../models/roleModel");
+const Staff = require("../models/staffModel");
 const UserAuditLog = require("../models/userAuditLogModel");
 const { permissions: permissionCatalog, allPermissions, roleDefaults, getEffectivePermissions } = require("../utils/rbac");
 const { normalizeApprovalStatus } = require("../utils/userStatus");
@@ -507,6 +508,46 @@ const getUserData = async (req, res, next) => {
         }
     };
 
+    const deleteManagedUser = async (req, res, next) => {
+        try {
+            const user = await User.findById(req.params.id);
+            if (!user) return next(createHttpError(404, "User not found."));
+            if (String(user._id) === String(req.user._id)) {
+                return next(createHttpError(403, "You cannot delete your own account."));
+            }
+            if (["admin", "super admin"].includes(String(user.role).toLowerCase()) && !isSuperAdmin(req.user)) {
+                return next(createHttpError(403, "Only the Super Admin may delete administrator accounts."));
+            }
+            if (String(user.role).toLowerCase() === "super admin" &&
+                user.active && normalizeApprovalStatus(user.status) === "Approved") {
+                const activeOwners = await User.countDocuments({
+                    role: { $regex: /^super admin$/i },
+                    active: true,
+                    status: { $regex: /^approved$/i },
+                });
+                if (activeOwners <= 1) {
+                    return next(createHttpError(409, "The last active Super Admin cannot be deleted."));
+                }
+            }
+
+            const linkedStaff = await Staff.updateMany(
+                { linkedUser: user._id },
+                { $set: { linkedUser: null } }
+            );
+            const deletion = await User.deleteOne({ _id: user._id });
+            if (!deletion.deletedCount) return next(createHttpError(404, "User not found."));
+            await audit(req, "user.deleted", user._id, {
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                unlinkedStaffProfiles: linkedStaff.modifiedCount,
+            });
+            res.json({ success: true, message: "User deleted." });
+        } catch (error) {
+            next(error);
+        }
+    };
+
     const resetManagedPassword = async (req, res, next) => {
         try {
             const user = await User.findById(req.params.id);
@@ -630,6 +671,6 @@ module.exports = {
     register, login, getUserData, logout, approveUser, rejectUser,
     listUsers, getManagedUser, createManagedUser, updateManagedUser,
     changeUserRole, updateUserPermissions, updateUserStatus,
-    resetManagedPassword, changeOwnPassword, listRoles, saveRole, listAuditLogs,
+    deleteManagedUser, resetManagedPassword, changeOwnPassword, listRoles, saveRole, listAuditLogs,
     getPermissionCatalog,
 };
