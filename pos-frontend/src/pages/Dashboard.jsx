@@ -149,7 +149,7 @@ const Dashboard = () => {
     "Payment Settings": "settings.manage",
     Menu: "menu.view",
     Deals: "deals.manage",
-    Coupons: "deals.manage",
+    Coupons: "coupons.manage",
     "Poster Maker": "settings.manage",
     "Hero Slider": "hero.manage",
     Reviews: "settings.manage",
@@ -165,7 +165,6 @@ const Dashboard = () => {
     "User & Employees": "users.view",
   };
   const canSeeTab = (tab) => can(tabPermissions[tab]) &&
-    (tab !== "Coupons" || String(role || "").toLowerCase() === "admin") &&
     (tab !== "Metrics" || (can("orders.view") && can("menu.view") && can("tables.view"))) &&
     (tab !== "Profit" || can("expenses.view"));
   const visibleGroups = tabGroups
