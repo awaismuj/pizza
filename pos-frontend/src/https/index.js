@@ -36,8 +36,69 @@ export const getSettings = () => axiosWrapper.get("/api/settings");
 export const updateSettings = (data) => axiosWrapper.put("/api/settings", data);
 
 // Payment Endpoints
-export const createOrderRazorpay = (data) =>
-  axiosWrapper.post("/api/payment/create-order", data);
+const inMemoryPaymentAttempts = new Map();
+const paymentAttemptStorageKey = () =>
+  `gzp_pos_payment_attempt_${window.location.pathname.replace(/[^a-z0-9]/gi, "_")}`;
+
+export const getPaymentIdempotencyKey = (fingerprint) => {
+  const storageKey = paymentAttemptStorageKey();
+  const inMemory = inMemoryPaymentAttempts.get(storageKey);
+  if (inMemory?.fingerprint === fingerprint) return inMemory.key;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+    if (saved?.fingerprint === fingerprint && typeof saved.key === "string") {
+      inMemoryPaymentAttempts.set(storageKey, saved);
+      return saved.key;
+    }
+  } catch {
+    // Continue with an in-memory key when browser storage is unavailable.
+  }
+
+  const secureCrypto = globalThis.crypto;
+  const key = secureCrypto?.randomUUID
+    ? secureCrypto.randomUUID()
+    : secureCrypto?.getRandomValues
+      ? Array.from(secureCrypto.getRandomValues(new Uint8Array(24)), (byte) => byte.toString(16).padStart(2, "0")).join("")
+      : "";
+  if (!key) throw new Error("Secure random generation is unavailable. Please use a modern browser to take an online payment.");
+
+  const attempt = { fingerprint, key };
+  inMemoryPaymentAttempts.set(storageKey, attempt);
+  try {
+    sessionStorage.setItem(storageKey, JSON.stringify(attempt));
+  } catch {
+    // The key remains stable in memory for this page session.
+  }
+  return key;
+};
+
+export const clearPaymentIdempotencyKey = () => {
+  const storageKey = paymentAttemptStorageKey();
+  inMemoryPaymentAttempts.delete(storageKey);
+  try {
+    sessionStorage.removeItem(storageKey);
+  } catch {
+    // Storage may be unavailable; the next order gets a new key when the page reloads.
+  }
+};
+
+export const createOrderRazorpay = async (data, idempotencyKey) => {
+  try {
+    return await axiosWrapper.post("/api/payment/create-order", data, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    });
+  } catch (error) {
+    const code = error?.response?.data?.code;
+    if (
+      error?.response?.status >= 500 ||
+      code === "PAYMENT_ATTEMPT_FAILED" ||
+      code === "IDEMPOTENCY_KEY_REUSED"
+    ) {
+      clearPaymentIdempotencyKey();
+    }
+    throw error;
+  }
+};
 export const verifyPaymentRazorpay = (data) =>
   axiosWrapper.post("/api/payment/verify-payment", data);
 

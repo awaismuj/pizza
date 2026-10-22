@@ -7,6 +7,8 @@
     "start": "node app.js",
     "test": "node --test",
     "migrate": "node scripts/migrate.js",
+    "migrate:checkout-idempotency": "node scripts/migrate-checkout-idempotency.js",
+    "migrate:payment-idempotency": "node scripts/migrate-checkout-idempotency.js",
     "migrate:staff-hr": "node scripts/migrate-staff-hr.js",
     "migrate:staff-hr": "node scripts/migrate-staff-hr.js",
     "migrate:asset-depreciation": "node scripts/migrate-asset-depreciation.js",

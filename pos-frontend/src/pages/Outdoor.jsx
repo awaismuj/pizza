@@ -6,7 +6,13 @@ import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import MenuContainer from "../components/menu/MenuContainer";
 import Invoice from "../components/invoice/Invoice";
-import { addOrder, createOrderRazorpay, verifyPaymentRazorpay } from "../https";
+import {
+  addOrder,
+  clearPaymentIdempotencyKey,
+  createOrderRazorpay,
+  getPaymentIdempotencyKey,
+  verifyPaymentRazorpay,
+} from "../https";
 import useTaxRate from "../hooks/useTaxRate";
 
 function loadScript(src) {
@@ -38,6 +44,10 @@ const Outdoor = () => {
   const total = cart.reduce((sum, item) => sum + item.price, 0);
   const tax = (total * taxRate) / 100;
   const totalWithTax = total + tax;
+  const paymentFingerprint = JSON.stringify({
+    amount: Math.round(totalWithTax * 100),
+    items: cart.map((item) => [item.id, item.name, item.price]),
+  });
 
   const handleAddToCart = (item) => {
     setCart((prev) => [...prev, item]);
@@ -55,6 +65,7 @@ const Outdoor = () => {
       setShowInvoice(true);
       setCart([]);
       setIsProcessing(false);
+      clearPaymentIdempotencyKey();
       queryClient.invalidateQueries(["orders"]);
       queryClient.invalidateQueries(["dailyProfit"]);
       queryClient.invalidateQueries(["monthlyProfit"]);
@@ -97,7 +108,10 @@ const Outdoor = () => {
           return;
         }
 
-        const { data } = await createOrderRazorpay({ amount: totalWithTax.toFixed(2) });
+        const { data } = await createOrderRazorpay(
+          { amount: totalWithTax.toFixed(2) },
+          getPaymentIdempotencyKey(paymentFingerprint)
+        );
 
         const options = {
           key: `${import.meta.env.VITE_RAZORPAY_KEY_ID}`,
@@ -144,7 +158,10 @@ const Outdoor = () => {
         rzp.open();
       } catch (error) {
         setIsProcessing(false);
-        enqueueSnackbar("Payment failed to start!", { variant: "error" });
+        enqueueSnackbar(
+          error?.response?.data?.message || error.message || "Payment failed to start.",
+          { variant: "error" }
+        );
       }
       return;
     }

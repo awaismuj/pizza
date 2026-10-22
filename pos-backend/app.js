@@ -6,6 +6,7 @@ const globalErrorHandler = require("./middlewares/globalErrorHandler");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { serveUploadedImage } = require("./controllers/uploadController");
+const { rejectMongoOperators, securityHeaders } = require("./middlewares/requestSecurity");
 const app = express();
 // Behind Cloudflare/nginx: needed so req.ip is the visitor, not the proxy.
 app.set("trust proxy", 1);
@@ -34,6 +35,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 // Middlewares
+app.use(securityHeaders);
 app.use(cors({
     credentials: true,
     origin: (origin, callback) => {
@@ -44,8 +46,10 @@ app.use(cors({
         return callback(new Error('Not allowed by CORS'));
     }
 }));
-app.use(express.json()); // parse incoming request in json format
+app.use("/api/payment/webhook-verification", express.raw({ type: "application/json", limit: "1mb" }));
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser())
+app.use(rejectMongoOperators);
 
 // Serve uploaded images (category icons, dish images, etc.) so URLs returned by
 // the /api/upload endpoint (e.g. /uploads/xyz.png) are actually reachable.
