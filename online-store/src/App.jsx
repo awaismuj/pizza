@@ -6,6 +6,7 @@ import {
   getPublicHeroSlides,
   placeOrder,
   validatePublicCoupon,
+  getMyCoupons,
   getOrderStatus,
   cancelOrder,
   lookupOrderByPhone,
@@ -30,6 +31,7 @@ import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection,
 import { I, FoodIcon } from "./AppIcons.jsx";
 import { FulfillmentPicker, FULFILLMENT_STYLES, useFulfillment } from "./Fulfillment.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
+import CustomerAccount, { useCustomerAccount } from "./CustomerAccount.jsx";
 
 /* ---------------------------------------------------------------------------
    Everything the storefront needs lives in this one file: styles, fonts and
@@ -3073,7 +3075,7 @@ const WhatsAppButton = () => (
   </a>
 );
 
-const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) => (
+const Header = ({ minimal, cartCount, customer, onSearch, onCart, onNavigate, onTrack, onAccount }) => (
   <header className="gzp-header">
     <div className="gzp-header-inner">
       <button
@@ -3098,6 +3100,9 @@ const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) =
           </nav>
           <button className="v2-track-btn" onClick={onTrack} type="button">
             <IconTruck /> Track order
+          </button>
+          <button className="v2-track-btn" onClick={onAccount} type="button">
+            {customer ? customer.name : "Account"}
           </button>
           <button
             className="gzp-icon-btn"
@@ -3125,6 +3130,8 @@ const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) =
 /* ================================ App ================================ */
 
 function App() {
+  const [customer, setCustomer] = useCustomerAccount();
+  const [customerAccountOpen, setCustomerAccountOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [dishes, setDishes] = useState([]);
   const [deals, setDeals] = useState([]);
@@ -3142,6 +3149,7 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [couponInput, setCouponInput] = useState("");
+  const [assignedCoupons, setAssignedCoupons] = useState([]);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
@@ -3179,6 +3187,21 @@ function App() {
   const orderCouponDiscount = Number(order?.bills?.couponDiscount) || 0;
   const orderOtherDiscount = Math.max(0, (Number(order?.bills?.discount) || 0) - orderCouponDiscount);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  useEffect(() => {
+    if (!customer) return;
+    setForm((current) => ({ ...current, name: customer.name, phone: customer.phone }));
+  }, [customer]);
+  useEffect(() => {
+    let active = true;
+    if (!customer) {
+      setAssignedCoupons([]);
+      return () => { active = false; };
+    }
+    getMyCoupons()
+      .then((response) => { if (active) setAssignedCoupons(response.data || []); })
+      .catch((requestError) => { if (active) setError(requestError.message || "Could not load your assigned coupons."); });
+    return () => { active = false; };
+  }, [customer]);
 
   const [activeSection, setActiveSection] = useState(DEALS_SECTION_ID);
 
@@ -4559,10 +4582,18 @@ function App() {
     <div className="gzp-app">
       <Header
         cartCount={cartCount}
+        customer={customer}
+        onAccount={() => setCustomerAccountOpen(true)}
         onSearch={() => setSearchOpen(true)}
         onCart={() => setCartOpen(true)}
         onNavigate={navigateTo}
         onTrack={() => setTrackOpen(true)}
+      />
+      <CustomerAccount
+        customer={customer}
+        setCustomer={setCustomer}
+        open={customerAccountOpen}
+        setOpen={setCustomerAccountOpen}
       />
 
       {/* Left up after "Click for more order" on the Thank You screen, so
@@ -5407,6 +5438,28 @@ function App() {
 
                   <div className="gzp-field">
                     <span>Coupon code</span>
+                    {assignedCoupons.length > 0 && (
+                      <select
+                        value=""
+                        aria-label="Choose an assigned coupon"
+                        disabled={Boolean(appliedCoupon)}
+                        onChange={(event) => {
+                          const assignment = assignedCoupons.find((item) => item.code === event.target.value);
+                          if (!assignment) return;
+                          setCouponInput(assignment.code);
+                          setAppliedCoupon(null);
+                        }}
+                      >
+                        <option value="">Choose an assigned coupon</option>
+                        {assignedCoupons.map((assignment) => (
+                          <option key={assignment._id} value={assignment.code}>
+                            {assignment.couponId?.name || "Assigned coupon"} — {assignment.couponId?.discountType === "percentage"
+                              ? `${assignment.couponId.discountValue}%`
+                              : `Rs ${assignment.couponId?.discountValue}`}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <div style={{ display: "flex", gap: 8 }}>
                       <input
                         value={couponInput}

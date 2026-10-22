@@ -1,7 +1,10 @@
 const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
+const Customer = require("../models/customerModel");
+const CustomerCoupon = require("../models/customerCouponModel");
 const { resolveCartPrices, evaluateCoupon } = require("../services/couponService");
 
 const DISCOUNT_TYPES = ["percentage", "fixed"];
@@ -207,11 +210,12 @@ const validatePublicCoupon = async (req, res, next) => {
     const items = await resolveCartPrices(req.body.items);
     const result = await evaluateCoupon({
       code: req.body.code,
-      phone: req.body.phone,
+      phone: req.customer?.phone || req.body.phone,
+      customerId: req.customer?._id,
       items,
       channel: "Online",
     });
-    res.json({ success: true, data: { code: result.coupon.code, discountAmount: result.discountAmount, eligibleSubtotal: result.eligibleSubtotal } });
+    res.json({ success: true, data: { code: result.code, discountAmount: result.discountAmount, eligibleSubtotal: result.eligibleSubtotal } });
   } catch (error) {
     next(error);
   }
@@ -222,11 +226,11 @@ const validatePosCoupon = async (req, res, next) => {
     const items = await resolveCartPrices(req.body.items);
     const result = await evaluateCoupon({
       code: req.body.code,
-      phone: req.body.phone || "pos-customer",
+      phone: req.body.phone,
       items,
       channel: "POS",
     });
-    res.json({ success: true, data: { code: result.coupon.code, discountAmount: result.discountAmount, eligibleSubtotal: result.eligibleSubtotal } });
+    res.json({ success: true, data: { code: result.code, discountAmount: result.discountAmount, eligibleSubtotal: result.eligibleSubtotal } });
   } catch (error) {
     next(error);
   }
@@ -272,6 +276,136 @@ const getCouponRedemptions = async (req, res, next) => {
   }
 };
 
+const getMyCoupons = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const assignments = await CustomerCoupon.find({
+      customerId: req.customer._id,
+      status: "active",
+      $and: [
+        { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+        { $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
+      ],
+    })
+      .populate({
+        path: "couponId",
+        match: {
+          status: { $in: ["active", "scheduled"] },
+          $and: [
+            { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
+            { $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
+          ],
+        },
+        select: "name description discountType discountValue minimumSubtotal maximumDiscount startsAt expiresAt eligibleDishIds eligibleCategoryIds",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({
+      success: true,
+      data: assignments.filter((assignment) => assignment.couponId && assignment.redemptionCount < assignment.redemptionLimit),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const assignCoupon = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(400, "Invalid coupon ID.");
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const redemptionLimit = Number(req.body.redemptionLimit ?? 1);
+    const requestedStartsAt = req.body.startsAt ? new Date(req.body.startsAt) : null;
+    const requestedExpiresAt = req.body.expiresAt ? new Date(req.body.expiresAt) : null;
+    if (!/^\S+@\S+\.\S+$/.test(email)) throw createHttpError(400, "Enter a valid customer email address.");
+    if (!Number.isInteger(redemptionLimit) || redemptionLimit < 1 || redemptionLimit > 100) {
+      throw createHttpError(400, "Redemption limit must be a whole number between 1 and 100.");
+    }
+    if ((requestedStartsAt && Number.isNaN(requestedStartsAt.getTime())) || (requestedExpiresAt && Number.isNaN(requestedExpiresAt.getTime()))) {
+      throw createHttpError(400, "Enter valid assignment dates.");
+    }
+    if (requestedStartsAt && requestedExpiresAt && requestedStartsAt >= requestedExpiresAt) throw createHttpError(400, "Expiry must be after the start date.");
+    const [coupon, customer] = await Promise.all([
+      Coupon.findById(req.params.id),
+      Customer.findOne({ email, emailVerifiedAt: { $ne: null }, active: true }).select("_id email"),
+    ]);
+    if (!coupon) throw createHttpError(404, "Coupon not found.");
+    if (!customer) throw createHttpError(404, "No verified customer account was found for that email.");
+    if (!["active", "scheduled"].includes(coupon.status)) throw createHttpError(400, "Only active or scheduled coupons can be assigned.");
+    const startsAt = requestedStartsAt || coupon.startsAt || null;
+    const expiresAt = requestedExpiresAt || coupon.expiresAt || null;
+    if (startsAt && expiresAt && startsAt >= expiresAt) throw createHttpError(400, "Expiry must be after the start date.");
+    if (coupon.startsAt && startsAt && startsAt < coupon.startsAt) throw createHttpError(400, "Assignment cannot start before its campaign.");
+    if (coupon.expiresAt && coupon.expiresAt <= new Date()) throw createHttpError(400, "This coupon campaign has expired.");
+    if (coupon.expiresAt && (!expiresAt || expiresAt > coupon.expiresAt)) {
+      throw createHttpError(400, "Assignment expiry cannot exceed the campaign expiry.");
+    }
+    const code = `PVT_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
+    const assignment = await CustomerCoupon.create({
+      couponId: coupon._id,
+      customerId: customer._id,
+      code,
+      source: "admin",
+      redemptionLimit,
+      startsAt,
+      expiresAt,
+      assignedBy: req.user._id,
+    });
+    res.status(201).json({
+      success: true,
+      message: "Customer coupon assigned. The private code is shown only once.",
+      data: { id: assignment._id, customerEmail: customer.email, couponName: coupon.name, code },
+    });
+  } catch (error) {
+    if (error.code === 11000) return next(createHttpError(409, "This customer already has this coupon assignment."));
+    next(error);
+  }
+};
+
+const getCouponAssignments = async (req, res, next) => {
+  try {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
+    const filter = {};
+    if (req.query.couponId) {
+      if (!mongoose.Types.ObjectId.isValid(req.query.couponId)) throw createHttpError(400, "Invalid coupon ID.");
+      filter.couponId = req.query.couponId;
+    }
+    if (req.query.customerId) {
+      if (!mongoose.Types.ObjectId.isValid(req.query.customerId)) throw createHttpError(400, "Invalid customer ID.");
+      filter.customerId = req.query.customerId;
+    }
+    const [assignments, total] = await Promise.all([
+      CustomerCoupon.find(filter)
+        .select("-code")
+        .populate("customerId", "name email")
+        .populate("couponId", "name code discountType discountValue")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      CustomerCoupon.countDocuments(filter),
+    ]);
+    res.json({ success: true, data: assignments, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const revokeCouponAssignment = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.assignmentId)) throw createHttpError(400, "Invalid assignment ID.");
+    const assignment = await CustomerCoupon.findOneAndUpdate(
+      { _id: req.params.assignmentId, status: "active" },
+      { $set: { status: "revoked" } },
+      { new: true }
+    );
+    if (!assignment) throw createHttpError(404, "Active coupon assignment not found.");
+    res.json({ success: true, message: "Customer coupon assignment revoked." });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getCoupons,
   createCoupon,
@@ -281,5 +415,9 @@ module.exports = {
   validatePublicCoupon,
   validatePosCoupon,
   getCouponRedemptions,
+  getMyCoupons,
+  assignCoupon,
+  getCouponAssignments,
+  revokeCouponAssignment,
   buildCouponPayload,
 };

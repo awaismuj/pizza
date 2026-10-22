@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const createHttpError = require("http-errors");
 const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
+const CustomerCoupon = require("../models/customerCouponModel");
 const Order = require("../models/orderModel");
 const Dish = require("../models/dishModel");
 const Deal = require("../models/dealModel");
@@ -80,16 +81,43 @@ const getExistingDiscount = async (items, channel) => {
   return Math.round(gross * percent / 100);
 };
 
-const evaluateCoupon = async ({ code, phone, items, channel = "Online", session, now = new Date() }) => {
+const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Online", session, now = new Date() }) => {
   const normalizedCode = normalizeCouponCode(code);
   if (!normalizedCode || normalizedCode.length > 40) throw createHttpError(400, "Enter a valid coupon code.");
-  const customerKey = customerKeyFor(phone);
-  const coupon = await Coupon.findOne({ code: normalizedCode }).session(session || null);
+  let assignment = await CustomerCoupon.findOne({ code: normalizedCode, status: "active" }).session(session || null);
+  if (assignment) {
+    if ((assignment.startsAt && assignment.startsAt > now) || (assignment.expiresAt && assignment.expiresAt <= now)) {
+      throw createHttpError(400, "This assigned coupon is not currently available.");
+    }
+    if (customerId && String(assignment.customerId) !== String(customerId)) {
+      throw createHttpError(403, "This coupon is not available to this customer.");
+    }
+    if (!customerId) {
+      throw createHttpError(401, "Sign in to the assigned customer account to use this coupon.");
+    }
+    if (String(assignment.customerId) !== String(customerId)) {
+      throw createHttpError(403, "This coupon is not available to this customer.");
+    }
+    if (assignment.redemptionCount >= assignment.redemptionLimit) {
+      throw createHttpError(400, "This assigned coupon has reached its use limit.");
+    }
+  }
+  const coupon = assignment
+    ? await Coupon.findById(assignment.couponId).session(session || null)
+    : await Coupon.findOne({ code: normalizedCode }).session(session || null);
   if (!coupon) throw createHttpError(400, "Invalid coupon code.");
+  const customerKey = customerKeyFor(phone);
 
   const priorOrderQuery = {
     orderStatus: { $ne: "Cancelled" },
-    "customerDetails.phone": { $regex: `${String(phone).replace(/\D/g, "").slice(-9)}$` },
+    ...(customerId
+      ? {
+          $or: [
+            { customerId },
+            { "customerDetails.phone": { $regex: `${String(phone).replace(/\D/g, "").slice(-9)}$` } },
+          ],
+        }
+      : { "customerDetails.phone": { $regex: `${String(phone).replace(/\D/g, "").slice(-9)}$` } }),
   };
   const hasPreviousOrder = coupon.firstOrderOnly
     ? await Order.exists(priorOrderQuery).session(session || null)
@@ -133,10 +161,17 @@ const evaluateCoupon = async ({ code, phone, items, channel = "Online", session,
     now,
   });
   if (!result.valid) throw createHttpError(400, result.message);
-  return { ...result, customerKey, existingDiscount };
+  return {
+    ...result,
+    code: normalizedCode,
+    customerKey,
+    customerId: assignment?.customerId || customerId || null,
+    customerCoupon: assignment || null,
+    existingDiscount,
+  };
 };
 
-const reserveRedemption = async ({ coupon, customerKey, orderId, discountAmount, channel, session }) => {
+const reserveRedemption = async ({ coupon, code, customerKey, customerId, customerCoupon, orderId, discountAmount, channel, session }) => {
   const current = await Coupon.findById(coupon._id).session(session);
   const now = new Date();
   const canRedeem = current && ["active", "scheduled"].includes(current.status)
@@ -161,11 +196,28 @@ const reserveRedemption = async ({ coupon, customerKey, orderId, discountAmount,
     { session, new: true }
   );
   if (!incremented) throw createHttpError(400, "Coupon is no longer available.");
+  if (customerCoupon) {
+    const assignmentUpdate = await CustomerCoupon.updateOne(
+      {
+        _id: customerCoupon._id,
+        customerId: customerCoupon.customerId,
+        status: "active",
+        redemptionCount: { $lt: customerCoupon.redemptionLimit },
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+        $and: [{ $or: [{ startsAt: null }, { startsAt: { $lte: now } }] }],
+      },
+      { $inc: { redemptionCount: 1 } },
+      { session }
+    );
+    if (!assignmentUpdate.matchedCount) throw createHttpError(400, "This assigned coupon is no longer available.");
+  }
   await CouponRedemption.create(
     [{
       couponId: current._id,
       orderId,
-      code: current.code,
+      code: code || current.code,
+      customerId: customerId || customerCoupon?.customerId || null,
+      customerCouponId: customerCoupon?._id || null,
       customerKey,
       discountAmount,
       channel,
@@ -201,6 +253,13 @@ const reverseRedemption = async (orderId, session = null) => {
     { session }
   );
   if (!counterUpdate.matchedCount) throw createHttpError(409, "Coupon redemption counters are inconsistent.");
+  if (redemption.customerCouponId) {
+    await CustomerCoupon.updateOne(
+      { _id: redemption.customerCouponId, redemptionCount: { $gt: 0 } },
+      { $inc: { redemptionCount: -1 } },
+      { session }
+    );
+  }
   return true;
 };
 

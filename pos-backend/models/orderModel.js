@@ -26,6 +26,7 @@ const orderSchema = new mongoose.Schema({
         guests: { type: Number, required: true },
         address: { type: String, default: "" },
     },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null, index: true },
     orderStatus: {
         type: String,
         required: true,
