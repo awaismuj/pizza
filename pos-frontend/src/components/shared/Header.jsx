@@ -1,17 +1,18 @@
 import React, { useState } from "react";
-import { FaSearch } from "react-icons/fa";
 import { FaUserCircle } from "react-icons/fa";
 import { FaBell } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { IoLogOut } from "react-icons/io5";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { logout, getLowStockItems } from "../../https";
-import { LOW_STOCK_QUERY_KEY, OPEN_LOW_STOCK_EVENT, isStockRole } from "./LowStockAlert";
+import { LOW_STOCK_QUERY_KEY, OPEN_LOW_STOCK_EVENT } from "./LowStockAlert";
 import { removeUser } from "../../redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
 import { MdDashboard, MdDeliveryDining, MdReceiptLong } from "react-icons/md";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import ExpenseQuickAdd from "./ExpenseQuickAdd";
+import OrderSearch from "../menu/OrderSearch";
+import MusicPlayer from "./MusicPlayer";
 
 const Header = () => {
   const userData = useSelector((state) => state.user);
@@ -33,7 +34,10 @@ const Header = () => {
 
   // Bell badge = how many inventory items are low / out of stock. Same query
   // as the popup, so it costs no extra requests. Admin + Cashier only.
-  const canSeeStock = userData.isAuth && isStockRole(userData.role);
+  const canSeeStock = userData.isAuth && userData.permissions?.includes("inventory.view");
+  const canSeeDashboard = userData.permissions?.some((permission) =>
+    ["dashboard.view", "users.view", "staff.view", "assets.view"].includes(permission)
+  );
   const { data: lowStockData } = useQuery({
     queryKey: LOW_STOCK_QUERY_KEY,
     queryFn: getLowStockItems,
@@ -57,31 +61,34 @@ const Header = () => {
     // flex children actually shrink instead of forcing the row to overflow.
     <header className="flex flex-wrap items-center justify-between gap-2 py-3 px-3 bg-[#1a1a1a] sm:gap-3 sm:px-4 lg:flex-nowrap lg:gap-4 lg:px-8 lg:py-4">
       {/* LOGO */}
-      <div onClick={() => navigate("/")} className="flex min-w-0 shrink-0 items-center gap-2 cursor-pointer">
-        <img
-          src={genzLogo}
-          alt="GenZ Pizza Land"
-          className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm lg:h-9 lg:w-9"
-        />
-        <h1 className="truncate text-base font-semibold text-[#f5f5f5] tracking-wide lg:text-lg">
-          GenZ Pizza Land
-        </h1>
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          aria-label="Go to home"
+          className="flex min-w-0 items-center gap-2 text-left"
+        >
+          <img
+            src={genzLogo}
+            alt="GenZ Pizza Land"
+            className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm lg:h-9 lg:w-9"
+          />
+          <h1 className="truncate text-base font-semibold text-[#f5f5f5] tracking-wide lg:text-lg">
+            GenZ Pizza Land
+          </h1>
+        </button>
+        <MusicPlayer variant="compact" canManage={String(userData.role || "").toLowerCase() === "admin"} />
       </div>
 
       {/* SEARCH - only where there's real room for it, so it never competes
           with the icons for space in the tight 1024-1366px band. */}
-      <div className="order-last hidden min-w-0 flex-1 items-center gap-3 rounded-[15px] bg-[#1f1f1f] px-4 py-2 lg:order-none lg:flex lg:max-w-xs lg:px-5 xl:max-w-[500px]">
-        <FaSearch className="shrink-0 text-[#f5f5f5]" />
-        <input
-          type="text"
-          placeholder="Search"
-          className="w-full min-w-0 bg-[#1f1f1f] outline-none text-[#f5f5f5]"
-        />
+      <div className="order-last hidden min-w-0 flex-1 lg:order-none lg:block lg:max-w-xs xl:max-w-[500px]">
+        <OrderSearch variant="header" />
       </div>
 
       {/* LOGGED USER DETAILS */}
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 lg:gap-3">
-        {userData.role === "Admin" && (
+        {canSeeDashboard && (
           <div
             onClick={() => navigate("/dashboard")}
             title="Dashboard"
@@ -90,20 +97,20 @@ const Header = () => {
             <MdDashboard className="text-[#f5f5f5] text-xl lg:text-2xl" />
           </div>
         )}
-        <div
+        {userData.permissions?.includes("orders.view") && <div
           onClick={() => navigate("/online-orders")}
           title="Online orders"
           className="hidden rounded-[12px] bg-[#1f1f1f] p-2.5 cursor-pointer md:block lg:rounded-[15px] lg:p-3"
         >
           <MdDeliveryDining className="text-[#f5f5f5] text-xl lg:text-2xl" />
-        </div>
-        <div
+        </div>}
+        {userData.permissions?.includes("expenses.create") && <div
           onClick={() => setExpenseOpen(true)}
           title="Add expense"
           className="hidden rounded-[12px] bg-[#1f1f1f] p-2.5 cursor-pointer md:block lg:rounded-[15px] lg:p-3"
         >
           <MdReceiptLong className="text-[#f5f5f5] text-xl lg:text-2xl" />
-        </div>
+        </div>}
         <div
           onClick={() => canSeeStock && window.dispatchEvent(new Event(OPEN_LOW_STOCK_EVENT))}
           title={lowStockCount > 0 ? `${lowStockCount} item(s) low on stock` : "No stock alerts"}

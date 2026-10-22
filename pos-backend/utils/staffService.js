@@ -1,6 +1,7 @@
 const PDFDocument = require("pdfkit");
 const Staff = require("../models/staffModel");
 const StaffAttendance = require("../models/staffAttendanceModel");
+const { StaffShiftAssignment } = require("../models/staffHrModels");
 const { StaffAdjustment, SalaryPayment } = require("../models/staffPayrollModels");
 
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -31,6 +32,18 @@ const ensureAttendance = async (dayKeys) => {
   const staff = await Staff.find({ isActive: true }).select("_id joinDate");
   if (staff.length === 0) return;
 
+  const assignments = await StaffShiftAssignment.find({
+    effectiveFrom: { $lte: days[days.length - 1] },
+    $or: [{ effectiveTo: null }, { effectiveTo: { $gte: days[0] } }],
+  }).populate("shift", "name startTime endTime breakMinutes expectedDailyHours gracePeriodMinutes workingDays weeklyOffDays isActive").lean();
+  const assignmentsByStaff = new Map();
+  for (const assignment of assignments) {
+    const key = String(assignment.staff);
+    const list = assignmentsByStaff.get(key) || [];
+    list.push(assignment);
+    assignmentsByStaff.set(key, list);
+  }
+
   const existing = await StaffAttendance.find({
     dayKey: { $in: days },
     staff: { $in: staff.map((s) => s._id) },
@@ -42,13 +55,43 @@ const ensureAttendance = async (dayKeys) => {
     for (const dayKey of days) {
       if (dayKey < s.joinDate) continue;
       if (!have.has(`${s._id}|${dayKey}`)) {
-        toCreate.push({ staff: s._id, dayKey, status: "Present", auto: true });
+        const assignment = (assignmentsByStaff.get(String(s._id)) || []).find((entry) =>
+          entry.shift?.isActive &&
+          entry.effectiveFrom <= dayKey &&
+          (!entry.effectiveTo || entry.effectiveTo >= dayKey)
+        );
+        const weekday = new Date(`${dayKey}T00:00:00Z`).getUTCDay();
+        const shift = assignment?.shift;
+        const isWeeklyOff = shift && (
+          shift.weeklyOffDays?.includes(weekday) ||
+          (Array.isArray(shift.workingDays) && !shift.workingDays.includes(weekday))
+        );
+        toCreate.push({
+          staff: s._id,
+          dayKey,
+          status: isWeeklyOff ? "Weekly Off" : "Present",
+          auto: true,
+          shift: shift?._id || null,
+          shiftName: shift?.name || "",
+          shiftStartTime: shift?.startTime || "",
+          shiftEndTime: shift?.endTime || "",
+          breakMinutes: shift?.breakMinutes || 0,
+          expectedDailyHours: shift?.expectedDailyHours || 8,
+          gracePeriodMinutes: shift?.gracePeriodMinutes || 0,
+        });
       }
     }
   }
   if (toCreate.length > 0) {
     // Unique index makes concurrent runs safe; duplicates are just skipped.
-    await StaffAttendance.insertMany(toCreate, { ordered: false }).catch(() => {});
+    try {
+      await StaffAttendance.insertMany(toCreate, { ordered: false });
+    } catch (error) {
+      const duplicateOnly = error.code === 11000 ||
+        (Array.isArray(error.writeErrors) && error.writeErrors.length > 0 &&
+          error.writeErrors.every((writeError) => (writeError.code ?? writeError.err?.code) === 11000));
+      if (!duplicateOnly) throw error;
+    }
   }
 };
 
@@ -61,7 +104,7 @@ const computeMonthlySummary = async (monthKey) => {
   const [staff, attendance, adjustments, payments] = await Promise.all([
     Staff.find({ isActive: true }).sort({ name: 1 }),
     StaffAttendance.find({ dayKey: { $regex: `^${monthKey}` } }),
-    StaffAdjustment.find({ monthKey }),
+    StaffAdjustment.find({ monthKey, isVoided: { $ne: true } }),
     SalaryPayment.find({ monthKey }),
   ]);
 
@@ -70,8 +113,10 @@ const computeMonthlySummary = async (monthKey) => {
 
   return staff.map((s) => {
     const rows = attendance.filter((a) => String(a.staff) === String(s._id));
-    const present = rows.filter((r) => r.status === "Present").length;
-    const absent = rows.filter((r) => r.status === "Absent").length;
+    const present = rows.filter((r) =>
+      ["Present", "Late Arrival", "Early Departure", "Work From Home", "Official Duty"].includes(r.status)
+    ).length;
+    const absent = rows.filter((r) => ["Absent", "Half Day"].includes(r.status)).length;
     const leave = rows.filter((r) => r.status === "Leave").length;
     const adjs = adjustments.filter((a) => String(a.staff) === String(s._id));
     const advance = adjs.filter((a) => a.type === "Advance").reduce((t, a) => t + a.amount, 0);

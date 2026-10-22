@@ -2,12 +2,18 @@ const Settings = require("../models/settingsModel");
 const createHttpError = require("http-errors");
 const config = require("../config/config");
 const { normalizeByoConfig } = require("../utils/byoDiscount");
+const { publicPaymentsShape, paymentsConfig, cleanText } = require("../utils/paymentUtils");
+const { normalizePrepSettings, mergePrepSettings } = require("../utils/prepTimer");
+const { normalizePasswordPolicy } = require("../utils/passwordPolicy");
 
 const SETTINGS_KEY = "global";
 
 const publicShape = (settings) => ({
   taxRatePercent: settings.taxRatePercent,
   buildYourOwnDeal: normalizeByoConfig(settings.buildYourOwnDeal),
+  payments: publicPaymentsShape(settings),
+  orderPrep: normalizePrepSettings(settings.orderPrep),
+  passwordPolicy: normalizePasswordPolicy(settings.passwordPolicy),
 });
 
 // Seeds from the old static env default (config.TAX_RATE_PERCENT) the very
@@ -42,7 +48,7 @@ const getSettings = async (req, res, next) => {
 // "apply everywhere".
 const updateSettings = async (req, res, next) => {
   try {
-    const { taxRatePercent, buildYourOwnDeal } = req.body;
+    const { taxRatePercent, buildYourOwnDeal, payments, orderPrep, passwordPolicy } = req.body;
     const settings = await getOrCreateSettings();
     const messages = [];
 
@@ -73,8 +79,91 @@ const updateSettings = async (req, res, next) => {
         next_[field] = v;
       }
 
+      if (buildYourOwnDeal.description !== undefined) {
+        if (typeof buildYourOwnDeal.description !== "string" || buildYourOwnDeal.description.length > 300) {
+          return next(createHttpError(400, "The deal description must be text no longer than 300 characters."));
+        }
+        next_.description = buildYourOwnDeal.description;
+      }
+
       settings.buildYourOwnDeal = next_;
       messages.push("Build Your Own Deal updated!");
+    }
+
+    if (payments !== undefined) {
+      if (!payments || typeof payments !== "object") {
+        return next(createHttpError(400, "Invalid payment settings."));
+      }
+      const current = paymentsConfig(settings);
+      const updated = { ...current };
+
+      for (const flag of ["codEnabled", "jazzcashEnabled"]) {
+        if (payments[flag] !== undefined) updated[flag] = Boolean(payments[flag]);
+      }
+      if (!updated.codEnabled && !updated.jazzcashEnabled) {
+        return next(createHttpError(400, "At least one payment method must stay turned on."));
+      }
+
+      if (payments.merchantName !== undefined) {
+        const name = cleanText(payments.merchantName, 60);
+        if (name.length < 2) return next(createHttpError(400, "Enter the merchant name (at least 2 characters)."));
+        updated.merchantName = name;
+      }
+      if (payments.tillId !== undefined) {
+        const till = String(payments.tillId).replace(/\s+/g, "");
+        if (!/^\d{6,20}$/.test(till)) return next(createHttpError(400, "The Till ID must be 6 to 20 digits."));
+        updated.tillId = till;
+      }
+      if (payments.dialCode !== undefined) {
+        const dial = String(payments.dialCode).trim();
+        if (!/^[*#0-9]{3,20}$/.test(dial)) return next(createHttpError(400, "The dial code can only contain digits, * and #."));
+        updated.dialCode = dial;
+      }
+      if (payments.qrImage !== undefined) {
+        const img = String(payments.qrImage).trim();
+        // Only images uploaded through this system (or empty = bundled default).
+        if (img && !/^\/uploads\/[A-Za-z0-9._-]+$/.test(img)) {
+          return next(createHttpError(400, "Please upload the QR image using the upload button."));
+        }
+        updated.qrImage = img;
+      }
+
+      settings.payments = updated;
+      messages.push("Payment settings updated!");
+    }
+
+    if (orderPrep !== undefined) {
+      const merged = mergePrepSettings(settings.orderPrep, orderPrep);
+      if (merged.error) return next(createHttpError(400, merged.error));
+      settings.orderPrep = merged.settings;
+      messages.push("Order preparation settings saved!");
+    }
+
+    if (passwordPolicy !== undefined) {
+      if (!passwordPolicy || typeof passwordPolicy !== "object" || Array.isArray(passwordPolicy)) {
+        return next(createHttpError(400, "Invalid password policy settings."));
+      }
+      const current = normalizePasswordPolicy(settings.passwordPolicy);
+      const nextPolicy = { ...current };
+
+      if (passwordPolicy.minLength !== undefined) {
+        const minLength = Number(passwordPolicy.minLength);
+        if (!Number.isInteger(minLength) || minLength < 8 || minLength > 64) {
+          return next(createHttpError(400, "Minimum password length must be a whole number from 8 to 64."));
+        }
+        nextPolicy.minLength = minLength;
+      }
+
+      for (const flag of ["requireUppercase", "requireLowercase", "requireNumber", "requireSymbol"]) {
+        if (passwordPolicy[flag] === undefined) continue;
+        if (typeof passwordPolicy[flag] !== "boolean") {
+          return next(createHttpError(400, "Password policy requirements must be enabled or disabled."));
+        }
+        nextPolicy[flag] = passwordPolicy[flag];
+      }
+
+      settings.passwordPolicy = nextPolicy;
+      messages.push("Password policy updated!");
     }
 
     if (messages.length === 0) {

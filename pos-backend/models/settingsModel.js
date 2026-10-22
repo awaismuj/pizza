@@ -19,6 +19,51 @@ const settingsSchema = new mongoose.Schema(
       discount3: { type: Number, default: 15, min: 0, max: 90 }, // exactly 3 items
       discount4: { type: Number, default: 17, min: 0, max: 90 }, // exactly 4 items
       discount5Plus: { type: Number, default: 20, min: 0, max: 90 }, // 5 or more
+      description: {
+        type: String,
+        default:
+          "Pick any 3 or more items from our menu — pizzas, burgers, wings, drinks, anything. The more you add, the more you save. No codes, the discount applies automatically.",
+        maxlength: 300,
+      },
+    },
+    // Online-store payment options, editable from Dashboard > Payment Settings.
+    payments: {
+      codEnabled: { type: Boolean, default: true },
+      jazzcashEnabled: { type: Boolean, default: true },
+      merchantName: { type: String, default: "GEN Z FOOD", trim: true, maxlength: 60 },
+      tillId: { type: String, default: "984661930", trim: true, maxlength: 20 },
+      dialCode: { type: String, default: "*786*10#", trim: true, maxlength: 20 },
+      // "/uploads/xyz.png" once an admin uploads a new QR; empty = use the
+      // QR image bundled with the storefront.
+      qrImage: { type: String, default: "", trim: true, maxlength: 300 },
+    },
+    // Kitchen preparation countdown + mascot alerts. Editable by an Admin from
+    // Dashboard > Order Prep. Changing defaultMinutes only affects orders
+    // created afterwards - deadlines already stamped on open orders are never
+    // rewritten.
+    orderPrep: {
+      enabled: { type: Boolean, default: true },
+      defaultMinutes: { type: Number, default: 20, min: 1, max: 240 },
+      mascotEnabled: { type: Boolean, default: true },
+      soundEnabled: { type: Boolean, default: true },
+      timezone: { type: String, default: "Asia/Karachi" },
+      alerts: {
+        warn1: { enabled: { type: Boolean, default: true }, minutes: { type: Number, default: 10 } },
+        warn2: { enabled: { type: Boolean, default: true }, minutes: { type: Number, default: 5 } },
+        warn3: { enabled: { type: Boolean, default: true }, minutes: { type: Number, default: 2 } },
+        overdue: { enabled: { type: Boolean, default: true } },
+      },
+    },
+    assetAccounting: {
+      currency: { type: String, default: "PKR", match: /^[A-Z]{3}$/ },
+      financialYearStartMonth: { type: Number, default: 1, min: 1, max: 12 },
+    },
+    passwordPolicy: {
+      minLength: { type: Number, default: 8, min: 8, max: 64 },
+      requireUppercase: { type: Boolean, default: false },
+      requireLowercase: { type: Boolean, default: false },
+      requireNumber: { type: Boolean, default: false },
+      requireSymbol: { type: Boolean, default: false },
     },
   },
   { timestamps: true }

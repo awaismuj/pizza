@@ -30,7 +30,7 @@ const dealSchema = new mongoose.Schema({
   },
   icon: {
     type: String,
-    default: "🔥",
+    default: "flame",
   },
   // Bundle contents, shown as a bullet list on the deal card
   // (e.g. { label: "1 Medium Pizza", quantity: 1 }).

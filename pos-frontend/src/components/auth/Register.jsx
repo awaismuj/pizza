@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { register } from "../../https";
-import { useMutation } from "@tanstack/react-query";
+import { getSettings, register } from "../../https";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
+import { DEFAULT_PASSWORD_POLICY, describePasswordPolicy } from "../../utils/passwordPolicy";
 
 const Register = ({setIsRegister}) => {
+  const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: getSettings });
+  const passwordPolicy = settingsQuery.data?.data?.data?.passwordPolicy || DEFAULT_PASSWORD_POLICY;
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -104,6 +107,7 @@ const Register = ({setIsRegister}) => {
           <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
             Password
           </label>
+          <p className="mb-2 text-xs text-gray-400">Password policy: {describePasswordPolicy(passwordPolicy)}.</p>
           <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
             <input
               type="password"
@@ -122,7 +126,7 @@ const Register = ({setIsRegister}) => {
           </label>
 
           <div className="flex flex-wrap items-center gap-3 mt-4">
-            {["Waiter", "Cashier", "Admin"].map((role) => {
+            {["Waiter", "Cashier", "Admin", "Accountant", "Asset Manager", "Read Only"].map((role) => {
               return (
                 <button
                   key={role}

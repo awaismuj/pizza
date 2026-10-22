@@ -5,6 +5,7 @@ const InventoryItem = require("../models/inventoryItemModel");
 
 const { getStockStatus, getDefaultLowStockThreshold } = require("../utils/stockUtils");
 const { invalidateAvailabilityCache } = require("../utils/stockAvailability");
+const { sendReport, normalizeFormat } = require("../utils/reportExport");
 
 const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -117,6 +118,74 @@ const getLowStockItems = async (req, res, next) => {
   }
 };
 
+const STATUS_LABELS = { in_stock: "In stock", low_stock: "Low stock", out_of_stock: "Out of stock" };
+const STATUS_FILTERS = { in: "in_stock", low: "low_stock", out: "out_of_stock" };
+
+// Current stock report (live balances right now) as CSV / Excel / PDF.
+// Stock value = quantity on hand x the item's saved cost price, in the
+// item's own unit, so no unit conversion is involved. It is an estimate
+// from saved cost prices, not an accounting valuation. Past-date balances
+// are not reported because this system stores only the current quantity.
+const exportInventoryReport = async (req, res, next) => {
+  try {
+    const format = normalizeFormat(req.query.format);
+    const statusFilter = STATUS_FILTERS[req.query.status] || "";
+    const search = String(req.query.search || "").trim().toLowerCase();
+
+    const items = await InventoryItem.find().populate({ path: "category", select: "name" }).sort({ name: 1 }).lean();
+    const all = items.map((item) => ({
+      name: item.name,
+      category: item.category?.name || "Uncategorized",
+      unit: item.unit,
+      quantity: item.quantity,
+      reorderLevel: item.reorderLevel,
+      status: STATUS_LABELS[getStockStatus(item.quantity, item.reorderLevel, item.unit)] || "In stock",
+      costPrice: item.costPrice || 0,
+      stockValue: Math.round((item.quantity || 0) * (item.costPrice || 0) * 100) / 100,
+      tracked: item.isTrackable === false ? "No" : "Yes",
+    }));
+    const rows = all.filter((row) =>
+      (!statusFilter || row.status === STATUS_LABELS[statusFilter]) &&
+      (!search || row.name.toLowerCase().includes(search) || row.category.toLowerCase().includes(search)));
+
+    const count = (label) => rows.filter((row) => row.status === label).length;
+    const totalValue = rows.reduce((sum, row) => sum + row.stockValue, 0);
+    const now = new Date();
+    const filterText = [statusFilter ? `Status: ${STATUS_LABELS[statusFilter]}` : "", search ? `Search: ${req.query.search}` : ""].filter(Boolean).join(" · ");
+
+    await sendReport(res, {
+      title: "Current Stock Report",
+      filename: `stock-report-${now.toISOString().slice(0, 10)}`,
+      subtitle: `Live balances as of ${now.toISOString().slice(0, 16).replace("T", " ")} UTC · ${filterText || "All items"} · Value is an estimate (quantity x saved cost price)`,
+      footer: "GenZ Pizza Land · Kitchen Stock",
+      summary: [
+        { label: "Items", value: rows.length, type: "number" },
+        { label: "Estimated stock value (Rs)", value: totalValue, type: "money" },
+        { label: "Low stock", value: count("Low stock"), type: "number" },
+        { label: "Out of stock", value: count("Out of stock"), type: "number" },
+      ],
+      sections: [{
+        title: "Stock on hand",
+        sheetName: "Stock",
+        columns: [
+          { key: "name", label: "Item", type: "text", width: 150 },
+          { key: "category", label: "Category", type: "text", width: 100 },
+          { key: "unit", label: "Unit", type: "text", width: 45 },
+          { key: "quantity", label: "Quantity", type: "number", width: 70 },
+          { key: "reorderLevel", label: "Reorder level", type: "number", width: 70 },
+          { key: "status", label: "Status", type: "text", width: 80 },
+          { key: "costPrice", label: "Unit cost (Rs)", type: "money", width: 80 },
+          { key: "stockValue", label: "Stock value (Rs)", type: "money", width: 90 },
+        ],
+        rows,
+        totals: rows.length ? { name: "Total", stockValue: totalValue } : undefined,
+      }],
+    }, format);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateInventoryItem = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -131,6 +200,13 @@ const updateInventoryItem = async (req, res, next) => {
     if (!item) {
       const error = createHttpError(404, "Inventory item not found!");
       return next(error);
+    }
+    if (quantity !== undefined && Number(quantity) !== item.quantity &&
+        !req.permissions?.includes("inventory.adjust")) {
+      return next(createHttpError(403, "You do not have permission to adjust stock."));
+    }
+    if (quantity !== undefined && Number(quantity) !== item.quantity) {
+      req.auditActionOverride = "stock.adjusted";
     }
 
     const trimmedName = name ? String(name).trim() : "";
@@ -599,6 +675,7 @@ const restoreInventoryForOrderItems = async (items = []) => {
 
 module.exports = {
   createInventoryItem,
+  exportInventoryReport,
   getInventoryItems,
   getLowStockItems,
   updateInventoryItem,

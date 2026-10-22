@@ -17,7 +17,7 @@ const customerKeyFor = (phone) => {
   return crypto.createHash("sha256").update(digits.slice(-9)).digest("hex");
 };
 
-const resolveCartPrices = async (items) => {
+const resolveCartPrices = async (items, session = null) => {
   if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
     throw createHttpError(400, "Add at least one valid item to use a coupon.");
   }
@@ -30,14 +30,16 @@ const resolveCartPrices = async (items) => {
     }
 
     if (line.dealId) {
-      const deal = await Deal.findById(line.dealId);
+      const deal = await Deal.findById(line.dealId).session(session);
       if (!deal || !isDealLiveNow(deal)) throw createHttpError(400, "This deal is no longer available.");
       const unitPrice = Number(deal.price);
       resolved.push({ dishId: "", categoryId: "", unitPrice, subtotal: unitPrice * quantity, isDeal: true });
       continue;
     }
 
-    const dish = await Dish.findById(line.dishId || line.id).select("price originalPrice variants category");
+    const dish = await Dish.findById(line.dishId || line.id)
+      .select("price originalPrice variants category")
+      .session(session);
     if (!dish) throw createHttpError(400, "An item in your cart is no longer available.");
     let unitPrice = dish.price;
     let originalPrice = dish.originalPrice;
