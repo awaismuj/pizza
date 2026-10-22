@@ -106,7 +106,11 @@ export function useFulfillment(subtotal) {
   const ready = !!quote && quote.ok && !quoting && addressOk;
   const fee = quote?.ok ? quote.fee : 0;
 
-  const blocker = quoteError || (quote && !quote.ok ? quote.error : "") ||
+  const isClosedNotice = Boolean(quote?.branchName && quote.error?.startsWith(`${quote.branchName} is closed right now.`));
+  const quoteBlocker = quote && !quote.ok
+    ? isClosedNotice && branch?.customerDisplay?.showClosedNotice === false ? "" : quote.error
+    : "";
+  const blocker = quoteError || quoteBlocker ||
     (method === "delivery" && quote?.ok && !addressOk ? "Enter your full delivery address (house, street, landmark)." : "");
 
   const payload = () => ({
@@ -158,15 +162,25 @@ export const FulfillmentPicker = ({ f }) => {
   const dZones = branch.delivery.zones;
   const delivery = branch.delivery;
   const pickup = branch.pickup;
+  const customerDisplay = branch.customerDisplay || {};
   const deliveryOff = !delivery.enabled || !!delivery.blockedReason;
   const pickupOff = !pickup.enabled || !!pickup.blockedReason;
   const zone = dZones.find((z) => z._id === f.zoneId);
 
   const zoneFee = (z) => (delivery.freeWithinKm > 0 && z.distanceKm != null && z.distanceKm <= delivery.freeWithinKm ? 0 : z.fee);
   const feeText = (z) => (zoneFee(z) > 0 ? rs(zoneFee(z)) : "Free");
-  const deliveryMeta = zone ? `${feeText(zone)} · ${zone.travelMinutes + delivery.prepMinutes}+ min` : dZones.length
-    ? `From ${feeText({ fee: Math.min(...dZones.map(zoneFee)) })}` : "";
-  const pickupMeta = `Free · ready in ~${pickup.prepMinutes} min`;
+  const deliveryMeta = zone
+    ? [
+        customerDisplay.showDeliveryFees !== false ? feeText(zone) : "",
+        customerDisplay.showEstimatedTimes !== false ? `${zone.travelMinutes + delivery.prepMinutes}+ min` : "",
+      ].filter(Boolean).join(" · ")
+    : dZones.length && customerDisplay.showDeliveryFees !== false
+      ? `From ${feeText({ fee: Math.min(...dZones.map(zoneFee)) })}`
+      : "";
+  const pickupMeta = [
+    customerDisplay.showDeliveryFees !== false ? "Free" : "",
+    customerDisplay.showEstimatedTimes !== false ? `ready in ~${pickup.prepMinutes} min` : "",
+  ].filter(Boolean).join(" · ");
 
   return (
     <section className="fx" aria-label="Delivery or pickup">
@@ -209,9 +223,11 @@ export const FulfillmentPicker = ({ f }) => {
                 >
                   <b>{b.name}</b>
                   <small>{b.address}</small>
-                  <span className={`fx-pill ${b.openNow ? "is-open" : "is-closed"}`}>
-                    {disabled ? "Not available" : b.openNow ? "Open now" : `Opens ${b.nextOpen || "soon"}`}
-                  </span>
+                  {(b.openNow || b.customerDisplay?.showClosedNotice === true) && (
+                    <span className={`fx-pill ${b.openNow ? "is-open" : "is-closed"}`}>
+                      {disabled ? "Not available" : b.openNow ? "Open now" : `Opens ${b.nextOpen || "soon"}`}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -237,12 +253,14 @@ export const FulfillmentPicker = ({ f }) => {
                 >
                   <span className="fx-zone-main">
                     <b>{z.name}</b>
-                    {z.areas && <small>{z.areas}</small>}
+                    {z.areas && customerDisplay.showDeliveryAreaText !== false && <small>{z.areas}</small>}
                   </span>
-                  <span className="fx-zone-fee">
-                    {feeText(z)}
-                    <small>{z.travelMinutes + delivery.prepMinutes}–{z.travelMinutes + delivery.prepMinutes + 10} min</small>
-                  </span>
+                  {(customerDisplay.showDeliveryFees !== false || customerDisplay.showEstimatedTimes !== false) && (
+                    <span className="fx-zone-fee">
+                      {customerDisplay.showDeliveryFees !== false && feeText(z)}
+                      {customerDisplay.showEstimatedTimes !== false && <small>{z.travelMinutes + delivery.prepMinutes}–{z.travelMinutes + delivery.prepMinutes + 10} min</small>}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -259,7 +277,7 @@ export const FulfillmentPicker = ({ f }) => {
             />
           </label>
 
-          {(delivery.freeAbove > 0 || delivery.freeWithinKm > 0) && (
+          {customerDisplay.showFreeDeliveryNote !== false && (delivery.freeAbove > 0 || delivery.freeWithinKm > 0) && (
             <p className="fx-hint">
               <I.Bolt aria-hidden="true" /> Free delivery
               {delivery.freeAbove > 0 ? ` on orders of ${rs(delivery.freeAbove)} or more` : ""}
@@ -280,22 +298,28 @@ export const FulfillmentPicker = ({ f }) => {
         </div>
       )}
 
-      <div className="fx-summary" aria-live="polite">
-        <div>
-          <small>Estimated {method === "delivery" ? "delivery" : "ready in"}</small>
-          <b>{quote ? etaText(quote) || "—" : f.quoting ? "…" : "—"}</b>
+      {(customerDisplay.showEstimatedTimes !== false || customerDisplay.showDeliveryFees !== false || quote?.minOrder > 0) && (
+        <div className="fx-summary" aria-live="polite">
+          {customerDisplay.showEstimatedTimes !== false && (
+            <div>
+              <small>Estimated {method === "delivery" ? "delivery" : "ready in"}</small>
+              <b>{quote ? etaText(quote) || "—" : f.quoting ? "…" : "—"}</b>
+            </div>
+          )}
+          {customerDisplay.showDeliveryFees !== false && (
+            <div>
+              <small>{method === "delivery" ? "Delivery fee" : "Pickup fee"}</small>
+              <b>{quote?.ok ? (quote.fee > 0 ? rs(quote.fee) : "Free") : "—"}</b>
+            </div>
+          )}
+          {quote?.minOrder > 0 && (
+            <div>
+              <small>Minimum order</small>
+              <b>{rs(quote.minOrder)}</b>
+            </div>
+          )}
         </div>
-        <div>
-          <small>{method === "delivery" ? "Delivery fee" : "Pickup fee"}</small>
-          <b>{quote?.ok ? (quote.fee > 0 ? rs(quote.fee) : "Free") : "—"}</b>
-        </div>
-        {quote?.minOrder > 0 && (
-          <div>
-            <small>Minimum order</small>
-            <b>{rs(quote.minOrder)}</b>
-          </div>
-        )}
-      </div>
+      )}
 
       {f.blocker && (
         <div className="fx-alert is-bad" role="alert">

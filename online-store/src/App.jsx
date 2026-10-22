@@ -6,6 +6,7 @@ import {
   getPublicHeroSlides,
   placeOrder,
   validatePublicCoupon,
+  checkWelcomeOffer,
   getMyCoupons,
   getOrderStatus,
   cancelOrder,
@@ -2680,6 +2681,15 @@ const isValidPhone = (value) => {
   return digits.length >= 10 && digits.length <= 13;
 };
 
+const welcomeOfferDismissalKey = (phone, items) => {
+  const value = JSON.stringify([String(phone || "").replace(/\D/g, ""), items]);
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  }
+  return `gzp_welcome_dismissed_${(hash >>> 0).toString(36)}`;
+};
+
 /* ---------------- Icons (inline so there's no icon dependency) ---------------- */
 
 const iconProps = {
@@ -3205,6 +3215,7 @@ function StorefrontHome() {
   // Live tax rate (admin-editable, POS Dashboard > Tax). Starts at the
   // fallback so the estimate never flashes 0% while this loads.
   const [taxRatePercent, setTaxRatePercent] = useState(FALLBACK_TAX_RATE_PERCENT);
+  const [welcomeOfferConfig, setWelcomeOfferConfig] = useState(null);
   // Build Your Own Deal: admin-set discounts (Dashboard > Build Your Own).
   const [byoConfig, setByoConfig] = useState(() => normalizeByo(null));
   const [byoOpen, setByoOpen] = useState(false);
@@ -3218,6 +3229,8 @@ function StorefrontHome() {
   const [assignedCoupons, setAssignedCoupons] = useState([]);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [welcomeOffer, setWelcomeOffer] = useState(null);
+  const welcomeOfferRequestRef = useRef(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3384,6 +3397,7 @@ function StorefrontHome() {
         setAdminHeroSlides(heroRes.data || []);
         const liveTaxRate = settingsRes?.data?.taxRatePercent;
         if (typeof liveTaxRate === "number") setTaxRatePercent(liveTaxRate);
+        if (settingsRes?.data?.firstTimeCustomerOffer) setWelcomeOfferConfig(settingsRes.data.firstTimeCustomerOffer);
         if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
         if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
       } catch (err) {
@@ -3571,6 +3585,18 @@ function StorefrontHome() {
       .filter(Boolean);
   }, [cart, dishes, deals]);
 
+  const couponItems = useMemo(() => cartLines.map((line) =>
+    line.type === "deal"
+      ? { dealId: line.item._id, quantity: line.qty }
+      : {
+          dishId: line.item._id,
+          quantity: line.qty,
+          size: line.size || undefined,
+          crust: line.crust || undefined,
+          byo: line.type === "byo" || undefined,
+        }
+  ), [cartLines]);
+
   const grossSubtotal = cartLines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0);
 
   // Build Your Own Deal preview (the server recalculates the real amount).
@@ -3638,6 +3664,41 @@ function StorefrontHome() {
   useEffect(() => {
     setAppliedCoupon(null);
   }, [cart, form.phone]);
+
+  useEffect(() => {
+    if (!checkoutOpen || !welcomeOfferConfig?.enabled || !isValidPhone(form.phone) || !couponItems.length || appliedCoupon || couponInput.trim()) {
+      setWelcomeOffer(null);
+      return undefined;
+    }
+
+    const dismissalKey = welcomeOfferDismissalKey(form.phone, couponItems);
+    try {
+      if (sessionStorage.getItem(dismissalKey) === "1") {
+        setWelcomeOffer(null);
+        return undefined;
+      }
+    } catch {
+      // The prompt still works when browser storage is unavailable.
+    }
+
+    const requestId = welcomeOfferRequestRef.current + 1;
+    welcomeOfferRequestRef.current = requestId;
+    let active = true;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const response = await checkWelcomeOffer({ phone: form.phone, channel: "Online", items: couponItems });
+        if (!active || welcomeOfferRequestRef.current !== requestId) return;
+        setWelcomeOffer(response.data?.eligible ? { ...response.data, dismissalKey } : null);
+      } catch {
+        if (active && welcomeOfferRequestRef.current === requestId) setWelcomeOffer(null);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [checkoutOpen, welcomeOfferConfig?.enabled, form.phone, couponItems, appliedCoupon, couponInput]);
 
   // How many of a dish/deal are already in the cart, across all its
   // size/crust lines (they all draw from the same stock).
@@ -3707,6 +3768,7 @@ function StorefrontHome() {
       // Keep discount percentages / tax live too, so a change made in the
       // admin panel reaches customers who already have the page open.
       if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
+      if (settingsRes?.data?.firstTimeCustomerOffer) setWelcomeOfferConfig(settingsRes.data.firstTimeCustomerOffer);
       if (typeof settingsRes?.data?.taxRatePercent === "number") setTaxRatePercent(settingsRes.data.taxRatePercent);
       if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
     } catch (err) {
@@ -4054,17 +4116,7 @@ function StorefrontHome() {
       const result = await validatePublicCoupon({
         code: couponInput,
         phone: form.phone,
-        items: cartLines.map((line) =>
-          line.type === "deal"
-            ? { dealId: line.item._id, quantity: line.qty }
-            : {
-                dishId: line.item._id,
-                quantity: line.qty,
-                size: line.size || undefined,
-                crust: line.crust || undefined,
-                byo: line.type === "byo" || undefined,
-              }
-        ),
+        items: couponItems,
       });
       setAppliedCoupon({ code: result.data.code, discountAmount: result.data.discountAmount });
       setError("");
@@ -4074,6 +4126,34 @@ function StorefrontHome() {
     } finally {
       setValidatingCoupon(false);
     }
+  };
+
+  const applyWelcomeOffer = async () => {
+    if (!welcomeOffer?.code || validatingCoupon) return;
+    setValidatingCoupon(true);
+    setError("");
+    try {
+      const result = await validatePublicCoupon({ code: welcomeOffer.code, phone: form.phone, items: couponItems });
+      setCouponInput(result.data.code);
+      setAppliedCoupon({ code: result.data.code, discountAmount: result.data.discountAmount });
+      setWelcomeOffer(null);
+    } catch (err) {
+      setError(err.message);
+      setWelcomeOffer(null);
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const declineWelcomeOffer = () => {
+    if (welcomeOffer?.dismissalKey) {
+      try {
+        sessionStorage.setItem(welcomeOffer.dismissalKey, "1");
+      } catch {
+        // Keep the dismissal for this render even when storage is unavailable.
+      }
+    }
+    setWelcomeOffer(null);
   };
 
   const refreshStatus = async () => {
@@ -5609,11 +5689,17 @@ function StorefrontHome() {
                     )}
                   </div>
 
-                  <PaymentMethodPicker cfg={payments} value={payMethod} onChange={setPayMethod} pickup={fulfil.method === "pickup"} />
+                  <PaymentMethodPicker
+                    cfg={payments}
+                    value={payMethod}
+                    onChange={setPayMethod}
+                    pickup={fulfil.method === "pickup"}
+                    showCashDescription={fulfil.branch?.customerDisplay?.showCashPaymentNote !== false}
+                  />
 
                   {jazzSelected ? (
                     <JazzCashCard cfg={payments} amountLabel={formatRs(total)} jazz={jazz} />
-                  ) : (
+                  ) : fulfil.branch?.customerDisplay?.showCashPaymentNote !== false ? (
                     <p className="gzp-note">
                       <IconTruck />
                       <span>
@@ -5624,7 +5710,7 @@ function StorefrontHome() {
                         )}
                       </span>
                     </p>
-                  )}
+                  ) : null}
 
                   {error && <p className="gzp-error">{error}</p>}
                 </div>
@@ -5642,10 +5728,12 @@ function StorefrontHome() {
                     <span>Subtotal + tax</span>
                     <span>{formatRs(cartTotal)}</span>
                   </div>
-                  <div>
-                    <span>{fulfil.method === "pickup" ? "Pickup" : "Delivery fee"}</span>
-                    <span>{fulfil.quote?.ok ? (fulfil.fee > 0 ? formatRs(fulfil.fee) : "Free") : "—"}</span>
-                  </div>
+                  {fulfil.branch?.customerDisplay?.showDeliveryFees === true && (
+                    <div>
+                      <span>{fulfil.method === "pickup" ? "Pickup" : "Delivery fee"}</span>
+                      <span>{fulfil.quote?.ok ? (fulfil.fee > 0 ? formatRs(fulfil.fee) : "Free") : "—"}</span>
+                    </div>
+                  )}
                   <div className="gzp-grand">
                     <span>Total to pay</span>
                     <span>{formatRs(total)}</span>
@@ -5670,6 +5758,25 @@ function StorefrontHome() {
             </form>
           </div>
         </div>
+        {welcomeOffer && (
+          <div className="gzp-overlay" style={{ zIndex: 110 }} onClick={declineWelcomeOffer}>
+            <div className="gzp-modal" role="dialog" aria-modal="true" aria-label={welcomeOffer.popupTitle || "First-order welcome offer"} onClick={(event) => event.stopPropagation()}>
+              <div className="gzp-modal-body">
+                <h2>{welcomeOffer.popupTitle || "Welcome to our Pizza Store!"}</h2>
+                <p>{welcomeOffer.popupDescription || "You're eligible for a special first-order reward."}</p>
+                <p><strong>{welcomeOffer.discountPercentage}% off</strong> your first order. Save {formatRs(welcomeOffer.discountAmount)} on this basket.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  <button type="button" className="gzp-btn gzp-btn-primary" onClick={applyWelcomeOffer} disabled={validatingCoupon}>
+                    {validatingCoupon ? "Checking…" : welcomeOffer.applyButtonLabel || "Apply Discount"}
+                  </button>
+                  <button type="button" className="gzp-btn gzp-btn-ghost" onClick={declineWelcomeOffer}>
+                    {welcomeOffer.declineButtonLabel || "No Thanks"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       )}
 
       {/* ---- Track ---- */}

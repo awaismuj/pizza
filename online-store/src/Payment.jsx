@@ -119,9 +119,9 @@ const copyText = async (text) => {
 
 /* ------------------------------ method picker ----------------------------- */
 
-export const PaymentMethodPicker = ({ cfg, value, onChange, pickup = false }) => {
+export const PaymentMethodPicker = ({ cfg, value, onChange, pickup = false, showCashDescription = true }) => {
   const options = [
-    cfg.codEnabled && { id: PAY_COD, title: pickup ? "Pay at Pickup" : "Cash on Delivery", sub: pickup ? "Pay at the counter when you collect" : "Pay the rider when it arrives", icon: <I.Cash /> },
+    cfg.codEnabled && { id: PAY_COD, title: pickup ? "Pay at Pickup" : "Cash on Delivery", sub: showCashDescription ? (pickup ? "Pay at the counter when you collect" : "Pay the rider when it arrives") : "", icon: <I.Cash /> },
     cfg.jazzcashEnabled && { id: PAY_JAZZ, title: "Pay via JazzCash / Raast QR", sub: "Scan, pay & upload the screenshot", icon: <I.Phone /> },
   ].filter(Boolean);
 

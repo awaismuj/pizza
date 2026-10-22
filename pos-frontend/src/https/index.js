@@ -133,6 +133,7 @@ export const getCouponAssignments = (params) => axiosWrapper.get("/api/coupon/as
 export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
 export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
 export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
+export const checkWelcomeOffer = (data) => axiosWrapper.post("/api/coupon/welcome-offer/check", data);
 
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");

@@ -399,6 +399,15 @@ and discount snapshot. A valid mobile number is required in both channels so
 per-customer redemption limits do not collapse into a shared anonymous POS
 identity. Existing Deals and Build Your Own behavior remain separate.
 
+The optional first-time customer offer is configured in POS Dashboard >
+Coupons. Online checkout checks the phone and server-priced cart, offers a
+phone-bound code to eligible first-time customers, and revalidates that code
+through the normal coupon path before applying it. Campaign limits are reserved
+transactionally with order redemption. Before enabling this offer in
+production, run `npm run migrate:welcome-offer-index` from `pos-backend` to
+create the unique phone-key index that prevents duplicate offers under
+concurrent requests.
+
 ### Price and redemption policy
 
 The existing order calculation sequence is preserved: resolve current menu
