@@ -966,7 +966,7 @@ const FoodPosterGenerator = ({ guestMode = false }) => {
   const labelClass = "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#ababab]";
 
   return (
-    <div className="container mx-auto px-4 pb-10 sm:px-6">
+    <div className="mx-auto w-full px-4 pb-10 sm:px-6">
       <div className="mb-5">
         <h2 className="text-2xl font-bold text-[#f5f5f5]">
           {guestMode ? "Free Food Poster Maker" : "Food Poster Maker"}

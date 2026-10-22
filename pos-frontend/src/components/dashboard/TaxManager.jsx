@@ -58,7 +58,7 @@ const TaxManager = () => {
   const presets = [0, 5, 10, 16, 17];
 
   return (
-    <div className="container mx-auto px-6">
+    <div className="mx-auto w-full px-6">
       <div className="max-w-xl bg-[#262626] rounded-lg p-5 sm:p-6">
         <h3 className="text-[#f5f5f5] text-xl font-semibold mb-1">Tax rate</h3>
         <p className="text-[#ababab] text-sm mb-6">

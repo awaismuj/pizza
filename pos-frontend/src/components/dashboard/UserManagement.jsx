@@ -275,7 +275,7 @@ const UserManagement = () => {
   }
 
   return (
-    <section className="mx-auto w-full max-w-[1500px] space-y-5 px-4 pb-10 text-white sm:px-6">
+    <section className="mx-auto w-full space-y-5 px-4 pb-10 text-white sm:px-6">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-yellow-400">Security &amp; workforce</p>
         <h2 className="mt-1 text-2xl font-bold sm:text-3xl">User &amp; Employee Management</h2>

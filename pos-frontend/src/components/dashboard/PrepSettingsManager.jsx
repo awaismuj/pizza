@@ -90,7 +90,7 @@ const PrepSettingsManager = () => {
   const report = reportRes?.data?.data;
 
   return (
-    <div className="container mx-auto space-y-6 px-6 pb-6">
+    <div className="mx-auto w-full space-y-6 px-6 pb-6">
       <div className="max-w-3xl rounded-lg bg-[#262626] p-5 sm:p-6">
         <h3 className="mb-1 text-xl font-semibold text-[#f5f5f5]">⚙️ Order Preparation Settings</h3>
         <p className="mb-5 text-sm text-[#ababab]">

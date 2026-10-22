@@ -668,7 +668,7 @@ const Dashboard = () => {
       {activeTab === "User & Employees" && can("users.view") && <UserManagement />}
       {activeTab === "Poster Maker" && <FoodPosterGenerator />}
       {activeTab === "Menu" && (
-        <div className="container mx-auto px-6">
+        <div className="mx-auto w-full px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Categories</h3>
@@ -894,13 +894,13 @@ const Dashboard = () => {
       {activeTab === "Coupons" && <CouponsManager />}
 
       {activeTab === "Deals" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="mx-auto w-full px-6 pb-10">
           <DealsManager />
         </div>
       )}
 
       {activeTab === "Hero Slider" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="mx-auto w-full px-6 pb-10">
           <HeroSliderManager />
         </div>
       )}
@@ -912,7 +912,7 @@ const Dashboard = () => {
       )}
 
       {activeTab === "Inventory" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="mx-auto w-full px-6 pb-10">
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
             {can("inventory.manage") && <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">
