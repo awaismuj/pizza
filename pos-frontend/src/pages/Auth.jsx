@@ -14,20 +14,19 @@ const Auth = () => {
         <img className="h-full w-full object-cover" src={restaurant} alt="Gen Z Pizza Image" />
         <div className="absolute inset-0 bg-[#020b14]/75" />
 
-        <div className="absolute inset-0 flex flex-col justify-between p-8 lg:p-10">
+        <div className="absolute inset-0 flex flex-col justify-center p-8 lg:p-10">
           <div className="inline-flex w-fit items-center rounded-md border border-[#f5b942]/60 bg-[#f0b543]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#f4d067] shadow-[0_0_18px_rgba(245,185,66,0.15)]">
             <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#f5b942]" />
             Enterprise Restaurant System
           </div>
 
-          <div className="max-w-[630px] pb-8">
-            <h1 className="text-4xl font-black leading-[0.96] tracking-[-0.04em] text-white sm:text-5xl xl:text-[4rem]">
+          <div className="mt-10 max-w-[680px]">
+            <h1 className="text-[3.1rem] font-black leading-[0.9] tracking-[-0.05em] text-white xl:text-[4.5rem]">
               High-Performance
-              <span className="mt-2 block text-[#f6c75c]">Point of Sale &amp; Operations</span>
-              <span className="mt-2 block">Portal</span>
+              <span className="mt-2 block text-[#f6c75c]">Point of Sale &amp;</span>
+              <span className="mt-2 block text-[#f6c75c]">Operations</span>
+              <span className="mt-2 block text-white">Portal</span>
             </h1>
-
-
           </div>
         </div>
       </div>
