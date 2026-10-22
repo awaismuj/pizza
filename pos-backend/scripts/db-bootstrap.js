@@ -3,6 +3,8 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const Order = require("../models/orderModel");
+const Coupon = require("../models/couponModel");
+const CouponRedemption = require("../models/couponRedemptionModel");
 const config = require("../config/config");
 
 const bootstrap = async () => {
@@ -18,6 +20,15 @@ const bootstrap = async () => {
     console.log("✅ User indexes synced");
   } catch (error) {
     console.warn(`⚠️ Could not sync indexes: ${error.message}`);
+  }
+
+  for (const [name, Model] of [["Coupon", Coupon], ["CouponRedemption", CouponRedemption]]) {
+    try {
+      await Model.syncIndexes();
+      console.log(`✅ ${name} indexes synced`);
+    } catch (error) {
+      console.warn(`⚠️ Could not sync ${name} indexes: ${error.message}`);
+    }
   }
 
   try {

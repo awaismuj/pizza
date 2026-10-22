@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import PropTypes from "prop-types";
+import { useEffect, useRef } from "react";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import { formatDate } from "../../utils";
 import ReceiptFooter from "../shared/ReceiptFooter";
@@ -9,7 +10,7 @@ import { printReceipt } from "../../utils/printReceipt";
 // hand the customer/kitchen a copy of the current cart without waiting for
 // checkout. This is separate from Invoice.jsx (which prints a *placed*
 // order) because there is no saved order yet to show.
-const PendingReceipt = ({ customerData, cartData, total, tax, taxRate, totalPriceWithTax, onClose }) => {
+const PendingReceipt = ({ customerData, cartData, total, discountedSubtotal, couponDiscount, couponCode, tax, taxRate, totalPriceWithTax, onClose }) => {
   const receiptRef = useRef(null);
 
   const handlePrint = () => {
@@ -21,7 +22,6 @@ const PendingReceipt = ({ customerData, cartData, total, tax, taxRate, totalPric
   useEffect(() => {
     const t = setTimeout(handlePrint, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -82,6 +82,14 @@ const PendingReceipt = ({ customerData, cartData, total, tax, taxRate, totalPric
             <p>
               <strong>Subtotal:</strong> Rs {total.toFixed(2)}
             </p>
+            {couponDiscount > 0 && (
+              <p>
+                <strong>Coupon ({couponCode}):</strong> −Rs {couponDiscount.toFixed(2)}
+              </p>
+            )}
+            <p>
+              <strong>Discounted subtotal:</strong> Rs {discountedSubtotal.toFixed(2)}
+            </p>
             <p>
               <strong>Tax ({taxRate}%):</strong> Rs {tax.toFixed(2)}
             </p>
@@ -104,6 +112,34 @@ const PendingReceipt = ({ customerData, cartData, total, tax, taxRate, totalPric
       </div>
     </div>
   );
+};
+
+PendingReceipt.propTypes = {
+  customerData: PropTypes.shape({
+    orderId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    customerName: PropTypes.string,
+    customerPhone: PropTypes.string,
+    table: PropTypes.shape({ tableNo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]) }),
+  }).isRequired,
+  cartData: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    icon: PropTypes.string,
+    name: PropTypes.string,
+    quantity: PropTypes.number,
+    price: PropTypes.number,
+  })).isRequired,
+  total: PropTypes.number.isRequired,
+  discountedSubtotal: PropTypes.number.isRequired,
+  couponDiscount: PropTypes.number.isRequired,
+  couponCode: PropTypes.string,
+  tax: PropTypes.number.isRequired,
+  taxRate: PropTypes.number.isRequired,
+  totalPriceWithTax: PropTypes.number.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
+
+PendingReceipt.defaultProps = {
+  couponCode: "",
 };
 
 export default PendingReceipt;

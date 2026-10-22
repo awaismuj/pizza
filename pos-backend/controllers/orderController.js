@@ -11,6 +11,14 @@ const { findOrderShortages, shortageMessage, invalidateAvailabilityCache } = req
 const { getOrCreateSettings } = require("./settingsController");
 const { normalizeByoConfig, byoDiscountPercent } = require("../utils/byoDiscount");
 const { generateOrderNumber } = require("../utils/orderNumber");
+const {
+  resolveCartPrices,
+  evaluateCoupon,
+  reserveRedemption,
+  reverseRedemption,
+  confirmRedemption,
+} = require("../services/couponService");
+const { validateRazorpayPaymentAmount } = require("./paymentController");
 
 const VALID_ORDER_STATUSES = Order.ORDER_STATUSES;
 // Statuses that free up the dine-in table this order was sitting at.
@@ -29,24 +37,121 @@ const TERMINAL_STATUSES = ["Closed", "Completed", "Cancelled"];
 const canEditOrRole = (role) => ["cashier", "admin"].includes(String(role || "").toLowerCase());
 
 const addOrder = async (req, res, next) => {
+  let deductions = [];
+  let inventoryRestored = false;
   try {
+    const { couponCode, ...orderPayload } = req.body;
+    if (couponCode && !canEditOrRole(req.user?.role)) {
+      throw createHttpError(403, "Only Cashier or Admin can apply a coupon in the POS.");
+    }
+    const phone = orderPayload.customerDetails?.phone || "";
+    let couponResult = null;
+    let pricedItems = null;
+    let couponTaxRate = null;
+    let precheckedCouponDiscount = null;
+
+    if (couponCode) {
+      pricedItems = await resolveCartPrices(orderPayload.items || []);
+      couponResult = await evaluateCoupon({
+        code: couponCode,
+        phone,
+        items: pricedItems,
+        channel: "POS",
+      });
+      const settings = await getOrCreateSettings();
+      couponTaxRate = settings.taxRatePercent;
+      precheckedCouponDiscount = couponResult.discountAmount;
+      if (orderPayload.paymentMethod === "Online") {
+        const subtotal = pricedItems.reduce((sum, item) => sum + item.subtotal, 0);
+        const total = Math.max(0, subtotal - couponResult.discountAmount);
+        await validateRazorpayPaymentAmount({
+          paymentData: orderPayload.paymentData,
+          expectedAmount: total + total * couponTaxRate / 100,
+        });
+      }
+    }
+
     // Dine-in / POS orders are only created once staff confirm them at the
     // register, so stock is committed immediately (unlike online orders,
     // which defer this until Accept - see addPublicOrder below).
-    const deductions = await deductInventoryForOrderItems(req.body.items || []);
+    deductions = await deductInventoryForOrderItems(orderPayload.items || []);
 
-    const order = new Order({ ...req.body, inventoryDeducted: true });
+    const order = new Order({
+      ...orderPayload,
+      ...(couponCode
+        ? { items: orderPayload.items.map((item, index) => ({ ...item, price: pricedItems[index].unitPrice })) }
+        : {}),
+      coupon: undefined,
+      inventoryDeducted: true,
+    });
     order.orderNumber = await generateOrderNumber(order.orderDate || new Date());
     order.costOfGoods = totalDeductionCost(deductions);
     // Seed the timeline with the status this order was created at (whatever
     // the POS sent, e.g. "In Progress") so the very first stage has a time
     // too, not just the ones after it.
     order.statusHistory = [{ status: order.orderStatus, at: order.orderDate || new Date() }];
-    await order.save();
+    if (couponCode) {
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          couponResult = await evaluateCoupon({
+            code: couponCode,
+            phone,
+            items: pricedItems,
+            channel: "POS",
+            session,
+          });
+          if (couponResult.discountAmount !== precheckedCouponDiscount) {
+            throw createHttpError(409, "Coupon rules changed during checkout. Please apply the coupon again.");
+          }
+          const subtotal = pricedItems.reduce((sum, item) => sum + item.subtotal, 0);
+          const discount = couponResult.discountAmount;
+          const total = Math.max(0, subtotal - discount);
+          const tax = total * couponTaxRate / 100;
+          order.bills = {
+            subtotal,
+            total,
+            tax,
+            totalWithTax: total + tax,
+            discount,
+            couponDiscount: discount,
+            discountPercent: 0,
+            discountLabel: `Coupon ${couponResult.coupon.code}`,
+          };
+          order.coupon = { couponId: couponResult.coupon._id, code: couponResult.coupon.code };
+          await reserveRedemption({
+            coupon: couponResult.coupon,
+            customerKey: couponResult.customerKey,
+            orderId: order._id,
+            discountAmount: discount,
+            channel: "POS",
+            session,
+          });
+          await order.save({ session });
+        });
+      } catch (error) {
+        try {
+          await restoreInventoryForOrderItems(orderPayload.items || []);
+          inventoryRestored = true;
+        } catch (restoreError) {
+          console.error("Failed to restore inventory after coupon order failure:", restoreError);
+        }
+        throw error;
+      } finally {
+        await session.endSession();
+      }
+    } else {
+      await order.save();
+    }
     res
       .status(201)
       .json({ success: true, message: "Order created!", data: order });
   } catch (error) {
+    if (deductions.length > 0 && !inventoryRestored) {
+      await restoreInventoryForOrderItems(req.body.items || []).catch((restoreError) => {
+        console.error("Failed to restore inventory after order creation error:", restoreError);
+      });
+    }
     next(error);
   }
 };
@@ -58,7 +163,7 @@ const addOrder = async (req, res, next) => {
 // so a customer can't hold stock hostage by never checking out.
 const addPublicOrder = async (req, res, next) => {
   try {
-    const { customerName, customerPhone, address, items } = req.body;
+    const { customerName, customerPhone, address, items, couponCode } = req.body;
 
     if (!customerName || !customerPhone || !Array.isArray(items) || items.length === 0) {
       const error = createHttpError(400, "Name, phone, and at least one item are required.");
@@ -247,35 +352,74 @@ const addPublicOrder = async (req, res, next) => {
     }
 
     const subtotalBeforeDiscount = total;
-    total -= discount; // from here on `total` is what the customer actually owes pre-tax
-    const tax = (total * taxRatePercent) / 100;
-    const totalWithTax = total + tax;
+    total -= discount;
+    let couponResult = null;
+    let order;
 
-    const order = new Order({
-      customerDetails: {
-        name: customerName,
-        phone: customerPhone,
-        guests: 1,
-        address: address || "",
-      },
-      orderStatus: "Pending",
-      orderSource: "Online",
-      statusHistory: [{ status: "Pending", at: new Date() }],
-      bills: {
-        total,
-        tax,
-        totalWithTax,
-        subtotal: subtotalBeforeDiscount,
-        discount,
-        discountPercent,
-        discountLabel,
-      },
-      items: resolvedItems,
-      paymentMethod: "Cash on Delivery",
-    });
-    order.orderNumber = await generateOrderNumber(order.orderDate || new Date());
+    const createOrderDocument = async (session, currentCoupon = null) => {
+      const couponDiscount = currentCoupon?.discountAmount || 0;
+      const discountedTotal = Math.max(0, total - couponDiscount);
+      const tax = (discountedTotal * taxRatePercent) / 100;
+      order = new Order({
+        customerDetails: {
+          name: customerName,
+          phone: customerPhone,
+          guests: 1,
+          address: address || "",
+        },
+        orderStatus: "Pending",
+        orderSource: "Online",
+        statusHistory: [{ status: "Pending", at: new Date() }],
+        bills: {
+          total: discountedTotal,
+          tax,
+          totalWithTax: discountedTotal + tax,
+          subtotal: subtotalBeforeDiscount,
+          discount: discount + couponDiscount,
+          discountPercent,
+          discountLabel: [discountLabel, currentCoupon ? `Coupon ${currentCoupon.coupon.code}` : ""].filter(Boolean).join(" + "),
+          couponDiscount,
+        },
+        coupon: currentCoupon ? { couponId: currentCoupon.coupon._id, code: currentCoupon.coupon.code } : undefined,
+        items: resolvedItems,
+        paymentMethod: "Cash on Delivery",
+      });
+      order.orderNumber = await generateOrderNumber(order.orderDate || new Date());
 
-    await order.save();
+      if (currentCoupon) {
+        await reserveRedemption({
+          coupon: currentCoupon.coupon,
+          customerKey: currentCoupon.customerKey,
+          orderId: order._id,
+          discountAmount: currentCoupon.discountAmount,
+          channel: "Online",
+          session,
+        });
+      }
+      await order.save(session ? { session } : undefined);
+    };
+
+    if (couponCode) {
+      const pricedItems = await resolveCartPrices(resolvedItems);
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          couponResult = await evaluateCoupon({
+            code: couponCode,
+            phone: customerPhone,
+            items: pricedItems,
+            channel: "Online",
+            session,
+          });
+          await createOrderDocument(session, couponResult);
+        });
+      } finally {
+        await session.endSession();
+      }
+    } else {
+      await createOrderDocument(null);
+    }
+
     invalidateAvailabilityCache(); // this order now reserves stock
 
     res.status(201).json({
@@ -426,6 +570,9 @@ const updateOrder = async (req, res, next) => {
         const error = createHttpError(403, "Only Cashier or Admin can edit an order's items.");
         return next(error);
       }
+      if (order.coupon?.couponId) {
+        return next(createHttpError(400, "Orders with an applied coupon cannot be edited. Cancel and recreate the order to recalculate its discount."));
+      }
 
       if (TERMINAL_STATUSES.includes(order.orderStatus)) {
         const error = createHttpError(
@@ -554,6 +701,11 @@ const updateOrder = async (req, res, next) => {
     order.orderStatus = orderStatus;
     order.statusHistory = [...(order.statusHistory || []), { status: orderStatus, at: new Date() }];
     await order.save();
+    if (orderStatus === "Cancelled") {
+      await reverseRedemption(order._id);
+    } else if (["Completed", "Closed"].includes(orderStatus)) {
+      await confirmRedemption(order._id);
+    }
     invalidateAvailabilityCache(); // a Pending order accepted/cancelled changes what's reserved
 
     if (TABLE_RELEASE_STATUSES.includes(orderStatus) && order.table) {
@@ -596,6 +748,8 @@ const deleteOrder = async (req, res, next) => {
       const error = createHttpError(403, "Completed orders can't be deleted.");
       return next(error);
     }
+
+    await reverseRedemption(order._id);
 
     // Give stock back first, and remember whether that really happened so
     // the audit record tells the truth.
@@ -675,6 +829,7 @@ const cancelPublicOrder = async (req, res, next) => {
     order.orderStatus = "Cancelled";
     order.statusHistory = [...(order.statusHistory || []), { status: "Cancelled", at: new Date() }];
     await order.save();
+    await reverseRedemption(order._id);
     invalidateAvailabilityCache();
 
     res.status(200).json({
