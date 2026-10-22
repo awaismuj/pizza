@@ -12,11 +12,6 @@ const useLoadData = () => {
   const demoPreview = import.meta.env.DEV && import.meta.env.VITE_POS_DEMO === "true";
 
   useEffect(() => {
-    if (location.pathname === "/poster-maker") {
-      setIsLoading(false);
-      return;
-    }
-
     if (demoPreview) {
       dispatch(setUser({
         _id: "local-demo-admin",

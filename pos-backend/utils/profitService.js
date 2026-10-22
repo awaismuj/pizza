@@ -68,6 +68,14 @@ const orderItemCount = (order) =>
     ? order.items.reduce((sum, item) => sum + (Number(item?.quantity) || 1), 0)
     : 0;
 
+const orderRevenue = (order) => {
+  const salesTotal = Number(order?.bills?.total);
+  if (Number.isFinite(salesTotal)) {
+    return salesTotal + (Number(order?.bills?.deliveryFee) || 0);
+  }
+  return Number(order?.bills?.totalWithTax) || 0;
+};
+
 // Revenue + items sold for every EARNED order whose orderDate falls in
 // [start, end). Used for both a single day and a whole month.
 const revenueForRange = async (start, end) => {
@@ -76,21 +84,22 @@ const revenueForRange = async (start, end) => {
     orderDate: { $gte: start, $lt: end },
   }).select("bills items orderDate costOfGoods");
 
-  const revenue = orders.reduce((sum, o) => sum + (Number(o?.bills?.totalWithTax ?? o?.bills?.total ?? 0) || 0), 0);
+  const revenue = orders.reduce((sum, order) => sum + orderRevenue(order), 0);
+  const couponDiscount = orders.reduce((sum, o) => sum + (Number(o?.bills?.couponDiscount) || 0), 0);
   const itemsSold = orders.reduce((sum, o) => sum + orderItemCount(o), 0);
   // "Purchases/Cost" - cost of the ingredients/stock actually consumed for
   // these orders (cost of goods sold), captured per-order at the moment
   // inventory was taken out for it. See models/orderModel.js costOfGoods.
   const cost = orders.reduce((sum, o) => sum + (Number(o?.costOfGoods) || 0), 0);
 
-  return { revenue, cost, itemsSold, ordersCount: orders.length };
+  return { revenue, couponDiscount, cost, itemsSold, ordersCount: orders.length };
 };
 
 // Revenue/cost/expenses/profit for a single calendar day (does NOT look at
 // any locked DailyProfit record — callers decide whether to prefer a lock).
 const computeDayFigures = async (dayKey) => {
   const { start, end } = dayRange(dayKey);
-  const [{ revenue, cost, itemsSold, ordersCount }, expenseDocs] = await Promise.all([
+  const [{ revenue, couponDiscount, cost, itemsSold, ordersCount }, expenseDocs] = await Promise.all([
     revenueForRange(start, end),
     Expense.find({ dayKey }).select("amount"),
   ]);
@@ -100,6 +109,8 @@ const computeDayFigures = async (dayKey) => {
   return {
     dayKey,
     revenue,
+    revenueBasis: "net-sales-v1",
+    couponDiscount,
     cost,
     expenses,
     // Profit = Sales - Purchases/Cost - Expenses.
@@ -117,6 +128,7 @@ module.exports = {
   monthRange,
   currentMonthKey,
   revenueForRange,
+  orderRevenue,
   computeDayFigures,
   orderItemCount,
 };

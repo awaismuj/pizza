@@ -59,6 +59,27 @@ test("applies inclusion and exclusion restrictions to the eligible subtotal", ()
   assert.match(result.message, /selected products/);
 });
 
+test("matches selected dishes or categories, with exclusions taking priority and discounts capped to eligible value", () => {
+  const result = calculateCoupon(coupon({
+    discountType: "fixed",
+    discountValue: 1500,
+    eligibleDishIds: ["dish-2"],
+    eligibleCategoryIds: ["category-1"],
+    excludedDishIds: ["dish-2"],
+  }), order({
+    items: [
+      { dishId: "dish-1", categoryId: "category-1", subtotal: 1000 },
+      { dishId: "dish-2", categoryId: "category-2", subtotal: 500 },
+      { dishId: "dish-3", categoryId: "category-3", subtotal: 900 },
+    ],
+    subtotal: 2400,
+  }));
+
+  assert.equal(result.valid, true);
+  assert.equal(result.eligibleSubtotal, 1000);
+  assert.equal(result.discountAmount, 1000);
+});
+
 test("rejects exhausted campaigns and non-stackable coupons", () => {
   assert.match(calculateCoupon(coupon({ usageLimit: 4, redemptionCount: 4 }), order()).message, /usage limit/);
   assert.match(calculateCoupon(coupon(), order({ existingDiscount: 100 })).message, /combined/);
