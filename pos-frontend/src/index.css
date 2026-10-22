@@ -51,10 +51,6 @@ body.is-scrolling {
   100% { transform: rotate(360deg); }
 }
 
-/* Dashboard: use the full screen instead of Tailwind's stepped container. */
-.dash-wide .container {
-  max-width: min(100%, 1960px);
-}
 .dash-tabs::-webkit-scrollbar { height: 0; }
 .dash-tabs { scrollbar-width: none; }
 

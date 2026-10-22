@@ -235,7 +235,7 @@ const CouponsManager = () => {
   const labelClass = "block text-sm text-[#ccc] space-y-1";
 
   return (
-    <div className="container mx-auto px-6 pb-10 space-y-6">
+    <div className="mx-auto w-full px-6 pb-10 space-y-6">
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Coupons on this page</p><b className="text-2xl text-white">{pagination?.total || 0}</b></div>
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Active on this page</p><b className="text-2xl text-white">{activeCount}</b></div>

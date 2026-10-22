@@ -92,10 +92,10 @@ const PaymentSettingsManager = () => {
   const qrPreview = form.qrImage ? resolveImageUrl(form.qrImage) : null;
   const input = "w-full rounded-lg border border-[#444] bg-[#1a1a1a] px-3 py-2.5 text-[#f5f5f5] outline-none focus:border-[#f6b100]";
 
-  if (isLoading) return <div className="container mx-auto px-6 text-[#ababab]">Loading payment settings…</div>;
+  if (isLoading) return <div className="mx-auto w-full px-6 text-[#ababab]">Loading payment settings…</div>;
 
   return (
-    <div className="container mx-auto px-4 sm:px-6">
+    <div className="mx-auto w-full px-4 sm:px-6">
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4 rounded-2xl bg-[#262626] p-5 sm:p-6">
           <div>

@@ -124,7 +124,7 @@ const ProfitExpenses = () => {
   const isViewingToday = selectedDate === todayStr();
 
   return (
-    <div className="container mx-auto py-2 px-6 md:px-4">
+    <div className="mx-auto w-full py-2 px-6 md:px-4">
       {/* ---- Daily profit ---- */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>

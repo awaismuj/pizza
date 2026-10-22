@@ -105,7 +105,7 @@ const BuildYourOwnManager = () => {
   const exampleSaved = Math.round((exampleBase * examplePct) / 100);
 
   return (
-    <div className="container mx-auto px-6 pb-10">
+    <div className="mx-auto w-full px-6 pb-10">
       <div className="max-w-2xl bg-[#262626] rounded-lg p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 mb-1">
           <div>

@@ -36,7 +36,7 @@ const Home = () => {
 
   return (
     <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden bg-[#1f1f1f] px-3 pb-36 pt-3 sm:px-5 md:px-8">
-      <div className="mx-auto w-full max-w-[1760px]">
+      <div className="mx-auto w-full">
         <div className="flex min-w-0 flex-col gap-3 sm:gap-4">
           <Greetings />
 

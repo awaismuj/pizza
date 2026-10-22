@@ -442,7 +442,7 @@ const AssetManagement = ({ role }) => {
   const activityMutating = Object.values(actionMutations).some((mutation) => mutation.isPending);
 
   return (
-    <main className="container mx-auto space-y-6 px-4 pb-10 sm:px-6">
+    <main className="mx-auto w-full space-y-6 px-4 pb-10 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[#f6b100]">Finance &amp; operations</p>

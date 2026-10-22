@@ -104,7 +104,7 @@ const Metrics = () => {
   ];
 
   return (
-    <div className="container mx-auto py-2 px-6 md:px-4">
+    <div className="mx-auto w-full py-2 px-6 md:px-4">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="font-bold text-[#f5f5f5] text-xl">

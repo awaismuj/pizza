@@ -60,7 +60,7 @@ const ReviewsManager = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 sm:px-6">
+    <div className="mx-auto w-full px-4 sm:px-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {cards.map((c) => (
           <div key={c.label} className="rounded-2xl p-4" style={{ background: `${c.color}22`, border: `1px solid ${c.color}55` }}>
