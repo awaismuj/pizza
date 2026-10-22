@@ -1,6 +1,19 @@
+import axios from "axios";
 import { axiosWrapper } from "./axiosWrapper";
 
 // API Endpoints
+export const generatePosterFoodImage = ({ itemName, style }) =>
+  axios.post(
+    `${axiosWrapper.defaults.baseURL}/api/poster/generate`,
+    { itemName, style },
+    { timeout: 120000, withCredentials: true }
+  );
+export const generateFullPosterDesign = (posterDetails) =>
+  axios.post(
+    `${axiosWrapper.defaults.baseURL}/api/poster/design`,
+    posterDetails,
+    { timeout: 180000, withCredentials: true }
+  );
 
 // Auth Endpoints
 export const login = (data) => axiosWrapper.post("/api/user/login", data);
@@ -62,6 +75,18 @@ export const updateDeal = ({ dealId, ...data }) => axiosWrapper.put(`/api/deal/$
 export const toggleDeal = (dealId) => axiosWrapper.patch(`/api/deal/${dealId}/toggle`);
 export const reorderDeals = (order) => axiosWrapper.post(`/api/deal/reorder`, { order });
 export const deleteDeal = (dealId) => axiosWrapper.delete(`/api/deal/${dealId}`);
+
+// Coupon management and redemption reporting
+export const getCoupons = (params) => axiosWrapper.get("/api/coupon", { params });
+export const addCoupon = (data) => axiosWrapper.post("/api/coupon", data);
+export const updateCoupon = ({ couponId, ...data }) => axiosWrapper.put(`/api/coupon/${couponId}`, data);
+export const archiveCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/${couponId}/archive`);
+export const duplicateCoupon = (couponId) => axiosWrapper.post(`/api/coupon/${couponId}/duplicate`);
+export const getCouponRedemptions = (params) => axiosWrapper.get("/api/coupon/redemptions", { params });
+export const getCouponAssignments = (params) => axiosWrapper.get("/api/coupon/assignments", { params });
+export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
+export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
+export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
 
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");

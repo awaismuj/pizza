@@ -386,6 +386,107 @@ Before/after running it, read the console output carefully:
 
 ---
 
+## Coupons and promotions
+
+The POS dashboard now includes **Coupons**. The first release supports shared
+percentage and fixed-amount codes for POS and online orders, with status and
+date windows, campaign/per-phone limits, minimum eligible subtotal, optional
+discount caps, product/category allowlists and exclusions, first-order checks,
+and a stacking toggle. The storefront and POS validate codes through the
+backend, and the backend recalculates item prices before persisting the order
+and discount snapshot. A valid mobile number is required in both channels so
+per-customer redemption limits do not collapse into a shared anonymous POS
+identity. Existing Deals and Build Your Own behavior remain separate.
+
+### Price and redemption policy
+
+The existing order calculation sequence is preserved: resolve current menu
+prices → apply the existing Build Your Own discount (online only) → apply an
+eligible coupon discount → calculate tax using the live Settings tax rate.
+Coupons never reduce the eligible subtotal below zero. Order bills store the
+discount, coupon code, and applied amount at order time, so later coupon edits
+do not rewrite old receipt values. Online orders reserve a redemption while
+Pending; cancellation or deletion reverses it. Completed/closed orders cannot
+be cancelled through the existing workflow.
+
+Coupon counters and the order/redemption records are written in a MongoDB
+transaction. Production MongoDB must therefore support transactions (for
+example, MongoDB Atlas or a replica set); standalone MongoDB instances are not
+suitable for coupon checkout. Validation by itself does not consume a use.
+The public validation endpoint uses a process-local IP limit; deployments
+running multiple backend instances should put a shared/distributed rate
+limiter at the gateway or replace the middleware with a shared store.
+
+### Deployment and rollback
+
+1. Back up MongoDB and deploy the backend and frontend changes together.
+2. Verify the configured `MONGODB_URI` points to a transaction-capable
+   deployment.
+3. From `pos-backend`, run `npm run migrate` to apply the bootstrap index
+   setup. This existing bootstrap command may also create the configured
+   default admin if it does not exist; review its output.
+4. Build/deploy `pos-frontend` and `online-store`. For customer registration,
+   configure SMTP as described below; no scheduled job is required for the
+   current manual assignment flow.
+5. Create a draft coupon, verify its dates/rules, then activate it and test
+   both POS and online checkouts with a small campaign limit before publishing.
+
+Rollback consists of redeploying the prior application versions. No existing
+orders are rewritten and no collection is dropped; coupon definitions and
+redemption records are retained for audit. Do not manually delete coupon
+records that have redemptions.
+
+Customer accounts now use a separate `Customer` collection, email verification,
+hashed passwords, and short-lived customer JWTs. Configure `SMTP_HOST`,
+`SMTP_USER`, `SMTP_PASS`, and optionally `SMTP_PORT`/`SMTP_FROM` in
+`pos-backend/.env` before enabling registration. If email delivery is not
+configured, registration remains unverified and the customer cannot sign in;
+configure SMTP before inviting customers. A customer can explicitly opt in or
+withdraw marketing consent, but the application does not send promotional
+messages.
+
+Admins can assign private random codes to verified customer accounts. The
+assignment is stored separately from its shared campaign, and the raw code is
+shown only once after creation; assignment lists mask it. Customers can see
+their currently available assignments after signing in and can use them in
+online checkout. Private codes intentionally require an authenticated customer
+account and are not redeemable through POS until POS has a secure customer
+authentication flow. Shared coupons remain usable in both channels. Assignment
+dates inherit the campaign window unless explicitly narrowed, and redemption
+limits are checked again in the checkout transaction.
+
+Customer phone numbers are unique identifiers in this initial account flow but
+are not verified by SMS. They must not be treated as proof of identity; private
+codes therefore require the verified-email account session. Phone-based order
+history is used to retain first-order and per-customer coupon checks when a
+guest customer later creates an account.
+
+This is not yet the full requested promotion suite: implemented discount types
+remain percentage and fixed amount. Free delivery, free products, BOGO,
+loyalty/VIP/birthday/referral/win-back eligibility, automated assignment jobs,
+pickup/delivery-specific coupon rules, assignment regeneration in the admin
+UI, advanced campaign analytics/exports, and incremental revenue attribution
+are not implemented. Do not advertise these as supported. Existing redemption
+reporting remains limited to recorded redemption counts and discount amounts.
+
+### Deploying customer accounts and private assignments
+
+1. Configure SMTP and a public `BACKEND_URL` so verification links reach the
+   deployed backend. Keep marketing consent opt-in; no promotional messages
+   are sent by this release.
+2. Back up MongoDB, deploy backend changes, and run `npm run migrate` from
+   `pos-backend` to sync the additive customer and assignment indexes.
+3. Deploy both frontend applications with the backend. Customer accounts and
+   assigned-coupon lookups use the storefront's existing `VITE_BACKEND_URL`.
+4. Test registration, verification, sign-in, consent withdrawal, coupon
+   assignment, assignment ownership, coupon checkout, and cancellation in a
+   transaction-capable non-production database before production rollout.
+
+Rollback is an application rollback; keep customer, assignment, and redemption
+collections intact for audit. No existing order records are rewritten.
+
+---
+
 ## 🎨 Branding / Logo
 
 The GenZ Pizza Land logo lives in `/branding` at the project root, exported

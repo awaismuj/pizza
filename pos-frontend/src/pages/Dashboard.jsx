@@ -35,6 +35,7 @@ import Metrics from "../components/dashboard/Metrics";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Modal from "../components/dashboard/Modal";
 import DealsManager from "../components/dashboard/DealsManager";
+import CouponsManager from "../components/dashboard/CouponsManager";
 import HeroSliderManager from "../components/dashboard/HeroSliderManager";
 import ProfitExpenses from "../components/dashboard/ProfitExpenses";
 import PaymentsOverview from "../components/dashboard/PaymentsOverview";
@@ -42,6 +43,7 @@ import TaxManager from "../components/dashboard/TaxManager";
 import PrepSettingsManager from "../components/dashboard/PrepSettingsManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
+import FoodPosterGenerator from "../components/dashboard/FoodPosterGenerator";
 import UserManagement from "../components/dashboard/UserManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
 import ReviewsManager from "../components/dashboard/ReviewsManager";
@@ -78,7 +80,7 @@ const buttons = [
 // Sidebar sections. Order here is the order shown on screen.
 const tabGroups = [
   { label: "Overview", tabs: ["Metrics", "Orders", "Payments", "Profit"] },
-  { label: "Storefront", tabs: ["Menu", "Deals", "Hero Slider", "Build Your Own", "Reviews"] },
+  { label: "Storefront", tabs: ["Menu", "Deals", "Coupons", "Hero Slider", "Build Your Own", "Reviews", "Poster Maker"] },
   { label: "Delivery & Pickup", tabs: ["Branches"] },
   { label: "Operations", tabs: ["Inventory", "Staff", "Assets", "User & Employees"] },
   { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Music"] },
@@ -93,6 +95,7 @@ const tabIcons = {
   "Payment Settings": <MdQrCode2 />,
   Menu: <MdRestaurantMenu />,
   Deals: <MdLocalOffer />,
+  Coupons: <MdLocalOffer />,
   "Hero Slider": <MdViewCarousel />,
   Reviews: <MdRateReview />,
   "User & Employees": <MdBadge />,
@@ -114,6 +117,7 @@ const tabTheme = {
   Profit: "#22c55e",
   Menu: "#ef4444",
   Deals: "#ec4899",
+  Coupons: "#f6b100",
   "Hero Slider": "#a855f7",
   "Build Your Own": "#14b8a6",
   Reviews: "#f6b100",
@@ -145,6 +149,8 @@ const Dashboard = () => {
     "Payment Settings": "settings.manage",
     Menu: "menu.view",
     Deals: "deals.manage",
+    Coupons: "coupons.manage",
+    "Poster Maker": "settings.manage",
     "Hero Slider": "hero.manage",
     Reviews: "settings.manage",
     Profit: "finance.view",
@@ -660,8 +666,9 @@ const Dashboard = () => {
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
       {activeTab === "Assets" && can("assets.view") && <AssetManagement role={role} />}
       {activeTab === "User & Employees" && can("users.view") && <UserManagement />}
+      {activeTab === "Poster Maker" && <FoodPosterGenerator />}
       {activeTab === "Menu" && (
-        <div className="container mx-auto px-6">
+        <div className="mx-auto w-full px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Categories</h3>
@@ -884,14 +891,16 @@ const Dashboard = () => {
         </div>
       )}
 
+      {activeTab === "Coupons" && <CouponsManager />}
+
       {activeTab === "Deals" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="mx-auto w-full px-6 pb-10">
           <DealsManager />
         </div>
       )}
 
       {activeTab === "Hero Slider" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="mx-auto w-full px-6 pb-10">
           <HeroSliderManager />
         </div>
       )}
@@ -903,7 +912,7 @@ const Dashboard = () => {
       )}
 
       {activeTab === "Inventory" && (
-        <div className="container mx-auto px-6 pb-10">
+        <div className="mx-auto w-full px-6 pb-10">
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
             {can("inventory.manage") && <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">

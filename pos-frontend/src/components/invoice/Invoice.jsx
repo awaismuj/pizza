@@ -1,4 +1,5 @@
-import React, { useRef } from "react";
+import PropTypes from "prop-types";
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { FaCheck } from "react-icons/fa6";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
@@ -21,6 +22,8 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
   };
 
   const isWalkIn = orderInfo.customerDetails?.name === "Walk-in Customer";
+  const couponDiscount = Number(orderInfo.bills?.couponDiscount) || 0;
+  const otherDiscount = Math.max(0, (Number(orderInfo.bills?.discount) || 0) - couponDiscount);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center px-4">
@@ -117,12 +120,20 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
                   <strong>Subtotal:</strong> Rs{" "}
                   {Number(orderInfo.bills.subtotal ?? orderInfo.bills.total + orderInfo.bills.discount).toFixed(2)}
                 </p>
-                <p>
-                  <strong>
-                    Build Your Own Deal ({orderInfo.bills.discountPercent}% off):
-                  </strong>{" "}
-                  -Rs {Number(orderInfo.bills.discount).toFixed(2)}
-                </p>
+                {otherDiscount > 0 && (
+                  <p>
+                    <strong>
+                      Build Your Own Deal ({orderInfo.bills.discountPercent}% off):
+                    </strong>{" "}
+                    -Rs {otherDiscount.toFixed(2)}
+                  </p>
+                )}
+                {couponDiscount > 0 && (
+                  <p>
+                    <strong>Coupon ({orderInfo.coupon?.code || "discount"}):</strong>{" "}
+                    -Rs {couponDiscount.toFixed(2)}
+                  </p>
+                )}
                 <p>
                   <strong>After discount:</strong> Rs {orderInfo.bills.total.toFixed(2)}
                 </p>
@@ -211,6 +222,39 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
       </div>
     </div>
   );
+};
+
+Invoice.propTypes = {
+  orderInfo: PropTypes.shape({
+    _id: PropTypes.string,
+    orderNumber: PropTypes.string,
+    customerDetails: PropTypes.shape({
+      name: PropTypes.string,
+      phone: PropTypes.string,
+      guests: PropTypes.number,
+    }),
+    items: PropTypes.arrayOf(PropTypes.shape({
+      name: PropTypes.string,
+      quantity: PropTypes.number,
+      price: PropTypes.number,
+    })),
+    bills: PropTypes.shape({
+      subtotal: PropTypes.number,
+      discount: PropTypes.number,
+      discountPercent: PropTypes.number,
+      couponDiscount: PropTypes.number,
+      total: PropTypes.number,
+      tax: PropTypes.number,
+      totalWithTax: PropTypes.number,
+    }),
+    coupon: PropTypes.shape({ code: PropTypes.string }),
+    paymentMethod: PropTypes.string,
+    paymentData: PropTypes.shape({
+      razorpay_order_id: PropTypes.string,
+      razorpay_payment_id: PropTypes.string,
+    }),
+  }).isRequired,
+  setShowInvoice: PropTypes.func.isRequired,
 };
 
 export default Invoice;

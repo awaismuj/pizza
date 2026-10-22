@@ -5,6 +5,8 @@ import {
   getPublicDeals,
   getPublicHeroSlides,
   placeOrder,
+  validatePublicCoupon,
+  getMyCoupons,
   getOrderStatus,
   cancelOrder,
   lookupOrderByPhone,
@@ -29,6 +31,7 @@ import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection,
 import { I, FoodIcon } from "./AppIcons.jsx";
 import { FulfillmentPicker, FULFILLMENT_STYLES, useFulfillment } from "./Fulfillment.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
+import CustomerAccount, { useCustomerAccount } from "./CustomerAccount.jsx";
 
 /* ---------------------------------------------------------------------------
    Everything the storefront needs lives in this one file: styles, fonts and
@@ -2116,6 +2119,22 @@ select {
   cursor: pointer;
 }
 
+.gzp-delivered-mascot {
+  animation: gzp-delivered-bob 2.2s ease-in-out infinite;
+}
+@keyframes gzp-delivered-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+.gzp-delivered-countdown {
+  margin: 16px 0 0;
+  color: var(--flour-dim);
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gzp-delivered-mascot { animation: none; }
+}
+
 /* Popup on small phones / short screens */
 @media (max-width: 400px) {
   .gzp-thankyou-overlay { padding: 12px; align-items: center; }
@@ -2899,6 +2918,53 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
   );
 };
 
+const DeliveredThankYouScreen = ({ order, onComplete }) => {
+  const [secondsLeft, setSecondsLeft] = useState(8);
+  const orderNumber = String(order?._id || "").slice(-6).toUpperCase();
+
+  useEffect(() => {
+    const timer = window.setTimeout(onComplete, 8000);
+    const countdown = window.setInterval(
+      () => setSecondsLeft((seconds) => Math.max(0, seconds - 1)),
+      1000
+    );
+
+    if ("speechSynthesis" in window && "SpeechSynthesisUtterance" in window) {
+      const message = new SpeechSynthesisUtterance("Thank you for your order. Enjoy your meal!");
+      message.lang = "en-US";
+      message.rate = 0.95;
+      window.speechSynthesis.speak(message);
+    }
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(countdown);
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, [onComplete]);
+
+  return (
+    <div className="gzp-thankyou-overlay" role="status" aria-live="polite">
+      <section className="gzp-thankyou-card" aria-labelledby="gzp-delivered-title">
+        <div className="gzp-thankyou-badge">
+          <img src={genzLogo} alt="GenZ Pizza Land" />
+        </div>
+        <div className="gzp-delivered-mascot">
+          <PizzaMascot />
+        </div>
+        <h1 id="gzp-delivered-title" className="gzp-thankyou-title">Your order has arrived!</h1>
+        <p className="gzp-thankyou-sub">
+          {orderNumber ? `Order #${orderNumber} is delivered. ` : ""}
+          Thank you for your order. Enjoy your meal!
+        </p>
+        <p className="gzp-delivered-countdown">
+          Taking you back to the home page in {secondsLeft} seconds…
+        </p>
+      </section>
+    </div>
+  );
+};
+
 const Stepper = ({ qty, onAdd, onRemove, size, label }) => (
   <div className={`gzp-stepper${size === "lg" ? " gzp-stepper-lg" : ""}`}>
     <button type="button" onClick={onRemove} aria-label={`Remove one ${label}`}>
@@ -3072,7 +3138,7 @@ const WhatsAppButton = () => (
   </a>
 );
 
-const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) => (
+const Header = ({ minimal, cartCount, customer, onSearch, onCart, onNavigate, onTrack, onAccount }) => (
   <header className="gzp-header">
     <div className="gzp-header-inner">
       <button
@@ -3097,6 +3163,9 @@ const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) =
           </nav>
           <button className="v2-track-btn" onClick={onTrack} type="button">
             <IconTruck /> Track order
+          </button>
+          <button className="v2-track-btn" onClick={onAccount} type="button">
+            {customer ? customer.name : "Account"}
           </button>
           <button
             className="gzp-icon-btn"
@@ -3124,6 +3193,8 @@ const Header = ({ minimal, cartCount, onSearch, onCart, onNavigate, onTrack }) =
 /* ================================ App ================================ */
 
 function App() {
+  const [customer, setCustomer] = useCustomerAccount();
+  const [customerAccountOpen, setCustomerAccountOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [dishes, setDishes] = useState([]);
   const [deals, setDeals] = useState([]);
@@ -3140,6 +3211,10 @@ function App() {
   const [cart, setCart] = useState({}); // { "dish:<id>" | "deal:<id>": quantity }
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [assignedCoupons, setAssignedCoupons] = useState([]);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3172,7 +3247,24 @@ function App() {
   // the header lets them jump back into full tracking any time.
   const [trackingDismissed, setTrackingDismissed] = useState(false);
   const orderStillActive = order && !["Completed", "Closed", "Cancelled"].includes(order.orderStatus);
+  const orderCouponDiscount = Number(order?.bills?.couponDiscount) || 0;
+  const orderOtherDiscount = Math.max(0, (Number(order?.bills?.discount) || 0) - orderCouponDiscount);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
+  useEffect(() => {
+    if (!customer) return;
+    setForm((current) => ({ ...current, name: customer.name, phone: customer.phone }));
+  }, [customer]);
+  useEffect(() => {
+    let active = true;
+    if (!customer) {
+      setAssignedCoupons([]);
+      return () => { active = false; };
+    }
+    getMyCoupons()
+      .then((response) => { if (active) setAssignedCoupons(response.data || []); })
+      .catch((requestError) => { if (active) setError(requestError.message || "Could not load your assigned coupons."); });
+    return () => { active = false; };
+  }, [customer]);
 
   const [activeSection, setActiveSection] = useState(DEALS_SECTION_ID);
 
@@ -3482,7 +3574,8 @@ function App() {
   // can't be ordered as-is - the customer is shown why instead of an error.
   const byoBlocked = byoUnits > 0 && (byoShort > 0 || !byoConfig.enabled);
 
-  const subtotal = grossSubtotal - byoDiscount; // after discount: what tax is charged on
+  const couponDiscount = appliedCoupon?.discountAmount || 0;
+  const subtotal = Math.max(0, grossSubtotal - byoDiscount - couponDiscount); // after discounts: what tax is charged on
   const tax = (subtotal * taxRatePercent) / 100;
   const cartTotal = subtotal + tax; // before any delivery fee
   // Delivery / pickup: the server prices and validates the choice; the fee
@@ -3503,6 +3596,10 @@ function App() {
   cartRef.current = cart;
   const menuRef = useRef({ dishes, deals });
   menuRef.current = { dishes, deals };
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+  }, [cart, form.phone]);
 
   // How many of a dish/deal are already in the cart, across all its
   // size/crust lines (they all draw from the same stock).
@@ -3863,6 +3960,7 @@ function App() {
               proofId: jazz.proofId,
             }
           : { paymentMethod: "cod" }),
+        couponCode: appliedCoupon?.code || undefined,
         items: cartLines.map((l) =>
           l.type === "deal"
             ? { dealId: l.item._id, quantity: l.qty, dealSelections: l.dealSelections || undefined }
@@ -3895,6 +3993,43 @@ function App() {
       setError(err.message);
     } finally {
       setPlacing(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) {
+      setError("Enter a coupon code.");
+      return;
+    }
+    if (!isValidPhone(form.phone)) {
+      setError("Enter your mobile number before applying a coupon.");
+      return;
+    }
+    setValidatingCoupon(true);
+    setError("");
+    try {
+      const result = await validatePublicCoupon({
+        code: couponInput,
+        phone: form.phone,
+        items: cartLines.map((line) =>
+          line.type === "deal"
+            ? { dealId: line.item._id, quantity: line.qty }
+            : {
+                dishId: line.item._id,
+                quantity: line.qty,
+                size: line.size || undefined,
+                crust: line.crust || undefined,
+                byo: line.type === "byo" || undefined,
+              }
+        ),
+      });
+      setAppliedCoupon({ code: result.data.code, discountAmount: result.data.discountAmount });
+      setError("");
+    } catch (err) {
+      setAppliedCoupon(null);
+      setError(err.message);
+    } finally {
+      setValidatingCoupon(false);
     }
   };
 
@@ -3939,6 +4074,11 @@ function App() {
     setOrderId(null);
     setOrder(null);
   };
+
+  const returnHomeAfterDelivery = useCallback(() => {
+    localStorage.removeItem("gzp_last_order");
+    window.location.reload();
+  }, []);
 
   // Manual "Track order" lookup — for when someone wants to check status on
   // a different device/browser than the one that placed the order, or after
@@ -4061,6 +4201,10 @@ function App() {
     );
   }
 
+  if (orderId && order?.orderStatus === "Completed") {
+    return <DeliveredThankYouScreen order={order} onComplete={returnHomeAfterDelivery} />;
+  }
+
   // Right after a NEW order is placed — the polished confirmation card.
   // "Track My Order" drops straight into the full tracking view below;
   // "Click for more order" goes back to the menu instead (to add another
@@ -4177,10 +4321,20 @@ function App() {
 
               <div className="gzp-totals" style={{ marginTop: 14 }}>
                 {Number(order.bills?.discount) > 0 && (
-                  <div className="is-discount">
-                    <span>{order.bills.discountLabel || "Build Your Own Deal discount"}</span>
-                    <span>−{formatRs(order.bills.discount)}</span>
-                  </div>
+                  <>
+                    {orderOtherDiscount > 0 && (
+                      <div className="is-discount">
+                        <span>Build Your Own Deal discount</span>
+                        <span>−{formatRs(orderOtherDiscount)}</span>
+                      </div>
+                    )}
+                    {orderCouponDiscount > 0 && (
+                      <div className="is-discount">
+                        <span>Coupon ({order.coupon?.code || "discount"})</span>
+                        <span>−{formatRs(orderCouponDiscount)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
                 {Number(order.bills?.deliveryFee) > 0 && (
                   <div>
@@ -4500,10 +4654,18 @@ function App() {
     <div className="gzp-app">
       <Header
         cartCount={cartCount}
+        customer={customer}
+        onAccount={() => setCustomerAccountOpen(true)}
         onSearch={() => setSearchOpen(true)}
         onCart={() => setCartOpen(true)}
         onNavigate={navigateTo}
         onTrack={() => setTrackOpen(true)}
+      />
+      <CustomerAccount
+        customer={customer}
+        setCustomer={setCustomer}
+        open={customerAccountOpen}
+        setOpen={setCustomerAccountOpen}
       />
 
       {/* Left up after "Click for more order" on the Thank You screen, so
@@ -5346,6 +5508,64 @@ function App() {
                     />
                   </label>
 
+                  <div className="gzp-field">
+                    <span>Coupon code</span>
+                    {assignedCoupons.length > 0 && (
+                      <select
+                        value=""
+                        aria-label="Choose an assigned coupon"
+                        disabled={Boolean(appliedCoupon)}
+                        onChange={(event) => {
+                          const assignment = assignedCoupons.find((item) => item.code === event.target.value);
+                          if (!assignment) return;
+                          setCouponInput(assignment.code);
+                          setAppliedCoupon(null);
+                        }}
+                      >
+                        <option value="">Choose an assigned coupon</option>
+                        {assignedCoupons.map((assignment) => (
+                          <option key={assignment._id} value={assignment.code}>
+                            {assignment.couponId?.name || "Assigned coupon"} — {assignment.couponId?.discountType === "percentage"
+                              ? `${assignment.couponId.discountValue}%`
+                              : `Rs ${assignment.couponId?.discountValue}`}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        aria-label="Coupon code"
+                        disabled={Boolean(appliedCoupon)}
+                      />
+                      {appliedCoupon ? (
+                        <button
+                          type="button"
+                          className="gzp-btn gzp-btn-ghost"
+                          onClick={() => setAppliedCoupon(null)}
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="gzp-btn gzp-btn-ghost"
+                          onClick={handleApplyCoupon}
+                          disabled={validatingCoupon}
+                        >
+                          {validatingCoupon ? "Checking…" : "Apply"}
+                        </button>
+                      )}
+                    </div>
+                    {appliedCoupon && (
+                      <small style={{ color: "#78d38b" }}>
+                        {appliedCoupon.code} applied — save {formatRs(couponDiscount)}
+                      </small>
+                    )}
+                  </div>
+
                   <PaymentMethodPicker cfg={payments} value={payMethod} onChange={setPayMethod} pickup={fulfil.method === "pickup"} />
 
                   {jazzSelected ? (
@@ -5369,6 +5589,12 @@ function App() {
 
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
+                  {couponDiscount > 0 && (
+                    <div className="is-discount">
+                      <span>Coupon discount ({appliedCoupon.code})</span>
+                      <span>−{formatRs(couponDiscount)}</span>
+                    </div>
+                  )}
                   <div>
                     <span>Subtotal + tax</span>
                     <span>{formatRs(cartTotal)}</span>

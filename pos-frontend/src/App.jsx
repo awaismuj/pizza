@@ -5,6 +5,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import PropTypes from "prop-types";
 import { Home, Auth, Orders, Tables, Menu, Outdoor, Dashboard, OnlineOrders, EmployeePortal } from "./pages";
 import ChangePassword from "./pages/ChangePassword";
 import Header from "./components/shared/Header";
@@ -17,18 +18,19 @@ import { useSelector } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import useScrollHoverFix from "./hooks/useScrollHoverFix";
 import FullScreenLoader from "./components/shared/FullScreenLoader"
+import FoodPosterGenerator from "./components/dashboard/FoodPosterGenerator";
 
 function Layout() {
   const isLoading = useLoadData();
   useScrollHoverFix();
   const location = useLocation();
-  const hideHeaderRoutes = ["/auth"];
+  const hideHeaderRoutes = ["/auth", "/poster-maker"];
   // The floating WhatsApp button is fixed near the bottom-right of every
   // page - but on /menu that's exactly where the Cash/Online/Print
   // Receipt/Place Order row sits, so it was floating on top of and
   // partially hiding those buttons. Support inquiries aren't the point of
   // that screen anyway, so it's simplest to just not show it there.
-  const hideWhatsAppRoutes = ["/menu"];
+  const hideWhatsAppRoutes = ["/menu", "/poster-maker"];
   const { isAuth, role, permissions = [] } = useSelector(state => state.user);
   const isEmployee = String(role || "").toLowerCase() === "employee";
   const canCreateOrder = useHasPermission("orders.create");
@@ -53,6 +55,7 @@ function Layout() {
           }
         />
         <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
+        <Route path="/poster-maker" element={<GuestPosterMaker />} />
         <Route path="/change-password" element={<ProtectedRoutes><ChangePassword /></ProtectedRoutes>} />
         <Route path="/employee" element={<ProtectedRoutes><EmployeePortal /></ProtectedRoutes>} />
         <Route
@@ -111,6 +114,14 @@ function Layout() {
   );
 }
 
+function GuestPosterMaker() {
+  return (
+    <main className="min-h-screen bg-[#1a1a1a] py-6 sm:py-10">
+      <FoodPosterGenerator guestMode />
+    </main>
+  );
+}
+
 function ProtectedRoutes({ children, permission }) {
   const { isAuth, role, permissions = [], forcePasswordChange } = useSelector((state) => state.user);
   const location = useLocation();
@@ -129,6 +140,9 @@ function ProtectedRoutes({ children, permission }) {
 
   return children;
 }
+ProtectedRoutes.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 function useHasPermission(permission) {
   const permissions = useSelector((state) => state.user.permissions);
@@ -141,13 +155,16 @@ function AdminRoute({ children }) {
   if (!["admin", "super admin", "cashier", "accountant", "asset manager", "read only", "hr manager", "payroll manager"].includes(String(role || "").toLowerCase()) &&
       !permissions.some((permission) => [
         "users.view", "staff.view", "assets.view", "dashboard.view", "menu.view",
-        "inventory.view", "orders.view", "payments.process", "finance.view", "settings.view",
+        "inventory.view", "orders.view", "payments.process", "finance.view", "settings.view", "coupons.manage",
       ].includes(permission))) {
     return <Navigate to="/" replace />;
   }
 
   return children;
 }
+AdminRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 function App() {
   return (

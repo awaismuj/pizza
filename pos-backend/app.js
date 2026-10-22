@@ -15,6 +15,8 @@ connectDB();
 
 const allowedOrigins = [
     config.frontendUrl,
+    'http://localhost:4175',
+    'http://127.0.0.1:4175',
     config.storeUrl,
     // POS frontend dev server (vite default)
     'http://localhost:5173',
@@ -59,11 +61,13 @@ app.get("/", (req,res) => {
 
 // Other Endpoints
 app.use("/api/user", require("./routes/userRoute"));
+app.use("/api/customer", require("./routes/customerRoute"));
 app.use("/api/order", require("./routes/orderRoute"));
 app.use("/api/table", require("./routes/tableRoute"));
 app.use("/api/category", require("./routes/categoryRoute"));
 app.use("/api/dish", require("./routes/dishRoute"));
 app.use("/api/deal", require("./routes/dealRoute"));
+app.use("/api/coupon", require("./routes/couponRoute"));
 app.use("/api/hero-slide", require("./routes/heroSlideRoute"));
 app.use("/api/inventory", require("./routes/inventoryRoute"));
 app.use("/api/assets", require("./routes/assetRoute"));
@@ -71,6 +75,7 @@ app.use("/api/expense", require("./routes/expenseRoute"));
 app.use("/api/profit", require("./routes/profitRoute"));
 app.use("/api/payment", require("./routes/paymentRoute"));
 app.use("/api/upload", require("./routes/uploadRoute"));
+app.use("/api/poster", require("./routes/posterRoute"));
 app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));

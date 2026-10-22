@@ -26,6 +26,7 @@ const orderSchema = new mongoose.Schema({
         guests: { type: Number, required: true },
         address: { type: String, default: "" },
     },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null, index: true },
     orderStatus: {
         type: String,
         required: true,
@@ -94,6 +95,7 @@ const orderSchema = new mongoose.Schema({
         discount: { type: Number, default: 0 },
         discountPercent: { type: Number, default: 0 },
         discountLabel: { type: String, default: "" },
+        couponDiscount: { type: Number, default: 0 },
         // Delivery charge, added AFTER tax (it is not taxed). 0 for pickup.
         deliveryFee: { type: Number, default: 0 },
     },
@@ -109,6 +111,10 @@ const orderSchema = new mongoose.Schema({
         minOrder: { type: Number, default: 0 },
         estimatedMinutes: { min: Number, max: Number },
         estimatedAt: Date,
+    },
+    coupon: {
+        couponId: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon", default: null },
+        code: { type: String, default: "" },
     },
     items: [],
     table: { type: mongoose.Schema.Types.ObjectId, ref: "Table" },

@@ -92,14 +92,14 @@ const PaymentsOverview = () => {
 
   if (isError) {
     return (
-      <div className="container mx-auto py-2 px-6 md:px-4 text-red-400 text-sm">
+      <div className="mx-auto w-full py-2 px-6 md:px-4 text-red-400 text-sm">
         Couldn't load orders — check the connection to the server and try again.
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-2 px-6 md:px-4">
+    <div className="mx-auto w-full py-2 px-6 md:px-4">
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h2 className="font-semibold text-[#f5f5f5] text-xl">Payments</h2>
