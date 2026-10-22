@@ -52,10 +52,10 @@ const sendSignupApprovalRequest = async (user) => {
 
   return sendMail({
     to: config.adminApprovalEmail,
-    subject: `New ${user.role} signup awaiting approval — ${user.name}`,
+    subject: `New ${user.role} account awaiting approval — ${user.name}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px;">
-        <h2>New staff signup</h2>
+        <h2>New staff account awaiting approval</h2>
         <p><strong>Name:</strong> ${user.name}</p>
         <p><strong>Email:</strong> ${user.email}</p>
         <p><strong>Phone:</strong> ${user.phone}</p>

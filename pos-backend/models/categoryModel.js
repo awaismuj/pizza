@@ -13,7 +13,7 @@ const categorySchema = new mongoose.Schema({
   },
   icon: {
     type: String,
-    default: "🍽️",
+    default: "utensils",
   },
   order: {
     type: Number,

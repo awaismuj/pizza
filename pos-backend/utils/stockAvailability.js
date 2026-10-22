@@ -190,7 +190,7 @@ const loadContext = async ({ fresh = false } = {}) => {
   const [invItems, dishes, pendingOrders] = await Promise.all([
     InventoryItem.find().select("name unit quantity isTrackable").lean(),
     Dish.find().select("name isInventoryTracked inventoryItem inventoryItemQty ingredients variantIngredients").lean(),
-    Order.find({ orderSource: "Online", orderStatus: "Pending", inventoryDeducted: { $ne: true } })
+    Order.find({ orderSource: "Online", orderStatus: { $in: ["Pending", "Payment Pending Verification"] }, inventoryDeducted: { $ne: true } })
       .select("items")
       .lean(),
   ]);

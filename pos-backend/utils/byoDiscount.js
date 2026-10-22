@@ -8,6 +8,8 @@ const DEFAULT_BYO = {
   discount3: 15,
   discount4: 17,
   discount5Plus: 20,
+  description:
+    "Pick any 3 or more items from our menu — pizzas, burgers, wings, drinks, anything. The more you add, the more you save. No codes, the discount applies automatically.",
 };
 
 // Settings documents created before this feature existed have no
@@ -21,6 +23,7 @@ const normalizeByoConfig = (raw) => {
     discount3: num(src.discount3, DEFAULT_BYO.discount3),
     discount4: num(src.discount4, DEFAULT_BYO.discount4),
     discount5Plus: num(src.discount5Plus, DEFAULT_BYO.discount5Plus),
+    description: typeof src.description === "string" ? src.description : DEFAULT_BYO.description,
   };
 };
 
