@@ -1,4 +1,5 @@
 const createHttpError = require("http-errors");
+const config = require("../config/config");
 const Order = require("../models/orderModel");
 const Table = require("../models/tableModel");
 const DeletedOrderLog = require("../models/deletedOrderLogModel");
@@ -31,6 +32,11 @@ const {
 } = require("../utils/prepTimer");
 const { stampDueAlerts } = require("../services/prepAlertScheduler");
 const {
+  isValidIdempotencyKey,
+  digestIdempotencyKey,
+  fingerprintRequest,
+} = require("../services/idempotency");
+const {
   WAITING_STATUS,
   resolvePublicPayment,
   publicPayment,
@@ -60,6 +66,19 @@ const canCancelOrder = (req) =>
   ["cashier", "admin"].includes(String(req.user?.role || "").toLowerCase());
 
 const couponDisplayCode = (result) => result?.customerCoupon ? "CUSTOMER REWARD" : result?.code;
+
+const publicOrderResponse = (order) => {
+  const orderData = order.toObject ? order.toObject() : order;
+  delete orderData.idempotencyKeyHash;
+  delete orderData.idempotencyRequestHash;
+  return {
+    success: true,
+    message: isJazzcashOrder(order)
+      ? "Order received! We'll verify your payment and confirm shortly."
+      : "Order placed! You'll see live status updates here.",
+    data: { ...orderData, payment: publicPayment(order), jazzcash: undefined, jazzcashTid: undefined, prep: undefined },
+  };
+};
 
 const addOrder = async (req, res, next) => {
   let deductions = [];
@@ -226,6 +245,23 @@ const addOrder = async (req, res, next) => {
 // so a customer can't hold stock hostage by never checking out.
 const addPublicOrder = async (req, res, next) => {
   try {
+    const idempotencyKey = req.get("Idempotency-Key");
+    if (!isValidIdempotencyKey(idempotencyKey)) {
+      throw createHttpError(400, "A valid Idempotency-Key header is required for checkout.");
+    }
+    const idempotencyKeyHash = digestIdempotencyKey(idempotencyKey, config.idempotencySecret);
+    const idempotencyRequestHash = fingerprintRequest(req.body, req.customer?._id, config.idempotencySecret);
+    const priorOrder = await Order.findOne({
+      orderSource: "Online",
+      idempotencyKeyHash,
+    }).select("+idempotencyRequestHash");
+    if (priorOrder) {
+      if (priorOrder.idempotencyRequestHash !== idempotencyRequestHash) {
+        throw createHttpError(409, "This checkout key was already used with different order details. Please review your order.");
+      }
+      return res.status(200).json(publicOrderResponse(priorOrder));
+    }
+
     const {
       customerName,
       customerPhone,
@@ -470,6 +506,8 @@ const addPublicOrder = async (req, res, next) => {
       },
       orderStatus: isJazz ? WAITING_STATUS : "Pending",
       orderSource: "Online",
+      idempotencyKeyHash,
+      idempotencyRequestHash,
       customerId: req.customer?._id || null,
       statusHistory: [{ status: isJazz ? WAITING_STATUS : "Pending", at: new Date() }],
       bills: {
@@ -505,6 +543,7 @@ const addPublicOrder = async (req, res, next) => {
     const prep = buildPrepForNewOrder(settings.orderPrep, { source: "Online" });
     if (prep) order.prep = prep;
 
+    let paymentProofClaimed = false;
     const saveOrder = async (session) => {
       if (couponResult) {
         await reserveRedemption({
@@ -535,6 +574,7 @@ const addPublicOrder = async (req, res, next) => {
         if (session) proofQuery.session(session);
         const claimed = await proofQuery;
         if (!claimed) throw createHttpError(400, "Your payment screenshot expired or was already used. Please upload it again.");
+        paymentProofClaimed = true;
       }
       await order.save(session ? { session } : undefined);
       if (isJazz) {
@@ -585,7 +625,13 @@ const addPublicOrder = async (req, res, next) => {
       try {
         await saveOrder(null);
       } catch (saveError) {
-        await PaymentProof.updateOne({ _id: payment.proofId }, { attached: false }).catch(() => {});
+        if (paymentProofClaimed) {
+          try {
+            await PaymentProof.updateOne({ _id: payment.proofId }, { attached: false });
+          } catch (cleanupError) {
+            console.error("Failed to release payment proof after checkout failed:", cleanupError.message);
+          }
+        }
         if (saveError?.code === 11000 && saveError?.keyPattern?.jazzcashTid) {
           return next(createHttpError(409, "This Transaction ID was already used on another order. Please check the TID, or contact us on WhatsApp."));
         }
@@ -596,14 +642,24 @@ const addPublicOrder = async (req, res, next) => {
     }
     invalidateAvailabilityCache(); // this order now reserves stock
 
-    res.status(201).json({
-      success: true,
-      message: isJazz
-        ? "Order received! We'll verify your payment and confirm shortly."
-        : "Order placed! You'll see live status updates here.",
-      data: { ...order.toObject(), payment: publicPayment(order), jazzcash: undefined, jazzcashTid: undefined, prep: undefined },
-    });
+    res.status(201).json(publicOrderResponse(order));
   } catch (error) {
+    if (error?.code === 11000 && error?.keyPattern?.idempotencyKeyHash) {
+      try {
+        const idempotencyKey = req.get("Idempotency-Key");
+        const keyHash = digestIdempotencyKey(idempotencyKey, config.idempotencySecret);
+        const priorOrder = await Order.findOne({ orderSource: "Online", idempotencyKeyHash: keyHash })
+          .select("+idempotencyRequestHash");
+        if (priorOrder?.idempotencyRequestHash === fingerprintRequest(req.body, req.customer?._id, config.idempotencySecret)) {
+          return res.status(200).json(publicOrderResponse(priorOrder));
+        }
+        if (priorOrder) {
+          return next(createHttpError(409, "This checkout key was already used with different order details. Please review your order."));
+        }
+      } catch (lookupError) {
+        return next(lookupError);
+      }
+    }
     next(error);
   }
 };

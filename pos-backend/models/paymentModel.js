@@ -10,7 +10,16 @@ const paymentSchema = new mongoose.Schema({
     email: String,
     contact: String,
     createdAt: Date
-})
+}, { autoIndex: false })
+
+paymentSchema.index(
+    { paymentId: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { paymentId: { $type: "string" } },
+        name: "uniq_payment_gateway_payment_id",
+    }
+);
 
 const Payment = mongoose.model("Payment", paymentSchema);
 module.exports = Payment;

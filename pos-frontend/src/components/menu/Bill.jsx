@@ -3,7 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { getTotalPrice } from "../../redux/slices/cartSlice";
 import {
   addOrder,
+  clearPaymentIdempotencyKey,
   createOrderRazorpay,
+  getPaymentIdempotencyKey,
   updateTable,
   verifyPaymentRazorpay,
   validatePosCoupon,
@@ -45,6 +47,16 @@ const Bill = () => {
   const discountedSubtotal = Math.max(0, total - couponDiscount);
   const tax = (discountedSubtotal * taxRate) / 100;
   const totalPriceWithTax = discountedSubtotal + tax;
+  const paymentFingerprint = JSON.stringify({
+    amount: Math.round(totalPriceWithTax * 100),
+    items: cartData.map((item) => [
+      item.dishId || item.dealId || item._id || item.id,
+      item.quantity,
+      item.size,
+      item.crust,
+    ]),
+    coupon: appliedCoupon?.code || "",
+  });
 
   const [paymentMethod, setPaymentMethod] = useState();
   const [orderInfo, setOrderInfo] = useState();
@@ -126,7 +138,10 @@ const Bill = () => {
           amount: totalPriceWithTax.toFixed(2),
         };
 
-        const { data } = await createOrderRazorpay(reqData);
+        const { data } = await createOrderRazorpay(
+          reqData,
+          getPaymentIdempotencyKey(paymentFingerprint)
+        );
 
         const options = {
           key: `${import.meta.env.VITE_RAZORPAY_KEY_ID}`,
@@ -182,7 +197,6 @@ const Bill = () => {
                 orderMutation.mutate(orderData);
               }, 1500);
             } catch (verifyError) {
-              console.log(verifyError);
               enqueueSnackbar(
                 "Payment was charged but verification failed to reach the server. Note the Razorpay payment ID and place this order manually.",
                 { variant: "error", autoHideDuration: 10000 }
@@ -200,8 +214,7 @@ const Bill = () => {
         const rzp = new window.Razorpay(options);
         rzp.open();
       } catch (error) {
-        console.log(error);
-        enqueueSnackbar("Payment Failed!", {
+        enqueueSnackbar(error?.response?.data?.message || error.message || "Payment failed to start.", {
           variant: "error",
         });
       }
@@ -258,6 +271,7 @@ const Bill = () => {
       enqueueSnackbar("Order Placed!", {
         variant: "success",
       });
+      clearPaymentIdempotencyKey();
       // Send the kitchen order slip to print now — the order has been rung
       // in and is going into preparation, same as an online order does.
       setShowKitchenSlip(true);

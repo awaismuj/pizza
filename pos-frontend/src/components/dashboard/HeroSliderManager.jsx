@@ -174,7 +174,7 @@ const HeroSliderManager = () => {
               {form.image && (
                 <img
                   src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
-                  alt="Slide preview"
+                  alt={form.altText || "Promotional slide image preview"}
                   className="w-24 h-16 rounded object-cover border border-[#3a3a3a]"
                 />
               )}
@@ -256,7 +256,7 @@ const HeroSliderManager = () => {
                 <div className="flex gap-3 min-w-0">
                   <img
                     src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
-                    alt={slide.altText || ""}
+                    alt={slide.altText || `Promotional slide ${index + 1}`}
                     className="w-16 h-12 rounded object-cover border border-[#3a3a3a] shrink-0"
                   />
                   <div className="min-w-0">

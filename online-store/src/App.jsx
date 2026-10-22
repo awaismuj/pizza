@@ -13,6 +13,8 @@ import {
   getPublicSettings,
   getPublicReviews,
   submitReview,
+  getCheckoutIdempotencyKey,
+  clearCheckoutIdempotencyKey,
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
@@ -32,6 +34,7 @@ import { I, FoodIcon } from "./AppIcons.jsx";
 import { FulfillmentPicker, FULFILLMENT_STYLES, useFulfillment } from "./Fulfillment.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
 import CustomerAccount, { useCustomerAccount } from "./CustomerAccount.jsx";
+import { PrivacyPolicy, StoreNotFound } from "./StorePages.jsx";
 
 /* ---------------------------------------------------------------------------
    Everything the storefront needs lives in this one file: styles, fonts and
@@ -2822,7 +2825,7 @@ const HeroSlider = ({ slides, onSlideClick }) => {
         <img
           key={slide.url + i}
           src={slide.url}
-          alt={slide.alt || ""}
+          alt={slide.alt || "GenZ Pizza Land menu and food promotion"}
           aria-hidden={i !== index || undefined}
           className={`gzp-slider-img${i === index ? " is-active" : ""}`}
         />
@@ -3192,7 +3195,7 @@ const Header = ({ minimal, cartCount, customer, onSearch, onCart, onNavigate, on
 
 /* ================================ App ================================ */
 
-function App() {
+function StorefrontHome() {
   const [customer, setCustomer] = useCustomerAccount();
   const [customerAccountOpen, setCustomerAccountOpen] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -3234,6 +3237,7 @@ function App() {
   const [reviewSubmitMessage, setReviewSubmitMessage] = useState({ type: "", text: "" });
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const placingRef = useRef(false);
   const [refreshingStatus, setRefreshingStatus] = useState(false);
 
   const [orderId, setOrderId] = useState(() => localStorage.getItem("gzp_last_order") || null);
@@ -3293,6 +3297,7 @@ function App() {
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [quickView, setQuickView] = useState(null); // { type, item }
   // Size/crust picked in the quick-view modal — reset every time a
   // different item is opened so a previous dish's selection never leaks
@@ -3471,7 +3476,7 @@ function App() {
   }, [categories]);
 
   const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (!q) return [];
     const hits = [];
     deals.forEach((d) => {
@@ -3481,7 +3486,12 @@ function App() {
       if (d.name.toLowerCase().includes(q)) hits.push({ type: "dish", item: d });
     });
     return hits.slice(0, 20);
-  }, [query, dishes, deals]);
+  }, [debouncedQuery, dishes, deals]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedQuery(query), 180);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
 
   /* ---------------- Cart ---------------- */
 
@@ -3581,6 +3591,34 @@ function App() {
   // Delivery / pickup: the server prices and validates the choice; the fee
   // is added here so the total updates the moment the method changes.
   const fulfil = useFulfillment(subtotal);
+  const checkoutIntentSnapshot = useRef(null);
+  useEffect(() => {
+    const snapshot = JSON.stringify({
+      cart,
+      name: form.name,
+      phone: form.phone,
+      fulfillment: [fulfil.method, fulfil.branchId, fulfil.zoneId, fulfil.address],
+      payment: [payMethod, jazz.tid, jazz.sender, jazz.proofId],
+      coupon: appliedCoupon?.code || "",
+    });
+    if (checkoutIntentSnapshot.current !== null && checkoutIntentSnapshot.current !== snapshot) {
+      clearCheckoutIdempotencyKey();
+    }
+    checkoutIntentSnapshot.current = snapshot;
+  }, [
+    cart,
+    form.name,
+    form.phone,
+    fulfil.method,
+    fulfil.branchId,
+    fulfil.zoneId,
+    fulfil.address,
+    payMethod,
+    jazz.tid,
+    jazz.sender,
+    jazz.proofId,
+    appliedCoupon?.code,
+  ]);
   const total = cartTotal + fulfil.fee;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
 
@@ -3918,6 +3956,7 @@ function App() {
 
   const handleCheckout = async (e) => {
     e.preventDefault();
+    if (placingRef.current) return;
     if (cartLines.length === 0) return;
     if (byoBlocked) {
       setError(
@@ -3943,11 +3982,12 @@ function App() {
       return;
     }
 
+    placingRef.current = true;
     setPlacing(true);
     setError("");
 
     try {
-      const res = await placeOrder({
+      const payload = {
         customerName: form.name,
         customerPhone: form.phone,
         address: fulfil.method === "delivery" ? fulfil.address : "",
@@ -3972,8 +4012,10 @@ function App() {
                 byo: l.type === "byo" ? true : undefined,
               }
         ),
-      });
+      };
+      const res = await placeOrder(payload, getCheckoutIdempotencyKey());
 
+      clearCheckoutIdempotencyKey();
       const newOrderId = res.data._id;
       localStorage.setItem("gzp_last_order", newOrderId);
       setOrderId(newOrderId);
@@ -3992,6 +4034,7 @@ function App() {
       if (err.status === 409 || /Build Your Own/i.test(err.message || "")) refreshMenu();
       setError(err.message);
     } finally {
+      placingRef.current = false;
       setPlacing(false);
     }
   };
@@ -4163,7 +4206,7 @@ function App() {
   const renderCartLine = (l) => (
     <div key={l.key} className="gzp-line">
       {resolveImageUrl(l.item.image) ? (
-        <img src={resolveImageUrl(l.item.image)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+        <img src={resolveImageUrl(l.item.image)} alt={l.item.name || "Menu item"} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = "none"; }} />
       ) : (
         <span className="gzp-line-icon"><FoodIcon icon={l.item.icon} /></span>
       )}
@@ -4996,7 +5039,7 @@ function App() {
                 }}
               >
                 {resolveImageUrl(item.image) ? (
-                  <img src={resolveImageUrl(item.image)} alt="" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                  <img src={resolveImageUrl(item.image)} alt={item.name || "Menu item"} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 ) : (
                   <span className="gzp-result-icon"><FoodIcon icon={item.icon} /></span>
                 )}
@@ -5687,6 +5730,98 @@ function App() {
       {showAllReviews && <AllReviewsPage />}
     </div>
   );
+}
+
+function App() {
+  const [pathname, setPathname] = useState(window.location.pathname.replace(/\/+$/, "") || "/");
+
+  useEffect(() => {
+    const updatePath = () => setPathname(window.location.pathname.replace(/\/+$/, "") || "/");
+    window.addEventListener("popstate", updatePath);
+    return () => window.removeEventListener("popstate", updatePath);
+  }, []);
+
+  useEffect(() => {
+    const pages = {
+      "/": {
+        title: "Pizza, Burgers & Deals in Gojra | GenZ Pizza Land",
+        description: "Order fresh pizza, burgers and deals online from GenZ Pizza Land in Gojra. Choose delivery or pickup, pay at the door or by JazzCash/Raast.",
+        canonical: "https://genzpizza.online/",
+        robots: "index,follow",
+      },
+      "/privacy": {
+        title: "Privacy Policy | GenZ Pizza Land",
+        description: "Learn how GenZ Pizza Land uses and protects information for online orders, customer accounts, payment verification and reviews.",
+        canonical: "https://genzpizza.online/privacy",
+        robots: "index,follow",
+      },
+    };
+    const page = pages[pathname] || {
+      title: "Page Not Found | GenZ Pizza Land",
+      description: "The page you requested could not be found. Return to the GenZ Pizza Land online store.",
+      canonical: "",
+      robots: "noindex,nofollow",
+    };
+    document.title = page.title;
+    const setMeta = (selector, attributes, content) => {
+      let meta = document.head.querySelector(selector);
+      if (!meta) {
+        meta = document.createElement("meta");
+        Object.entries(attributes).forEach(([key, value]) => meta.setAttribute(key, value));
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", content);
+    };
+    setMeta('meta[name="description"]', { name: "description" }, page.description);
+    setMeta('meta[name="robots"]', { name: "robots" }, page.robots);
+    setMeta('meta[property="og:title"]', { property: "og:title" }, page.title);
+    setMeta('meta[property="og:description"]', { property: "og:description" }, page.description);
+    setMeta('meta[property="og:url"]', { property: "og:url" }, page.canonical || `https://genzpizza.online${pathname}`);
+    let canonical = document.head.querySelector('link[rel="canonical"]');
+    if (page.canonical) {
+      if (!canonical) {
+        canonical = document.createElement("link");
+        canonical.rel = "canonical";
+        document.head.appendChild(canonical);
+      }
+      canonical.href = page.canonical;
+    } else {
+      canonical?.remove();
+    }
+
+    let structuredData = document.getElementById("gzp-structured-data");
+    if (page.canonical) {
+      if (!structuredData) {
+        structuredData = document.createElement("script");
+        structuredData.id = "gzp-structured-data";
+        structuredData.type = "application/ld+json";
+        document.head.appendChild(structuredData);
+      }
+      structuredData.textContent = JSON.stringify(pathname === "/"
+        ? {
+            "@context": "https://schema.org",
+            "@type": "Restaurant",
+            name: "GenZ Pizza Land",
+            url: page.canonical,
+            servesCuisine: ["Pizza", "Burgers", "Fast Food"],
+            address: { "@type": "PostalAddress", addressLocality: "Gojra", addressCountry: "PK" },
+          }
+        : {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://genzpizza.online/" },
+              { "@type": "ListItem", position: 2, name: "Privacy Policy", item: page.canonical },
+            ],
+          });
+    } else {
+      structuredData?.remove();
+    }
+  }, [pathname]);
+
+  if (pathname === "/") return <StorefrontHome />;
+  if (pathname === "/privacy") return <PrivacyPolicy />;
+  return <StoreNotFound />;
 }
 
 export default App;

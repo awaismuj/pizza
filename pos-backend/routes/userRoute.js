@@ -7,12 +7,21 @@ const {
     getPermissionCatalog,
 } = require("../controllers/userController");
 const { isVerifiedUser } = require("../middlewares/tokenVerification");
+const createRateLimiter = require("../middlewares/createRateLimiter");
 const router = express.Router();
 
 
 // Authentication Routes
-router.route("/register").post(register);
-router.route("/login").post(login);
+router.route("/register").post(createRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 5,
+    message: "Too many registration attempts. Please try again later.",
+}), register);
+router.route("/login").post(createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 10,
+    message: "Too many sign-in attempts. Please wait before trying again.",
+}), login);
 router.route("/logout").post(isVerifiedUser, logout)
 router.route("/management").get(isVerifiedUser, listUsers).post(isVerifiedUser, createManagedUser);
 router.route("/management/:id").get(isVerifiedUser, getManagedUser).put(isVerifiedUser, updateManagedUser);
