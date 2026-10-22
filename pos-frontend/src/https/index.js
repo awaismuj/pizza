@@ -1,19 +1,4 @@
-import axios from "axios";
 import { axiosWrapper } from "./axiosWrapper";
-
-// API Endpoints
-export const generatePosterFoodImage = ({ itemName, style }) =>
-  axios.post(
-    `${axiosWrapper.defaults.baseURL}/api/poster/generate`,
-    { itemName, style },
-    { timeout: 120000, withCredentials: true }
-  );
-export const generateFullPosterDesign = (posterDetails) =>
-  axios.post(
-    `${axiosWrapper.defaults.baseURL}/api/poster/design`,
-    posterDetails,
-    { timeout: 180000, withCredentials: true }
-  );
 
 // Auth Endpoints
 export const login = (data) => axiosWrapper.post("/api/user/login", data);

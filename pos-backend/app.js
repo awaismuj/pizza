@@ -75,7 +75,6 @@ app.use("/api/expense", require("./routes/expenseRoute"));
 app.use("/api/profit", require("./routes/profitRoute"));
 app.use("/api/payment", require("./routes/paymentRoute"));
 app.use("/api/upload", require("./routes/uploadRoute"));
-app.use("/api/poster", require("./routes/posterRoute"));
 app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
