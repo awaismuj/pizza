@@ -27,25 +27,7 @@ const Auth = () => {
               <span className="mt-2 block">Portal</span>
             </h1>
 
-            <p className="mt-6 max-w-lg text-base text-[#d8dfe8] opacity-90">
-              Unified order management, kitchen display, shift reconciliation,
-              inventory controls, and ERP back-office.
-            </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              {[
-                "Instant Table Sync",
-                "POS/Th",
-                "Real-Time Financials",
-              ].map((label) => (
-                <span
-                  key={label}
-                  className="rounded-md border border-[#dfe8f8]/15 bg-[#091522]/70 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.08em] text-[#edf3ff]"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
           </div>
         </div>
       </div>
