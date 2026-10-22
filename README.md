@@ -72,6 +72,7 @@ Create a file named `.env` inside the `pos-frontend` folder:
 
 ```env
 VITE_BACKEND_URL=http://localhost:3000
+# Publishable key ID only; never put a payment secret in VITE_ variables.
 VITE_RAZORPAY_KEY_ID=
 ```
 
@@ -417,18 +418,53 @@ The public validation endpoint uses a process-local IP limit; deployments
 running multiple backend instances should put a shared/distributed rate
 limiter at the gateway or replace the middleware with a shared store.
 
+Public online checkout and POS Razorpay payment setup require an
+`Idempotency-Key`. The storefront reuses its key for unchanged checkout
+retries, and the POS reuses its key for the same payment amount. The backend
+returns the original order/payment setup instead of creating duplicates.
+Razorpay captured-payment webhooks are also persisted once per gateway
+payment ID. Before enabling these changes, run
+`npm run migrate:payment-idempotency` from `pos-backend` to add the required
+unique and expiry indexes. The migration stops if prior webhook deliveries
+left duplicate payment IDs; reconcile those records before retrying it.
+Configure a unique `IDEMPOTENCY_SECRET` of at least 32 characters and keep it
+stable across deployments. If omitted, the backend falls back to
+`JWT_SECRET`; changing the idempotency secret invalidates hashes for active
+retry keys.
+
+The backend rejects MongoDB operator/dotted keys in JSON and query input,
+limits JSON request bodies, adds baseline security headers, and rate-limits
+sign-in, registration, checkout, payment setup/verification, and payment-proof uploads.
+These in-memory rate limits are per backend process; use a shared
+gateway/store for multi-instance production deployments. Production startup
+also requires a unique `JWT_SECRET` of at least 32 characters.
+
+The public storefront exposes its home and privacy policy pages through
+`online-store/public/sitemap.xml` and `robots.txt`; the POS app is marked
+`noindex`. The storefront includes an app-level not-found page and static
+`404.html`; configure the web host to serve that file with an HTTP 404 status
+for unknown paths. Large uploaded images are resized/compressed in the POS
+browser before upload when supported. Existing review spam controls include
+a honeypot and rate limit; delivery quote and menu search inputs are
+debounced.
+
 ### Deployment and rollback
 
-1. Back up MongoDB and deploy the backend and frontend changes together.
+1. Back up MongoDB before deployment.
 2. Verify the configured `MONGODB_URI` points to a transaction-capable
    deployment.
-3. From `pos-backend`, run `npm run migrate` to apply the bootstrap index
+3. Deploy the backend, then from `pos-backend` run
+   `npm run migrate:payment-idempotency` to add the checkout/payment
+   retry-protection indexes. Reconcile any duplicate legacy webhook payment
+   IDs reported by the migration before retrying.
+4. Before enabling the updated storefront, build and deploy `online-store`.
+5. From `pos-backend`, run `npm run migrate` to apply the bootstrap index
    setup. This existing bootstrap command may also create the configured
    default admin if it does not exist; review its output.
-4. Build/deploy `pos-frontend` and `online-store`. For customer registration,
+6. Build/deploy `pos-frontend`. For customer registration,
    configure SMTP as described below; no scheduled job is required for the
    current manual assignment flow.
-5. Create a draft coupon, verify its dates/rules, then activate it and test
+7. Create a draft coupon, verify its dates/rules, then activate it and test
    both POS and online checkouts with a small campaign limit before publishing.
 
 Rollback consists of redeploying the prior application versions. No existing

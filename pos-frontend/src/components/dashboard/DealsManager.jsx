@@ -566,7 +566,7 @@ const DealsManager = () => {
                 {form.image && (
                   <img
                     src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
-                    alt="Deal"
+                    alt={form.name ? `${form.name} deal preview` : "Deal image preview"}
                     className="w-14 h-14 rounded object-cover border border-[#3a3a3a]"
                   />
                 )}
