@@ -312,6 +312,65 @@ Before/after running it, read the console output carefully:
 
 ---
 
+## Coupons and promotions
+
+The POS dashboard now includes **Coupons**. The first release supports shared
+percentage and fixed-amount codes for POS and online orders, with status and
+date windows, campaign/per-phone limits, minimum eligible subtotal, optional
+discount caps, product/category allowlists and exclusions, first-order checks,
+and a stacking toggle. The storefront and POS validate codes through the
+backend, and the backend recalculates item prices before persisting the order
+and discount snapshot. A valid mobile number is required in both channels so
+per-customer redemption limits do not collapse into a shared anonymous POS
+identity. Existing Deals and Build Your Own behavior remain separate.
+
+### Price and redemption policy
+
+The existing order calculation sequence is preserved: resolve current menu
+prices → apply the existing Build Your Own discount (online only) → apply an
+eligible coupon discount → calculate tax using the live Settings tax rate.
+Coupons never reduce the eligible subtotal below zero. Order bills store the
+discount, coupon code, and applied amount at order time, so later coupon edits
+do not rewrite old receipt values. Online orders reserve a redemption while
+Pending; cancellation or deletion reverses it. Completed/closed orders cannot
+be cancelled through the existing workflow.
+
+Coupon counters and the order/redemption records are written in a MongoDB
+transaction. Production MongoDB must therefore support transactions (for
+example, MongoDB Atlas or a replica set); standalone MongoDB instances are not
+suitable for coupon checkout. Validation by itself does not consume a use.
+The public validation endpoint uses a process-local IP limit; deployments
+running multiple backend instances should put a shared/distributed rate
+limiter at the gateway or replace the middleware with a shared store.
+
+### Deployment and rollback
+
+1. Back up MongoDB and deploy the backend and frontend changes together.
+2. Verify the configured `MONGODB_URI` points to a transaction-capable
+   deployment.
+3. From `pos-backend`, run `npm run migrate` to apply the bootstrap index
+   setup. This existing bootstrap command may also create the configured
+   default admin if it does not exist; review its output.
+4. Build/deploy `pos-frontend` and `online-store`; no new environment
+   variables or scheduled jobs are required.
+5. Create a draft coupon, verify its dates/rules, then activate it and test
+   both POS and online checkouts with a small campaign limit before publishing.
+
+Rollback consists of redeploying the prior application versions. No existing
+orders are rewritten and no collection is dropped; coupon definitions and
+redemption records are retained for audit. Do not manually delete coupon
+records that have redemptions.
+
+This release does not introduce customer accounts, private customer coupon
+assignments, automated welcome/loyalty/birthday/referral/win-back jobs, free
+delivery/product/BOGO rewards, pickup/delivery channel data, or incremental
+revenue attribution. The current customer identity is an order phone number,
+which is suitable for basic per-phone limits but is not authenticated proof
+of identity. Those features need a customer identity/consent model and
+additional order data before they can be implemented safely.
+
+---
+
 ## 🎨 Branding / Logo
 
 The GenZ Pizza Land logo lives in `/branding` at the project root, exported

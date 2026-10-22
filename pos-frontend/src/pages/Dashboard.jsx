@@ -9,6 +9,7 @@ import Metrics from "../components/dashboard/Metrics";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Modal from "../components/dashboard/Modal";
 import DealsManager from "../components/dashboard/DealsManager";
+import CouponsManager from "../components/dashboard/CouponsManager";
 import HeroSliderManager from "../components/dashboard/HeroSliderManager";
 import ProfitExpenses from "../components/dashboard/ProfitExpenses";
 import PaymentsOverview from "../components/dashboard/PaymentsOverview";
@@ -39,7 +40,7 @@ const buttons = [
   { label: "Add Dishes", icon: <BiSolidDish />, action: "dishes" },
 ];
 
-const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Poster Maker"];
+const tabs = ["Metrics", "Orders", "Payments", "Menu", "Deals", "Coupons", "Hero Slider", "Profit", "Inventory", "Staff", "Build Your Own", "Tax", "Poster Maker"];
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -575,6 +576,8 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {activeTab === "Coupons" && <CouponsManager />}
 
       {activeTab === "Deals" && (
         <div className="container mx-auto px-6 pb-10">

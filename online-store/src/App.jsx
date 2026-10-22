@@ -5,6 +5,7 @@ import {
   getPublicDeals,
   getPublicHeroSlides,
   placeOrder,
+  validatePublicCoupon,
   getOrderStatus,
   cancelOrder,
   lookupOrderByPhone,
@@ -2727,6 +2728,9 @@ function App() {
   const [cart, setCart] = useState({}); // { "dish:<id>" | "deal:<id>": quantity }
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -2744,6 +2748,8 @@ function App() {
   // the header lets them jump back into full tracking any time.
   const [trackingDismissed, setTrackingDismissed] = useState(false);
   const orderStillActive = order && !["Completed", "Closed", "Cancelled"].includes(order.orderStatus);
+  const orderCouponDiscount = Number(order?.bills?.couponDiscount) || 0;
+  const orderOtherDiscount = Math.max(0, (Number(order?.bills?.discount) || 0) - orderCouponDiscount);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
 
   const [activeSection, setActiveSection] = useState(DEALS_SECTION_ID);
@@ -3047,7 +3053,8 @@ function App() {
   // can't be ordered as-is - the customer is shown why instead of an error.
   const byoBlocked = byoUnits > 0 && (byoShort > 0 || !byoConfig.enabled);
 
-  const subtotal = grossSubtotal - byoDiscount; // after discount: what tax is charged on
+  const couponDiscount = appliedCoupon?.discountAmount || 0;
+  const subtotal = Math.max(0, grossSubtotal - byoDiscount - couponDiscount); // after discounts: what tax is charged on
   const tax = (subtotal * taxRatePercent) / 100;
   const total = subtotal + tax;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
@@ -3064,6 +3071,10 @@ function App() {
   cartRef.current = cart;
   const menuRef = useRef({ dishes, deals });
   menuRef.current = { dishes, deals };
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+  }, [cart, form.phone]);
 
   // How many of a dish/deal are already in the cart, across all its
   // size/crust lines (they all draw from the same stock).
@@ -3326,6 +3337,7 @@ function App() {
         customerName: form.name,
         customerPhone: form.phone,
         address: form.address,
+        couponCode: appliedCoupon?.code || undefined,
         items: cartLines.map((l) =>
           l.type === "deal"
             ? { dealId: l.item._id, quantity: l.qty, dealSelections: l.dealSelections || undefined }
@@ -3357,6 +3369,43 @@ function App() {
       setError(err.message);
     } finally {
       setPlacing(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) {
+      setError("Enter a coupon code.");
+      return;
+    }
+    if (!isValidPhone(form.phone)) {
+      setError("Enter your mobile number before applying a coupon.");
+      return;
+    }
+    setValidatingCoupon(true);
+    setError("");
+    try {
+      const result = await validatePublicCoupon({
+        code: couponInput,
+        phone: form.phone,
+        items: cartLines.map((line) =>
+          line.type === "deal"
+            ? { dealId: line.item._id, quantity: line.qty }
+            : {
+                dishId: line.item._id,
+                quantity: line.qty,
+                size: line.size || undefined,
+                crust: line.crust || undefined,
+                byo: line.type === "byo" || undefined,
+              }
+        ),
+      });
+      setAppliedCoupon({ code: result.data.code, discountAmount: result.data.discountAmount });
+      setError("");
+    } catch (err) {
+      setAppliedCoupon(null);
+      setError(err.message);
+    } finally {
+      setValidatingCoupon(false);
     }
   };
 
@@ -3629,10 +3678,20 @@ function App() {
 
               <div className="gzp-totals" style={{ marginTop: 14 }}>
                 {Number(order.bills?.discount) > 0 && (
-                  <div className="is-discount">
-                    <span>{order.bills.discountLabel || "Build Your Own Deal discount"}</span>
-                    <span>−{formatRs(order.bills.discount)}</span>
-                  </div>
+                  <>
+                    {orderOtherDiscount > 0 && (
+                      <div className="is-discount">
+                        <span>Build Your Own Deal discount</span>
+                        <span>−{formatRs(orderOtherDiscount)}</span>
+                      </div>
+                    )}
+                    {orderCouponDiscount > 0 && (
+                      <div className="is-discount">
+                        <span>Coupon ({order.coupon?.code || "discount"})</span>
+                        <span>−{formatRs(orderCouponDiscount)}</span>
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="gzp-grand">
                   <span>Pay on delivery</span>
@@ -4489,6 +4548,42 @@ function App() {
                     />
                   </label>
 
+                  <div className="gzp-field">
+                    <span>Coupon code</span>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        aria-label="Coupon code"
+                        disabled={Boolean(appliedCoupon)}
+                      />
+                      {appliedCoupon ? (
+                        <button
+                          type="button"
+                          className="gzp-btn gzp-btn-ghost"
+                          onClick={() => setAppliedCoupon(null)}
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="gzp-btn gzp-btn-ghost"
+                          onClick={handleApplyCoupon}
+                          disabled={validatingCoupon}
+                        >
+                          {validatingCoupon ? "Checking…" : "Apply"}
+                        </button>
+                      )}
+                    </div>
+                    {appliedCoupon && (
+                      <small style={{ color: "#78d38b" }}>
+                        {appliedCoupon.code} applied — save {formatRs(couponDiscount)}
+                      </small>
+                    )}
+                  </div>
+
                   <label className="gzp-field">
                     <span>Delivery address</span>
                     <textarea
@@ -4514,6 +4609,12 @@ function App() {
 
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
+                  {couponDiscount > 0 && (
+                    <div className="is-discount">
+                      <span>Coupon discount ({appliedCoupon.code})</span>
+                      <span>−{formatRs(couponDiscount)}</span>
+                    </div>
+                  )}
                   <div className="gzp-grand">
                     <span>Total to pay</span>
                     <span>{formatRs(total)}</span>
