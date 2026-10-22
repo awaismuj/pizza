@@ -83,6 +83,9 @@ export const updateCoupon = ({ couponId, ...data }) => axiosWrapper.put(`/api/co
 export const archiveCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/${couponId}/archive`);
 export const duplicateCoupon = (couponId) => axiosWrapper.post(`/api/coupon/${couponId}/duplicate`);
 export const getCouponRedemptions = (params) => axiosWrapper.get("/api/coupon/redemptions", { params });
+export const getCouponAssignments = (params) => axiosWrapper.get("/api/coupon/assignments", { params });
+export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
+export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
 export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
 
 // Hero Slider (homepage banner) Endpoints

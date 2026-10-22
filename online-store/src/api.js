@@ -1,12 +1,25 @@
 // Talks to the same backend the POS uses (apipos.muscatfood.com), just
 // through the public, no-login endpoints.
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const CUSTOMER_TOKEN_KEY = "gzp_customer_token";
+
+export const setCustomerToken = (token) => {
+  if (token) sessionStorage.setItem(CUSTOMER_TOKEN_KEY, token);
+  else sessionStorage.removeItem(CUSTOMER_TOKEN_KEY);
+};
 
 async function request(path, options = {}) {
   let res;
   try {
+    const token = sessionStorage.getItem(CUSTOMER_TOKEN_KEY);
     res = await fetch(`${BACKEND_URL}${path}`, {
-      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Storefront-Client": "online-store",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
       ...options,
     });
   } catch (networkErr) {
@@ -49,6 +62,33 @@ export const validatePublicCoupon = (payload) =>
     method: "POST",
     body: JSON.stringify(payload),
   });
+
+export const registerCustomer = (payload) =>
+  request("/api/customer/register", { method: "POST", body: JSON.stringify(payload) });
+
+export const loginCustomer = async (payload) => {
+  const result = await request("/api/customer/login", { method: "POST", body: JSON.stringify(payload) });
+  setCustomerToken(result.data.token);
+  return result;
+};
+
+export const getCustomerProfile = () => request("/api/customer/me");
+
+export const updateCustomerMarketingConsent = (marketingConsent) =>
+  request("/api/customer/me/marketing-consent", {
+    method: "PATCH",
+    body: JSON.stringify({ marketingConsent }),
+  });
+
+export const getMyCoupons = () => request("/api/coupon/mine");
+
+export const logoutCustomer = async () => {
+  try {
+    return await request("/api/customer/logout", { method: "POST" });
+  } finally {
+    setCustomerToken("");
+  }
+};
 
 export const getOrderStatus = (orderId) => request(`/api/order/public/${orderId}`);
 

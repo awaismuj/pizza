@@ -14,6 +14,7 @@ const {
   getPrepReport,
 } = require("../controllers/orderController");
 const { isVerifiedUser, requireRole } = require("../middlewares/tokenVerification");
+const { attachOptionalCustomer } = require("../middlewares/customerAuthentication");
 const { handlePaymentProofUpload } = require("../middlewares/paymentProofUpload");
 const {
   uploadPaymentProof,
@@ -27,7 +28,7 @@ const router = express.Router();
 // declared before the /:id routes below, or Express would match "public"
 // as an :id and require auth for it. "/public/lookup" must also come
 // before "/public/:id" for the same reason.
-router.route("/public/checkout").post(addPublicOrder);
+router.route("/public/checkout").post(attachOptionalCustomer, addPublicOrder);
 router.route("/public/lookup").get(lookupPublicOrderByPhone);
 // JazzCash/Raast payment screenshot, uploaded before the order is placed.
 router.route("/public/payment-proof").post(handlePaymentProofUpload, uploadPaymentProof);

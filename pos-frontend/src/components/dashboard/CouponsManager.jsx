@@ -7,9 +7,12 @@ import {
   duplicateCoupon,
   getCategories,
   getCouponRedemptions,
+  getCouponAssignments,
   getCoupons,
   getDishes,
   updateCoupon,
+  assignCouponToCustomer,
+  revokeCustomerCoupon,
 } from "../../https";
 
 const EMPTY_FORM = {
@@ -81,6 +84,8 @@ const CouponsManager = () => {
   const [page, setPage] = useState(1);
   const [editingId, setEditingId] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
+  const [assignmentForm, setAssignmentForm] = useState({ couponId: "", email: "", redemptionLimit: 1 });
+  const [lastAssignedCode, setLastAssignedCode] = useState("");
 
   const { data: couponResponse, isLoading, error: couponsError, isError: couponsFailed } = useQuery({
     queryKey: ["coupons", search, statusFilter, page],
@@ -94,18 +99,43 @@ const CouponsManager = () => {
     queryFn: () => getCouponRedemptions({ limit: 10 }),
     placeholderData: (previousData) => previousData,
   });
+  const { data: assignmentResponse } = useQuery({
+    queryKey: ["coupon-assignments"],
+    queryFn: () => getCouponAssignments({ limit: 25 }),
+  });
   const coupons = useMemo(() => couponResponse?.data?.data || [], [couponResponse]);
   const pagination = couponResponse?.data?.pagination;
   const dishes = dishesResponse?.data?.data || [];
   const categories = categoriesResponse?.data?.data || [];
   const redemptions = redemptionResponse?.data?.data || [];
+  const assignments = assignmentResponse?.data?.data || [];
   const redemptionSummary = redemptionResponse?.data?.summary || { redeemed: 0, discountTotal: 0 };
   const activeCount = useMemo(() => coupons.filter((coupon) => coupon.status === "active").length, [coupons]);
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["coupons"] });
     queryClient.invalidateQueries({ queryKey: ["coupon-redemptions"] });
+    queryClient.invalidateQueries({ queryKey: ["coupon-assignments"] });
   };
+  const assignMutation = useMutation({
+    mutationFn: assignCouponToCustomer,
+    onSuccess: (response) => {
+      const { code } = response.data.data;
+      setLastAssignedCode(code);
+      enqueueSnackbar("Private customer code assigned.", { variant: "success" });
+      setAssignmentForm((current) => ({ ...current, email: "" }));
+      refresh();
+    },
+    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not assign coupon.", { variant: "error" }),
+  });
+  const revokeMutation = useMutation({
+    mutationFn: revokeCustomerCoupon,
+    onSuccess: () => {
+      enqueueSnackbar("Customer coupon revoked.", { variant: "success" });
+      refresh();
+    },
+    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not revoke customer coupon.", { variant: "error" }),
+  });
   const saveMutation = useMutation({
     mutationFn: (payload) => editingId ? updateCoupon({ couponId: editingId, ...payload }) : addCoupon(payload),
     onSuccess: () => {
@@ -247,6 +277,62 @@ const CouponsManager = () => {
         </div>
         <button disabled={saveMutation.isPending} className="rounded bg-[#f6b100] px-5 py-2 font-semibold text-black">{saveMutation.isPending ? "Saving…" : editingId ? "Save changes" : "Create coupon"}</button>
       </form>
+
+      <section className="rounded-lg bg-[#262626] p-5 space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Assign a private customer code</h2>
+          <p className="text-sm text-[#aaa]">Only verified customer accounts can receive a private, random code. The generated code is shown once.</p>
+        </div>
+        <form
+          className="grid grid-cols-1 md:grid-cols-4 gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!assignmentForm.couponId) {
+              enqueueSnackbar("Choose a coupon campaign.", { variant: "warning" });
+              return;
+            }
+            assignMutation.mutate({ ...assignmentForm, redemptionLimit: Number(assignmentForm.redemptionLimit) });
+          }}
+        >
+          <label className={labelClass}>Coupon
+            <select required className={inputClass} value={assignmentForm.couponId} onChange={(event) => setAssignmentForm((current) => ({ ...current, couponId: event.target.value }))}>
+              <option value="">Choose a campaign</option>
+              {coupons.filter((coupon) => ["active", "scheduled"].includes(coupon.status)).map((coupon) => <option key={coupon._id} value={coupon._id}>{coupon.name} ({coupon.code})</option>)}
+            </select>
+          </label>
+          <label className={labelClass}>Verified customer email<input required type="email" className={inputClass} value={assignmentForm.email} onChange={(event) => setAssignmentForm((current) => ({ ...current, email: event.target.value }))} /></label>
+          <label className={labelClass}>Use limit<input required type="number" min="1" max="100" step="1" className={inputClass} value={assignmentForm.redemptionLimit} onChange={(event) => setAssignmentForm((current) => ({ ...current, redemptionLimit: event.target.value }))} /></label>
+          <button disabled={assignMutation.isPending} className="self-end rounded bg-[#f6b100] px-4 py-2 font-semibold text-black">{assignMutation.isPending ? "Assigning…" : "Assign coupon"}</button>
+        </form>
+        {lastAssignedCode && (
+          <div className="flex flex-wrap items-center gap-3 rounded border border-[#66531d] bg-[#30280f] p-3 text-white" role="status">
+            <span>New private code (copy now): <code className="font-bold">{lastAssignedCode}</code></span>
+            <button type="button" className="text-sm text-[#f6b100]" onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(lastAssignedCode);
+                enqueueSnackbar("Private code copied.", { variant: "success" });
+              } catch {
+                enqueueSnackbar("Clipboard access is unavailable. Select and copy the code manually.", { variant: "warning" });
+              }
+            }}>Copy code</button>
+            <button type="button" className="text-sm text-[#aaa]" onClick={() => setLastAssignedCode("")}>Hide</button>
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[650px] text-left text-sm text-white">
+            <thead className="text-[#aaa]"><tr><th className="py-2">Customer</th><th>Campaign</th><th>Use count</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>{assignments.map((assignment) => (
+              <tr key={assignment._id} className="border-t border-[#3c3c3c]">
+                <td className="py-2">{assignment.customerId?.name}<div className="text-xs text-[#aaa]">{assignment.customerId?.email}</div></td>
+                <td>{assignment.couponId?.name}</td>
+                <td>{assignment.redemptionCount} / {assignment.redemptionLimit}</td>
+                <td>{assignment.status}</td>
+                <td>{assignment.status === "active" && <button type="button" disabled={revokeMutation.isPending} className="text-red-300" onClick={() => revokeMutation.mutate(assignment._id)}>Revoke</button>}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="rounded-lg bg-[#262626] p-5">
         <div className="mb-4 flex flex-wrap gap-3">

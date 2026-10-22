@@ -59,6 +59,8 @@ const canCancelOrder = (req) =>
   req.permissions?.includes("orders.cancel") ||
   ["cashier", "admin"].includes(String(req.user?.role || "").toLowerCase());
 
+const couponDisplayCode = (result) => result?.customerCoupon ? "CUSTOMER REWARD" : result?.code;
+
 const addOrder = async (req, res, next) => {
   let deductions = [];
   let inventoryRestored = false;
@@ -172,14 +174,17 @@ const addOrder = async (req, res, next) => {
             discount,
             couponDiscount: discount,
             discountPercent: 0,
-            discountLabel: `Coupon ${couponResult.coupon.code}`,
+            discountLabel: `Coupon ${couponDisplayCode(couponResult)}`,
             deliveryFee,
           };
           order.items = orderPayload.items.map((item, index) => ({ ...item, price: currentItems[index].unitPrice }));
-          order.coupon = { couponId: couponResult.coupon._id, code: couponResult.coupon.code };
+          order.coupon = { couponId: couponResult.coupon._id, code: couponDisplayCode(couponResult) };
           await reserveRedemption({
             coupon: couponResult.coupon,
+            code: couponResult.code,
             customerKey: couponResult.customerKey,
+            customerId: couponResult.customerId,
+            customerCoupon: couponResult.customerCoupon,
             orderId: order._id,
             discountAmount: discount,
             channel: "POS",
@@ -229,8 +234,10 @@ const addPublicOrder = async (req, res, next) => {
       couponCode,
       fulfillment: fulfillmentInput,
     } = req.body;
+    const effectiveCustomerName = req.customer?.name || customerName;
+    const effectiveCustomerPhone = req.customer?.phone || customerPhone;
 
-    if (!customerName || !customerPhone || !Array.isArray(items) || items.length === 0) {
+    if (!effectiveCustomerName || !effectiveCustomerPhone || !Array.isArray(items) || items.length === 0) {
       const error = createHttpError(400, "Name, phone, and at least one item are required.");
       return next(error);
     }
@@ -238,8 +245,8 @@ const addPublicOrder = async (req, res, next) => {
     // Mobile numbers only - reject anything that isn't mostly digits (e.g.
     // someone bypassing the frontend and posting to this endpoint directly).
     // 10-13 digits covers local (03xxxxxxxxx) and +92 international formats.
-    const phoneDigits = customerPhone.replace(/\D/g, "");
-    if (!/^\+?[\d\s-]+$/.test(customerPhone) || phoneDigits.length < 10 || phoneDigits.length > 13) {
+    const phoneDigits = effectiveCustomerPhone.replace(/\D/g, "");
+    if (!/^\+?[\d\s-]+$/.test(effectiveCustomerPhone) || phoneDigits.length < 10 || phoneDigits.length > 13) {
       const error = createHttpError(400, "Enter a valid mobile number.");
       return next(error);
     }
@@ -436,7 +443,8 @@ const addPublicOrder = async (req, res, next) => {
       const pricedItems = await resolveCartPrices(resolvedItems);
       couponResult = await evaluateCoupon({
         code: couponCode,
-        phone: customerPhone,
+        phone: effectiveCustomerPhone,
+        customerId: req.customer?._id,
         items: pricedItems,
         channel: "Online",
       });
@@ -455,13 +463,14 @@ const addPublicOrder = async (req, res, next) => {
 
     const order = new Order({
       customerDetails: {
-        name: customerName,
-        phone: customerPhone,
+        name: effectiveCustomerName,
+        phone: effectiveCustomerPhone,
         guests: 1,
         address: fQuote.method === "delivery" ? String(address || "").trim() : "",
       },
       orderStatus: isJazz ? WAITING_STATUS : "Pending",
       orderSource: "Online",
+      customerId: req.customer?._id || null,
       statusHistory: [{ status: isJazz ? WAITING_STATUS : "Pending", at: new Date() }],
       bills: {
         total: discountedTotal,
@@ -470,11 +479,11 @@ const addPublicOrder = async (req, res, next) => {
         subtotal: subtotalBeforeDiscount,
         discount: discount + couponDiscount,
         discountPercent,
-        discountLabel: [discountLabel, couponResult ? `Coupon ${couponResult.coupon.code}` : ""].filter(Boolean).join(" + "),
+        discountLabel: [discountLabel, couponResult ? `Coupon ${couponDisplayCode(couponResult)}` : ""].filter(Boolean).join(" + "),
         couponDiscount,
         deliveryFee,
       },
-      coupon: couponResult ? { couponId: couponResult.coupon._id, code: couponResult.coupon.code } : undefined,
+      coupon: couponResult ? { couponId: couponResult.coupon._id, code: couponDisplayCode(couponResult) } : undefined,
       fulfillment: {
         method: fQuote.method,
         branchId: fBranch._id,
@@ -500,7 +509,10 @@ const addPublicOrder = async (req, res, next) => {
       if (couponResult) {
         await reserveRedemption({
           coupon: couponResult.coupon,
+          code: couponResult.code,
           customerKey: couponResult.customerKey,
+          customerId: couponResult.customerId,
+          customerCoupon: couponResult.customerCoupon,
           orderId: order._id,
           discountAmount: couponDiscount,
           channel: "Online",
@@ -542,7 +554,8 @@ const addPublicOrder = async (req, res, next) => {
           }
           const currentCoupon = await evaluateCoupon({
             code: couponCode,
-            phone: customerPhone,
+            phone: effectiveCustomerPhone,
+            customerId: req.customer?._id,
             items: pricedItems,
             channel: "Online",
             session,
@@ -551,10 +564,10 @@ const addPublicOrder = async (req, res, next) => {
             throw createHttpError(409, "Coupon rules changed during checkout. Please apply the coupon again.");
           }
           couponResult = currentCoupon;
-          order.coupon = { couponId: currentCoupon.coupon._id, code: currentCoupon.coupon.code };
+          order.coupon = { couponId: currentCoupon.coupon._id, code: couponDisplayCode(currentCoupon) };
           order.bills.couponDiscount = currentCoupon.discountAmount;
           order.bills.discount = discount + currentCoupon.discountAmount;
-          order.bills.discountLabel = [discountLabel, `Coupon ${currentCoupon.coupon.code}`].filter(Boolean).join(" + ");
+          order.bills.discountLabel = [discountLabel, `Coupon ${couponDisplayCode(currentCoupon)}`].filter(Boolean).join(" + ");
           order.bills.total = Math.max(0, total - currentCoupon.discountAmount);
           order.bills.tax = order.bills.total * taxRatePercent / 100;
           order.bills.totalWithTax = order.bills.total + order.bills.tax + deliveryFee;

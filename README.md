@@ -425,8 +425,9 @@ limiter at the gateway or replace the middleware with a shared store.
 3. From `pos-backend`, run `npm run migrate` to apply the bootstrap index
    setup. This existing bootstrap command may also create the configured
    default admin if it does not exist; review its output.
-4. Build/deploy `pos-frontend` and `online-store`; no new environment
-   variables or scheduled jobs are required.
+4. Build/deploy `pos-frontend` and `online-store`. For customer registration,
+   configure SMTP as described below; no scheduled job is required for the
+   current manual assignment flow.
 5. Create a draft coupon, verify its dates/rules, then activate it and test
    both POS and online checkouts with a small campaign limit before publishing.
 
@@ -435,13 +436,54 @@ orders are rewritten and no collection is dropped; coupon definitions and
 redemption records are retained for audit. Do not manually delete coupon
 records that have redemptions.
 
-This release does not introduce customer accounts, private customer coupon
-assignments, automated welcome/loyalty/birthday/referral/win-back jobs, free
-delivery/product/BOGO rewards, pickup/delivery channel data, or incremental
-revenue attribution. The current customer identity is an order phone number,
-which is suitable for basic per-phone limits but is not authenticated proof
-of identity. Those features need a customer identity/consent model and
-additional order data before they can be implemented safely.
+Customer accounts now use a separate `Customer` collection, email verification,
+hashed passwords, and short-lived customer JWTs. Configure `SMTP_HOST`,
+`SMTP_USER`, `SMTP_PASS`, and optionally `SMTP_PORT`/`SMTP_FROM` in
+`pos-backend/.env` before enabling registration. If email delivery is not
+configured, registration remains unverified and the customer cannot sign in;
+configure SMTP before inviting customers. A customer can explicitly opt in or
+withdraw marketing consent, but the application does not send promotional
+messages.
+
+Admins can assign private random codes to verified customer accounts. The
+assignment is stored separately from its shared campaign, and the raw code is
+shown only once after creation; assignment lists mask it. Customers can see
+their currently available assignments after signing in and can use them in
+online checkout. Private codes intentionally require an authenticated customer
+account and are not redeemable through POS until POS has a secure customer
+authentication flow. Shared coupons remain usable in both channels. Assignment
+dates inherit the campaign window unless explicitly narrowed, and redemption
+limits are checked again in the checkout transaction.
+
+Customer phone numbers are unique identifiers in this initial account flow but
+are not verified by SMS. They must not be treated as proof of identity; private
+codes therefore require the verified-email account session. Phone-based order
+history is used to retain first-order and per-customer coupon checks when a
+guest customer later creates an account.
+
+This is not yet the full requested promotion suite: implemented discount types
+remain percentage and fixed amount. Free delivery, free products, BOGO,
+loyalty/VIP/birthday/referral/win-back eligibility, automated assignment jobs,
+pickup/delivery-specific coupon rules, assignment regeneration in the admin
+UI, advanced campaign analytics/exports, and incremental revenue attribution
+are not implemented. Do not advertise these as supported. Existing redemption
+reporting remains limited to recorded redemption counts and discount amounts.
+
+### Deploying customer accounts and private assignments
+
+1. Configure SMTP and a public `BACKEND_URL` so verification links reach the
+   deployed backend. Keep marketing consent opt-in; no promotional messages
+   are sent by this release.
+2. Back up MongoDB, deploy backend changes, and run `npm run migrate` from
+   `pos-backend` to sync the additive customer and assignment indexes.
+3. Deploy both frontend applications with the backend. Customer accounts and
+   assigned-coupon lookups use the storefront's existing `VITE_BACKEND_URL`.
+4. Test registration, verification, sign-in, consent withdrawal, coupon
+   assignment, assignment ownership, coupon checkout, and cancellation in a
+   transaction-capable non-production database before production rollout.
+
+Rollback is an application rollback; keep customer, assignment, and redemption
+collections intact for audit. No existing order records are rewritten.
 
 ---
 
