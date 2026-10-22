@@ -18,19 +18,18 @@ import { useSelector } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import useScrollHoverFix from "./hooks/useScrollHoverFix";
 import FullScreenLoader from "./components/shared/FullScreenLoader"
-import FoodPosterGenerator from "./components/dashboard/FoodPosterGenerator";
 
 function Layout() {
   const isLoading = useLoadData();
   useScrollHoverFix();
   const location = useLocation();
-  const hideHeaderRoutes = ["/auth", "/poster-maker"];
+  const hideHeaderRoutes = ["/auth"];
   // The floating WhatsApp button is fixed near the bottom-right of every
   // page - but on /menu that's exactly where the Cash/Online/Print
   // Receipt/Place Order row sits, so it was floating on top of and
   // partially hiding those buttons. Support inquiries aren't the point of
   // that screen anyway, so it's simplest to just not show it there.
-  const hideWhatsAppRoutes = ["/menu", "/poster-maker"];
+  const hideWhatsAppRoutes = ["/menu"];
   const { isAuth, role, permissions = [] } = useSelector(state => state.user);
   const isEmployee = String(role || "").toLowerCase() === "employee";
   const canCreateOrder = useHasPermission("orders.create");
@@ -55,7 +54,6 @@ function Layout() {
           }
         />
         <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
-        <Route path="/poster-maker" element={<GuestPosterMaker />} />
         <Route path="/change-password" element={<ProtectedRoutes><ChangePassword /></ProtectedRoutes>} />
         <Route path="/employee" element={<ProtectedRoutes><EmployeePortal /></ProtectedRoutes>} />
         <Route
@@ -111,14 +109,6 @@ function Layout() {
         <Route path="*" element={<div>Not Found</div>} />
       </Routes>
     </>
-  );
-}
-
-function GuestPosterMaker() {
-  return (
-    <main className="min-h-screen bg-[#1a1a1a] py-6 sm:py-10">
-      <FoodPosterGenerator guestMode />
-    </main>
   );
 }
 

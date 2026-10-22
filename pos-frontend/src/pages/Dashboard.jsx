@@ -43,7 +43,6 @@ import TaxManager from "../components/dashboard/TaxManager";
 import PrepSettingsManager from "../components/dashboard/PrepSettingsManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
-import FoodPosterGenerator from "../components/dashboard/FoodPosterGenerator";
 import UserManagement from "../components/dashboard/UserManagement";
 import AssetManagement from "../components/dashboard/AssetManagement";
 import ReviewsManager from "../components/dashboard/ReviewsManager";
@@ -80,7 +79,7 @@ const buttons = [
 // Sidebar sections. Order here is the order shown on screen.
 const tabGroups = [
   { label: "Overview", tabs: ["Metrics", "Orders", "Payments", "Profit"] },
-  { label: "Storefront", tabs: ["Menu", "Deals", "Coupons", "Hero Slider", "Build Your Own", "Reviews", "Poster Maker"] },
+  { label: "Storefront", tabs: ["Menu", "Deals", "Coupons", "Hero Slider", "Build Your Own", "Reviews"] },
   { label: "Delivery & Pickup", tabs: ["Branches"] },
   { label: "Operations", tabs: ["Inventory", "Staff", "Assets", "User & Employees"] },
   { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Music"] },
@@ -150,7 +149,6 @@ const Dashboard = () => {
     Menu: "menu.view",
     Deals: "deals.manage",
     Coupons: "coupons.manage",
-    "Poster Maker": "settings.manage",
     "Hero Slider": "hero.manage",
     Reviews: "settings.manage",
     Profit: "finance.view",
@@ -666,7 +664,6 @@ const Dashboard = () => {
       {activeTab === "Music" && <MusicPlayer variant="manager" />}
       {activeTab === "Assets" && can("assets.view") && <AssetManagement role={role} />}
       {activeTab === "User & Employees" && can("users.view") && <UserManagement />}
-      {activeTab === "Poster Maker" && <FoodPosterGenerator />}
       {activeTab === "Menu" && (
         <div className="mx-auto w-full px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
