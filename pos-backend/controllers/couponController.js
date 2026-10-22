@@ -146,7 +146,45 @@ const getCoupons = async (req, res, next) => {
         .lean(),
       Coupon.countDocuments(filter),
     ]);
-    res.json({ success: true, data: coupons, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+    const couponIds = coupons.map((coupon) => coupon._id);
+    const [assignmentCounts, redemptionCounts] = couponIds.length
+      ? await Promise.all([
+          CustomerCoupon.aggregate([
+            { $match: { couponId: { $in: couponIds } } },
+            {
+              $group: {
+                _id: "$couponId",
+                assigned: { $sum: 1 },
+                activeAssignments: { $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] } },
+              },
+            },
+          ]),
+          CouponRedemption.aggregate([
+            { $match: { couponId: { $in: couponIds } } },
+            { $group: { _id: { couponId: "$couponId", status: "$status" }, count: { $sum: 1 } } },
+          ]),
+        ])
+      : [[], []];
+    const assignmentsByCoupon = new Map(assignmentCounts.map((item) => [String(item._id), item]));
+    const redemptionsByCoupon = new Map();
+    redemptionCounts.forEach(({ _id, count }) => {
+      const couponId = String(_id.couponId);
+      const counts = redemptionsByCoupon.get(couponId) || {};
+      counts[_id.status] = count;
+      redemptionsByCoupon.set(couponId, counts);
+    });
+    const couponsWithUsage = coupons.map((coupon) => {
+      const assigned = assignmentsByCoupon.get(String(coupon._id));
+      const redemptions = redemptionsByCoupon.get(String(coupon._id)) || {};
+      return {
+        ...coupon,
+        assignedCount: assigned?.assigned || 0,
+        activeAssignmentCount: assigned?.activeAssignments || 0,
+        redeemedCount: redemptions.redeemed || 0,
+        reservedCount: redemptions.reserved || 0,
+      };
+    });
+    res.json({ success: true, data: couponsWithUsage, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (error) {
     next(error);
   }
@@ -243,7 +281,7 @@ const getCouponRedemptions = async (req, res, next) => {
     const filter = {};
     if (req.query.couponId) {
       if (!mongoose.Types.ObjectId.isValid(req.query.couponId)) throw createHttpError(400, "Invalid coupon ID.");
-      filter.couponId = req.query.couponId;
+      filter.couponId = new mongoose.Types.ObjectId(req.query.couponId);
     }
     const [redemptions, total] = await Promise.all([
       CouponRedemption.find(filter).populate("couponId", "name code discountType").populate("orderId", "orderNumber orderStatus bills").sort({ redeemedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
@@ -255,8 +293,12 @@ const getCouponRedemptions = async (req, res, next) => {
         $group: {
           _id: null,
           total: { $sum: 1 },
-          redeemed: { $sum: { $cond: [{ $in: ["$status", ["reserved", "redeemed"]] }, 1, 0] } },
-          discountTotal: { $sum: { $cond: [{ $in: ["$status", ["reserved", "redeemed"]] }, "$discountAmount", 0] } },
+          redeemed: { $sum: { $cond: [{ $eq: ["$status", "redeemed"] }, 1, 0] } },
+          reserved: { $sum: { $cond: [{ $eq: ["$status", "reserved"] }, 1, 0] } },
+          reversed: { $sum: { $cond: [{ $eq: ["$status", "reversed"] }, 1, 0] } },
+          refunded: { $sum: { $cond: [{ $eq: ["$status", "refunded"] }, 1, 0] } },
+          discountTotal: { $sum: { $cond: [{ $eq: ["$status", "redeemed"] }, "$discountAmount", 0] } },
+          reservedDiscountTotal: { $sum: { $cond: [{ $eq: ["$status", "reserved"] }, "$discountAmount", 0] } },
         },
       },
     ]);
@@ -268,7 +310,7 @@ const getCouponRedemptions = async (req, res, next) => {
       success: true,
       data: redemptions,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
-      summary: summary || { total: 0, redeemed: 0, discountTotal: 0 },
+      summary: summary || { total: 0, redeemed: 0, reserved: 0, reversed: 0, refunded: 0, discountTotal: 0, reservedDiscountTotal: 0 },
       statusSummary,
     });
   } catch (error) {
@@ -368,11 +410,11 @@ const getCouponAssignments = async (req, res, next) => {
     const filter = {};
     if (req.query.couponId) {
       if (!mongoose.Types.ObjectId.isValid(req.query.couponId)) throw createHttpError(400, "Invalid coupon ID.");
-      filter.couponId = req.query.couponId;
+      filter.couponId = new mongoose.Types.ObjectId(req.query.couponId);
     }
     if (req.query.customerId) {
       if (!mongoose.Types.ObjectId.isValid(req.query.customerId)) throw createHttpError(400, "Invalid customer ID.");
-      filter.customerId = req.query.customerId;
+      filter.customerId = new mongoose.Types.ObjectId(req.query.customerId);
     }
     const [assignments, total] = await Promise.all([
       CustomerCoupon.find(filter)
@@ -385,7 +427,24 @@ const getCouponAssignments = async (req, res, next) => {
         .lean(),
       CustomerCoupon.countDocuments(filter),
     ]);
-    res.json({ success: true, data: assignments, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+    const [summary] = await CustomerCoupon.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          assigned: { $sum: 1 },
+          active: { $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] } },
+          revoked: { $sum: { $cond: [{ $eq: ["$status", "revoked"] }, 1, 0] } },
+          expired: { $sum: { $cond: [{ $eq: ["$status", "expired"] }, 1, 0] } },
+        },
+      },
+    ]);
+    res.json({
+      success: true,
+      data: assignments,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      summary: summary || { assigned: 0, active: 0, revoked: 0, expired: 0 },
+    });
   } catch (error) {
     next(error);
   }

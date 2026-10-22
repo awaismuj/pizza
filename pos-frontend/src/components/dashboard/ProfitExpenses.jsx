@@ -164,12 +164,16 @@ const ProfitExpenses = () => {
         </div>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatBox label="Revenue" value={daily?.revenue ?? 0} color="#025cca" />
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        <StatBox label="Revenue (excl. tax)" value={daily?.revenue ?? 0} color="#025cca" />
+        <StatBox label="Coupon discounts" value={daily?.couponDiscount ?? 0} color="#7c3aed" />
         <StatBox label="Purchases/Cost" value={daily?.cost ?? 0} color="#735f32" />
         <StatBox label="Expenses" value={daily?.expenses ?? 0} color="#be3e3f" />
         <StatBox label="Actual Profit" value={daily?.profit ?? 0} color={(daily?.profit ?? 0) >= 0 ? "#02ca3a" : "#7a1f1f"} />
       </div>
+      <p className="mt-2 text-xs text-[#888]">
+        Revenue is discounted sales before tax, plus delivery fees. Coupon discounts are shown for reference and are not deducted twice; inventory cost is unchanged.
+      </p>
 
       {/* ---- Per-order breakdown for this day ---- */}
       <div className="mt-4 bg-[#1a1a1a] rounded-lg p-4">
@@ -192,14 +196,15 @@ const ProfitExpenses = () => {
             )}
             {dayOrders.length > 0 && (
               <div className="overflow-x-auto scrollbar-hide">
-                <table className="w-full min-w-[680px] text-sm">
+                <table className="w-full min-w-[780px] text-sm">
                   <thead>
                     <tr className="text-left text-[#7a7a7a] text-xs uppercase">
                       <th className="py-2 pr-3 font-medium">Order</th>
                       <th className="py-2 pr-3 font-medium">Customer</th>
                       <th className="py-2 pr-3 font-medium">Status</th>
                       <th className="py-2 pr-3 font-medium">Payment</th>
-                      <th className="py-2 pr-3 font-medium text-right">Revenue</th>
+                      <th className="py-2 pr-3 font-medium text-right">Revenue (excl. tax)</th>
+                      <th className="py-2 pr-3 font-medium text-right">Coupon discount</th>
                       <th className="py-2 pr-3 font-medium text-right">Cost</th>
                       <th className="py-2 pr-3 font-medium text-right">Profit</th>
                     </tr>
@@ -232,6 +237,9 @@ const ProfitExpenses = () => {
                         </td>
                         <td className="py-2 pr-3 text-right text-[#f5f5f5] whitespace-nowrap">
                           Rs {formatCurrency(o.revenue)}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-[#c4b5fd] whitespace-nowrap">
+                          Rs {formatCurrency(o.couponDiscount)}
                         </td>
                         <td className="py-2 pr-3 text-right text-[#f5f5f5] whitespace-nowrap">
                           Rs {formatCurrency(o.cost)}
@@ -328,12 +336,16 @@ const ProfitExpenses = () => {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatBox label="Revenue" value={monthly?.revenue ?? 0} color="#025cca" />
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        <StatBox label="Revenue (excl. tax)" value={monthly?.revenue ?? 0} color="#025cca" />
+        <StatBox label="Coupon discounts" value={monthly?.couponDiscount ?? 0} color="#7c3aed" />
         <StatBox label="Purchases/Cost" value={monthly?.cost ?? 0} color="#735f32" />
         <StatBox label="Expenses" value={monthly?.expenses ?? 0} color="#be3e3f" />
         <StatBox label="Actual Profit" value={monthly?.profit ?? 0} color={(monthly?.profit ?? 0) >= 0 ? "#02ca3a" : "#7a1f1f"} />
       </div>
+      <p className="mt-2 text-xs text-[#888]">
+        Revenue is discounted sales before tax, plus delivery fees. Coupon discounts are shown for reference and are not deducted twice; inventory cost is unchanged.
+      </p>
 
       {monthly?.days?.length > 0 && (
         <div className="mt-4 bg-[#1a1a1a] rounded-lg p-4">

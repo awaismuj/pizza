@@ -47,13 +47,14 @@ const collectReportData = async (fromKey, toKey) => {
   const totals = days.reduce(
     (acc, d) => ({
       revenue: acc.revenue + d.revenue,
+      couponDiscount: acc.couponDiscount + d.couponDiscount,
       cost: acc.cost + d.cost,
       expenses: acc.expenses + d.expenses,
       profit: acc.profit + d.profit,
       ordersCount: acc.ordersCount + d.ordersCount,
       itemsSold: acc.itemsSold + d.itemsSold,
     }),
-    { revenue: 0, cost: 0, expenses: 0, profit: 0, ordersCount: 0, itemsSold: 0 }
+    { revenue: 0, couponDiscount: 0, cost: 0, expenses: 0, profit: 0, ordersCount: 0, itemsSold: 0 }
   );
 
   const deletedOrders = await DeletedOrderLog.find({
@@ -85,9 +86,10 @@ const buildReportPdfBuffer = ({ rangeLabel, days, totals, deletedOrders = [], bu
 
       // Summary boxes
       const boxY = doc.y;
-      const boxWidth = 120;
+      const boxWidth = 95;
       const boxes = [
-        { label: "Total Revenue", value: money(totals.revenue), color: "#025cca" },
+        { label: "Revenue (excl. tax)", value: money(totals.revenue), color: "#025cca" },
+        { label: "Coupon Discounts", value: money(totals.couponDiscount), color: "#7c3aed" },
         { label: "Purchases/Cost", value: money(totals.cost), color: "#735f32" },
         { label: "Total Expenses", value: money(totals.expenses), color: "#be3e3f" },
         { label: "Net Profit", value: money(totals.profit), color: totals.profit >= 0 ? "#02ca3a" : "#7a1f1f" },
@@ -116,12 +118,12 @@ const buildReportPdfBuffer = ({ rangeLabel, days, totals, deletedOrders = [], bu
 
         const rowY = doc.y;
         doc.fontSize(10).fillColor("#333");
-        doc.text(`Revenue: ${money(d.revenue)}`, 50, rowY, { continued: true });
-        doc.text(`    Cost: ${money(d.cost)}`, { continued: true });
-        doc.text(`    Expenses: ${money(d.expenses)}`, { continued: true });
+        doc.text(`Revenue: ${money(d.revenue)}    Coupon discounts: ${money(d.couponDiscount)}`, 50, rowY);
+        doc.text(`Cost: ${money(d.cost)}    Expenses: ${money(d.expenses)}`, 50);
         doc
           .fillColor(d.profit >= 0 ? "#0a7a2f" : "#a01f1f")
-          .text(`    Profit: ${money(d.profit)}`, { continued: false });
+          .text(`Profit: ${money(d.profit)}`, 50);
+        doc.fillColor("#333");
         doc.fillColor("#333");
         doc.fontSize(9).fillColor("#888").text(`Orders: ${d.ordersCount}   Items sold: ${d.itemsSold}`, 50);
 

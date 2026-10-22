@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 
 // One locked record per calendar day, written automatically at 11:59pm
-// server time (see services/dailyProfitScheduler.js). Once a day is locked,
-// its revenue/expenses/profit are frozen exactly as they stood at close of
-// day, so historical figures never silently shift later. "Today" (not yet
-// locked) is always computed live instead — see profitController.
+// server time (see services/dailyProfitScheduler.js). Cost, expenses and
+// operational counts stay frozen. A one-time accounting-basis upgrade may
+// reclassify legacy tax-inclusive revenue without changing those locked
+// figures. "Today" is computed live — see profitController.
 const dailyProfitSchema = new mongoose.Schema(
   {
     dayKey: {
@@ -13,6 +13,8 @@ const dailyProfitSchema = new mongoose.Schema(
       unique: true,
     },
     revenue: { type: Number, required: true, default: 0 },
+    revenueBasis: { type: String },
+    couponDiscount: { type: Number, default: 0 },
     cost: { type: Number, required: true, default: 0 },
     expenses: { type: Number, required: true, default: 0 },
     profit: { type: Number, required: true, default: 0 },

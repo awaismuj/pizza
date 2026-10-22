@@ -77,6 +77,59 @@ const amountText = (coupon) =>
     ? `${coupon.discountValue}%`
     : `Rs ${Number(coupon.discountValue).toLocaleString()}`;
 
+const IdSelector = ({ title, options, selectedIds, onChange, loading, error, emptySelectionText }) => {
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLowerCase();
+  const visibleOptions = options.filter((option) => String(option.name || "").toLowerCase().includes(query));
+
+  const toggle = (id) => {
+    onChange(selectedIds.includes(id)
+      ? selectedIds.filter((selectedId) => selectedId !== id)
+      : [...selectedIds, id]);
+  };
+
+  return (
+    <fieldset className="min-w-0 space-y-2">
+      <legend className="mb-1 text-sm text-[#ccc]">{title}</legend>
+      <p className="text-xs text-[#aaa]">
+        {selectedIds.length ? `${selectedIds.length} selected` : emptySelectionText}
+      </p>
+      <input
+        type="search"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder={`Search ${title.toLowerCase()}…`}
+        aria-label={`Search ${title.toLowerCase()}`}
+        className="w-full rounded border border-[#444] bg-[#1a1a1a] px-3 py-2 text-sm text-white placeholder:text-[#888]"
+      />
+      <div className="max-h-52 min-h-24 overflow-y-auto rounded border border-[#444] bg-[#1a1a1a] p-2">
+        {loading ? (
+          <p className="p-2 text-sm text-[#aaa]">Loading options…</p>
+        ) : error ? (
+          <p className="p-2 text-sm text-red-300">{error}</p>
+        ) : visibleOptions.length ? (
+          <div className="space-y-1">
+            {visibleOptions.map((option) => (
+              <label key={option._id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-white hover:bg-white/10">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(option._id)}
+                  onChange={() => toggle(option._id)}
+                />
+                <span>{option.name}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <p className="p-2 text-sm text-[#aaa]">
+            {options.length ? "No matches. Try a different search." : "No options available."}
+          </p>
+        )}
+      </div>
+    </fieldset>
+  );
+};
+
 const CouponsManager = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -92,8 +145,8 @@ const CouponsManager = () => {
     queryFn: () => getCoupons({ search: search || undefined, status: statusFilter || undefined, page, limit: 10 }),
     placeholderData: (previousData) => previousData,
   });
-  const { data: dishesResponse } = useQuery({ queryKey: ["dishes"], queryFn: getDishes });
-  const { data: categoriesResponse } = useQuery({ queryKey: ["categories"], queryFn: getCategories });
+  const dishesQuery = useQuery({ queryKey: ["dishes"], queryFn: getDishes });
+  const categoriesQuery = useQuery({ queryKey: ["categories"], queryFn: getCategories });
   const { data: redemptionResponse } = useQuery({
     queryKey: ["coupon-redemptions"],
     queryFn: () => getCouponRedemptions({ limit: 10 }),
@@ -105,11 +158,18 @@ const CouponsManager = () => {
   });
   const coupons = useMemo(() => couponResponse?.data?.data || [], [couponResponse]);
   const pagination = couponResponse?.data?.pagination;
-  const dishes = dishesResponse?.data?.data || [];
-  const categories = categoriesResponse?.data?.data || [];
+  const dishes = dishesQuery.data?.data?.data || [];
+  const categories = categoriesQuery.data?.data?.data || [];
   const redemptions = redemptionResponse?.data?.data || [];
   const assignments = assignmentResponse?.data?.data || [];
-  const redemptionSummary = redemptionResponse?.data?.summary || { redeemed: 0, discountTotal: 0 };
+  const redemptionSummary = redemptionResponse?.data?.summary || {
+    redeemed: 0,
+    reserved: 0,
+    reversed: 0,
+    refunded: 0,
+    discountTotal: 0,
+  };
+  const assignmentSummary = assignmentResponse?.data?.summary || { assigned: 0, active: 0 };
   const activeCount = useMemo(() => coupons.filter((coupon) => coupon.status === "active").length, [coupons]);
 
   const refresh = () => {
@@ -221,25 +281,16 @@ const CouponsManager = () => {
     saveMutation.mutate(payload);
   };
 
-  const selectIds = (field, options) => (
-    <select
-      multiple
-      value={form[field]}
-      onChange={(event) => setField(field, Array.from(event.target.selectedOptions, (option) => option.value))}
-      className="w-full min-h-24 rounded bg-[#1a1a1a] border border-[#444] p-2 text-sm text-white"
-    >
-      {options.map((option) => <option key={option._id} value={option._id}>{option.name}</option>)}
-    </select>
-  );
   const inputClass = "w-full rounded bg-[#1a1a1a] border border-[#444] px-3 py-2 text-white";
   const labelClass = "block text-sm text-[#ccc] space-y-1";
 
   return (
     <div className="mx-auto w-full px-6 pb-10 space-y-6">
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Coupons on this page</p><b className="text-2xl text-white">{pagination?.total || 0}</b></div>
-        <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Active on this page</p><b className="text-2xl text-white">{activeCount}</b></div>
-        <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Recorded redemptions</p><b className="text-2xl text-white">{redemptionSummary.redeemed || 0}</b><p className="text-xs text-[#aaa]">Discounts: Rs {Number(redemptionSummary.discountTotal || 0).toLocaleString()}</p></div>
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Coupons matched</p><b className="text-2xl text-white">{pagination?.total || 0}</b></div>
+        <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Active coupons on this page</p><b className="text-2xl text-white">{activeCount}</b></div>
+        <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Private codes assigned</p><b className="text-2xl text-white">{assignmentSummary.assigned || 0}</b><p className="text-xs text-[#aaa]">{assignmentSummary.active || 0} active</p></div>
+        <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Completed coupon uses</p><b className="text-2xl text-white">{redemptionSummary.redeemed || 0}</b><p className="text-xs text-[#aaa]">Pending: {redemptionSummary.reserved || 0} · Discounts: Rs {Number(redemptionSummary.discountTotal || 0).toLocaleString()}</p></div>
       </section>
 
       <form onSubmit={submit} className="rounded-lg bg-[#262626] p-5 space-y-4">
@@ -263,12 +314,45 @@ const CouponsManager = () => {
         </div>
         <label className={labelClass}>Description<textarea rows="2" maxLength="1000" className={inputClass} value={form.description} onChange={(event) => setField("description", event.target.value)} /></label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            ["Eligible menu items (empty means all)", "eligibleDishIds", dishes],
-            ["Excluded menu items", "excludedDishIds", dishes],
-            ["Eligible categories (empty means all)", "eligibleCategoryIds", categories],
-            ["Excluded categories", "excludedCategoryIds", categories],
-          ].map(([title, field, options]) => <label key={field} className={labelClass}>{title}{selectIds(field, options)}<small className="text-[#888]">Use Ctrl/Cmd to select multiple.</small></label>)}
+          <p className="md:col-span-2 text-xs text-[#aaa]">
+            Choose any combination of eligible items and categories. A matching item or category qualifies; exclusions always take priority.
+          </p>
+          <IdSelector
+            title="Eligible menu items"
+            options={dishes}
+            selectedIds={form.eligibleDishIds}
+            onChange={(value) => setField("eligibleDishIds", value)}
+            loading={dishesQuery.isLoading}
+            error={dishesQuery.isError ? dishesQuery.error?.response?.data?.message || "Menu items could not be loaded." : ""}
+            emptySelectionText="Empty means all menu items are eligible."
+          />
+          <IdSelector
+            title="Excluded menu items"
+            options={dishes}
+            selectedIds={form.excludedDishIds}
+            onChange={(value) => setField("excludedDishIds", value)}
+            loading={dishesQuery.isLoading}
+            error={dishesQuery.isError ? dishesQuery.error?.response?.data?.message || "Menu items could not be loaded." : ""}
+            emptySelectionText="No menu items are excluded."
+          />
+          <IdSelector
+            title="Eligible categories"
+            options={categories}
+            selectedIds={form.eligibleCategoryIds}
+            onChange={(value) => setField("eligibleCategoryIds", value)}
+            loading={categoriesQuery.isLoading}
+            error={categoriesQuery.isError ? categoriesQuery.error?.response?.data?.message || "Categories could not be loaded." : ""}
+            emptySelectionText="Empty means all categories are eligible."
+          />
+          <IdSelector
+            title="Excluded categories"
+            options={categories}
+            selectedIds={form.excludedCategoryIds}
+            onChange={(value) => setField("excludedCategoryIds", value)}
+            loading={categoriesQuery.isLoading}
+            error={categoriesQuery.isError ? categoriesQuery.error?.response?.data?.message || "Categories could not be loaded." : ""}
+            emptySelectionText="No categories are excluded."
+          />
         </div>
         <div className="flex flex-wrap gap-5 text-sm text-white">
           {["Online", "POS"].map((channel) => <label key={channel} className="flex items-center gap-2"><input type="checkbox" checked={form.channels.includes(channel)} onChange={() => toggleList("channels", channel)} />{channel}</label>)}
@@ -282,6 +366,9 @@ const CouponsManager = () => {
         <div>
           <h2 className="text-xl font-semibold text-white">Assign a private customer code</h2>
           <p className="text-sm text-[#aaa]">Only verified customer accounts can receive a private, random code. The generated code is shown once.</p>
+          <p className="mt-1 text-xs text-[#aaa]">
+            {assignmentSummary.assigned || 0} assigned total · {assignmentSummary.active || 0} active · {assignmentSummary.revoked || 0} revoked · {assignmentSummary.expired || 0} expired
+          </p>
         </div>
         <form
           className="grid grid-cols-1 md:grid-cols-4 gap-3"
@@ -343,13 +430,14 @@ const CouponsManager = () => {
         </div>
         {isLoading ? <p className="text-[#aaa]">Loading coupons…</p> : couponsFailed ? <p className="text-red-300">{couponsError?.response?.data?.message || couponsError?.message || "Coupons could not be loaded."}</p> : coupons.length === 0 ? <p className="text-[#aaa]">No coupons found.</p> : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left text-sm text-white">
-              <thead className="text-[#aaa]"><tr><th className="py-2">Coupon</th><th>Discount</th><th>Usage</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
+            <table className="w-full min-w-[920px] text-left text-sm text-white">
+              <thead className="text-[#aaa]"><tr><th className="py-2">Coupon</th><th>Discount</th><th>Completed uses</th><th>Private assignments</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>{coupons.map((coupon) => (
                 <tr key={coupon._id} className="border-t border-[#3c3c3c]">
                   <td className="py-3"><b>{coupon.name}</b><div className="text-[#aaa]">{coupon.code}</div></td>
                   <td>{amountText(coupon)}</td>
-                  <td>{coupon.redemptionCount} / {coupon.usageLimit ?? "∞"}<div className="text-xs text-[#aaa]">per phone: {coupon.perCustomerLimit}</div></td>
+                  <td>{coupon.redeemedCount || 0} / {coupon.usageLimit ?? "∞"}<div className="text-xs text-[#aaa]">{coupon.reservedCount || 0} pending (counts toward limit)</div><div className="text-xs text-[#aaa]">per phone: {coupon.perCustomerLimit}</div></td>
+                  <td>{coupon.assignedCount || 0} total<div className="text-xs text-[#aaa]">{coupon.activeAssignmentCount || 0} active</div></td>
                   <td className="text-xs">{coupon.startsAt ? new Date(coupon.startsAt).toLocaleString(undefined, { timeZone: coupon.timezone }) : "Now"}<br />to {coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleString(undefined, { timeZone: coupon.timezone }) : "No expiry"}</td>
                   <td className="capitalize">{coupon.status}</td>
                   <td><div className="flex flex-wrap gap-2">
