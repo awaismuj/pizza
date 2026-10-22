@@ -155,7 +155,7 @@ function AdminRoute({ children }) {
   if (!["admin", "super admin", "cashier", "accountant", "asset manager", "read only", "hr manager", "payroll manager"].includes(String(role || "").toLowerCase()) &&
       !permissions.some((permission) => [
         "users.view", "staff.view", "assets.view", "dashboard.view", "menu.view",
-        "inventory.view", "orders.view", "payments.process", "finance.view", "settings.view",
+        "inventory.view", "orders.view", "payments.process", "finance.view", "settings.view", "coupons.manage",
       ].includes(permission))) {
     return <Navigate to="/" replace />;
   }
