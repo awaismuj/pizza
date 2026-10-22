@@ -21,6 +21,7 @@ const permissions = [
   ["categories.manage", "Manage categories"],
   ["deals.manage", "Manage deals"],
   ["coupons.manage", "Manage coupons and eligibility rules"],
+  ["whatsapp.campaigns.manage", "Create and send WhatsApp coupon campaigns"],
   ["hero.manage", "Manage hero slides"],
   ["inventory.view", "View inventory"],
   ["inventory.manage", "Add and edit inventory"],
@@ -151,6 +152,7 @@ const routePermission = (baseUrl, path, method, body = {}, user = {}, effectiveP
     if (route === "/validate-pos") return "orders.create";
     return "coupons.manage";
   }
+  if (baseUrl === "/api/whatsapp-campaign") return "whatsapp.campaigns.manage";
   if (baseUrl === "/api/hero-slide") return verb === "GET" ? "menu.view" : "hero.manage";
   if (baseUrl === "/api/inventory") {
     if (verb === "GET") return "inventory.view";

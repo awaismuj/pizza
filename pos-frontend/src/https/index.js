@@ -242,6 +242,23 @@ export const retryWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-r
 export const unlinkWhatsapp = () => axiosWrapper.post("/api/report/whatsapp-unlink");
 export const unlinkWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-unlink");
 
+// Admin WhatsApp coupon campaigns (approved WhatsApp template provider only).
+export const getCampaignWhatsAppProvider = () => axiosWrapper.get("/api/whatsapp-campaign/provider");
+export const getCampaignWhatsAppCustomers = (params) => axiosWrapper.get("/api/whatsapp-campaign/customers", { params });
+export const previewWhatsAppCampaign = (data) => axiosWrapper.post("/api/whatsapp-campaign/preview", data);
+export const sendWhatsAppCampaignTest = (data) => axiosWrapper.post("/api/whatsapp-campaign/send-test", data);
+export const createWhatsAppCampaign = ({ requestKey, ...data }) =>
+  axiosWrapper.post("/api/whatsapp-campaign/campaigns", data, { headers: { "Idempotency-Key": requestKey } });
+export const getWhatsAppCampaigns = (params) => axiosWrapper.get("/api/whatsapp-campaign/campaigns", { params });
+export const getWhatsAppCampaign = (campaignId) => axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}`);
+export const getWhatsAppCampaignRecipients = ({ campaignId, ...params }) =>
+  axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}/recipients`, { params });
+export const launchWhatsAppCampaign = ({ campaignId, confirmedEligibleCount }) =>
+  axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/launch`, { confirmedEligibleCount });
+export const pauseWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/pause`);
+export const cancelWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/cancel`);
+export const retryWhatsAppCampaignFailures = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/retry-failed`);
+
 // Order Endpoints
 export const addOrder = (data) => axiosWrapper.post("/api/order/", data);
 export const getOrders = () => axiosWrapper.get("/api/order");

@@ -25,3 +25,20 @@ test("allows regular user-submitted data", async () => {
 test("allows raw request bodies used for verified payment webhooks", async () => {
   assert.equal(await runMiddleware({ body: Buffer.from('{"event":"payment.captured"}'), query: {} }), null);
 });
+
+test("allows only Meta verification keys on the WhatsApp campaign webhook", async () => {
+  const allowed = await runMiddleware({
+    method: "GET",
+    path: "/api/whatsapp-campaign/webhook",
+    body: {},
+    query: { "hub.mode": "subscribe", "hub.verify_token": "test", "hub.challenge": "123" },
+  });
+  const rejected = await runMiddleware({
+    method: "GET",
+    path: "/api/whatsapp-campaign/webhook",
+    body: {},
+    query: { "hub.mode": "subscribe", "$where": "true" },
+  });
+  assert.equal(allowed, null);
+  assert.equal(rejected.status, 400);
+});

@@ -5,13 +5,14 @@ const createHttpError = require("http-errors");
 const config = require("../config/config");
 const Customer = require("../models/customerModel");
 const { sendMail } = require("../utils/mailer");
+const customerPhoneKey = require("../utils/customerPhoneKey");
 
 const normalizePhoneKey = (phone) => {
   const digits = String(phone || "").replace(/\D/g, "");
   if (digits.length < 10 || digits.length > 15) {
     throw createHttpError(400, "Enter a valid mobile number with 10 to 15 digits.");
   }
-  return crypto.createHash("sha256").update(digits.slice(-9)).digest("hex");
+  return customerPhoneKey(digits);
 };
 
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");

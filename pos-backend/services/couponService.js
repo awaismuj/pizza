@@ -4,6 +4,7 @@ const createHttpError = require("http-errors");
 const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
 const CustomerCoupon = require("../models/customerCouponModel");
+const Customer = require("../models/customerModel");
 const Order = require("../models/orderModel");
 const Dish = require("../models/dishModel");
 const Deal = require("../models/dealModel");
@@ -12,6 +13,7 @@ const { calculateCoupon, normalizeCouponCode } = require("./couponRules");
 const { getOrCreateSettings } = require("../controllers/settingsController");
 const { normalizeByoConfig, byoDiscountPercent } = require("../utils/byoDiscount");
 const Settings = require("../models/settingsModel");
+const customerPhoneKey = require("../utils/customerPhoneKey");
 
 const normalizePhoneDigits = (phone) => {
   const digits = String(phone || "").replace(/\D/g, "");
@@ -23,7 +25,7 @@ const normalizePhoneDigits = (phone) => {
 
 const customerKeyFor = (phone) => {
   const digits = normalizePhoneDigits(phone);
-  return crypto.createHash("sha256").update(digits.slice(-9)).digest("hex");
+  return customerPhoneKey(digits);
 };
 
 const getWelcomeOfferConfig = async (now = new Date()) => {
@@ -233,6 +235,7 @@ const getExistingDiscount = async (items, channel) => {
 const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Online", session, now = new Date() }) => {
   const normalizedCode = normalizeCouponCode(code);
   if (!normalizedCode || normalizedCode.length > 40) throw createHttpError(400, "Enter a valid coupon code.");
+  const customerKey = customerKeyFor(phone);
   let assignment = await CustomerCoupon.findOne({ code: normalizedCode, status: "active" }).session(session || null);
   if (assignment) {
     if ((assignment.startsAt && assignment.startsAt > now) || (assignment.expiresAt && assignment.expiresAt <= now)) {
@@ -241,10 +244,15 @@ const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Onlin
     if (customerId && String(assignment.customerId) !== String(customerId)) {
       throw createHttpError(403, "This coupon is not available to this customer.");
     }
-    if (!customerId) {
+    if (!customerId && assignment.source !== "whatsapp_campaign") {
       throw createHttpError(401, "Sign in to the assigned customer account to use this coupon.");
     }
-    if (String(assignment.customerId) !== String(customerId)) {
+    if (assignment.source === "whatsapp_campaign") {
+      const assignedCustomer = await Customer.findById(assignment.customerId).select("phoneKey").session(session || null);
+      if (!assignedCustomer || assignedCustomer.phoneKey !== customerKey) {
+        throw createHttpError(403, "This coupon is not available to this mobile number.");
+      }
+    } else if (String(assignment.customerId) !== String(customerId)) {
       throw createHttpError(403, "This coupon is not available to this customer.");
     }
     if (assignment.redemptionCount >= assignment.redemptionLimit) {
@@ -255,7 +263,9 @@ const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Onlin
     ? await Coupon.findById(assignment.couponId).session(session || null)
     : await Coupon.findOne({ code: normalizedCode }).select("+welcomeCustomerKey").session(session || null);
   if (!coupon) throw createHttpError(400, "Invalid coupon code.");
-  const customerKey = customerKeyFor(phone);
+  if (coupon.source === "whatsapp_campaign" && !assignment) {
+    throw createHttpError(403, "This campaign coupon must be used with the private code sent to your mobile number.");
+  }
   if (coupon.source === "welcome" && coupon.welcomeCustomerKey !== customerKey) {
     throw createHttpError(403, "This welcome offer is only available to the mobile number it was issued to.");
   }
