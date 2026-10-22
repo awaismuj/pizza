@@ -14,6 +14,8 @@ const couponSchema = new mongoose.Schema(
       maxlength: 40,
       match: /^[A-Z0-9_-]+$/,
     },
+    source: { type: String, enum: ["admin", "welcome"], default: "admin" },
+    welcomeCustomerKey: { type: String, default: undefined, select: false },
     discountType: { type: String, enum: ["percentage", "fixed"], required: true },
     discountValue: { type: Number, required: true, min: 0 },
     minimumSubtotal: { type: Number, default: 0, min: 0 },
@@ -46,5 +48,9 @@ const couponSchema = new mongoose.Schema(
 );
 
 couponSchema.index({ status: 1, startsAt: 1, expiresAt: 1 });
+couponSchema.index(
+  { source: 1, welcomeCustomerKey: 1 },
+  { unique: true, partialFilterExpression: { source: "welcome", welcomeCustomerKey: { $type: "string" } } }
+);
 
 module.exports = mongoose.model("Coupon", couponSchema);

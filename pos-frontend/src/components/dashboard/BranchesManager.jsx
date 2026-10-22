@@ -15,6 +15,14 @@ const blankBranch = () => ({
   hours: DAYS.map((_, day) => ({ day, open: true, from: "11:00", to: "23:00" })),
   pickup: { enabled: true, prepMinutes: 20, minOrder: 0, instructions: "Show your order number at the counter." },
   delivery: { enabled: true, prepMinutes: 25, minOrder: 0, freeAbove: 1000, freeWithinKm: 4, zones: [] },
+  customerDisplay: {
+    showFreeDeliveryNote: false,
+    showEstimatedTimes: false,
+    showDeliveryFees: false,
+    showDeliveryAreaText: false,
+    showClosedNotice: false,
+    showCashPaymentNote: false,
+  },
   restriction: { active: false, applies: "delivery", message: "", until: "" },
 });
 
@@ -32,6 +40,7 @@ const hydrate = (b) => ({
   hours: DAYS.map((_, day) => b.hours?.find((h) => h.day === day) || { day, open: true, from: "11:00", to: "23:00" }),
   pickup: { ...blankBranch().pickup, ...(b.pickup || {}) },
   delivery: { ...blankBranch().delivery, ...(b.delivery || {}), zones: (b.delivery?.zones || []).map((z) => ({ ...z })) },
+  customerDisplay: { ...blankBranch().customerDisplay, ...(b.customerDisplay || {}) },
   restriction: { ...blankBranch().restriction, ...(b.restriction || {}), until: toLocalInput(b.restriction?.until) },
 });
 
@@ -276,6 +285,17 @@ const BranchesManager = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </Card>
+
+          <Card title="Customer-facing details" subtitle="Hide optional delivery and payment messages without changing fees, availability, or opening-hour rules.">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <Toggle checked={form.customerDisplay.showFreeDeliveryNote} onChange={(value) => patch("customerDisplay.showFreeDeliveryNote", value)} label="Show free-delivery note" />
+              <Toggle checked={form.customerDisplay.showEstimatedTimes} onChange={(value) => patch("customerDisplay.showEstimatedTimes", value)} label="Show estimated times" />
+              <Toggle checked={form.customerDisplay.showDeliveryFees} onChange={(value) => patch("customerDisplay.showDeliveryFees", value)} label="Show delivery and pickup fees" />
+              <Toggle checked={form.customerDisplay.showDeliveryAreaText} onChange={(value) => patch("customerDisplay.showDeliveryAreaText", value)} label="Show zone area descriptions" />
+              <Toggle checked={form.customerDisplay.showClosedNotice} onChange={(value) => patch("customerDisplay.showClosedNotice", value)} label="Show closed / opening notice" />
+              <Toggle checked={form.customerDisplay.showCashPaymentNote} onChange={(value) => patch("customerDisplay.showCashPaymentNote", value)} label="Show cash / pickup payment note" />
             </div>
           </Card>
 
