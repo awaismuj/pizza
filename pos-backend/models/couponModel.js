@@ -14,8 +14,10 @@ const couponSchema = new mongoose.Schema(
       maxlength: 40,
       match: /^[A-Z0-9_-]+$/,
     },
-    source: { type: String, enum: ["admin", "welcome"], default: "admin" },
+    source: { type: String, enum: ["admin", "welcome", "whatsapp_campaign"], default: "admin" },
     welcomeCustomerKey: { type: String, default: undefined, select: false },
+    campaignId: { type: mongoose.Schema.Types.ObjectId, ref: "WhatsAppCampaign", default: null },
+    campaignDiscountPercentage: { type: Number, enum: [5, 7, 10], default: null },
     discountType: { type: String, enum: ["percentage", "fixed"], required: true },
     discountValue: { type: Number, required: true, min: 0 },
     minimumSubtotal: { type: Number, default: 0, min: 0 },
@@ -52,5 +54,6 @@ couponSchema.index(
   { source: 1, welcomeCustomerKey: 1 },
   { unique: true, partialFilterExpression: { source: "welcome", welcomeCustomerKey: { $type: "string" } } }
 );
+couponSchema.index({ campaignId: 1, campaignDiscountPercentage: 1 }, { unique: true, partialFilterExpression: { campaignId: { $type: "objectId" } }, name: "uniq_campaign_coupon_discount_tier" });
 
 module.exports = mongoose.model("Coupon", couponSchema);

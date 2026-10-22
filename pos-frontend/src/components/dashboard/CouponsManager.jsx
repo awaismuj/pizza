@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
+import WhatsAppCampaignManager from "./WhatsAppCampaignManager";
 import {
   addCoupon,
   archiveCoupon,
@@ -331,6 +332,7 @@ const CouponsManager = () => {
 
   return (
     <div className="mx-auto w-full px-6 pb-10 space-y-6">
+      <WhatsAppCampaignManager />
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Coupons matched</p><b className="text-2xl text-white">{pagination?.total || 0}</b></div>
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Active coupons on this page</p><b className="text-2xl text-white">{activeCount}</b></div>
