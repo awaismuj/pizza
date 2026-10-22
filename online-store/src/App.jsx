@@ -2119,6 +2119,22 @@ select {
   cursor: pointer;
 }
 
+.gzp-delivered-mascot {
+  animation: gzp-delivered-bob 2.2s ease-in-out infinite;
+}
+@keyframes gzp-delivered-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
+}
+.gzp-delivered-countdown {
+  margin: 16px 0 0;
+  color: var(--flour-dim);
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gzp-delivered-mascot { animation: none; }
+}
+
 /* Popup on small phones / short screens */
 @media (max-width: 400px) {
   .gzp-thankyou-overlay { padding: 12px; align-items: center; }
@@ -2898,6 +2914,53 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
           Click for more order
         </button>
       </div>
+    </div>
+  );
+};
+
+const DeliveredThankYouScreen = ({ order, onComplete }) => {
+  const [secondsLeft, setSecondsLeft] = useState(8);
+  const orderNumber = String(order?._id || "").slice(-6).toUpperCase();
+
+  useEffect(() => {
+    const timer = window.setTimeout(onComplete, 8000);
+    const countdown = window.setInterval(
+      () => setSecondsLeft((seconds) => Math.max(0, seconds - 1)),
+      1000
+    );
+
+    if ("speechSynthesis" in window && "SpeechSynthesisUtterance" in window) {
+      const message = new SpeechSynthesisUtterance("Thank you for your order. Enjoy your meal!");
+      message.lang = "en-US";
+      message.rate = 0.95;
+      window.speechSynthesis.speak(message);
+    }
+
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(countdown);
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, [onComplete]);
+
+  return (
+    <div className="gzp-thankyou-overlay" role="status" aria-live="polite">
+      <section className="gzp-thankyou-card" aria-labelledby="gzp-delivered-title">
+        <div className="gzp-thankyou-badge">
+          <img src={genzLogo} alt="GenZ Pizza Land" />
+        </div>
+        <div className="gzp-delivered-mascot">
+          <PizzaMascot />
+        </div>
+        <h1 id="gzp-delivered-title" className="gzp-thankyou-title">Your order has arrived!</h1>
+        <p className="gzp-thankyou-sub">
+          {orderNumber ? `Order #${orderNumber} is delivered. ` : ""}
+          Thank you for your order. Enjoy your meal!
+        </p>
+        <p className="gzp-delivered-countdown">
+          Taking you back to the home page in {secondsLeft} seconds…
+        </p>
+      </section>
     </div>
   );
 };
@@ -4012,6 +4075,11 @@ function App() {
     setOrder(null);
   };
 
+  const returnHomeAfterDelivery = useCallback(() => {
+    localStorage.removeItem("gzp_last_order");
+    window.location.reload();
+  }, []);
+
   // Manual "Track order" lookup — for when someone wants to check status on
   // a different device/browser than the one that placed the order, or after
   // clearing their browser data. Looks up by phone number (what they
@@ -4131,6 +4199,10 @@ function App() {
         </div>
       </div>
     );
+  }
+
+  if (orderId && order?.orderStatus === "Completed") {
+    return <DeliveredThankYouScreen order={order} onComplete={returnHomeAfterDelivery} />;
   }
 
   // Right after a NEW order is placed — the polished confirmation card.
