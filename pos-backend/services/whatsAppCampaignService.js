@@ -6,16 +6,21 @@ const provider = require("./whatsAppCampaignProvider");
 
 const MAX_CAMPAIGN_RECIPIENTS = 10000;
 const CUSTOMER_STATUSES = ["all", "active", "regular", "new", "inactive"];
+const DEFAULT_ELIGIBLE_ORDER_STATUSES = ["Completed", "Closed"];
+const DISALLOWED_ORDER_STATUSES = ["Cancelled", "Payment Pending Verification"];
 
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const digitsExpression = (input) => ({ $regexReplace: { input, regex: "\\D", replacement: "" } });
+const phoneSuffixExpression = (input) => {
+  const digits = digitsExpression(input);
+  return { $substrCP: [digits, { $max: [0, { $subtract: [{ $strLenCP: digits }, 9] }] }, 9] };
+};
 
 const selectionFilter = (selection = {}) => {
   const match = {};
   if (selection.mode === "selected" && Array.isArray(selection.customerIds)) {
     match._id = { $in: selection.customerIds };
-  } else if (selection.mode === "all-eligible") {
-    match.active = true;
-    match.marketingConsent = true;
   }
   if (["all-eligible", "filtered"].includes(selection.mode)) {
     if (Array.isArray(selection.excludedCustomerIds) && selection.excludedCustomerIds.length) {
@@ -29,26 +34,42 @@ const selectionFilter = (selection = {}) => {
   return match;
 };
 
-const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibility = false } = {}) => {
+const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibility = false, eligibleOrderStatuses = DEFAULT_ELIGIBLE_ORDER_STATUSES } = {}) => {
   const pipeline = [
     { $match: selectionFilter(selection) },
     {
       $lookup: {
         from: Order.collection.name,
-        let: { customerId: "$_id" },
+        let: { customerId: "$_id", customerPhone: "$phone" },
         pipeline: [
           {
             $match: {
-              orderStatus: { $ne: "Cancelled" },
-              $expr: { $eq: ["$customerId", "$$customerId"] },
+              orderStatus: { $in: eligibleOrderStatuses },
+              paymentStatus: { $ne: "Rejected" },
+              $expr: {
+                $or: [
+                  { $eq: ["$customerId", "$$customerId"] },
+                  {
+                    $and: [
+                      { $ne: [digitsExpression("$$customerPhone"), ""] },
+                      { $eq: [phoneSuffixExpression("$customerDetails.phone"), phoneSuffixExpression("$$customerPhone")] },
+                    ],
+                  },
+                ],
+              },
             },
           },
-          { $count: "total" },
+          { $group: { _id: null, total: { $sum: 1 }, lastOrderDate: { $max: "$orderDate" } } },
         ],
         as: "orderStats",
       },
     },
-    { $addFields: { orderCount: { $ifNull: [{ $arrayElemAt: ["$orderStats.total", 0] }, 0] } } },
+    {
+      $addFields: {
+        orderCount: { $ifNull: [{ $arrayElemAt: ["$orderStats.total", 0] }, 0] },
+        lastOrderDate: { $ifNull: [{ $arrayElemAt: ["$orderStats.lastOrderDate", 0] }, null] },
+      },
+    },
   ];
   const customerStatus = CUSTOMER_STATUSES.includes(selection.status) ? selection.status : "all";
   if (customerStatus === "inactive") pipeline.push({ $match: { active: false } });
@@ -60,11 +81,12 @@ const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibili
       $match: {
         active: true,
         marketingConsent: true,
+        orderCount: { $gte: 1 },
         phone: { $regex: "^(?:\\D*\\d){10,15}\\D*$" },
       },
     });
   }
-  pipeline.push({ $project: { _id: 1, name: 1, phone: 1, active: 1, marketingConsent: 1, orderCount: 1 } });
+  pipeline.push({ $project: { _id: 1, name: 1, phone: 1, phoneKey: 1, active: 1, marketingConsent: 1, orderCount: 1, lastOrderDate: 1 } });
   if (page === null) return pipeline;
   pipeline.push({ $sort: { name: 1, _id: 1 } }, { $skip: (page - 1) * limit }, { $limit: limit });
   return pipeline;
@@ -73,6 +95,7 @@ const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibili
 const eligibilityFor = (customer) => {
   if (!customer.active) return { eligible: false, reason: "Account is inactive." };
   if (customer.marketingConsent !== true) return { eligible: false, reason: "Marketing consent not granted." };
+  if (Number(customer.orderCount || 0) < 1) return { eligible: false, reason: "No qualifying completed order." };
   if (!/^\d{10,15}$/.test(provider.normalizeNumber(customer.phone))) {
     return { eligible: false, reason: "No valid WhatsApp number." };
   }
@@ -101,6 +124,7 @@ const attachCampaignHistory = async (customers) => {
       marketingConsent: customer.marketingConsent === true,
       status: !customer.active ? "inactive" : customer.orderCount >= 2 ? "regular" : customer.orderCount > 0 ? "active" : "new",
       orderCount: customer.orderCount || 0,
+      lastOrderDate: customer.lastOrderDate || null,
       eligible: eligibility.eligible,
       ineligibleReason: eligibility.reason,
       previousCampaignStatus: latest.get(String(customer._id)) || "none",
@@ -108,12 +132,21 @@ const attachCampaignHistory = async (customers) => {
   });
 };
 
-const listCustomers = async ({ search = "", status = "all", page = 1, limit = 50 } = {}) => {
+const normalizeEligibleOrderStatuses = (statuses) => {
+  const allowed = Order.ORDER_STATUSES.filter((status) => !DISALLOWED_ORDER_STATUSES.includes(status));
+  const normalized = [...new Set((Array.isArray(statuses) && statuses.length ? statuses : DEFAULT_ELIGIBLE_ORDER_STATUSES)
+    .filter((status) => allowed.includes(status)))];
+  if (!normalized.length) throw new Error("Choose at least one valid qualifying order status.");
+  return normalized;
+};
+
+const listCustomers = async ({ search = "", status = "all", page = 1, limit = 50, eligibleOrderStatuses } = {}) => {
   const selection = { mode: "selected", customerIds: undefined, status, search };
+  const orderStatuses = normalizeEligibleOrderStatuses(eligibleOrderStatuses);
   const [customers, [totalResult], eligibleRows] = await Promise.all([
-    Customer.aggregate(customerPipeline({ selection, page, limit })),
-    Customer.aggregate([...customerPipeline({ selection, page: null }), { $count: "total" }]),
-    Customer.aggregate([...customerPipeline({ selection, page: null, applyEligibility: true }), { $count: "total" }]),
+    Customer.aggregate(customerPipeline({ selection, page, limit, eligibleOrderStatuses: orderStatuses })),
+    Customer.aggregate([...customerPipeline({ selection, page: null, eligibleOrderStatuses: orderStatuses }), { $count: "total" }]),
+    Customer.aggregate([...customerPipeline({ selection, page: null, applyEligibility: true, eligibleOrderStatuses: orderStatuses }), { $count: "total" }]),
   ]);
   const rows = await attachCampaignHistory(customers);
   return {
@@ -127,7 +160,7 @@ const listCustomers = async ({ search = "", status = "all", page = 1, limit = 50
   };
 };
 
-const resolveRecipients = async (selection) => {
+const resolveRecipients = async (selection, eligibleOrderStatuses) => {
   if (!selection || !["all-eligible", "filtered", "selected"].includes(selection.mode)) {
     throw new Error("Choose eligible customers or selected customer records.");
   }
@@ -154,20 +187,50 @@ const resolveRecipients = async (selection) => {
     search: String(selection.search || "").trim().slice(0, 100),
     status: CUSTOMER_STATUSES.includes(selection.status) ? selection.status : "all",
   };
+  const orderStatuses = normalizeEligibleOrderStatuses(eligibleOrderStatuses);
   const records = await Customer.aggregate([
-    ...customerPipeline({ selection: selectionForQuery, page: null }),
+    ...customerPipeline({ selection: selectionForQuery, page: null, eligibleOrderStatuses: orderStatuses }),
     { $limit: MAX_CAMPAIGN_RECIPIENTS + 1 },
   ]);
   if (records.length > MAX_CAMPAIGN_RECIPIENTS) {
     throw new Error(`Campaigns are limited to ${MAX_CAMPAIGN_RECIPIENTS} selected customers per launch.`);
   }
-  return records.map((customer) => ({ customer, ...eligibilityFor(customer) }));
+  const phoneKeys = [...new Set(records.map((customer) => customer.phoneKey).filter(Boolean))];
+  const phoneRecords = phoneKeys.length
+    ? await Customer.find({ phoneKey: { $in: phoneKeys } }).select("phone phoneKey").lean()
+    : records;
+  const phoneCounts = new Map();
+  const selectedPhoneCounts = new Map();
+  for (const customer of phoneRecords) {
+    const normalizedPhone = provider.normalizeNumber(customer.phone);
+    if (/^\d{10,15}$/.test(normalizedPhone)) {
+      phoneCounts.set(normalizedPhone, (phoneCounts.get(normalizedPhone) || 0) + 1);
+    }
+  }
+  for (const customer of records) {
+    const normalizedPhone = provider.normalizeNumber(customer.phone);
+    if (/^\d{10,15}$/.test(normalizedPhone)) {
+      selectedPhoneCounts.set(normalizedPhone, (selectedPhoneCounts.get(normalizedPhone) || 0) + 1);
+    }
+  }
+
+  return records.map((customer) => {
+    const eligibility = eligibilityFor(customer);
+    const normalizedPhone = provider.normalizeNumber(customer.phone);
+    if (/^\d{10,15}$/.test(normalizedPhone)
+      && Math.max(phoneCounts.get(normalizedPhone) || 0, selectedPhoneCounts.get(normalizedPhone) || 0) > 1) {
+      return { customer, eligible: false, reason: "Duplicate phone number." };
+    }
+    return { customer, ...eligibility };
+  });
 };
 
 const MAX_CAMPAIGN_RECIPIENTS_LIMIT = MAX_CAMPAIGN_RECIPIENTS;
 
 module.exports = {
   CUSTOMER_STATUSES,
+  DEFAULT_ELIGIBLE_ORDER_STATUSES,
+  normalizeEligibleOrderStatuses,
   MAX_CAMPAIGN_RECIPIENTS: MAX_CAMPAIGN_RECIPIENTS_LIMIT,
   attachCampaignHistory,
   eligibilityFor,

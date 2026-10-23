@@ -5,6 +5,7 @@ import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload } fr
 import {
   cancelWhatsAppCampaign,
   createWhatsAppCampaign,
+  generateWhatsAppCampaignTokens,
   getCampaignWhatsAppCustomers,
   getCampaignWhatsAppProvider,
   getWhatsAppCampaign,
@@ -14,6 +15,7 @@ import {
   pauseWhatsAppCampaign,
   previewWhatsAppCampaign,
   retryWhatsAppCampaignFailures,
+  scanWhatsAppCampaign,
   sendWhatsAppCampaignTest,
 } from "../../https";
 
@@ -64,9 +66,12 @@ const makeRequestKey = () => {
 
 const initialForm = () => ({
   name: "",
+  campaignType: "customer appreciation",
   discountOptions: [5, 7, 10],
+  discountWeights: { 5: 1, 7: 1, 10: 1 },
   minimumOrderAmount: 1000,
   maximumDiscount: "",
+  maxUsesPerCoupon: 1,
   expiresAt: localDateTime(),
   timezone: "Asia/Karachi",
   scheduledAt: "",
@@ -109,6 +114,8 @@ const WhatsAppCampaignManager = () => {
   const [requestKey, setRequestKey] = useState(() => makeRequestKey());
   const requestSignatureRef = useRef(null);
   const [preview, setPreview] = useState(null);
+  const [tokenResult, setTokenResult] = useState(null);
+  const [scanResult, setScanResult] = useState(null);
   const [createdCampaignId, setCreatedCampaignId] = useState("");
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [recipientStatus, setRecipientStatus] = useState("all");
@@ -172,15 +179,19 @@ const WhatsAppCampaignManager = () => {
     if (requestSignatureRef.current !== null && requestSignatureRef.current !== signature) {
       setRequestKey(makeRequestKey());
       setCreatedCampaignId("");
+      setTokenResult(null);
     }
     requestSignatureRef.current = signature;
   }, [form, selection]);
 
   const requestPayload = () => ({
     name: form.name,
+    campaignType: form.campaignType,
     discountOptions: form.discountOptions,
+    discountWeights: form.discountWeights,
     minimumOrderAmount: Number(form.minimumOrderAmount),
     maximumDiscount: form.maximumDiscount === "" ? null : Number(form.maximumDiscount),
+    maxUsesPerCoupon: Number(form.maxUsesPerCoupon),
     expiresAt: zonedDateTimeToIso(form.expiresAt, form.timezone),
     scheduledAt: zonedDateTimeToIso(form.scheduledAt, form.timezone),
     timezone: form.timezone,
@@ -213,9 +224,27 @@ const WhatsAppCampaignManager = () => {
       if (campaign?._id) {
         setCreatedCampaignId(campaign._id);
         setSelectedCampaignId(campaign._id);
+        setTokenResult(null);
         setRequestKey(makeRequestKey());
       }
       setFeedback("");
+      refreshCampaigns();
+    },
+    onError: (error) => setFeedback(errorMessage(error)),
+  });
+  const tokenMutation = useMutation({
+    mutationFn: generateWhatsAppCampaignTokens,
+    onSuccess: (response) => {
+      setTokenResult(response.data?.data?.counts || null);
+      enqueueSnackbar("Campaign coupon tokens generated and saved.", { variant: "success" });
+      refreshCampaigns();
+    },
+    onError: (error) => setFeedback(errorMessage(error)),
+  });
+  const scanMutation = useMutation({
+    mutationFn: scanWhatsAppCampaign,
+    onSuccess: (response) => {
+      setScanResult(response.data?.data || null);
       refreshCampaigns();
     },
     onError: (error) => setFeedback(errorMessage(error)),
@@ -234,6 +263,7 @@ const WhatsAppCampaignManager = () => {
       const currentCount = error?.response?.data?.data?.eligibleCount;
       const currentSkipped = error?.response?.data?.data?.skippedCount;
       if (Number.isInteger(currentCount)) {
+        setTokenResult((current) => ({ ...current, eligible: currentCount, failedValidation: Number.isInteger(currentSkipped) ? currentSkipped : current?.failedValidation }));
         setPreview((current) => ({
           ...current,
           counts: {
@@ -249,11 +279,11 @@ const WhatsAppCampaignManager = () => {
     },
   });
   const actionMutation = useMutation({
-    mutationFn: ({ action, campaignId, confirmedEligibleCount }) => {
+    mutationFn: ({ action, campaignId, confirmedEligibleCount, reason }) => {
       if (action === "pause") return pauseWhatsAppCampaign(campaignId);
       if (action === "resume") return launchWhatsAppCampaign({ campaignId, confirmedEligibleCount });
       if (action === "cancel") return cancelWhatsAppCampaign(campaignId);
-      return retryWhatsAppCampaignFailures(campaignId);
+      return retryWhatsAppCampaignFailures({ campaignId, reason });
     },
     onSuccess: () => {
       setFeedback("");
@@ -339,11 +369,12 @@ const WhatsAppCampaignManager = () => {
   };
 
   const confirmLaunch = () => {
-    if (!createdCampaignId || !preview?.counts?.eligible) return;
+    const eligibleCount = Number(tokenResult?.eligible || 0);
+    if (!createdCampaignId || !eligibleCount || tokenResult?.failedAssignment) return;
     const plannedStart = form.scheduledAt ? `Scheduled for ${form.scheduledAt} (${form.timezone})` : "Starts immediately";
-    const summary = `${preview.counts.eligible} messages will be queued. ${preview.counts.skipped} selected customers will be skipped. ${plannedStart}.`;
+    const summary = `${eligibleCount} messages will be queued. ${Number(tokenResult.failedValidation || 0)} customers will be excluded after revalidation. ${plannedStart}.`;
     if (!window.confirm(`Confirm WhatsApp campaign\n\n${form.name}\nDiscounts: ${form.discountOptions.join("%, ")}%\nMinimum order: ${currency(form.minimumOrderAmount)}\n${summary}\n\nContinue?`)) return;
-    launchMutation.mutate({ campaignId: createdCampaignId, confirmedEligibleCount: preview.counts.eligible });
+    launchMutation.mutate({ campaignId: createdCampaignId, confirmedEligibleCount: eligibleCount });
   };
 
   const confirmSavedDraftLaunch = () => {
@@ -387,8 +418,8 @@ const WhatsAppCampaignManager = () => {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">Coupons & Promotions</h2>
-          <p className="text-xs text-[#999]">Manage discounts and consent-based WhatsApp coupon campaigns.</p>
+          <h2 className="text-lg font-semibold text-white">Automated Customer Coupons</h2>
+          <p className="text-xs text-[#999]">Scan eligible customers, save campaign tokens, and track consent-based WhatsApp delivery.</p>
         </div>
         <button type="button" className={`${buttonClass} bg-[#25d366] px-4 py-2.5 text-[#11251a]`} onClick={() => setIsOpen(true)}>
           <FaWhatsapp /> Send Coupons
@@ -441,6 +472,7 @@ const WhatsAppCampaignManager = () => {
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseActiveEligible}>Active &amp; opted-in customers</button>
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseAllEligible}>All eligible customers</button>
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseFiltered}>Select Filtered Customers</button>
+                          <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={() => { setSelectionMode("selected"); setSelectedIds(rows.filter((customer) => customer.eligible).map((customer) => customer.id)); setExcludedIds([]); setPreview(null); }}>Select Current Page</button>
                           <button type="button" className={`${buttonClass} text-[#bbb] hover:bg-[#303030]`} onClick={deselectAll}>Deselect All</button>
                         </div>
                       </div>
@@ -495,13 +527,15 @@ const WhatsAppCampaignManager = () => {
                     <section className="space-y-4 rounded border border-[#333] bg-[#202020] p-4">
                       <h3 className="font-semibold text-white">Campaign setup</h3>
                       <label className="block space-y-1 text-xs text-[#aaa]">Campaign name<input className={inputClass} maxLength="120" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Friday Pizza Special" /></label>
+                      <label className="block space-y-1 text-xs text-[#aaa]">Campaign type<input className={inputClass} maxLength="80" value={form.campaignType} onChange={(event) => setForm((current) => ({ ...current, campaignType: event.target.value }))} placeholder="Friday Special" /></label>
                       <div className="rounded border border-[#333] bg-[#191919] px-3 py-2 text-sm text-white">Send method <b className="ml-2 text-[#25d366]">WhatsApp</b></div>
                       <fieldset>
                         <legend className="mb-2 text-xs text-[#aaa]">Coupon discount (random per customer)</legend>
-                        <div className="flex gap-3">{[5, 7, 10].map((discount) => <label key={discount} className="flex items-center gap-2 rounded border border-[#444] px-3 py-2 text-sm text-white"><input type="checkbox" checked={form.discountOptions.includes(discount)} onChange={() => toggleDiscount(discount)} />{discount}%</label>)}</div>
+                        <div className="grid grid-cols-3 gap-2">{[5, 7, 10].map((discount) => <label key={discount} className="flex flex-col gap-2 rounded border border-[#444] p-2 text-sm text-white"><span className="flex items-center gap-2"><input type="checkbox" checked={form.discountOptions.includes(discount)} onChange={() => toggleDiscount(discount)} />{discount}%</span><input className={inputClass} type="number" min="0" max="1000" step="1" value={form.discountWeights[discount]} onChange={(event) => setForm((current) => ({ ...current, discountWeights: { ...current.discountWeights, [discount]: event.target.value } }))} aria-label={`${discount}% discount weight`} title="Relative selection weight" /></label>)}</div>
                       </fieldset>
                       <label className="block space-y-1 text-xs text-[#aaa]">Minimum order amount<input className={inputClass} type="number" min="0" step="1" value={form.minimumOrderAmount} onChange={(event) => setForm((current) => ({ ...current, minimumOrderAmount: event.target.value }))} /></label>
                       <label className="block space-y-1 text-xs text-[#aaa]">Maximum discount (optional)<input className={inputClass} type="number" min="0" step="1" value={form.maximumDiscount} onChange={(event) => setForm((current) => ({ ...current, maximumDiscount: event.target.value }))} placeholder="No cap" /></label>
+                      <label className="block space-y-1 text-xs text-[#aaa]">Maximum uses per coupon<input className={inputClass} type="number" min="1" max="100" step="1" value={form.maxUsesPerCoupon} onChange={(event) => setForm((current) => ({ ...current, maxUsesPerCoupon: event.target.value }))} /></label>
                       <label className="block space-y-1 text-xs text-[#aaa]">Coupon expiry ({form.timezone})<input className={inputClass} type="datetime-local" value={form.expiresAt} onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))} /></label>
                       <label className="block space-y-1 text-xs text-[#aaa]">Schedule send (optional, {form.timezone})<input className={inputClass} type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm((current) => ({ ...current, scheduledAt: event.target.value }))} /></label>
                       <label className="block space-y-1 text-xs text-[#aaa]">Timezone<input className={inputClass} value={form.timezone} onChange={(event) => setForm((current) => ({ ...current, timezone: event.target.value }))} /></label>
@@ -512,7 +546,7 @@ const WhatsAppCampaignManager = () => {
                         <p className="mt-2 text-[#888]">Production sends use only this provider-approved template; message text cannot be changed here.</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={buildPreview} disabled={previewMutation.isPending}>{previewMutation.isPending ? "Checking…" : "Preview recipients"}</button>
+                        <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={buildPreview} disabled={previewMutation.isPending}>{previewMutation.isPending ? "Scanning…" : "Scan Eligible Customers"}</button>
                         <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={sendTest} disabled={!providerConfig || !providerStatus?.testNumberConfigured || testMutation.isPending}>{testMutation.isPending ? "Sending test…" : "Send test message"}</button>
                       </div>
                     </section>
@@ -534,13 +568,18 @@ const WhatsAppCampaignManager = () => {
 
                   {createdCampaignId ? (
                     <section className="flex flex-wrap items-center justify-between gap-3 rounded border border-amber-800 bg-amber-950/30 p-4">
-                      <div><b className="text-white">Draft saved. Confirm launch.</b><p className="text-sm text-[#bbb]">{previewData?.eligible || 0} eligible messages · {form.name} · {form.scheduledAt ? `Scheduled: ${form.scheduledAt}` : "Start now"}</p></div>
-                      <button type="button" className={`${buttonClass} bg-[#25d366] px-4 text-[#11251a]`} onClick={confirmLaunch} disabled={!providerConfig || launchMutation.isPending}>{launchMutation.isPending ? "Queueing…" : "Send WhatsApp to all eligible"}</button>
+                      <div><b className="text-white">Draft saved.</b><p className="text-sm text-[#bbb]">{tokenResult ? `${tokenResult.created || 0} new · ${tokenResult.retained || 0} retained · ${tokenResult.failedValidation || 0} excluded` : "Assign and save coupon tokens before launch."} · {form.name}</p></div>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={() => scanMutation.mutate(createdCampaignId)} disabled={scanMutation.isPending}>{scanMutation.isPending ? "Refreshing…" : "Refresh Customer & Delivery Status"}</button>
+                        <button type="button" className={`${buttonClass} bg-amber-700 text-white`} onClick={() => tokenMutation.mutate(createdCampaignId)} disabled={tokenMutation.isPending}>{tokenMutation.isPending ? "Generating…" : "Generate & Assign Tokens"}</button>
+                        <button type="button" className={`${buttonClass} bg-[#25d366] px-4 text-[#11251a]`} onClick={confirmLaunch} disabled={!providerConfig || !tokenResult?.eligible || tokenResult?.failedAssignment > 0 || launchMutation.isPending}>{launchMutation.isPending ? "Queueing…" : selectionMode === "selected" ? "Send to Selected" : "Send to All Eligible"}</button>
+                      </div>
+                      {scanResult?.counts && <p className="w-full text-xs text-[#bbb]" aria-live="polite">Latest scan: {scanResult.counts.customerRecordsFound} records · {scanResult.counts.uniqueValidPhoneNumbers} valid unique numbers · {scanResult.counts.customersWithQualifyingOrders} qualifying buyers · {scanResult.counts.eligibleForWhatsApp} marketing-eligible · {scanResult.counts.alreadyHaveValidCoupon} assigned · {scanResult.counts.excluded} excluded</p>}
                     </section>
                   ) : (
                     <div className="flex justify-end">
                       <div className="flex flex-col items-end gap-1">
-                        <span className="text-xs text-[#999]">Unique coupons are assigned as confirmed messages enter the send queue.</span>
+                        <span className="text-xs text-[#999]">Drafts do not send messages. Tokens must be saved before launch.</span>
                         <button type="button" className={`${buttonClass} bg-[#25d366] px-5 py-2.5 text-[#11251a]`} onClick={createDraft} disabled={!previewData?.eligible || createMutation.isPending}>{createMutation.isPending ? "Preparing campaign…" : "Prepare campaign for sending"}</button>
                       </div>
                     </div>
@@ -566,7 +605,7 @@ const WhatsAppCampaignManager = () => {
                           {selectedCampaign.status === "running" && <button type="button" className={`${buttonClass} bg-amber-700 text-white`} onClick={() => actionMutation.mutate({ action: "pause", campaignId: selectedCampaignId })}><FaPause /> Pause</button>}
                           {["draft", "scheduled", "running", "paused"].includes(selectedCampaign.status) && <button type="button" className={`${buttonClass} bg-red-900 text-white`} onClick={() => window.confirm("Cancel messages that have not yet been sent?") && actionMutation.mutate({ action: "cancel", campaignId: selectedCampaignId })}><FaTimes /> Cancel</button>}
                           {selectedCampaign.status === "paused" && <button type="button" className={`${buttonClass} bg-[#25d366] text-[#11251a]`} onClick={() => window.confirm(`Resume this campaign and queue ${stats?.queued || 0} remaining messages?`) && actionMutation.mutate({ action: "resume", campaignId: selectedCampaignId, confirmedEligibleCount: stats?.queued || 0 })}><FaPlay /> Resume queued messages</button>}
-                          {(stats?.retryableFailed || 0) > 0 && <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={() => actionMutation.mutate({ action: "retry", campaignId: selectedCampaignId })}><FaRedo /> Retry safe failures ({stats.retryableFailed})</button>}
+                          {(stats?.retryableFailed || 0) > 0 && <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={() => { const reason = window.prompt("Why are these failed messages being retried?"); if (reason?.trim()) actionMutation.mutate({ action: "retry", campaignId: selectedCampaignId, reason: reason.trim() }); }}><FaRedo /> Retry safe failures ({stats.retryableFailed})</button>}
                           <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={exportRecipients} disabled={!recipients.length}><FaDownload /> Export page</button>
                         </div>
                       </div>
