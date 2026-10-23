@@ -383,7 +383,10 @@ const WhatsAppCampaignManager = () => {
 
   const buildPreview = () => {
     try {
-      previewMutation.mutate(requestPayload());
+      previewMutation.mutate({
+        ...requestPayload(),
+        name: form.name.trim() || "Customer Appreciation",
+      });
     } catch (error) {
       setFeedback(error.message);
     }

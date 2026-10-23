@@ -11,7 +11,27 @@ const DISALLOWED_ORDER_STATUSES = ["Cancelled", "Payment Pending Verification"];
 
 const escapeRegex = (value) => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const digitsExpression = (input) => ({ $regexReplace: { input, regex: "\\D", replacement: "" } });
+const digitsExpression = (input) => {
+  const value = { $ifNull: [input, ""] };
+  return {
+    $reduce: {
+      input: { $range: [0, { $strLenCP: value }] },
+      initialValue: "",
+      in: {
+        $let: {
+          vars: { character: { $substrCP: [value, "$$this", 1] } },
+          in: {
+            $cond: [
+              { $in: ["$$character", ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]] },
+              { $concat: ["$$value", "$$character"] },
+              "$$value",
+            ],
+          },
+        },
+      },
+    },
+  };
+};
 const phoneSuffixExpression = (input) => {
   const digits = digitsExpression(input);
   return { $substrCP: [digits, { $max: [0, { $subtract: [{ $strLenCP: digits }, 9] }] }, 9] };
@@ -247,6 +267,7 @@ module.exports = {
   attachCampaignHistory,
   assignmentEligibilityFor,
   eligibilityFor,
+  digitsExpression,
   listCustomers,
   resolveRecipients,
 };
