@@ -18,7 +18,7 @@ const whatsAppCampaignSchema = new mongoose.Schema({
     default: "draft",
     index: true,
   },
-  discountOptions: [{ type: Number, enum: [5, 7, 10], required: true }],
+  discountOptions: [{ type: Number, enum: [5, 7, 8, 10], required: true }],
   discountWeights: {
     type: Map,
     of: { type: Number, min: 0, max: 1000 },
@@ -37,6 +37,7 @@ const whatsAppCampaignSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   launchedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   confirmedEligibleCount: { type: Number, default: 0, min: 0 },
+  confirmedAssignmentCount: { type: Number, default: 0, min: 0 },
   sendAllRequested: { type: Boolean, default: false },
   startedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },

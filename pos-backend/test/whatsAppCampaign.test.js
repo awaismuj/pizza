@@ -7,6 +7,7 @@ process.env.WHATSAPP_CAMPAIGN_TEMPLATE_PREVIEW = "Hi {{1}}!\\nDiscount {{2}}%\nC
 process.env.WHATSAPP_CLOUD_APP_SECRET = "campaign-test-secret";
 const provider = require("../services/whatsAppCampaignProvider");
 const { eligibilityFor, normalizeEligibleOrderStatuses } = require("../services/whatsAppCampaignService");
+const { chooseDiscount } = require("../services/whatsAppCampaignCouponService");
 
 test("normalizes local Pakistani mobile numbers for WhatsApp Cloud API", () => {
   assert.equal(provider.normalizeNumber("0300 123 4567"), "923001234567");
@@ -25,6 +26,10 @@ test("campaign order statuses exclude cancelled and payment-verification orders 
   assert.deepEqual(normalizeEligibleOrderStatuses(), ["Completed", "Closed"]);
   assert.deepEqual(normalizeEligibleOrderStatuses(["Completed", "Cancelled", "Payment Pending Verification"]), ["Completed"]);
   assert.throws(() => normalizeEligibleOrderStatuses(["not-a-real-status"]));
+});
+
+test("campaign discount selection supports the 8 percent tier", () => {
+  assert.equal(chooseDiscount({ discountOptions: [8], discountWeights: { 8: 1 } }), 8);
 });
 
 test("renders sample values into the server-configured WhatsApp template", () => {
