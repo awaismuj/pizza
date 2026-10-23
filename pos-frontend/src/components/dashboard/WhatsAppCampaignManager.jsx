@@ -67,8 +67,8 @@ const makeRequestKey = () => {
 const initialForm = () => ({
   name: "",
   campaignType: "customer appreciation",
-  discountOptions: [5, 7, 10],
-  discountWeights: { 5: 1, 7: 1, 10: 1 },
+  discountOptions: [5, 7, 8, 10],
+  discountWeights: { 5: 1, 7: 1, 8: 1, 10: 1 },
   minimumOrderAmount: 1000,
   maximumDiscount: "",
   maxUsesPerCoupon: 1,
@@ -105,9 +105,9 @@ const WhatsAppCampaignManager = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState("create");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [page, setPage] = useState(1);
-  const [selectionMode, setSelectionMode] = useState("selected");
+  const [selectionMode, setSelectionMode] = useState("all-eligible");
   const [selectedIds, setSelectedIds] = useState([]);
   const [excludedIds, setExcludedIds] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -249,6 +249,39 @@ const WhatsAppCampaignManager = () => {
     },
     onError: (error) => setFeedback(errorMessage(error)),
   });
+  const autoAssignMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        ...requestPayload(),
+        name: form.name.trim() || "Customer Appreciation",
+        selection: { mode: "all-eligible", status: "active", search: "", excludedCustomerIds: [] },
+      };
+      const previewResponse = await previewWhatsAppCampaign(payload);
+      const previewData = previewResponse.data?.data;
+      const eligibleForAssignment = Number(previewData?.counts?.assignmentEligible || 0);
+      if (!eligibleForAssignment) throw new Error("No active customers with qualifying orders and valid mobile numbers were found.");
+      if (!window.confirm(`Generate and assign unique coupons to ${eligibleForAssignment} active customers with qualifying orders? ${Number(previewData.counts.eligible || 0)} customers can also receive WhatsApp marketing. No messages will be sent.`)) {
+        return { cancelled: true };
+      }
+      const draftResponse = await createWhatsAppCampaign({ ...payload, requestKey });
+      const campaignId = draftResponse.data?.data?.campaign?._id;
+      if (!campaignId) throw new Error("Could not save the campaign draft.");
+      const tokenResponse = await generateWhatsAppCampaignTokens(campaignId);
+      return { campaignId, counts: tokenResponse.data?.data?.counts, preview: previewData };
+    },
+    onSuccess: (result) => {
+      if (result.cancelled) return;
+      setPreview(result.preview);
+      setTokenResult(result.counts);
+      setCreatedCampaignId(result.campaignId);
+      setSelectedCampaignId(result.campaignId);
+      setRequestKey(makeRequestKey());
+      setFeedback("");
+      enqueueSnackbar(`${result.counts?.created || 0} coupon tokens assigned. No messages were sent.`, { variant: "success" });
+      refreshCampaigns();
+    },
+    onError: (error) => setFeedback(errorMessage(error)),
+  });
   const launchMutation = useMutation({
     mutationFn: launchWhatsAppCampaign,
     onSuccess: (response) => {
@@ -356,6 +389,14 @@ const WhatsAppCampaignManager = () => {
     }
   };
 
+  const generateAutoCoupons = () => {
+    if (createdCampaignId) {
+      tokenMutation.mutate(createdCampaignId);
+      return;
+    }
+    autoAssignMutation.mutate();
+  };
+
   const createDraft = () => {
     if (!preview) {
       setFeedback("Preview recipients before creating the campaign.");
@@ -446,6 +487,14 @@ const WhatsAppCampaignManager = () => {
               </div>
             </header>
 
+            {view === "create" && <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-[#333] bg-[#191919] px-4 py-3 sm:px-6">
+              <p className="text-xs text-[#bbb]">Assign coupons to active customers with qualifying orders. Marketing consent is still required before any WhatsApp send.</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={buildPreview} disabled={previewMutation.isPending || autoAssignMutation.isPending}>{previewMutation.isPending ? "Scanning…" : "Scan Eligible Customers"}</button>
+                <button type="button" className={`${buttonClass} bg-amber-400 px-4 text-[#1c1600]`} onClick={generateAutoCoupons} disabled={autoAssignMutation.isPending || tokenMutation.isPending}>{autoAssignMutation.isPending || tokenMutation.isPending ? "Generating & assigning…" : "Generate & Assign Auto Coupons"}</button>
+              </div>
+            </div>}
+
             <div className="overflow-y-auto p-4 sm:p-6">
               {feedback && <p className="mb-4 rounded border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-200" role="alert">{feedback}</p>}
 
@@ -531,7 +580,7 @@ const WhatsAppCampaignManager = () => {
                       <div className="rounded border border-[#333] bg-[#191919] px-3 py-2 text-sm text-white">Send method <b className="ml-2 text-[#25d366]">WhatsApp</b></div>
                       <fieldset>
                         <legend className="mb-2 text-xs text-[#aaa]">Coupon discount (random per customer)</legend>
-                        <div className="grid grid-cols-3 gap-2">{[5, 7, 10].map((discount) => <label key={discount} className="flex flex-col gap-2 rounded border border-[#444] p-2 text-sm text-white"><span className="flex items-center gap-2"><input type="checkbox" checked={form.discountOptions.includes(discount)} onChange={() => toggleDiscount(discount)} />{discount}%</span><input className={inputClass} type="number" min="0" max="1000" step="1" value={form.discountWeights[discount]} onChange={(event) => setForm((current) => ({ ...current, discountWeights: { ...current.discountWeights, [discount]: event.target.value } }))} aria-label={`${discount}% discount weight`} title="Relative selection weight" /></label>)}</div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[5, 7, 8, 10].map((discount) => <label key={discount} className="flex flex-col gap-2 rounded border border-[#444] p-2 text-sm text-white"><span className="flex items-center gap-2"><input type="checkbox" checked={form.discountOptions.includes(discount)} onChange={() => toggleDiscount(discount)} />{discount}%</span><input className={inputClass} type="number" min="0" max="1000" step="1" value={form.discountWeights[discount]} onChange={(event) => setForm((current) => ({ ...current, discountWeights: { ...current.discountWeights, [discount]: event.target.value } }))} aria-label={`${discount}% discount weight`} title="Relative selection weight" /></label>)}</div>
                       </fieldset>
                       <label className="block space-y-1 text-xs text-[#aaa]">Minimum order amount<input className={inputClass} type="number" min="0" step="1" value={form.minimumOrderAmount} onChange={(event) => setForm((current) => ({ ...current, minimumOrderAmount: event.target.value }))} /></label>
                       <label className="block space-y-1 text-xs text-[#aaa]">Maximum discount (optional)<input className={inputClass} type="number" min="0" step="1" value={form.maximumDiscount} onChange={(event) => setForm((current) => ({ ...current, maximumDiscount: event.target.value }))} placeholder="No cap" /></label>
@@ -546,7 +595,6 @@ const WhatsAppCampaignManager = () => {
                         <p className="mt-2 text-[#888]">Production sends use only this provider-approved template; message text cannot be changed here.</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={buildPreview} disabled={previewMutation.isPending}>{previewMutation.isPending ? "Scanning…" : "Scan Eligible Customers"}</button>
                         <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={sendTest} disabled={!providerConfig || !providerStatus?.testNumberConfigured || testMutation.isPending}>{testMutation.isPending ? "Sending test…" : "Send test message"}</button>
                       </div>
                     </section>
