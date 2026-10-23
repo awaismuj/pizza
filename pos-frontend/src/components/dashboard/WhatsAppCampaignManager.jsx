@@ -279,6 +279,16 @@ const WhatsAppCampaignManager = () => {
     setPreview(null);
   };
 
+  const chooseActiveEligible = () => {
+    setSelectionMode("all-eligible");
+    setStatusFilter("active");
+    setSearch("");
+    setExcludedIds([]);
+    setSelectedIds([]);
+    setPage(1);
+    setPreview(null);
+  };
+
   const chooseFiltered = () => {
     setSelectionMode("filtered");
     setExcludedIds([]);
@@ -428,7 +438,8 @@ const WhatsAppCampaignManager = () => {
                           <p className="text-xs text-[#999]">Only active accounts with explicit marketing consent and a valid WhatsApp number can be queued.</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseAllEligible}>Select All Eligible</button>
+                          <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseActiveEligible}>Active &amp; opted-in customers</button>
+                          <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseAllEligible}>All eligible customers</button>
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseFiltered}>Select Filtered Customers</button>
                           <button type="button" className={`${buttonClass} text-[#bbb] hover:bg-[#303030]`} onClick={deselectAll}>Deselect All</button>
                         </div>
@@ -524,11 +535,14 @@ const WhatsAppCampaignManager = () => {
                   {createdCampaignId ? (
                     <section className="flex flex-wrap items-center justify-between gap-3 rounded border border-amber-800 bg-amber-950/30 p-4">
                       <div><b className="text-white">Draft saved. Confirm launch.</b><p className="text-sm text-[#bbb]">{previewData?.eligible || 0} eligible messages · {form.name} · {form.scheduledAt ? `Scheduled: ${form.scheduledAt}` : "Start now"}</p></div>
-                      <button type="button" className={`${buttonClass} bg-[#25d366] px-4 text-[#11251a]`} onClick={confirmLaunch} disabled={!providerConfig || launchMutation.isPending}>{launchMutation.isPending ? "Queueing…" : "Confirm and queue messages"}</button>
+                      <button type="button" className={`${buttonClass} bg-[#25d366] px-4 text-[#11251a]`} onClick={confirmLaunch} disabled={!providerConfig || launchMutation.isPending}>{launchMutation.isPending ? "Queueing…" : "Send WhatsApp to all eligible"}</button>
                     </section>
                   ) : (
                     <div className="flex justify-end">
-                      <button type="button" className={`${buttonClass} bg-[#25d366] px-5 py-2.5 text-[#11251a]`} onClick={createDraft} disabled={!previewData?.eligible || createMutation.isPending}>{createMutation.isPending ? "Saving campaign…" : "Create campaign draft"}</button>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs text-[#999]">Unique coupons are assigned as confirmed messages enter the send queue.</span>
+                        <button type="button" className={`${buttonClass} bg-[#25d366] px-5 py-2.5 text-[#11251a]`} onClick={createDraft} disabled={!previewData?.eligible || createMutation.isPending}>{createMutation.isPending ? "Preparing campaign…" : "Prepare campaign for sending"}</button>
+                      </div>
                     </div>
                   )}
                 </div>
