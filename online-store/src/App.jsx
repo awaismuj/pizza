@@ -5758,25 +5758,25 @@ function StorefrontHome() {
             </form>
           </div>
         </div>
-        {welcomeOffer && (
-          <div className="gzp-overlay" style={{ zIndex: 110 }} onClick={declineWelcomeOffer}>
-            <div className="gzp-modal" role="dialog" aria-modal="true" aria-label={welcomeOffer.popupTitle || "First-order welcome offer"} onClick={(event) => event.stopPropagation()}>
-              <div className="gzp-modal-body">
-                <h2>{welcomeOffer.popupTitle || "Welcome to our Pizza Store!"}</h2>
-                <p>{welcomeOffer.popupDescription || "You're eligible for a special first-order reward."}</p>
-                <p><strong>{welcomeOffer.discountPercentage}% off</strong> your first order. Save {formatRs(welcomeOffer.discountAmount)} on this basket.</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                  <button type="button" className="gzp-btn gzp-btn-primary" onClick={applyWelcomeOffer} disabled={validatingCoupon}>
-                    {validatingCoupon ? "Checking…" : welcomeOffer.applyButtonLabel || "Apply Discount"}
-                  </button>
-                  <button type="button" className="gzp-btn gzp-btn-ghost" onClick={declineWelcomeOffer}>
-                    {welcomeOffer.declineButtonLabel || "No Thanks"}
-                  </button>
-                </div>
+      )}
+      {welcomeOffer && (
+        <div className="gzp-overlay" style={{ zIndex: 110 }} onClick={declineWelcomeOffer}>
+          <div className="gzp-modal" role="dialog" aria-modal="true" aria-label={welcomeOffer.popupTitle || "First-order welcome offer"} onClick={(event) => event.stopPropagation()}>
+            <div className="gzp-modal-body">
+              <h2>{welcomeOffer.popupTitle || "Welcome to our Pizza Store!"}</h2>
+              <p>{welcomeOffer.popupDescription || "You're eligible for a special first-order reward."}</p>
+              <p><strong>{welcomeOffer.discountPercentage}% off</strong> your first order. Save {formatRs(welcomeOffer.discountAmount)} on this basket.</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <button type="button" className="gzp-btn gzp-btn-primary" onClick={applyWelcomeOffer} disabled={validatingCoupon}>
+                  {validatingCoupon ? "Checking…" : welcomeOffer.applyButtonLabel || "Apply Discount"}
+                </button>
+                <button type="button" className="gzp-btn gzp-btn-ghost" onClick={declineWelcomeOffer}>
+                  {welcomeOffer.declineButtonLabel || "No Thanks"}
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
       )}
 
       {/* ---- Track ---- */}
