@@ -12,6 +12,7 @@ const provider = require("../services/whatsAppCampaignProvider");
 const Order = require("../models/orderModel");
 
 const DISCOUNTS = [5, 7, 8, 10];
+const DISCOUNT_LABELS = DISCOUNTS.map((discount) => `${discount}%`).join(", ");
 const MAX_NAME = 120;
 
 const validateCampaignInput = (body = {}) => {
@@ -20,7 +21,7 @@ const validateCampaignInput = (body = {}) => {
   const campaignType = String(body.campaignType || "custom").trim().slice(0, 80) || "custom";
   const discountOptions = [...new Set(Array.isArray(body.discountOptions) ? body.discountOptions.map(Number) : [])];
   if (!discountOptions.length || discountOptions.some((value) => !DISCOUNTS.includes(value))) {
-    throw createHttpError(400, "Choose one or more discounts: 5%, 7%, or 10%.");
+    throw createHttpError(400, `Choose one or more discounts: ${DISCOUNT_LABELS}.`);
   }
   const sourceWeights = body.discountWeights || {};
   const discountWeights = {};
