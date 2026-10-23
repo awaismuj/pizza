@@ -4,6 +4,7 @@ const createHttpError = require("http-errors");
 const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
 const CustomerCoupon = require("../models/customerCouponModel");
+const Customer = require("../models/customerModel");
 const Order = require("../models/orderModel");
 const Dish = require("../models/dishModel");
 const Deal = require("../models/dealModel");
@@ -11,11 +12,161 @@ const { isDealLiveNow } = require("../controllers/dealController");
 const { calculateCoupon, normalizeCouponCode } = require("./couponRules");
 const { getOrCreateSettings } = require("../controllers/settingsController");
 const { normalizeByoConfig, byoDiscountPercent } = require("../utils/byoDiscount");
+const Settings = require("../models/settingsModel");
+const customerPhoneKey = require("../utils/customerPhoneKey");
+
+const normalizePhoneDigits = (phone) => {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (digits.length < 7 || digits.length > 15) {
+    throw createHttpError(400, "Enter a valid mobile number to use a coupon.");
+  }
+  return digits;
+};
 
 const customerKeyFor = (phone) => {
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (digits.length < 7) throw createHttpError(400, "Enter a valid mobile number to use a coupon.");
-  return crypto.createHash("sha256").update(digits.slice(-9)).digest("hex");
+  const digits = normalizePhoneDigits(phone);
+  return customerPhoneKey(digits);
+};
+
+const getWelcomeOfferConfig = async (now = new Date()) => {
+  const settings = await getOrCreateSettings();
+  const config = settings.firstTimeCustomerOffer || {
+    enabled: false,
+    minimumSubtotal: 1000,
+    percentages: [5, 7, 10],
+    selectionMethod: "random",
+    maxDiscountAmount: null,
+    startsAt: null,
+    expiresAt: null,
+    maxCampaignRedemptions: null,
+    maxOnePerCustomer: true,
+    eligibleChannels: ["Online", "POS", "Pickup", "Delivery"],
+    popupTitle: "Welcome to our Pizza Store!",
+    popupDescription: "You're eligible for a special first-order reward.",
+    applyButtonLabel: "Apply Discount",
+    declineButtonLabel: "No Thanks",
+  };
+
+  const validPercentages = Array.isArray(config.percentages)
+    ? config.percentages.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0 && value <= 100)
+    : [];
+
+  const hasActiveWindow = !config.startsAt || config.startsAt <= now;
+  const isActive = Boolean(config.enabled && hasActiveWindow && (!config.expiresAt || config.expiresAt >= now));
+
+  return {
+    ...config,
+    redemptionCount: Number(settings.welcomeOfferRedemptionCount || 0),
+    validPercentages,
+    enabled: Boolean(config.enabled),
+    isActive,
+  };
+};
+
+const chooseWelcomeOfferPercentage = (config) => {
+  const pool = [...new Set((config.validPercentages || []).map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))];
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
+const calculateEligibleSubtotal = async (items, channel = "Online", session = null) => {
+  const resolved = await resolveCartPrices(items, session);
+  const existingDiscount = await getExistingDiscount(resolved, channel);
+  const grossSubtotal = resolved.reduce((sum, item) => sum + item.subtotal, 0);
+  return Math.max(0, grossSubtotal - existingDiscount);
+};
+
+const buildWelcomeOfferCoupon = async ({ customerId, phone, channel, subtotal, session, now = new Date() }) => {
+  const config = await getWelcomeOfferConfig(now);
+  if (!config.isActive || !Array.isArray(config.eligibleChannels) || !config.eligibleChannels.includes(channel)) {
+    return { eligible: false, reason: "offer-not-active-for-channel" };
+  }
+
+  const digits = normalizePhoneDigits(phone);
+  const customerKey = customerKeyFor(digits);
+  const phoneSuffix = digits.slice(-9);
+
+  const hasPreviousOrder = await Order.exists({
+    orderStatus: { $ne: "Cancelled" },
+    ...(customerId
+      ? { $or: [{ customerId }, { "customerDetails.phone": { $regex: `${phoneSuffix}$` } }] }
+      : { "customerDetails.phone": { $regex: `${phoneSuffix}$` } }),
+  }).session(session || null);
+  if (hasPreviousOrder) {
+    return { eligible: false, reason: "existing-customer" };
+  }
+
+  if (Number(subtotal) < Number(config.minimumSubtotal || 0)) {
+    return { eligible: false, reason: "subtotal-too-low", minimumSubtotal: Number(config.minimumSubtotal || 0), subtotal: Number(subtotal || 0) };
+  }
+
+  let created = await Coupon.findOne({ source: "welcome", welcomeCustomerKey: customerKey })
+    .select("+welcomeCustomerKey")
+    .session(session || null);
+  let alreadyAssigned = Boolean(created);
+  if (!created) {
+    if (config.maxCampaignRedemptions != null && Number(config.redemptionCount || 0) >= Number(config.maxCampaignRedemptions)) {
+      return { eligible: false, reason: "campaign-limit-reached" };
+    }
+    const percentage = chooseWelcomeOfferPercentage(config);
+    if (!percentage) return { eligible: false, reason: "no-valid-percentages" };
+    const welcomeChannels = config.eligibleChannels.filter((entry) => ["Online", "POS"].includes(entry));
+    if (!welcomeChannels.length) return { eligible: false, reason: "offer-not-active-for-channel" };
+    const couponCode = `WELCOME_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
+    try {
+      [created] = await Coupon.create([{
+        name: "First-Time Customer Welcome Offer",
+        description: "Automatic first-order welcome discount for new customers.",
+        code: couponCode,
+        source: "welcome",
+        welcomeCustomerKey: customerKey,
+        discountType: "percentage",
+        discountValue: Number(percentage),
+        minimumSubtotal: Number(config.minimumSubtotal || 0),
+        maximumDiscount: config.maxDiscountAmount != null ? Number(config.maxDiscountAmount) : null,
+        channels: welcomeChannels,
+        usageLimit: 1,
+        perCustomerLimit: 1,
+        startsAt: config.startsAt || now,
+        expiresAt: config.expiresAt || null,
+        timezone: "Asia/Karachi",
+        firstOrderOnly: true,
+        allowStacking: false,
+        status: "active",
+      }], { session: session || null });
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      created = await Coupon.findOne({ source: "welcome", welcomeCustomerKey: customerKey })
+        .select("+welcomeCustomerKey")
+        .session(session || null);
+      if (!created) throw error;
+      alreadyAssigned = true;
+    }
+  }
+
+  if (!created || created.status !== "active" || (created.usageLimit != null && created.redemptionCount >= created.usageLimit)) {
+    return { eligible: false, reason: "offer-not-active-for-channel" };
+  }
+  const discountAmount = Math.min(
+    Number(subtotal || 0),
+    created.maximumDiscount != null
+      ? Number(created.maximumDiscount)
+      : Math.round((Number(subtotal || 0) * Number(created.discountValue)) / 100)
+  );
+  return {
+    eligible: true,
+    alreadyAssigned,
+    discountPercentage: Number(created.discountValue),
+    couponId: String(created._id),
+    code: created.code,
+    itemSubtotal: Number(subtotal || 0),
+    discountAmount,
+    minimumSubtotal: Number(config.minimumSubtotal || 0),
+    popupTitle: config.popupTitle || "Welcome to our Pizza Store!",
+    popupDescription: config.popupDescription || "You're eligible for a special first-order reward.",
+    applyButtonLabel: config.applyButtonLabel || "Apply Discount",
+    declineButtonLabel: config.declineButtonLabel || "No Thanks",
+  };
 };
 
 const resolveCartPrices = async (items, session = null) => {
@@ -84,6 +235,7 @@ const getExistingDiscount = async (items, channel) => {
 const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Online", session, now = new Date() }) => {
   const normalizedCode = normalizeCouponCode(code);
   if (!normalizedCode || normalizedCode.length > 40) throw createHttpError(400, "Enter a valid coupon code.");
+  const customerKey = customerKeyFor(phone);
   let assignment = await CustomerCoupon.findOne({ code: normalizedCode, status: "active" }).session(session || null);
   if (assignment) {
     if ((assignment.startsAt && assignment.startsAt > now) || (assignment.expiresAt && assignment.expiresAt <= now)) {
@@ -92,10 +244,15 @@ const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Onlin
     if (customerId && String(assignment.customerId) !== String(customerId)) {
       throw createHttpError(403, "This coupon is not available to this customer.");
     }
-    if (!customerId) {
+    if (!customerId && assignment.source !== "whatsapp_campaign") {
       throw createHttpError(401, "Sign in to the assigned customer account to use this coupon.");
     }
-    if (String(assignment.customerId) !== String(customerId)) {
+    if (assignment.source === "whatsapp_campaign") {
+      const assignedCustomer = await Customer.findById(assignment.customerId).select("phoneKey").session(session || null);
+      if (!assignedCustomer || assignedCustomer.phoneKey !== customerKey) {
+        throw createHttpError(403, "This coupon is not available to this mobile number.");
+      }
+    } else if (String(assignment.customerId) !== String(customerId)) {
       throw createHttpError(403, "This coupon is not available to this customer.");
     }
     if (assignment.redemptionCount >= assignment.redemptionLimit) {
@@ -104,9 +261,20 @@ const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Onlin
   }
   const coupon = assignment
     ? await Coupon.findById(assignment.couponId).session(session || null)
-    : await Coupon.findOne({ code: normalizedCode }).session(session || null);
+    : await Coupon.findOne({ code: normalizedCode }).select("+welcomeCustomerKey").session(session || null);
   if (!coupon) throw createHttpError(400, "Invalid coupon code.");
-  const customerKey = customerKeyFor(phone);
+  if (coupon.source === "whatsapp_campaign" && !assignment) {
+    throw createHttpError(403, "This campaign coupon must be used with the private code sent to your mobile number.");
+  }
+  if (coupon.source === "welcome" && coupon.welcomeCustomerKey !== customerKey) {
+    throw createHttpError(403, "This welcome offer is only available to the mobile number it was issued to.");
+  }
+  if (coupon.source === "welcome") {
+    const welcomeConfig = await getWelcomeOfferConfig(now);
+    if (!welcomeConfig.isActive || !welcomeConfig.eligibleChannels?.includes(channel)) {
+      throw createHttpError(400, "This welcome offer is no longer available.");
+    }
+  }
 
   const priorOrderQuery = {
     orderStatus: { $ne: "Cancelled" },
@@ -180,6 +348,20 @@ const reserveRedemption = async ({ coupon, code, customerKey, customerId, custom
   if (!canRedeem) throw createHttpError(400, "Coupon is no longer available.");
   if (current.usageLimit != null && current.redemptionCount >= current.usageLimit) {
     throw createHttpError(400, "Coupon usage limit reached.");
+  }
+  if (current.source === "welcome") {
+    const settings = await getOrCreateSettings();
+    const redemptionCountPath = "welcomeOfferRedemptionCount";
+    const campaignLimit = settings.firstTimeCustomerOffer?.maxCampaignRedemptions;
+    const filter = { _id: settings._id };
+    if (campaignLimit != null) {
+      filter.$or = [
+        { [redemptionCountPath]: { $lt: campaignLimit } },
+        { [redemptionCountPath]: { $exists: false } },
+      ];
+    }
+    const campaignUpdate = await Settings.updateOne(filter, { $inc: { [redemptionCountPath]: 1 } }, { session });
+    if (!campaignUpdate.matchedCount) throw createHttpError(400, "Welcome offer campaign redemption limit reached.");
   }
   const customerUsage = await CouponRedemption.countDocuments({
     couponId: current._id,
@@ -260,6 +442,14 @@ const reverseRedemption = async (orderId, session = null) => {
       { session }
     );
   }
+  const coupon = await Coupon.findById(redemption.couponId).session(session);
+  if (coupon?.source === "welcome") {
+    await Settings.updateOne(
+      { key: "global", welcomeOfferRedemptionCount: { $gt: 0 } },
+      { $inc: { welcomeOfferRedemptionCount: -1 } },
+      { session }
+    );
+  }
   return true;
 };
 
@@ -274,8 +464,13 @@ const confirmRedemption = async (orderId) => {
 module.exports = {
   customerKeyFor,
   resolveCartPrices,
+  calculateEligibleSubtotal,
+  getExistingDiscount,
   evaluateCoupon,
   reserveRedemption,
   reverseRedemption,
   confirmRedemption,
+  normalizePhoneDigits,
+  getWelcomeOfferConfig,
+  buildWelcomeOfferCoupon,
 };

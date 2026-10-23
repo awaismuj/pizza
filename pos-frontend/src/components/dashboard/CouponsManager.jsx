@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
+import WhatsAppCampaignManager from "./WhatsAppCampaignManager";
 import {
   addCoupon,
   archiveCoupon,
@@ -10,7 +11,9 @@ import {
   getCouponAssignments,
   getCoupons,
   getDishes,
+  getSettings,
   updateCoupon,
+  updateSettings,
   assignCouponToCustomer,
   revokeCustomerCoupon,
 } from "../../https";
@@ -139,7 +142,22 @@ const CouponsManager = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [assignmentForm, setAssignmentForm] = useState({ couponId: "", email: "", redemptionLimit: 1 });
   const [lastAssignedCode, setLastAssignedCode] = useState("");
+  const [welcomeOfferForm, setWelcomeOfferForm] = useState({
+    enabled: false,
+    minimumSubtotal: 1000,
+    percentages: "5,7,10",
+    maxDiscountAmount: "",
+    startsAt: "",
+    expiresAt: "",
+    maxCampaignRedemptions: "",
+    eligibleChannels: ["Online"],
+    popupTitle: "Welcome to our Pizza Store!",
+    popupDescription: "You're eligible for a special first-order reward.",
+    applyButtonLabel: "Apply Discount",
+    declineButtonLabel: "No Thanks",
+  });
 
+  const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: getSettings });
   const { data: couponResponse, isLoading, error: couponsError, isError: couponsFailed } = useQuery({
     queryKey: ["coupons", search, statusFilter, page],
     queryFn: () => getCoupons({ search: search || undefined, status: statusFilter || undefined, page, limit: 10 }),
@@ -162,6 +180,7 @@ const CouponsManager = () => {
   const categories = categoriesQuery.data?.data?.data || [];
   const redemptions = redemptionResponse?.data?.data || [];
   const assignments = assignmentResponse?.data?.data || [];
+  const welcomeOfferConfig = settingsQuery.data?.data?.data?.firstTimeCustomerOffer || null;
   const redemptionSummary = redemptionResponse?.data?.summary || {
     redeemed: 0,
     reserved: 0,
@@ -172,10 +191,29 @@ const CouponsManager = () => {
   const assignmentSummary = assignmentResponse?.data?.summary || { assigned: 0, active: 0 };
   const activeCount = useMemo(() => coupons.filter((coupon) => coupon.status === "active").length, [coupons]);
 
+  useEffect(() => {
+    if (!welcomeOfferConfig) return;
+    setWelcomeOfferForm({
+      enabled: Boolean(welcomeOfferConfig.enabled),
+      minimumSubtotal: Number(welcomeOfferConfig.minimumSubtotal ?? 1000),
+      percentages: Array.isArray(welcomeOfferConfig.percentages) ? welcomeOfferConfig.percentages.join(",") : "5,7,10",
+      maxDiscountAmount: welcomeOfferConfig.maxDiscountAmount ?? "",
+      startsAt: dateInputValue(welcomeOfferConfig.startsAt, "Asia/Karachi"),
+      expiresAt: dateInputValue(welcomeOfferConfig.expiresAt, "Asia/Karachi"),
+      maxCampaignRedemptions: welcomeOfferConfig.maxCampaignRedemptions ?? "",
+      eligibleChannels: ["Online"],
+      popupTitle: welcomeOfferConfig.popupTitle || "Welcome to our Pizza Store!",
+      popupDescription: welcomeOfferConfig.popupDescription || "You're eligible for a special first-order reward.",
+      applyButtonLabel: welcomeOfferConfig.applyButtonLabel || "Apply Discount",
+      declineButtonLabel: welcomeOfferConfig.declineButtonLabel || "No Thanks",
+    });
+  }, [welcomeOfferConfig]);
+
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["coupons"] });
     queryClient.invalidateQueries({ queryKey: ["coupon-redemptions"] });
     queryClient.invalidateQueries({ queryKey: ["coupon-assignments"] });
+    queryClient.invalidateQueries({ queryKey: ["settings"] });
   };
   const assignMutation = useMutation({
     mutationFn: assignCouponToCustomer,
@@ -205,6 +243,14 @@ const CouponsManager = () => {
       refresh();
     },
     onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not save coupon.", { variant: "error" }),
+  });
+  const welcomeOfferMutation = useMutation({
+    mutationFn: (payload) => updateSettings({ firstTimeCustomerOffer: payload }),
+    onSuccess: () => {
+      enqueueSnackbar("First-time customer welcome offer saved.", { variant: "success" });
+      refresh();
+    },
+    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not save welcome offer.", { variant: "error" }),
   });
   const archiveMutation = useMutation({
     mutationFn: archiveCoupon,
@@ -286,11 +332,57 @@ const CouponsManager = () => {
 
   return (
     <div className="mx-auto w-full px-6 pb-10 space-y-6">
+      <WhatsAppCampaignManager />
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Coupons matched</p><b className="text-2xl text-white">{pagination?.total || 0}</b></div>
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Active coupons on this page</p><b className="text-2xl text-white">{activeCount}</b></div>
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Private codes assigned</p><b className="text-2xl text-white">{assignmentSummary.assigned || 0}</b><p className="text-xs text-[#aaa]">{assignmentSummary.active || 0} active</p></div>
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Completed coupon uses</p><b className="text-2xl text-white">{redemptionSummary.redeemed || 0}</b><p className="text-xs text-[#aaa]">Pending: {redemptionSummary.reserved || 0} · Discounts: Rs {Number(redemptionSummary.discountTotal || 0).toLocaleString()}</p></div>
+      </section>
+
+      <section className="rounded-lg bg-[#262626] p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold text-white">First-Time Customer Welcome Offer</h2>
+          <label className="flex items-center gap-2 text-sm text-white">
+            <input type="checkbox" checked={Boolean(welcomeOfferForm.enabled)} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, enabled: event.target.checked }))} />
+            Enabled
+          </label>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <label className={labelClass}>Minimum subtotal (Rs)<input type="number" min="0" step="1" className={inputClass} value={welcomeOfferForm.minimumSubtotal} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, minimumSubtotal: event.target.value }))} /></label>
+          <label className={labelClass}>Discount percentages<input className={inputClass} value={welcomeOfferForm.percentages} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, percentages: event.target.value }))} /></label>
+          <label className={labelClass}>Maximum discount (Rs)<input type="number" min="0" step="1" className={inputClass} value={welcomeOfferForm.maxDiscountAmount} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, maxDiscountAmount: event.target.value }))} /></label>
+          <label className={labelClass}>Campaign redemption cap<input type="number" min="1" step="1" className={inputClass} value={welcomeOfferForm.maxCampaignRedemptions} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, maxCampaignRedemptions: event.target.value }))} /></label>
+          <label className={labelClass}>Starts at (Asia/Karachi)<input type="datetime-local" className={inputClass} value={welcomeOfferForm.startsAt} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, startsAt: event.target.value }))} /></label>
+          <label className={labelClass}>Expires at (Asia/Karachi)<input type="datetime-local" className={inputClass} value={welcomeOfferForm.expiresAt} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, expiresAt: event.target.value }))} /></label>
+          <label className={labelClass}>Popup title<input className={inputClass} value={welcomeOfferForm.popupTitle} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, popupTitle: event.target.value }))} /></label>
+          <label className={labelClass}>Apply button<input className={inputClass} value={welcomeOfferForm.applyButtonLabel} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, applyButtonLabel: event.target.value }))} /></label>
+        </div>
+        <p className="text-xs text-[#aaa]">Available for online orders.</p>
+        <p className="text-xs text-[#aaa]">Redemptions: {Number(welcomeOfferConfig?.redemptionCount || 0).toLocaleString()} / {welcomeOfferForm.maxCampaignRedemptions || "unlimited"}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className={labelClass}>Decline button<input className={inputClass} value={welcomeOfferForm.declineButtonLabel} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, declineButtonLabel: event.target.value }))} /></label>
+        </div>
+        <label className={labelClass}>Popup description<textarea rows="2" className={inputClass} value={welcomeOfferForm.popupDescription} onChange={(event) => setWelcomeOfferForm((current) => ({ ...current, popupDescription: event.target.value }))} /></label>
+        <div className="flex gap-3">
+          <button type="button" disabled={welcomeOfferMutation.isPending} className="rounded bg-[#f6b100] px-4 py-2 font-semibold text-black" onClick={() => {
+            const percentages = welcomeOfferForm.percentages.split(",").map((value) => Number(value.trim())).filter((value) => Number.isFinite(value) && value > 0);
+            welcomeOfferMutation.mutate({
+              enabled: Boolean(welcomeOfferForm.enabled),
+              minimumSubtotal: Number(welcomeOfferForm.minimumSubtotal || 0),
+              percentages,
+              maxDiscountAmount: welcomeOfferForm.maxDiscountAmount === "" ? null : Number(welcomeOfferForm.maxDiscountAmount),
+              startsAt: zonedDateToIso(welcomeOfferForm.startsAt, "Asia/Karachi"),
+              expiresAt: zonedDateToIso(welcomeOfferForm.expiresAt, "Asia/Karachi"),
+              maxCampaignRedemptions: welcomeOfferForm.maxCampaignRedemptions === "" ? null : Number(welcomeOfferForm.maxCampaignRedemptions),
+              eligibleChannels: ["Online"],
+              popupTitle: welcomeOfferForm.popupTitle,
+              popupDescription: welcomeOfferForm.popupDescription,
+              applyButtonLabel: welcomeOfferForm.applyButtonLabel,
+              declineButtonLabel: welcomeOfferForm.declineButtonLabel,
+            });
+          }}>{welcomeOfferMutation.isPending ? "Saving…" : "Save welcome offer"}</button>
+        </div>
       </section>
 
       <form onSubmit={submit} className="rounded-lg bg-[#262626] p-5 space-y-4">

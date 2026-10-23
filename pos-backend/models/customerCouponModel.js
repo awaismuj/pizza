@@ -14,7 +14,7 @@ const customerCouponSchema = new mongoose.Schema(
       maxlength: 64,
       match: /^[A-Z0-9_-]+$/,
     },
-    source: { type: String, enum: ["admin", "welcome", "loyalty", "vip", "birthday", "referral", "win_back"], default: "admin" },
+    source: { type: String, enum: ["admin", "welcome", "whatsapp_campaign", "loyalty", "vip", "birthday", "referral", "win_back"], default: "admin" },
     idempotencyKey: { type: String, default: undefined },
     redemptionLimit: { type: Number, default: 1, min: 1 },
     redemptionCount: { type: Number, default: 0, min: 0 },
@@ -33,7 +33,7 @@ customerCouponSchema.index(
 );
 customerCouponSchema.index(
   { customerId: 1, idempotencyKey: 1 },
-  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } }
+  { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } }, name: "customerId_1_idempotencyKey_1" }
 );
 
 module.exports = mongoose.model("CustomerCoupon", customerCouponSchema);

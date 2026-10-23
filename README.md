@@ -399,6 +399,39 @@ and discount snapshot. A valid mobile number is required in both channels so
 per-customer redemption limits do not collapse into a shared anonymous POS
 identity. Existing Deals and Build Your Own behavior remain separate.
 
+The optional first-time customer offer is configured in POS Dashboard >
+Coupons. Online checkout checks the phone and server-priced cart, offers a
+phone-bound code to eligible first-time customers, and revalidates that code
+through the normal coupon path before applying it. Campaign limits are reserved
+transactionally with order redemption. Before enabling this offer in
+production, run `npm run migrate:welcome-offer-index` from `pos-backend` to
+create the unique phone-key index that prevents duplicate offers under
+concurrent requests.
+
+The **Send Coupons** campaign tool is under POS Dashboard > Coupons. Recipient
+lists are resolved from customer records and marketing consent on the backend;
+all-eligible selection cannot include opt-outs or invalid phone numbers.
+Customer status is derived from account activity and linked/guest order
+history; VIP filtering is not offered because the current customer model has
+no VIP classification. Campaigns save recipient records and standard coupon
+assignments before dispatch, use idempotency keys, and can be paused, cancelled,
+or safely retried for provider-confirmed failures.
+
+Campaign delivery uses the official WhatsApp Cloud API and an approved template
+with five body parameters (`{{1}}` through `{{5}}`). Set the campaign variables
+in `pos-backend/.env.example` in the deployment environment, including the
+approved template name, language, matching preview body, test number, app
+secret, and verify token. Development and tests are mock-only; Cloud sending is
+restricted to production. The configured test number is the only destination
+for test sends. Provider delivery callbacks are signature-verified; accepted
+messages are recorded as sent, not delivered, until WhatsApp confirms delivery.
+Before launching campaigns, run `npm run migrate:whatsapp-campaigns` from
+`pos-backend`. This creates campaign/coupon idempotency and query indexes and
+adds the campaign permission to persisted Admin/Super Admin roles; it does not
+rewrite customer or order data. The existing linked-device WhatsApp Web
+integration remains reserved for daily reports and is not used for campaign
+automation.
+
 ### Price and redemption policy
 
 The existing order calculation sequence is preserved: resolve current menu

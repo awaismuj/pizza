@@ -5,7 +5,7 @@ const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
 const Customer = require("../models/customerModel");
 const CustomerCoupon = require("../models/customerCouponModel");
-const { resolveCartPrices, evaluateCoupon } = require("../services/couponService");
+const { resolveCartPrices, calculateEligibleSubtotal, evaluateCoupon, buildWelcomeOfferCoupon, normalizePhoneDigits } = require("../services/couponService");
 
 const DISCOUNT_TYPES = ["percentage", "fixed"];
 const STATUSES = ["draft", "scheduled", "active", "paused", "expired", "archived"];
@@ -274,6 +274,30 @@ const validatePosCoupon = async (req, res, next) => {
   }
 };
 
+const checkWelcomeOffer = async (req, res, next) => {
+  try {
+    const channel = "Online";
+    const phone = req.customer?.phone || req.body.phone || "";
+    const normalizedPhone = normalizePhoneDigits(phone);
+    const items = await resolveCartPrices(req.body.items);
+    if (items.some((item) => item.isDeal || item.isPromotion || item.byo)) {
+      return res.json({ success: true, data: { eligible: false } });
+    }
+    const subtotal = await calculateEligibleSubtotal(req.body.items, channel);
+    const result = await buildWelcomeOfferCoupon({
+      phone: normalizedPhone,
+      customerId: req.customer?._id || null,
+      channel,
+      subtotal,
+      session: null,
+      now: new Date(),
+    });
+    res.json({ success: true, data: result.eligible ? result : { eligible: false } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCouponRedemptions = async (req, res, next) => {
   try {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -473,6 +497,7 @@ module.exports = {
   duplicateCoupon,
   validatePublicCoupon,
   validatePosCoupon,
+  checkWelcomeOffer,
   getCouponRedemptions,
   getMyCoupons,
   assignCoupon,

@@ -78,6 +78,16 @@ const cleanBranch = (b = {}) => {
     };
   }
 
+  const display = b.customerDisplay || {};
+  out.customerDisplay = {
+    showFreeDeliveryNote: display.showFreeDeliveryNote === true,
+    showEstimatedTimes: display.showEstimatedTimes === true,
+    showDeliveryFees: display.showDeliveryFees === true,
+    showDeliveryAreaText: display.showDeliveryAreaText === true,
+    showClosedNotice: display.showClosedNotice === true,
+    showCashPaymentNote: display.showCashPaymentNote === true,
+  };
+
   if (b.restriction) {
     const r = b.restriction;
     const until = r.until ? new Date(r.until) : null;

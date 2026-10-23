@@ -103,6 +103,12 @@ export const validatePublicCoupon = (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const checkWelcomeOffer = (payload) =>
+  request("/api/coupon/welcome-offer/check", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
 export const registerCustomer = (payload) =>
   request("/api/customer/register", { method: "POST", body: JSON.stringify(payload) });
 
