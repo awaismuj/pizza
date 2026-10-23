@@ -11,7 +11,7 @@ const campaignCouponService = require("../services/whatsAppCampaignCouponService
 const provider = require("../services/whatsAppCampaignProvider");
 const Order = require("../models/orderModel");
 
-const DISCOUNTS = [5, 7, 10];
+const DISCOUNTS = [5, 7, 8, 10];
 const MAX_NAME = 120;
 
 const validateCampaignInput = (body = {}) => {
@@ -125,7 +125,7 @@ const scanCampaignData = async (campaign) => {
   ]);
   const assignmentByCustomer = new Map(assignments.filter((row) => row.couponId).map((row) => [String(row.customerId), row]));
   const recipientByCustomer = new Map(existingRecipients.map((row) => [String(row.customerId), row]));
-  const rows = recipients.map(({ customer, eligible, reason }) => {
+  const rows = recipients.map(({ customer, eligible, reason, assignmentEligible }) => {
     const phone = provider.normalizeNumber(customer.phone);
     const assignment = assignmentByCustomer.get(String(customer._id)) || null;
     const existingRecipient = recipientByCustomer.get(String(customer._id)) || null;
@@ -135,6 +135,7 @@ const scanCampaignData = async (campaign) => {
       phone,
       eligible,
       reason,
+      assignmentEligible,
       qualifyingOrderCount: Number(customer.orderCount || 0),
       lastQualifyingOrderAt: customer.lastOrderDate || null,
       assignment,
@@ -156,8 +157,9 @@ const scanCampaignData = async (campaign) => {
       customerRecordsFound: rows.length,
       uniqueValidPhoneNumbers: uniqueValidPhones,
       customersWithQualifyingOrders: rows.filter((row) => row.qualifyingOrderCount > 0).length,
+      eligibleForAssignment: rows.filter((row) => row.assignmentEligible).length,
       eligibleForWhatsApp: rows.filter((row) => row.eligible).length,
-      requiringNewCoupon: rows.filter((row) => row.eligible && !row.assignment).length,
+      requiringNewCoupon: rows.filter((row) => row.assignmentEligible && !row.assignment).length,
       alreadyHaveValidCoupon: rows.filter((row) => row.assignment).length,
       alreadyMessaged: rows.filter((row) => row.alreadyMessaged).length,
       excluded: rows.filter((row) => !row.eligible).length,
@@ -187,6 +189,7 @@ const scanCampaign = async (req, res, next) => {
       marketingConsent: row.customer.marketingConsent === true,
       qualifyingOrderCount: row.qualifyingOrderCount,
       lastQualifyingOrderAt: row.lastQualifyingOrderAt,
+      assignmentEligible: row.assignmentEligible,
       eligible: row.eligible,
       ineligibleReason: row.reason,
       couponCode: row.assignment?.code || "",
@@ -213,13 +216,14 @@ const generateCampaignTokens = async (req, res, next) => {
     const recipientByCustomer = new Map(existingRecipients.map((recipient) => [String(recipient.customerId), recipient]));
     const counts = {
       eligible: recipients.filter((recipient) => recipient.eligible).length,
+      assignmentEligible: recipients.filter((recipient) => recipient.assignmentEligible).length,
       created: 0,
       retained: 0,
       failedValidation: 0,
       failedAssignment: 0,
     };
 
-    for (const { customer, eligible, reason } of recipients) {
+    for (const { customer, eligible, reason, assignmentEligible, assignmentReason } of recipients) {
       let recipient = recipientByCustomer.get(String(customer._id));
       if (!recipient) {
         try {
@@ -237,12 +241,12 @@ const generateCampaignTokens = async (req, res, next) => {
           recipient = await WhatsAppCampaignRecipient.findOne({ campaignId: campaign._id, customerId: customer._id });
         }
       }
-      if (!eligible) {
+      if (!assignmentEligible) {
         counts.failedValidation += 1;
         if (["queued", "skipped"].includes(recipient.status)) {
           await WhatsAppCampaignRecipient.updateOne(
             { _id: recipient._id, status: { $in: ["queued", "skipped"] } },
-            { $set: { status: "skipped", skipReason: reason || "Customer is not currently eligible." } }
+            { $set: { status: "skipped", skipReason: assignmentReason || reason || "Customer is not currently eligible." } }
           );
         }
         continue;
@@ -256,7 +260,14 @@ const generateCampaignTokens = async (req, res, next) => {
         counts[result.created ? "created" : "retained"] += 1;
         await WhatsAppCampaignRecipient.updateOne(
           { _id: recipient._id, status: { $in: ["queued", "skipped"] } },
-          { $set: { status: "queued", skipReason: "", customerName: customer.name, phone: customer.phone || "" } }
+          {
+            $set: {
+              status: eligible ? "queued" : "skipped",
+              skipReason: eligible ? "" : reason || "Marketing consent not granted.",
+              customerName: customer.name,
+              phone: customer.phone || "",
+            },
+          }
         );
       } catch {
         counts.failedAssignment += 1;
@@ -264,6 +275,7 @@ const generateCampaignTokens = async (req, res, next) => {
     }
 
     campaign.confirmedEligibleCount = counts.eligible;
+    campaign.confirmedAssignmentCount = counts.assignmentEligible;
     await campaign.save();
     await WhatsAppCampaignAudit.create({
       campaignId: campaign._id,
@@ -298,13 +310,14 @@ const previewCampaign = async (req, res, next) => {
     const campaign = validateCampaignInput(req.body);
     const recipients = await resolveSafely(campaign.selection, campaign.eligibleOrderStatuses);
     const eligible = recipients.filter((recipient) => recipient.eligible).length;
+    const assignmentEligible = recipients.filter((recipient) => recipient.assignmentEligible).length;
     const skipped = recipients.length - eligible;
     const sampleDiscount = campaign.discountOptions[0];
     const expiryText = new Intl.DateTimeFormat("en-PK", { timeZone: campaign.timezone, dateStyle: "medium" }).format(campaign.expiresAt);
     res.json({
       success: true,
       data: {
-        counts: { selected: recipients.length, eligible, skipped, estimatedMessages: eligible },
+        counts: { selected: recipients.length, eligible, assignmentEligible, skipped, estimatedMessages: eligible },
         skipReasons: recipients.filter((recipient) => !recipient.eligible).reduce((counts, recipient) => {
           const reason = recipient.reason || "Not eligible.";
           counts[reason] = (counts[reason] || 0) + 1;
@@ -370,7 +383,8 @@ const createCampaign = async (req, res, next) => {
     const recipients = await resolveSafely(campaignData.selection, campaignData.eligibleOrderStatuses);
     if (!recipients.length) throw createHttpError(400, "No customers match this campaign selection.");
     const eligibleCount = recipients.filter((recipient) => recipient.eligible).length;
-    if (!eligibleCount) throw createHttpError(400, "There are no eligible recipients. Check consent and valid WhatsApp numbers.");
+    const assignmentEligibleCount = recipients.filter((recipient) => recipient.assignmentEligible).length;
+    if (!assignmentEligibleCount) throw createHttpError(400, "There are no active customers with qualifying orders and valid mobile numbers.");
     const providerStatus = provider.getProviderStatus();
     const templateName = providerStatus.templateName || "mock_approved_campaign_template";
     const templateLanguage = providerStatus.templateLanguage || "en";
@@ -385,6 +399,7 @@ const createCampaign = async (req, res, next) => {
         status: "draft",
         createdBy: req.user._id,
         confirmedEligibleCount: eligibleCount,
+        confirmedAssignmentCount: assignmentEligibleCount,
       }], { session });
       const documents = recipients.map(({ customer, eligible, reason }) => ({
         campaignId: savedCampaign._id,
@@ -399,7 +414,7 @@ const createCampaign = async (req, res, next) => {
         campaignId: savedCampaign._id,
         actorId: req.user._id,
         action: "create",
-        metadata: { selected: recipients.length, eligible: eligibleCount },
+        metadata: { selected: recipients.length, eligible: eligibleCount, assignmentEligible: assignmentEligibleCount },
       }], { session });
     });
     res.status(201).json({

@@ -92,13 +92,19 @@ const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibili
   return pipeline;
 };
 
-const eligibilityFor = (customer) => {
+const assignmentEligibilityFor = (customer) => {
   if (!customer.active) return { eligible: false, reason: "Account is inactive." };
-  if (customer.marketingConsent !== true) return { eligible: false, reason: "Marketing consent not granted." };
   if (Number(customer.orderCount || 0) < 1) return { eligible: false, reason: "No qualifying completed order." };
   if (!/^\d{10,15}$/.test(provider.normalizeNumber(customer.phone))) {
     return { eligible: false, reason: "No valid WhatsApp number." };
   }
+  return { eligible: true, reason: "" };
+};
+
+const eligibilityFor = (customer) => {
+  const assignmentEligibility = assignmentEligibilityFor(customer);
+  if (!assignmentEligibility.eligible) return assignmentEligibility;
+  if (customer.marketingConsent !== true) return { eligible: false, reason: "Marketing consent not granted." };
   return { eligible: true, reason: "" };
 };
 
@@ -216,12 +222,18 @@ const resolveRecipients = async (selection, eligibleOrderStatuses) => {
 
   return records.map((customer) => {
     const eligibility = eligibilityFor(customer);
+    const assignmentEligibility = assignmentEligibilityFor(customer);
     const normalizedPhone = provider.normalizeNumber(customer.phone);
     if (/^\d{10,15}$/.test(normalizedPhone)
       && Math.max(phoneCounts.get(normalizedPhone) || 0, selectedPhoneCounts.get(normalizedPhone) || 0) > 1) {
-      return { customer, eligible: false, reason: "Duplicate phone number." };
+      return { customer, eligible: false, reason: "Duplicate phone number.", assignmentEligible: false, assignmentReason: "Duplicate phone number." };
     }
-    return { customer, ...eligibility };
+    return {
+      customer,
+      ...eligibility,
+      assignmentEligible: assignmentEligibility.eligible,
+      assignmentReason: assignmentEligibility.reason,
+    };
   });
 };
 
@@ -233,6 +245,7 @@ module.exports = {
   normalizeEligibleOrderStatuses,
   MAX_CAMPAIGN_RECIPIENTS: MAX_CAMPAIGN_RECIPIENTS_LIMIT,
   attachCampaignHistory,
+  assignmentEligibilityFor,
   eligibilityFor,
   listCustomers,
   resolveRecipients,

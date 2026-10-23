@@ -41,7 +41,7 @@ const getCampaignCoupon = async (campaign, discount) => {
       minimumSubtotal: campaign.minimumOrderAmount,
       maximumDiscount: campaign.maximumDiscount,
       channels: ["Online", "POS"],
-      usageLimit: Math.max(1, campaign.confirmedEligibleCount * campaign.maxUsesPerCoupon),
+      usageLimit: Math.max(1, campaign.confirmedAssignmentCount * campaign.maxUsesPerCoupon),
       perCustomerLimit: campaign.maxUsesPerCoupon,
       startsAt: campaign.scheduledAt || campaign.startedAt || new Date(),
       expiresAt: campaign.expiresAt,
