@@ -7,6 +7,7 @@ const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientMo
 const Coupon = require("../models/couponModel");
 const CustomerCoupon = require("../models/customerCouponModel");
 const Role = require("../models/roleModel");
+const WhatsAppCampaignAudit = require("../models/whatsAppCampaignAuditModel");
 
 const run = async () => {
   await mongoose.connect(config.databaseURI);
@@ -30,6 +31,7 @@ const run = async () => {
     partialFilterExpression: { idempotencyKey: { $type: "string" } },
     name: "customerId_1_idempotencyKey_1",
   });
+  await WhatsAppCampaignAudit.collection.createIndex({ campaignId: 1, createdAt: -1 }, { name: "whatsapp_campaign_audit_history" });
   await Role.updateMany(
     { key: { $in: ["admin", "super admin"] } },
     { $addToSet: { permissions: "whatsapp.campaigns.manage" } }

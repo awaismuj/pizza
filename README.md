@@ -417,6 +417,14 @@ no VIP classification. Campaigns save recipient records and standard coupon
 assignments before dispatch, use idempotency keys, and can be paused, cancelled,
 or safely retried for provider-confirmed failures.
 
+For a new campaign, scan/preview the recipients, save the campaign draft, use
+**Generate & Assign Tokens**, then review the current eligible count and confirm
+**Send to All Eligible** or **Send to Selected**. Token generation is
+idempotent; a repeated scan does not create coupons, and dispatch is blocked
+until each queued eligible recipient has a persisted, currently valid token.
+The worker rechecks current order eligibility, marketing consent, number
+validity, campaign state, and coupon validity immediately before sending.
+
 Campaign delivery uses the official WhatsApp Cloud API and an approved template
 with five body parameters (`{{1}}` through `{{5}}`). Set the campaign variables
 in `pos-backend/.env.example` in the deployment environment, including the

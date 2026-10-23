@@ -10,6 +10,7 @@ const selectionSchema = new mongoose.Schema({
 
 const whatsAppCampaignSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 120 },
+  campaignType: { type: String, default: "custom", trim: true, maxlength: 80 },
   requestKey: { type: String, required: true, trim: true, maxlength: 100, index: { unique: true, name: "uniq_whatsapp_campaign_request_key" } },
   status: {
     type: String,
@@ -18,8 +19,15 @@ const whatsAppCampaignSchema = new mongoose.Schema({
     index: true,
   },
   discountOptions: [{ type: Number, enum: [5, 7, 10], required: true }],
+  discountWeights: {
+    type: Map,
+    of: { type: Number, min: 0, max: 1000 },
+    default: {},
+  },
+  eligibleOrderStatuses: { type: [String], default: ["Completed", "Closed"] },
   minimumOrderAmount: { type: Number, required: true, min: 0, default: 1000 },
   maximumDiscount: { type: Number, default: null, min: 0 },
+  maxUsesPerCoupon: { type: Number, default: 1, min: 1, max: 100 },
   expiresAt: { type: Date, required: true },
   scheduledAt: { type: Date, default: null },
   timezone: { type: String, default: "Asia/Karachi", trim: true, maxlength: 80 },
@@ -29,6 +37,7 @@ const whatsAppCampaignSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   launchedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   confirmedEligibleCount: { type: Number, default: 0, min: 0 },
+  sendAllRequested: { type: Boolean, default: false },
   startedAt: { type: Date, default: null },
   completedAt: { type: Date, default: null },
   pausedAt: { type: Date, default: null },
