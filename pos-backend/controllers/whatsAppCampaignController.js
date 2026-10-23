@@ -2,11 +2,14 @@ const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
 const WhatsAppCampaign = require("../models/whatsAppCampaignModel");
 const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientModel");
-const Customer = require("../models/customerModel");
+const WhatsAppCampaignAudit = require("../models/whatsAppCampaignAuditModel");
+const CustomerCoupon = require("../models/customerCouponModel");
 const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
 const campaignService = require("../services/whatsAppCampaignService");
+const campaignCouponService = require("../services/whatsAppCampaignCouponService");
 const provider = require("../services/whatsAppCampaignProvider");
+const Order = require("../models/orderModel");
 
 const DISCOUNTS = [5, 7, 10];
 const MAX_NAME = 120;
@@ -14,15 +17,38 @@ const MAX_NAME = 120;
 const validateCampaignInput = (body = {}) => {
   const name = String(body.name || "").trim();
   if (name.length < 2 || name.length > MAX_NAME) throw createHttpError(400, "Campaign name must be 2 to 120 characters.");
+  const campaignType = String(body.campaignType || "custom").trim().slice(0, 80) || "custom";
   const discountOptions = [...new Set(Array.isArray(body.discountOptions) ? body.discountOptions.map(Number) : [])];
   if (!discountOptions.length || discountOptions.some((value) => !DISCOUNTS.includes(value))) {
     throw createHttpError(400, "Choose one or more discounts: 5%, 7%, or 10%.");
+  }
+  const sourceWeights = body.discountWeights || {};
+  const discountWeights = {};
+  for (const discount of discountOptions) {
+    const weight = Number(sourceWeights[discount] ?? 1);
+    if (!Number.isInteger(weight) || weight < 0 || weight > 1000) {
+      throw createHttpError(400, "Discount weights must be whole numbers from 0 to 1000.");
+    }
+    discountWeights[discount] = weight;
+  }
+  if (Object.values(discountWeights).every((weight) => weight === 0)) {
+    throw createHttpError(400, "At least one selected discount weight must be greater than zero.");
+  }
+  let eligibleOrderStatuses;
+  try {
+    eligibleOrderStatuses = campaignService.normalizeEligibleOrderStatuses(body.eligibleOrderStatuses);
+  } catch (error) {
+    throw createHttpError(400, error.message);
   }
   const minimumOrderAmount = Number(body.minimumOrderAmount ?? 1000);
   if (!Number.isFinite(minimumOrderAmount) || minimumOrderAmount < 0) throw createHttpError(400, "Minimum order amount must be zero or greater.");
   const maximumDiscount = body.maximumDiscount === "" || body.maximumDiscount == null ? null : Number(body.maximumDiscount);
   if (maximumDiscount !== null && (!Number.isFinite(maximumDiscount) || maximumDiscount < 0)) {
     throw createHttpError(400, "Maximum discount must be zero or greater.");
+  }
+  const maxUsesPerCoupon = Number(body.maxUsesPerCoupon ?? 1);
+  if (!Number.isInteger(maxUsesPerCoupon) || maxUsesPerCoupon < 1 || maxUsesPerCoupon > 100) {
+    throw createHttpError(400, "Maximum uses per coupon must be a whole number from 1 to 100.");
   }
   const expiresAt = new Date(body.expiresAt);
   if (!body.expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
@@ -48,9 +74,13 @@ const validateCampaignInput = (body = {}) => {
   }
   return {
     name,
+    campaignType,
     discountOptions,
+    discountWeights,
+    eligibleOrderStatuses,
     minimumOrderAmount,
     maximumDiscount,
+    maxUsesPerCoupon,
     expiresAt,
     scheduledAt,
     timezone,
@@ -64,11 +94,186 @@ const validateCampaignInput = (body = {}) => {
   };
 };
 
-const resolveSafely = async (selection) => {
+const resolveSafely = async (selection, eligibleOrderStatuses) => {
   try {
-    return await campaignService.resolveRecipients(selection);
+    return await campaignService.resolveRecipients(selection, eligibleOrderStatuses);
   } catch (error) {
     throw createHttpError(400, error.message || "Could not resolve campaign recipients.");
+  }
+};
+
+const scanCampaignData = async (campaign) => {
+  const recipients = await resolveSafely(campaign.selection, campaign.eligibleOrderStatuses);
+  const now = new Date();
+  const validAt = campaign.scheduledAt && campaign.scheduledAt > now ? campaign.scheduledAt : now;
+  const customerIds = recipients.map(({ customer }) => customer._id);
+  const [assignments, existingRecipients] = await Promise.all([
+    CustomerCoupon.find({
+      customerId: { $in: customerIds },
+      source: "whatsapp_campaign",
+      status: "active",
+      $and: [
+        { $or: [{ startsAt: null }, { startsAt: { $lte: validAt } }] },
+        { $or: [{ expiresAt: null }, { expiresAt: { $gt: validAt } }] },
+      ],
+    }).populate({
+      path: "couponId",
+      match: { campaignId: campaign._id, status: "active", startsAt: { $lte: validAt }, expiresAt: { $gt: validAt } },
+      select: "campaignId discountValue discountType minimumSubtotal maximumDiscount expiresAt",
+    }).lean(),
+    WhatsAppCampaignRecipient.find({ campaignId: campaign._id, customerId: { $in: customerIds } }).select("customerId status couponCode").lean(),
+  ]);
+  const assignmentByCustomer = new Map(assignments.filter((row) => row.couponId).map((row) => [String(row.customerId), row]));
+  const recipientByCustomer = new Map(existingRecipients.map((row) => [String(row.customerId), row]));
+  const rows = recipients.map(({ customer, eligible, reason }) => {
+    const phone = provider.normalizeNumber(customer.phone);
+    const assignment = assignmentByCustomer.get(String(customer._id)) || null;
+    const existingRecipient = recipientByCustomer.get(String(customer._id)) || null;
+    const alreadyMessaged = ["sent", "delivered"].includes(existingRecipient?.status);
+    return {
+      customer,
+      phone,
+      eligible,
+      reason,
+      qualifyingOrderCount: Number(customer.orderCount || 0),
+      lastQualifyingOrderAt: customer.lastOrderDate || null,
+      assignment,
+      alreadyMessaged,
+      messageStatus: existingRecipient?.status || "not sent",
+      recipientId: existingRecipient?._id || null,
+    };
+  });
+
+  const uniqueValidPhones = new Set(rows.filter((row) => /^\d{10,15}$/.test(row.phone)).map((row) => row.phone)).size;
+  const excluded = rows.filter((row) => !row.eligible).reduce((summary, row) => {
+    const reason = row.reason || "Not eligible.";
+    summary[reason] = (summary[reason] || 0) + 1;
+    return summary;
+  }, {});
+  return {
+    rows,
+    counts: {
+      customerRecordsFound: rows.length,
+      uniqueValidPhoneNumbers: uniqueValidPhones,
+      customersWithQualifyingOrders: rows.filter((row) => row.qualifyingOrderCount > 0).length,
+      eligibleForWhatsApp: rows.filter((row) => row.eligible).length,
+      requiringNewCoupon: rows.filter((row) => row.eligible && !row.assignment).length,
+      alreadyHaveValidCoupon: rows.filter((row) => row.assignment).length,
+      alreadyMessaged: rows.filter((row) => row.alreadyMessaged).length,
+      excluded: rows.filter((row) => !row.eligible).length,
+    },
+    excludedReasons: excluded,
+  };
+};
+
+const scanCampaign = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(404, "Campaign not found.");
+    const campaign = await WhatsAppCampaign.findById(req.params.id);
+    if (!campaign) throw createHttpError(404, "Campaign not found.");
+    const scan = await scanCampaignData(campaign);
+    await WhatsAppCampaignAudit.create({
+      campaignId: campaign._id,
+      actorId: req.user._id,
+      action: "scan",
+      metadata: scan.counts,
+    });
+    res.json({ success: true, data: { counts: scan.counts, excludedReasons: scan.excludedReasons, rows: scan.rows.map((row) => ({
+      id: String(row.customer._id),
+      name: row.customer.name,
+      phone: row.customer.phone,
+      normalizedPhone: row.phone,
+      accountActive: Boolean(row.customer.active),
+      marketingConsent: row.customer.marketingConsent === true,
+      qualifyingOrderCount: row.qualifyingOrderCount,
+      lastQualifyingOrderAt: row.lastQualifyingOrderAt,
+      eligible: row.eligible,
+      ineligibleReason: row.reason,
+      couponCode: row.assignment?.code || "",
+      discountPercentage: row.assignment?.couponId?.discountValue || null,
+      couponExpiresAt: row.assignment?.expiresAt || null,
+      couponStatus: row.assignment ? "active" : "missing",
+      messageStatus: row.messageStatus,
+      recipientId: row.recipientId ? String(row.recipientId) : null,
+    })) } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const generateCampaignTokens = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(404, "Campaign not found.");
+    const campaign = await WhatsAppCampaign.findById(req.params.id);
+    if (!campaign) throw createHttpError(404, "Campaign not found.");
+    if (campaign.status !== "draft") throw createHttpError(409, "Tokens can only be generated for a draft campaign.");
+
+    const recipients = await resolveSafely(campaign.selection, campaign.eligibleOrderStatuses);
+    const existingRecipients = await WhatsAppCampaignRecipient.find({ campaignId: campaign._id }).lean();
+    const recipientByCustomer = new Map(existingRecipients.map((recipient) => [String(recipient.customerId), recipient]));
+    const counts = {
+      eligible: recipients.filter((recipient) => recipient.eligible).length,
+      created: 0,
+      retained: 0,
+      failedValidation: 0,
+      failedAssignment: 0,
+    };
+
+    for (const { customer, eligible, reason } of recipients) {
+      let recipient = recipientByCustomer.get(String(customer._id));
+      if (!recipient) {
+        try {
+          recipient = await WhatsAppCampaignRecipient.create({
+            campaignId: campaign._id,
+            customerId: customer._id,
+            customerName: customer.name,
+            phone: customer.phone || "",
+            status: eligible ? "queued" : "skipped",
+            skipReason: eligible ? "" : reason,
+          });
+          recipientByCustomer.set(String(customer._id), recipient);
+        } catch (error) {
+          if (error.code !== 11000) throw error;
+          recipient = await WhatsAppCampaignRecipient.findOne({ campaignId: campaign._id, customerId: customer._id });
+        }
+      }
+      if (!eligible) {
+        counts.failedValidation += 1;
+        if (["queued", "skipped"].includes(recipient.status)) {
+          await WhatsAppCampaignRecipient.updateOne(
+            { _id: recipient._id, status: { $in: ["queued", "skipped"] } },
+            { $set: { status: "skipped", skipReason: reason || "Customer is not currently eligible." } }
+          );
+        }
+        continue;
+      }
+      if (!["queued", "skipped"].includes(recipient.status)) {
+        counts.retained += 1;
+        continue;
+      }
+      try {
+        const result = await campaignCouponService.getOrCreateAssignment(campaign, recipient, customer);
+        counts[result.created ? "created" : "retained"] += 1;
+        await WhatsAppCampaignRecipient.updateOne(
+          { _id: recipient._id, status: { $in: ["queued", "skipped"] } },
+          { $set: { status: "queued", skipReason: "", customerName: customer.name, phone: customer.phone || "" } }
+        );
+      } catch {
+        counts.failedAssignment += 1;
+      }
+    }
+
+    campaign.confirmedEligibleCount = counts.eligible;
+    await campaign.save();
+    await WhatsAppCampaignAudit.create({
+      campaignId: campaign._id,
+      actorId: req.user._id,
+      action: "tokens_generated",
+      metadata: counts,
+    });
+    res.json({ success: true, data: { counts } });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -91,7 +296,7 @@ const customerList = async (req, res, next) => {
 const previewCampaign = async (req, res, next) => {
   try {
     const campaign = validateCampaignInput(req.body);
-    const recipients = await resolveSafely(campaign.selection);
+    const recipients = await resolveSafely(campaign.selection, campaign.eligibleOrderStatuses);
     const eligible = recipients.filter((recipient) => recipient.eligible).length;
     const skipped = recipients.length - eligible;
     const sampleDiscount = campaign.discountOptions[0];
@@ -162,7 +367,7 @@ const createCampaign = async (req, res, next) => {
       return res.status(200).json({ success: true, existing: true, data: { campaign: existing, counts } });
     }
 
-    const recipients = await resolveSafely(campaignData.selection);
+    const recipients = await resolveSafely(campaignData.selection, campaignData.eligibleOrderStatuses);
     if (!recipients.length) throw createHttpError(400, "No customers match this campaign selection.");
     const eligibleCount = recipients.filter((recipient) => recipient.eligible).length;
     if (!eligibleCount) throw createHttpError(400, "There are no eligible recipients. Check consent and valid WhatsApp numbers.");
@@ -190,6 +395,12 @@ const createCampaign = async (req, res, next) => {
         skipReason: eligible ? "" : reason,
       }));
       await WhatsAppCampaignRecipient.insertMany(documents, { session, ordered: true });
+      await WhatsAppCampaignAudit.create([{
+        campaignId: savedCampaign._id,
+        actorId: req.user._id,
+        action: "create",
+        metadata: { selected: recipients.length, eligible: eligibleCount },
+      }], { session });
     });
     res.status(201).json({
       success: true,
@@ -312,21 +523,56 @@ const launchCampaign = async (req, res, next) => {
     }
     if (!(["draft", "paused"].includes(campaign.status))) throw createHttpError(409, "This campaign cannot be launched in its current state.");
     const queued = await WhatsAppCampaignRecipient.find({ campaignId: campaign._id, status: "queued" }).select("_id customerId").lean();
-    const customerIds = queued.map((row) => row.customerId);
-    const customers = await Customer.find({ _id: { $in: customerIds } }).select("_id active marketingConsent phone").lean();
-    const customerById = new Map(customers.map((customer) => [String(customer._id), customer]));
+    const currentRecipients = await resolveSafely(campaign.selection, campaign.eligibleOrderStatuses);
+    const currentById = new Map(currentRecipients.map((recipient) => [String(recipient.customer._id), recipient]));
     let eligibleCount = 0;
+    const eligibleRows = [];
     for (const recipient of queued) {
-      const customer = customerById.get(String(recipient.customerId));
-      const eligibility = customer
-        ? campaignService.eligibilityFor(customer)
-        : { eligible: false, reason: "Customer record no longer exists." };
-      const reason = eligibility.reason;
-      if (reason) {
-        await WhatsAppCampaignRecipient.updateOne({ _id: recipient._id, status: "queued" }, { $set: { status: "skipped", skipReason: reason } });
-      } else eligibleCount += 1;
+      const current = currentById.get(String(recipient.customerId));
+      if (!current?.eligible) {
+        await WhatsAppCampaignRecipient.updateOne(
+          { _id: recipient._id, status: "queued" },
+          { $set: { status: "skipped", skipReason: current?.reason || "Customer record no longer qualifies." } }
+        );
+      } else {
+        eligibleRows.push({ recipient, customer: current.customer });
+        eligibleCount += 1;
+      }
     }
     if (eligibleCount < 1) throw createHttpError(400, "No eligible recipients remain. Recheck consent and phone numbers.");
+    const now = new Date();
+    const validAt = campaign.scheduledAt && campaign.scheduledAt > now ? campaign.scheduledAt : now;
+    const idempotencyKey = `wa-campaign:${campaign._id}`;
+    const assignments = await CustomerCoupon.find({
+      customerId: { $in: eligibleRows.map((row) => row.customer._id) },
+      idempotencyKey,
+      status: "active",
+      $and: [
+        { $or: [{ startsAt: null }, { startsAt: { $lte: validAt } }] },
+        { $or: [{ expiresAt: null }, { expiresAt: { $gt: validAt } }] },
+      ],
+    }).populate({
+      path: "couponId",
+      match: { campaignId: campaign._id, status: "active", startsAt: { $lte: validAt }, expiresAt: { $gt: validAt } },
+    }).lean();
+    const assignmentByCustomer = new Map(assignments.filter((assignment) => assignment.couponId)
+      .map((assignment) => [String(assignment.customerId), assignment]));
+    const missingAssignments = [];
+    for (const row of eligibleRows) {
+      const assignment = assignmentByCustomer.get(String(row.customer._id));
+      const coupon = assignment?.couponId;
+      if (!assignment || !coupon || (coupon.startsAt && coupon.startsAt > validAt) || (coupon.expiresAt && coupon.expiresAt <= validAt)) {
+        missingAssignments.push(row);
+        continue;
+      }
+      await WhatsAppCampaignRecipient.updateOne(
+        { _id: row.recipient._id, status: "queued" },
+        { $set: { couponId: coupon._id, customerCouponId: assignment._id, couponCode: assignment.code, discountPercentage: coupon.discountValue } }
+      );
+    }
+    if (missingAssignments.length) {
+      throw createHttpError(409, `${missingAssignments.length} eligible customer(s) need valid assigned tokens. Generate tokens before launching.`);
+    }
     if (Number(req.body.confirmedEligibleCount) !== eligibleCount) {
       const skippedCount = await WhatsAppCampaignRecipient.countDocuments({ campaignId: campaign._id, status: "skipped" });
       return res.status(409).json({
@@ -335,7 +581,6 @@ const launchCampaign = async (req, res, next) => {
         data: { eligibleCount, skippedCount },
       });
     }
-    const now = new Date();
     if (campaign.expiresAt <= now) throw createHttpError(400, "Campaign has expired.");
     const scheduled = campaign.scheduledAt && campaign.scheduledAt > now;
     const updated = await WhatsAppCampaign.findOneAndUpdate(
@@ -353,6 +598,12 @@ const launchCampaign = async (req, res, next) => {
       { new: true }
     );
     if (!updated) throw createHttpError(409, "Campaign launch was already processed.");
+    await WhatsAppCampaignAudit.create({
+      campaignId: campaign._id,
+      actorId: req.user._id,
+      action: campaign.selection.mode === "selected" ? "send_selected" : "send_all",
+      metadata: { eligibleCount },
+    });
     res.json({ success: true, data: { campaign: updated, stats: await summarizeCampaign(updated) } });
   } catch (error) {
     next(error);
@@ -367,6 +618,7 @@ const pauseCampaign = async (req, res, next) => {
       { new: true }
     );
     if (!campaign) throw createHttpError(409, "Campaign is not currently running or scheduled.");
+    await WhatsAppCampaignAudit.create({ campaignId: campaign._id, actorId: req.user._id, action: "pause" });
     res.json({ success: true, data: campaign });
   } catch (error) {
     next(error);
@@ -385,6 +637,7 @@ const cancelCampaign = async (req, res, next) => {
       { campaignId: campaign._id, status: "queued" },
       { $set: { status: "skipped", skipReason: "Campaign cancelled before sending." } }
     );
+    await WhatsAppCampaignAudit.create({ campaignId: campaign._id, actorId: req.user._id, action: "cancel" });
     res.json({ success: true, data: { campaign, stats: await summarizeCampaign(campaign) } });
   } catch (error) {
     next(error);
@@ -393,6 +646,8 @@ const cancelCampaign = async (req, res, next) => {
 
 const retryFailed = async (req, res, next) => {
   try {
+    const reason = String(req.body.reason || "").trim();
+    if (reason.length < 8 || reason.length > 300) throw createHttpError(400, "Enter a retry reason between 8 and 300 characters.");
     const campaign = await WhatsAppCampaign.findById(req.params.id);
     if (!campaign) throw createHttpError(404, "Campaign not found.");
     if (campaign.status === "cancelled" || campaign.expiresAt <= new Date()) {
@@ -401,12 +656,13 @@ const retryFailed = async (req, res, next) => {
     provider.assertConfigured();
     const result = await WhatsAppCampaignRecipient.updateMany(
       { campaignId: campaign._id, status: "failed", retryable: true },
-      { $set: { status: "queued", nextAttemptAt: null, failedAt: null, retryable: false, lastError: "" } }
+      { $set: { status: "queued", nextAttemptAt: null, failedAt: null, retryable: false, lastError: "", lastRetryReason: reason, lastSendRequestedBy: req.user._id, lastSendRequestedAt: new Date() } }
     );
     if (!result.modifiedCount) throw createHttpError(400, "There are no safely retryable failed messages.");
     campaign.status = "running";
     campaign.completedAt = null;
     await campaign.save();
+    await WhatsAppCampaignAudit.create({ campaignId: campaign._id, actorId: req.user._id, action: "retry", reason, metadata: { retried: result.modifiedCount } });
     res.json({ success: true, data: { retried: result.modifiedCount, campaign } });
   } catch (error) {
     next(error);
@@ -467,11 +723,13 @@ module.exports = {
   getCampaignRecipients,
   getCampaigns,
   getProvider,
+  generateCampaignTokens,
   launchCampaign,
   pauseCampaign,
   previewCampaign,
   retryFailed,
   sendTestMessage,
+  scanCampaign,
   webhookStatus,
   webhookVerify,
 };

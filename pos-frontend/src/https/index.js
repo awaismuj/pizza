@@ -251,13 +251,15 @@ export const createWhatsAppCampaign = ({ requestKey, ...data }) =>
   axiosWrapper.post("/api/whatsapp-campaign/campaigns", data, { headers: { "Idempotency-Key": requestKey } });
 export const getWhatsAppCampaigns = (params) => axiosWrapper.get("/api/whatsapp-campaign/campaigns", { params });
 export const getWhatsAppCampaign = (campaignId) => axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}`);
+export const scanWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/scan`);
+export const generateWhatsAppCampaignTokens = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/generate-tokens`);
 export const getWhatsAppCampaignRecipients = ({ campaignId, ...params }) =>
   axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}/recipients`, { params });
 export const launchWhatsAppCampaign = ({ campaignId, confirmedEligibleCount }) =>
   axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/launch`, { confirmedEligibleCount });
 export const pauseWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/pause`);
 export const cancelWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/cancel`);
-export const retryWhatsAppCampaignFailures = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/retry-failed`);
+export const retryWhatsAppCampaignFailures = ({ campaignId, reason }) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/retry-failed`, { reason });
 
 // Order Endpoints
 export const addOrder = (data) => axiosWrapper.post("/api/order/", data);
