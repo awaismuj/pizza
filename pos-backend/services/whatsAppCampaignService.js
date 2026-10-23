@@ -35,41 +35,12 @@ const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibili
     {
       $lookup: {
         from: Order.collection.name,
-        let: {
-          customerId: "$_id",
-          customerPhoneDigits: { $regexReplace: { input: { $ifNull: ["$phone", ""] }, regex: "\\D", replacement: "" } },
-        },
+        let: { customerId: "$_id" },
         pipeline: [
           {
             $match: {
               orderStatus: { $ne: "Cancelled" },
-              $expr: {
-                $or: [
-                  { $eq: ["$customerId", "$$customerId"] },
-                  {
-                    $and: [
-                      { $gte: [{ $strLenCP: "$$customerPhoneDigits" }, 9] },
-                      {
-                        $regexMatch: {
-                          input: { $ifNull: ["$customerDetails.phone", ""] },
-                          regex: {
-                            $concat: [
-                              {
-                                $substrCP: [
-                                  "$$customerPhoneDigits",
-                                  { $max: [0, { $subtract: [{ $strLenCP: "$$customerPhoneDigits" }, 9] }] },
-                                  9,
-                                ],
-                              },
-                              "$",
-                            ],
-                          },
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
+              $expr: { $eq: ["$customerId", "$$customerId"] },
             },
           },
           { $count: "total" },
@@ -85,10 +56,13 @@ const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibili
   if (customerStatus === "new") pipeline.push({ $match: { active: true, orderCount: 0 } });
   if (customerStatus === "regular") pipeline.push({ $match: { active: true, orderCount: { $gte: 2 } } });
   if (applyEligibility) {
-    pipeline.push(
-      { $addFields: { normalizedPhone: { $regexReplace: { input: { $ifNull: ["$phone", ""] }, regex: "\\D", replacement: "" } } } },
-      { $match: { active: true, marketingConsent: true, normalizedPhone: { $regex: "^\\d{10,15}$" } } }
-    );
+    pipeline.push({
+      $match: {
+        active: true,
+        marketingConsent: true,
+        phone: { $regex: "^(?:\\D*\\d){10,15}\\D*$" },
+      },
+    });
   }
   pipeline.push({ $project: { _id: 1, name: 1, phone: 1, active: 1, marketingConsent: 1, orderCount: 1 } });
   if (page === null) return pipeline;
