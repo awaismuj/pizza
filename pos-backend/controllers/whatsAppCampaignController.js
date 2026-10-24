@@ -13,8 +13,6 @@ const Order = require("../models/orderModel");
 const Customer = require("../models/customerModel");
 const { normalizeContactPhone } = require("../services/customerContactService");
 
-const DISCOUNTS = [5, 7, 8, 10];
-const DISCOUNT_LABELS = DISCOUNTS.map((discount) => `${discount}%`).join(", ");
 const MAX_NAME = 120;
 
 const validateCampaignInput = (body = {}) => {
@@ -22,8 +20,12 @@ const validateCampaignInput = (body = {}) => {
   if (name.length < 2 || name.length > MAX_NAME) throw createHttpError(400, "Campaign name must be 2 to 120 characters.");
   const campaignType = String(body.campaignType || "custom").trim().slice(0, 80) || "custom";
   const discountOptions = [...new Set(Array.isArray(body.discountOptions) ? body.discountOptions.map(Number) : [])];
-  if (!discountOptions.length || discountOptions.some((value) => !DISCOUNTS.includes(value))) {
-    throw createHttpError(400, `Choose one or more discounts: ${DISCOUNT_LABELS}.`);
+  if (
+    !discountOptions.length ||
+    discountOptions.length > 20 ||
+    discountOptions.some((value) => !Number.isInteger(value) || value < 1 || value > 100)
+  ) {
+    throw createHttpError(400, "Choose between 1 and 20 whole-number discounts from 1% to 100%.");
   }
   const sourceWeights = body.discountWeights || {};
   const discountWeights = {};
