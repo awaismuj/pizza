@@ -437,7 +437,9 @@ the backend's Chromium session, which must run on a persistent server with
 Chromium runtime libraries installed; it is not Meta's official API and may
 risk account restrictions. Configure `WHATSAPP_CAMPAIGN_PROVIDER` in the
 backend environment. In POS → Coupons, **WhatsApp link & activity** shows the
-link QR/status and recent campaign send/delivery activity. The configured test
+link QR/status and per-recipient campaign records, including queued, sending,
+sent, delivered, failed, and skipped counts with paginated recipient details
+that refresh while a campaign is running. The configured test
 number is the only destination for test sends. Cloud delivery callbacks are
 signature-verified; accepted Cloud messages are recorded as sent, not delivered,
 until WhatsApp confirms delivery. Before launching campaigns, run

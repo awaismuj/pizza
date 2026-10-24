@@ -808,16 +808,49 @@ const getProvider = (req, res) => res.json({ success: true, data: provider.getPr
 
 const getRecentMessages = async (req, res, next) => {
   try {
-    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
-    const messages = await WhatsAppCampaignRecipient.find({
-      status: { $in: ["sending", "sent", "delivered", "failed"] },
-    })
-      .sort({ updatedAt: -1, _id: -1 })
-      .limit(limit)
-      .populate("campaignId", "name minimumOrderAmount expiresAt timezone")
-      .select("campaignId customerName phone status couponCode discountPercentage providerMessageId lastError sentAt deliveredAt failedAt updatedAt")
-      .lean();
-    res.json({ success: true, data: messages });
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
+    const campaignFilter = {};
+    const campaignId = String(req.query.campaignId || "");
+    const status = String(req.query.status || "");
+    const statuses = ["queued", "sending", "sent", "delivered", "failed", "skipped"];
+    if (campaignId) {
+      if (!mongoose.Types.ObjectId.isValid(campaignId)) throw createHttpError(400, "Campaign ID is invalid.");
+      campaignFilter.campaignId = new mongoose.Types.ObjectId(campaignId);
+    }
+    const filter = { ...campaignFilter };
+    if (status && status !== "all") {
+      if (!statuses.includes(status)) throw createHttpError(400, "Message status filter is invalid.");
+      filter.status = status;
+    }
+    const [messages, total, statusRows] = await Promise.all([
+      WhatsAppCampaignRecipient.find(filter)
+        .sort({ updatedAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate("campaignId", "name minimumOrderAmount expiresAt timezone")
+        .select("campaignId customerName phone status couponCode discountPercentage providerMessageId lastError sentAt deliveredAt failedAt updatedAt")
+        .lean(),
+      WhatsAppCampaignRecipient.countDocuments(filter),
+      WhatsAppCampaignRecipient.aggregate([
+        { $match: campaignFilter },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+    ]);
+    const stats = Object.fromEntries(statusRows.map((row) => [row._id, row.count]));
+    res.json({
+      success: true,
+      data: messages,
+      stats: {
+        queued: stats.queued || 0,
+        sending: stats.sending || 0,
+        sent: stats.sent || 0,
+        delivered: stats.delivered || 0,
+        failed: stats.failed || 0,
+        skipped: stats.skipped || 0,
+      },
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
   } catch (error) {
     next(error);
   }
