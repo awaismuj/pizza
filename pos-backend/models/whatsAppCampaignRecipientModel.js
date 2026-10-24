@@ -19,7 +19,7 @@ const whatsAppCampaignRecipientSchema = new mongoose.Schema({
   couponId: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon", default: null },
   customerCouponId: { type: mongoose.Schema.Types.ObjectId, ref: "CustomerCoupon", default: null },
   couponCode: { type: String, default: "", trim: true, maxlength: 64 },
-  discountPercentage: { type: Number, enum: [5, 7, 8, 10], default: null },
+  discountPercentage: { type: Number, min: 1, max: 100, default: null },
   providerMessageId: { type: String, default: null, trim: true, maxlength: 160 },
   attempts: { type: Number, default: 0, min: 0 },
   retryable: { type: Boolean, default: false },

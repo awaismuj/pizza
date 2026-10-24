@@ -18,7 +18,7 @@ const whatsAppCampaignSchema = new mongoose.Schema({
     default: "draft",
     index: true,
   },
-  discountOptions: [{ type: Number, enum: [5, 7, 8, 10], required: true }],
+  discountOptions: [{ type: Number, min: 1, max: 100, required: true }],
   discountWeights: {
     type: Map,
     of: { type: Number, min: 0, max: 1000 },

@@ -348,12 +348,45 @@ const WhatsAppCampaignManager = () => {
     onError: (error) => setFeedback(errorMessage(error)),
   });
 
-  const toggleDiscount = (discount) => setForm((current) => ({
-    ...current,
-    discountOptions: current.discountOptions.includes(discount)
-      ? current.discountOptions.filter((value) => value !== discount)
-      : [...current.discountOptions, discount],
-  }));
+  const updateDiscountOption = (index, rawValue) => setForm((current) => {
+    const previous = current.discountOptions[index];
+    const value = rawValue === "" ? "" : Number(rawValue);
+    if (value !== "" && current.discountOptions.some((option, optionIndex) => optionIndex !== index && Number(option) === value)) {
+      return current;
+    }
+
+    const discountOptions = [...current.discountOptions];
+    discountOptions[index] = value;
+    const discountWeights = { ...current.discountWeights };
+    if (typeof previous === "number" && !discountOptions.some((option) => Number(option) === previous)) {
+      delete discountWeights[previous];
+    }
+    if (Number.isInteger(value) && value >= 1 && discountWeights[value] === undefined) {
+      discountWeights[value] = 1;
+    }
+    return { ...current, discountOptions, discountWeights };
+  });
+
+  const addDiscountOption = () => setForm((current) => {
+    if (current.discountOptions.length >= 20) return current;
+    let value = 1;
+    while (current.discountOptions.some((option) => Number(option) === value) && value <= 100) value += 1;
+    if (value > 100) return current;
+    return {
+      ...current,
+      discountOptions: [...current.discountOptions, value],
+      discountWeights: { ...current.discountWeights, [value]: 1 },
+    };
+  });
+
+  const removeDiscountOption = (index) => setForm((current) => {
+    if (current.discountOptions.length <= 1) return current;
+    const removed = current.discountOptions[index];
+    const discountOptions = current.discountOptions.filter((_, optionIndex) => optionIndex !== index);
+    const discountWeights = { ...current.discountWeights };
+    if (!discountOptions.some((option) => Number(option) === Number(removed))) delete discountWeights[removed];
+    return { ...current, discountOptions, discountWeights };
+  });
 
   const chooseAllEligible = () => {
     setSelectionMode("all-eligible");
@@ -630,8 +663,59 @@ const WhatsAppCampaignManager = () => {
                       <label className="block space-y-1 text-xs text-[#aaa]">Campaign type<input className={inputClass} maxLength="80" value={form.campaignType} onChange={(event) => setForm((current) => ({ ...current, campaignType: event.target.value }))} placeholder="Friday Special" /></label>
                       <div className="rounded border border-[#333] bg-[#191919] px-3 py-2 text-sm text-white">Send method <b className="ml-2 text-[#25d366]">WhatsApp</b></div>
                       <fieldset>
-                        <legend className="mb-2 text-xs text-[#aaa]">Coupon discount (random per customer)</legend>
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{[5, 7, 8, 10].map((discount) => <label key={discount} className="flex flex-col gap-2 rounded border border-[#444] p-2 text-sm text-white"><span className="flex items-center gap-2"><input type="checkbox" checked={form.discountOptions.includes(discount)} onChange={() => toggleDiscount(discount)} />{discount}%</span><input className={inputClass} type="number" min="0" max="1000" step="1" value={form.discountWeights[discount]} onChange={(event) => setForm((current) => ({ ...current, discountWeights: { ...current.discountWeights, [discount]: event.target.value } }))} aria-label={`${discount}% discount weight`} title="Relative selection weight" /></label>)}</div>
+                        <legend className="mb-2 text-xs text-[#aaa]">Coupon discount options (random per customer)</legend>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {form.discountOptions.map((discount, index) => (
+                            <div key={index} className="flex items-end gap-2 rounded border border-[#444] p-2">
+                              <label className="flex-1 space-y-1 text-xs text-[#aaa]">
+                                Discount percentage
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    className={inputClass}
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    step="1"
+                                    value={discount}
+                                    onChange={(event) => updateDiscountOption(index, event.target.value)}
+                                    aria-label={`Discount option ${index + 1} percentage`}
+                                  />
+                                  <span className="text-white">%</span>
+                                </div>
+                              </label>
+                              <label className="w-28 space-y-1 text-xs text-[#aaa]">
+                                Random weight
+                                <input
+                                  className={inputClass}
+                                  type="number"
+                                  min="0"
+                                  max="1000"
+                                  step="1"
+                                  value={form.discountWeights[discount] ?? 1}
+                                  onChange={(event) => setForm((current) => ({ ...current, discountWeights: { ...current.discountWeights, [discount]: event.target.value } }))}
+                                  aria-label={`${discount}% discount random weight`}
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                className="rounded px-2 py-2 text-sm text-red-300 hover:bg-[#333] disabled:opacity-40"
+                                onClick={() => removeDiscountOption(index)}
+                                disabled={form.discountOptions.length <= 1}
+                                aria-label={`Remove ${discount}% discount option`}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          className="mt-2 rounded bg-[#353535] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                          onClick={addDiscountOption}
+                          disabled={form.discountOptions.length >= 20}
+                        >
+                          Add discount option
+                        </button>
                       </fieldset>
                       <label className="block space-y-1 text-xs text-[#aaa]">Minimum order amount<input className={inputClass} type="number" min="0" step="1" value={form.minimumOrderAmount} onChange={(event) => setForm((current) => ({ ...current, minimumOrderAmount: event.target.value }))} /></label>
                       <label className="block space-y-1 text-xs text-[#aaa]">Maximum discount (optional)<input className={inputClass} type="number" min="0" step="1" value={form.maximumDiscount} onChange={(event) => setForm((current) => ({ ...current, maximumDiscount: event.target.value }))} placeholder="No cap" /></label>
@@ -662,6 +746,11 @@ const WhatsAppCampaignManager = () => {
                         <b className="text-white">Sample message with campaign details</b>
                         <p className="mt-2 whitespace-pre-line">{preview?.template?.preview || "Provider template preview unavailable."}</p>
                       </div>
+                      {previewData.eligible === 0 && (
+                        <p className="col-span-2 rounded border border-amber-800 bg-amber-950/30 p-3 text-xs text-amber-100 sm:col-span-4">
+                          No WhatsApp messages can be sent yet. Recipients need an active account, a valid mobile number, at least one completed/closed order, and explicit marketing consent. Use Edit in the customer list to record consent only if the customer agreed, verify their qualifying order, then click Generate &amp; Assign Tokens again before sending.
+                        </p>
+                      )}
                     </section>
                   )}
 
@@ -671,7 +760,7 @@ const WhatsAppCampaignManager = () => {
                       <div className="flex flex-wrap gap-2">
                         <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={() => scanMutation.mutate(createdCampaignId)} disabled={scanMutation.isPending}>{scanMutation.isPending ? "Refreshing…" : "Refresh Customer & Delivery Status"}</button>
                         <button type="button" className={`${buttonClass} bg-amber-700 text-white`} onClick={() => tokenMutation.mutate(createdCampaignId)} disabled={tokenMutation.isPending}>{tokenMutation.isPending ? "Generating…" : "Generate & Assign Tokens"}</button>
-                        <button type="button" className={`${buttonClass} bg-[#25d366] px-4 text-[#11251a]`} onClick={confirmLaunch} disabled={!providerConfig || !tokenResult?.eligible || tokenResult?.failedAssignment > 0 || launchMutation.isPending}>{launchMutation.isPending ? "Queueing…" : selectionMode === "selected" ? "Send to Selected" : "Send to All Eligible"}</button>
+                        <button type="button" className={`${buttonClass} bg-[#25d366] px-4 text-[#11251a]`} onClick={confirmLaunch} title={!tokenResult?.eligible ? "No customers currently meet WhatsApp send requirements. Check consent and qualifying orders." : undefined} disabled={!providerConfig || !tokenResult?.eligible || tokenResult?.failedAssignment > 0 || launchMutation.isPending}>{launchMutation.isPending ? "Queueing…" : selectionMode === "selected" ? "Send to Selected" : "Send to All Eligible"}</button>
                       </div>
                       {scanResult?.counts && <p className="w-full text-xs text-[#bbb]" aria-live="polite">Latest scan: {scanResult.counts.customerRecordsFound} records · {scanResult.counts.uniqueValidPhoneNumbers} valid unique numbers · {scanResult.counts.customersWithQualifyingOrders} qualifying buyers · {scanResult.counts.eligibleForWhatsApp} marketing-eligible · {scanResult.counts.alreadyHaveValidCoupon} assigned · {scanResult.counts.excluded} excluded</p>}
                     </section>

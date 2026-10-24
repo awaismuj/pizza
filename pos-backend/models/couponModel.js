@@ -17,7 +17,7 @@ const couponSchema = new mongoose.Schema(
     source: { type: String, enum: ["admin", "welcome", "whatsapp_campaign"], default: "admin" },
     welcomeCustomerKey: { type: String, default: undefined, select: false },
     campaignId: { type: mongoose.Schema.Types.ObjectId, ref: "WhatsAppCampaign", default: null },
-    campaignDiscountPercentage: { type: Number, enum: [5, 7, 8, 10], default: null },
+    campaignDiscountPercentage: { type: Number, min: 1, max: 100, default: null },
     discountType: { type: String, enum: ["percentage", "fixed"], required: true },
     discountValue: { type: Number, required: true, min: 0 },
     minimumSubtotal: { type: Number, default: 0, min: 0 },
