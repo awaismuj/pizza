@@ -14,6 +14,27 @@ const publicShape = (settings) => ({
   payments: publicPaymentsShape(settings),
   orderPrep: normalizePrepSettings(settings.orderPrep),
   passwordPolicy: normalizePasswordPolicy(settings.passwordPolicy),
+  firstTimeCustomerOffer: {
+    enabled: Boolean(settings.firstTimeCustomerOffer?.enabled),
+    minimumSubtotal: Number(settings.firstTimeCustomerOffer?.minimumSubtotal ?? 1000),
+    percentages: Array.isArray(settings.firstTimeCustomerOffer?.percentages)
+      ? settings.firstTimeCustomerOffer.percentages.map(Number).filter((value) => Number.isFinite(value) && value > 0)
+      : [5, 7, 10],
+    selectionMethod: settings.firstTimeCustomerOffer?.selectionMethod || "random",
+    maxDiscountAmount: settings.firstTimeCustomerOffer?.maxDiscountAmount ?? null,
+    startsAt: settings.firstTimeCustomerOffer?.startsAt || null,
+    expiresAt: settings.firstTimeCustomerOffer?.expiresAt || null,
+    maxCampaignRedemptions: settings.firstTimeCustomerOffer?.maxCampaignRedemptions ?? null,
+    redemptionCount: Number(settings.welcomeOfferRedemptionCount || 0),
+    maxOnePerCustomer: Boolean(settings.firstTimeCustomerOffer?.maxOnePerCustomer ?? true),
+    eligibleChannels: Array.isArray(settings.firstTimeCustomerOffer?.eligibleChannels) && settings.firstTimeCustomerOffer.eligibleChannels.length
+      ? settings.firstTimeCustomerOffer.eligibleChannels
+      : ["Online", "POS", "Pickup", "Delivery"],
+    popupTitle: settings.firstTimeCustomerOffer?.popupTitle || "Welcome to our Pizza Store!",
+    popupDescription: settings.firstTimeCustomerOffer?.popupDescription || "You're eligible for a special first-order reward.",
+    applyButtonLabel: settings.firstTimeCustomerOffer?.applyButtonLabel || "Apply Discount",
+    declineButtonLabel: settings.firstTimeCustomerOffer?.declineButtonLabel || "No Thanks",
+  },
 });
 
 // Seeds from the old static env default (config.TAX_RATE_PERCENT) the very
@@ -48,7 +69,7 @@ const getSettings = async (req, res, next) => {
 // "apply everywhere".
 const updateSettings = async (req, res, next) => {
   try {
-    const { taxRatePercent, buildYourOwnDeal, payments, orderPrep, passwordPolicy } = req.body;
+    const { taxRatePercent, buildYourOwnDeal, payments, orderPrep, passwordPolicy, firstTimeCustomerOffer } = req.body;
     const settings = await getOrCreateSettings();
     const messages = [];
 
@@ -164,6 +185,107 @@ const updateSettings = async (req, res, next) => {
 
       settings.passwordPolicy = nextPolicy;
       messages.push("Password policy updated!");
+    }
+
+    if (firstTimeCustomerOffer !== undefined) {
+      if (!firstTimeCustomerOffer || typeof firstTimeCustomerOffer !== "object") {
+        return next(createHttpError(400, "Invalid first-time customer welcome offer settings."));
+      }
+      const currentOffer = settings.firstTimeCustomerOffer || {
+        enabled: false,
+        minimumSubtotal: 1000,
+        percentages: [5, 7, 10],
+        selectionMethod: "random",
+        maxDiscountAmount: null,
+        startsAt: null,
+        expiresAt: null,
+        maxCampaignRedemptions: null,
+        maxOnePerCustomer: true,
+        eligibleChannels: ["Online", "POS", "Pickup", "Delivery"],
+        popupTitle: "Welcome to our Pizza Store!",
+        popupDescription: "You're eligible for a special first-order reward.",
+        applyButtonLabel: "Apply Discount",
+        declineButtonLabel: "No Thanks",
+      };
+      const nextOffer = { ...currentOffer };
+
+      if (firstTimeCustomerOffer.enabled !== undefined) nextOffer.enabled = Boolean(firstTimeCustomerOffer.enabled);
+      if (firstTimeCustomerOffer.minimumSubtotal !== undefined) {
+        const minimumSubtotal = Number(firstTimeCustomerOffer.minimumSubtotal);
+        if (!Number.isFinite(minimumSubtotal) || minimumSubtotal < 0) {
+          return next(createHttpError(400, "Minimum subtotal must be 0 or greater."));
+        }
+        nextOffer.minimumSubtotal = minimumSubtotal;
+      }
+      if (firstTimeCustomerOffer.percentages !== undefined) {
+        const percentages = Array.isArray(firstTimeCustomerOffer.percentages)
+          ? firstTimeCustomerOffer.percentages.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0 && value <= 100)
+          : [];
+        if (!percentages.length) {
+          return next(createHttpError(400, "At least one valid discount percentage is required."));
+        }
+        nextOffer.percentages = [...new Set(percentages)].sort((a, b) => a - b);
+      }
+      if (firstTimeCustomerOffer.selectionMethod !== undefined) {
+        if (firstTimeCustomerOffer.selectionMethod !== "random") {
+          return next(createHttpError(400, "Only random selection is supported for this campaign."));
+        }
+        nextOffer.selectionMethod = "random";
+      }
+      if (firstTimeCustomerOffer.maxDiscountAmount !== undefined) {
+        const maxDiscount = firstTimeCustomerOffer.maxDiscountAmount === null || firstTimeCustomerOffer.maxDiscountAmount === ""
+          ? null
+          : Number(firstTimeCustomerOffer.maxDiscountAmount);
+        if (maxDiscount !== null && (!Number.isFinite(maxDiscount) || maxDiscount < 0)) {
+          return next(createHttpError(400, "Maximum discount amount must be 0 or greater."));
+        }
+        nextOffer.maxDiscountAmount = maxDiscount;
+      }
+      if (firstTimeCustomerOffer.startsAt !== undefined) nextOffer.startsAt = firstTimeCustomerOffer.startsAt ? new Date(firstTimeCustomerOffer.startsAt) : null;
+      if (firstTimeCustomerOffer.expiresAt !== undefined) nextOffer.expiresAt = firstTimeCustomerOffer.expiresAt ? new Date(firstTimeCustomerOffer.expiresAt) : null;
+      if (nextOffer.startsAt && nextOffer.expiresAt && nextOffer.startsAt >= nextOffer.expiresAt) {
+        return next(createHttpError(400, "The offer expiry date must be after the start date."));
+      }
+      if (firstTimeCustomerOffer.maxCampaignRedemptions !== undefined) {
+        const limit = firstTimeCustomerOffer.maxCampaignRedemptions === null || firstTimeCustomerOffer.maxCampaignRedemptions === ""
+          ? null
+          : Number(firstTimeCustomerOffer.maxCampaignRedemptions);
+        if (limit !== null && (!Number.isInteger(limit) || limit < 1)) {
+          return next(createHttpError(400, "Campaign redemption limit must be a positive whole number."));
+        }
+        nextOffer.maxCampaignRedemptions = limit;
+      }
+      if (firstTimeCustomerOffer.maxOnePerCustomer !== undefined) nextOffer.maxOnePerCustomer = Boolean(firstTimeCustomerOffer.maxOnePerCustomer);
+      if (firstTimeCustomerOffer.eligibleChannels !== undefined) {
+        const channels = Array.isArray(firstTimeCustomerOffer.eligibleChannels) ? firstTimeCustomerOffer.eligibleChannels : [];
+        const validChannels = ["Online", "POS", "Pickup", "Delivery"];
+        const cleaned = channels.filter((channel) => validChannels.includes(channel));
+        if (!cleaned.length) return next(createHttpError(400, "Choose at least one valid order channel."));
+        nextOffer.eligibleChannels = [...new Set(cleaned)];
+      }
+      if (firstTimeCustomerOffer.popupTitle !== undefined) {
+        const popupTitle = String(firstTimeCustomerOffer.popupTitle || "").trim();
+        if (!popupTitle || popupTitle.length > 120) return next(createHttpError(400, "The popup title must be a short text string."));
+        nextOffer.popupTitle = popupTitle;
+      }
+      if (firstTimeCustomerOffer.popupDescription !== undefined) {
+        const popupDescription = String(firstTimeCustomerOffer.popupDescription || "").trim();
+        if (!popupDescription || popupDescription.length > 300) return next(createHttpError(400, "The popup description must be text no longer than 300 characters."));
+        nextOffer.popupDescription = popupDescription;
+      }
+      if (firstTimeCustomerOffer.applyButtonLabel !== undefined) {
+        const label = String(firstTimeCustomerOffer.applyButtonLabel || "").trim();
+        if (!label || label.length > 40) return next(createHttpError(400, "The apply button label must be 1 to 40 characters."));
+        nextOffer.applyButtonLabel = label;
+      }
+      if (firstTimeCustomerOffer.declineButtonLabel !== undefined) {
+        const label = String(firstTimeCustomerOffer.declineButtonLabel || "").trim();
+        if (!label || label.length > 40) return next(createHttpError(400, "The decline button label must be 1 to 40 characters."));
+        nextOffer.declineButtonLabel = label;
+      }
+
+      settings.firstTimeCustomerOffer = nextOffer;
+      messages.push("First-time customer welcome offer updated!");
     }
 
     if (messages.length === 0) {

@@ -321,6 +321,7 @@ const createAsset = async (req, res, next) => {
       serialNumber: String(body.serialNumber || "").trim(),
       purchaseDate,
       depreciationStartDate,
+      depreciationMethod: body.depreciationMethod,
       supplier: String(body.supplier || "").trim(),
       invoiceNumber: String(body.invoiceNumber || "").trim(),
       warrantyExpiry: dateValue(body.warrantyExpiry, "Warranty expiry", { optional: true }),

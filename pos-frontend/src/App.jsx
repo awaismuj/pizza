@@ -5,6 +5,8 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import PropTypes from "prop-types";
+import { useEffect } from "react";
 import { Home, Auth, Orders, Tables, Menu, Outdoor, Dashboard, OnlineOrders, EmployeePortal } from "./pages";
 import ChangePassword from "./pages/ChangePassword";
 import Header from "./components/shared/Header";
@@ -22,6 +24,39 @@ function Layout() {
   const isLoading = useLoadData();
   useScrollHoverFix();
   const location = useLocation();
+  useEffect(() => {
+    const pageMetadata = {
+      "/": ["GenZ Pizza Land POS | Orders", "Internal restaurant order-management workspace."],
+      "/auth": ["GenZ Pizza Land POS | Sign in", "Secure sign-in for authorized GenZ Pizza Land staff."],
+      "/change-password": ["GenZ Pizza Land POS | Change password", "Update your password for the staff point-of-sale account."],
+      "/employee": ["GenZ Pizza Land POS | Employee portal", "Private employee self-service portal for attendance and staff requests."],
+      "/orders": ["GenZ Pizza Land POS | Orders", "Private staff workspace for managing restaurant orders."],
+      "/tables": ["GenZ Pizza Land POS | Tables", "Private staff workspace for restaurant table management."],
+      "/menu": ["GenZ Pizza Land POS | Menu", "Private point-of-sale menu and order-entry workspace."],
+      "/outdoor": ["GenZ Pizza Land POS | New order", "Private staff workspace for creating restaurant orders."],
+      "/dashboard": ["GenZ Pizza Land POS | Dashboard", "Private restaurant management dashboard."],
+      "/online-orders": ["GenZ Pizza Land POS | Online orders", "Private staff workspace for managing customer online orders."],
+    };
+    const [title, description] = pageMetadata[location.pathname] || [
+      "GenZ Pizza Land POS | Page not found",
+      "The requested page is not available in the GenZ Pizza Land POS.",
+    ];
+    document.title = title;
+    let meta = document.head.querySelector('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "description";
+      document.head.appendChild(meta);
+    }
+    meta.content = description;
+    let robots = document.head.querySelector('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.name = "robots";
+      document.head.appendChild(robots);
+    }
+    robots.content = "noindex,nofollow,noarchive";
+  }, [location.pathname]);
   const hideHeaderRoutes = ["/auth"];
   // The floating WhatsApp button is fixed near the bottom-right of every
   // page - but on /menu that's exactly where the Cash/Online/Print
@@ -105,7 +140,7 @@ function Layout() {
             </ProtectedRoutes>
           }
         />
-        <Route path="*" element={<div>Not Found</div>} />
+        <Route path="*" element={<main className="min-h-[70vh] px-4 py-16 text-center text-white"><h1 className="text-3xl font-bold">Page not found</h1><p className="mt-3 text-[#aaa]">The page you requested does not exist or you do not have access.</p><a className="mt-6 inline-block text-[#f6b100] underline" href="/">Return to POS</a></main>} />
       </Routes>
     </>
   );
@@ -129,6 +164,9 @@ function ProtectedRoutes({ children, permission }) {
 
   return children;
 }
+ProtectedRoutes.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 function useHasPermission(permission) {
   const permissions = useSelector((state) => state.user.permissions);
@@ -141,13 +179,16 @@ function AdminRoute({ children }) {
   if (!["admin", "super admin", "cashier", "accountant", "asset manager", "read only", "hr manager", "payroll manager"].includes(String(role || "").toLowerCase()) &&
       !permissions.some((permission) => [
         "users.view", "staff.view", "assets.view", "dashboard.view", "menu.view",
-        "inventory.view", "orders.view", "payments.process", "finance.view", "settings.view",
+        "inventory.view", "orders.view", "payments.process", "finance.view", "settings.view", "coupons.manage",
       ].includes(permission))) {
     return <Navigate to="/" replace />;
   }
 
   return children;
 }
+AdminRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 function App() {
   return (

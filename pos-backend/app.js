@@ -6,6 +6,7 @@ const globalErrorHandler = require("./middlewares/globalErrorHandler");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { serveUploadedImage } = require("./controllers/uploadController");
+const { rejectMongoOperators, securityHeaders } = require("./middlewares/requestSecurity");
 const app = express();
 // Behind Cloudflare/nginx: needed so req.ip is the visitor, not the proxy.
 app.set("trust proxy", 1);
@@ -15,6 +16,8 @@ connectDB();
 
 const allowedOrigins = [
     config.frontendUrl,
+    'http://localhost:4175',
+    'http://127.0.0.1:4175',
     config.storeUrl,
     // POS frontend dev server (vite default)
     'http://localhost:5173',
@@ -32,6 +35,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 // Middlewares
+app.use(securityHeaders);
 app.use(cors({
     credentials: true,
     origin: (origin, callback) => {
@@ -42,8 +46,11 @@ app.use(cors({
         return callback(new Error('Not allowed by CORS'));
     }
 }));
-app.use(express.json()); // parse incoming request in json format
+app.use("/api/whatsapp-campaign/webhook", express.raw({ type: "application/json", limit: "1mb" }));
+app.use("/api/payment/webhook-verification", express.raw({ type: "application/json", limit: "1mb" }));
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser())
+app.use(rejectMongoOperators);
 
 // Serve uploaded images (category icons, dish images, etc.) so URLs returned by
 // the /api/upload endpoint (e.g. /uploads/xyz.png) are actually reachable.
@@ -59,11 +66,14 @@ app.get("/", (req,res) => {
 
 // Other Endpoints
 app.use("/api/user", require("./routes/userRoute"));
+app.use("/api/customer", require("./routes/customerRoute"));
 app.use("/api/order", require("./routes/orderRoute"));
 app.use("/api/table", require("./routes/tableRoute"));
 app.use("/api/category", require("./routes/categoryRoute"));
 app.use("/api/dish", require("./routes/dishRoute"));
 app.use("/api/deal", require("./routes/dealRoute"));
+app.use("/api/coupon", require("./routes/couponRoute"));
+app.use("/api/whatsapp-campaign", require("./routes/whatsAppCampaignRoute"));
 app.use("/api/hero-slide", require("./routes/heroSlideRoute"));
 app.use("/api/inventory", require("./routes/inventoryRoute"));
 app.use("/api/assets", require("./routes/assetRoute"));
@@ -90,6 +100,7 @@ require("./services/dailyProfitScheduler").startDailyProfitScheduler();
 // manually — see services/dailyReportScheduler.js.
 require("./services/whatsappService").initWhatsapp();
 require("./services/dailyReportScheduler").startDailyReportScheduler();
+require("./services/whatsAppCampaignWorker").start();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).
 require("./services/staffAttendanceScheduler").startStaffAttendanceScheduler();

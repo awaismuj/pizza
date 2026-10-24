@@ -20,6 +20,8 @@ const permissions = [
   ["menu.delete", "Delete menu items"],
   ["categories.manage", "Manage categories"],
   ["deals.manage", "Manage deals"],
+  ["coupons.manage", "Manage coupons and eligibility rules"],
+  ["whatsapp.campaigns.manage", "Create and send WhatsApp coupon campaigns"],
   ["hero.manage", "Manage hero slides"],
   ["inventory.view", "View inventory"],
   ["inventory.manage", "Add and edit inventory"],
@@ -138,14 +140,19 @@ const routePermission = (baseUrl, path, method, body = {}, user = {}, effectiveP
     if (verb === "GET") return "tables.view";
     return "tables.manage";
   }
-  if (baseUrl === "/api/category") return verb === "GET" ? "menu.view" : "categories.manage";
+  if (baseUrl === "/api/category") return verb === "GET" ? ["menu.view", "coupons.manage"] : "categories.manage";
   if (baseUrl === "/api/dish") {
-    if (verb === "GET") return "menu.view";
+    if (verb === "GET") return ["menu.view", "coupons.manage"];
     if (verb === "POST") return "menu.create";
     if (verb === "DELETE") return "menu.delete";
     return "menu.edit";
   }
   if (baseUrl === "/api/deal") return verb === "GET" ? "menu.view" : "deals.manage";
+  if (baseUrl === "/api/coupon") {
+    if (route === "/validate-pos") return "orders.create";
+    return "coupons.manage";
+  }
+  if (baseUrl === "/api/whatsapp-campaign") return "whatsapp.campaigns.manage";
   if (baseUrl === "/api/hero-slide") return verb === "GET" ? "menu.view" : "hero.manage";
   if (baseUrl === "/api/inventory") {
     if (verb === "GET") return "inventory.view";

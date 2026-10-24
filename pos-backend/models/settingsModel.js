@@ -8,6 +8,7 @@ const settingsSchema = new mongoose.Schema(
     // Applied to every order - dine-in, outdoor/takeaway and online - from
     // wherever it's read. Admin-editable from Dashboard > Tax.
     taxRatePercent: { type: Number, required: true, default: 16, min: 0 },
+    welcomeOfferRedemptionCount: { type: Number, default: 0, min: 0 },
     // "Build Your Own Deal" (online store): the customer picks any items from
     // the menu - at least `minItems` of them - and gets a discount that grows
     // with how many they pick. Every number here is admin-editable from
@@ -64,6 +65,29 @@ const settingsSchema = new mongoose.Schema(
       requireLowercase: { type: Boolean, default: false },
       requireNumber: { type: Boolean, default: false },
       requireSymbol: { type: Boolean, default: false },
+    },
+    firstTimeCustomerOffer: {
+      enabled: { type: Boolean, default: false },
+      minimumSubtotal: { type: Number, default: 1000, min: 0 },
+      percentages: { type: [Number], default: [5, 7, 10], validate: (value) => Array.isArray(value) && value.length > 0 },
+      selectionMethod: { type: String, enum: ["random"], default: "random" },
+      maxDiscountAmount: { type: Number, default: null, min: 0 },
+      startsAt: { type: Date, default: null },
+      expiresAt: { type: Date, default: null },
+      maxCampaignRedemptions: { type: Number, default: null, min: 1 },
+      maxOnePerCustomer: { type: Boolean, default: true },
+      eligibleChannels: {
+        type: [{ type: String, enum: ["Online", "POS", "Pickup", "Delivery"] }],
+        default: ["Online", "POS", "Pickup", "Delivery"],
+      },
+      popupTitle: { type: String, default: "Welcome to our Pizza Store!", maxlength: 120 },
+      popupDescription: {
+        type: String,
+        default: "You're eligible for a special first-order reward.",
+        maxlength: 300,
+      },
+      applyButtonLabel: { type: String, default: "Apply Discount", maxlength: 40 },
+      declineButtonLabel: { type: String, default: "No Thanks", maxlength: 40 },
     },
   },
   { timestamps: true }

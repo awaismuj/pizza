@@ -14,7 +14,9 @@ const {
   getPrepReport,
 } = require("../controllers/orderController");
 const { isVerifiedUser, requireRole } = require("../middlewares/tokenVerification");
+const { attachOptionalCustomer } = require("../middlewares/customerAuthentication");
 const { handlePaymentProofUpload } = require("../middlewares/paymentProofUpload");
+const createRateLimiter = require("../middlewares/createRateLimiter");
 const {
   uploadPaymentProof,
   getPaymentProof,
@@ -27,10 +29,18 @@ const router = express.Router();
 // declared before the /:id routes below, or Express would match "public"
 // as an :id and require auth for it. "/public/lookup" must also come
 // before "/public/:id" for the same reason.
-router.route("/public/checkout").post(addPublicOrder);
+router.route("/public/checkout").post(createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 10,
+  message: "Too many checkout attempts. Please wait before placing another order.",
+}), attachOptionalCustomer, addPublicOrder);
 router.route("/public/lookup").get(lookupPublicOrderByPhone);
 // JazzCash/Raast payment screenshot, uploaded before the order is placed.
-router.route("/public/payment-proof").post(handlePaymentProofUpload, uploadPaymentProof);
+router.route("/public/payment-proof").post(createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 10,
+  message: "Too many payment screenshot uploads. Please wait before trying again.",
+}), handlePaymentProofUpload, uploadPaymentProof);
 // Customer cancelling their own still-Pending order — see cancelPublicOrder
 // for exactly how narrow this is. Must come before "/public/:id" so Express
 // doesn't need to disambiguate — different path shape either way, but kept

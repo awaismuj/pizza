@@ -34,6 +34,17 @@ test("API policy separates sensitive operations", () => {
   assert.equal(routePermission("/api/table", "/table-id", "DELETE"), "tables.delete");
 });
 
+test("coupon management requires its dedicated permission while POS validation uses order creation access", () => {
+  assert.ok(roleDefaults.admin.includes("coupons.manage"));
+  assert.deepEqual(routePermission("/api/category", "/", "GET"), ["menu.view", "coupons.manage"]);
+  assert.deepEqual(routePermission("/api/dish", "/", "GET"), ["menu.view", "coupons.manage"]);
+  assert.equal(routePermission("/api/coupon", "/", "GET"), "coupons.manage");
+  assert.equal(routePermission("/api/coupon", "/", "POST"), "coupons.manage");
+  assert.equal(routePermission("/api/coupon", "/coupon-id", "PUT"), "coupons.manage");
+  assert.equal(routePermission("/api/coupon", "/coupon-id/assign", "POST"), "coupons.manage");
+  assert.equal(routePermission("/api/coupon", "/validate-pos", "POST"), "orders.create");
+});
+
 test("kitchen role receives preparation-only status permission", () => {
   assert.ok(roleDefaults["kitchen staff"].includes("kitchen.update"));
   assert.ok(!roleDefaults["kitchen staff"].includes("payments.process"));

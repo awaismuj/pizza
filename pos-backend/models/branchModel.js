@@ -48,6 +48,14 @@ const branchSchema = new mongoose.Schema(
       freeWithinKm: { type: Number, default: 4, min: 0 },
       zones: { type: [zoneSchema], default: [] },
     },
+    customerDisplay: {
+      showFreeDeliveryNote: { type: Boolean, default: false },
+      showEstimatedTimes: { type: Boolean, default: false },
+      showDeliveryFees: { type: Boolean, default: false },
+      showDeliveryAreaText: { type: Boolean, default: false },
+      showClosedNotice: { type: Boolean, default: false },
+      showCashPaymentNote: { type: Boolean, default: false },
+    },
     restriction: {
       active: { type: Boolean, default: false },
       applies: { type: String, enum: ["delivery", "pickup", "both"], default: "delivery" },

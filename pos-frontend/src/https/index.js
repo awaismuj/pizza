@@ -1,7 +1,5 @@
 import { axiosWrapper } from "./axiosWrapper";
 
-// API Endpoints
-
 // Auth Endpoints
 export const login = (data) => axiosWrapper.post("/api/user/login", data);
 export const register = (data) => axiosWrapper.post("/api/user/register", data);
@@ -38,8 +36,69 @@ export const getSettings = () => axiosWrapper.get("/api/settings");
 export const updateSettings = (data) => axiosWrapper.put("/api/settings", data);
 
 // Payment Endpoints
-export const createOrderRazorpay = (data) =>
-  axiosWrapper.post("/api/payment/create-order", data);
+const inMemoryPaymentAttempts = new Map();
+const paymentAttemptStorageKey = () =>
+  `gzp_pos_payment_attempt_${window.location.pathname.replace(/[^a-z0-9]/gi, "_")}`;
+
+export const getPaymentIdempotencyKey = (fingerprint) => {
+  const storageKey = paymentAttemptStorageKey();
+  const inMemory = inMemoryPaymentAttempts.get(storageKey);
+  if (inMemory?.fingerprint === fingerprint) return inMemory.key;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+    if (saved?.fingerprint === fingerprint && typeof saved.key === "string") {
+      inMemoryPaymentAttempts.set(storageKey, saved);
+      return saved.key;
+    }
+  } catch {
+    // Continue with an in-memory key when browser storage is unavailable.
+  }
+
+  const secureCrypto = globalThis.crypto;
+  const key = secureCrypto?.randomUUID
+    ? secureCrypto.randomUUID()
+    : secureCrypto?.getRandomValues
+      ? Array.from(secureCrypto.getRandomValues(new Uint8Array(24)), (byte) => byte.toString(16).padStart(2, "0")).join("")
+      : "";
+  if (!key) throw new Error("Secure random generation is unavailable. Please use a modern browser to take an online payment.");
+
+  const attempt = { fingerprint, key };
+  inMemoryPaymentAttempts.set(storageKey, attempt);
+  try {
+    sessionStorage.setItem(storageKey, JSON.stringify(attempt));
+  } catch {
+    // The key remains stable in memory for this page session.
+  }
+  return key;
+};
+
+export const clearPaymentIdempotencyKey = () => {
+  const storageKey = paymentAttemptStorageKey();
+  inMemoryPaymentAttempts.delete(storageKey);
+  try {
+    sessionStorage.removeItem(storageKey);
+  } catch {
+    // Storage may be unavailable; the next order gets a new key when the page reloads.
+  }
+};
+
+export const createOrderRazorpay = async (data, idempotencyKey) => {
+  try {
+    return await axiosWrapper.post("/api/payment/create-order", data, {
+      headers: { "Idempotency-Key": idempotencyKey },
+    });
+  } catch (error) {
+    const code = error?.response?.data?.code;
+    if (
+      error?.response?.status >= 500 ||
+      code === "PAYMENT_ATTEMPT_FAILED" ||
+      code === "IDEMPOTENCY_KEY_REUSED"
+    ) {
+      clearPaymentIdempotencyKey();
+    }
+    throw error;
+  }
+};
 export const verifyPaymentRazorpay = (data) =>
   axiosWrapper.post("/api/payment/verify-payment", data);
 
@@ -62,6 +121,19 @@ export const updateDeal = ({ dealId, ...data }) => axiosWrapper.put(`/api/deal/$
 export const toggleDeal = (dealId) => axiosWrapper.patch(`/api/deal/${dealId}/toggle`);
 export const reorderDeals = (order) => axiosWrapper.post(`/api/deal/reorder`, { order });
 export const deleteDeal = (dealId) => axiosWrapper.delete(`/api/deal/${dealId}`);
+
+// Coupon management and redemption reporting
+export const getCoupons = (params) => axiosWrapper.get("/api/coupon", { params });
+export const addCoupon = (data) => axiosWrapper.post("/api/coupon", data);
+export const updateCoupon = ({ couponId, ...data }) => axiosWrapper.put(`/api/coupon/${couponId}`, data);
+export const archiveCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/${couponId}/archive`);
+export const duplicateCoupon = (couponId) => axiosWrapper.post(`/api/coupon/${couponId}/duplicate`);
+export const getCouponRedemptions = (params) => axiosWrapper.get("/api/coupon/redemptions", { params });
+export const getCouponAssignments = (params) => axiosWrapper.get("/api/coupon/assignments", { params });
+export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
+export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
+export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
+export const checkWelcomeOffer = (data) => axiosWrapper.post("/api/coupon/welcome-offer/check", data);
 
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");
@@ -169,6 +241,31 @@ export const sendReportToEmail = (params) => axiosWrapper.post("/api/report/send
 export const retryWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-retry");
 export const unlinkWhatsapp = () => axiosWrapper.post("/api/report/whatsapp-unlink");
 export const unlinkWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-unlink");
+
+// Admin WhatsApp coupon campaigns (approved WhatsApp template provider only).
+export const getCampaignWhatsAppProvider = () => axiosWrapper.get("/api/whatsapp-campaign/provider");
+export const getCampaignLinkedWhatsAppStatus = () => axiosWrapper.get("/api/whatsapp-campaign/whatsapp-link/status");
+export const retryCampaignLinkedWhatsApp = () => axiosWrapper.post("/api/whatsapp-campaign/whatsapp-link/retry");
+export const unlinkCampaignLinkedWhatsApp = () => axiosWrapper.post("/api/whatsapp-campaign/whatsapp-link/unlink");
+export const getCampaignWhatsAppCustomers = (params) => axiosWrapper.get("/api/whatsapp-campaign/customers", { params });
+export const createCampaignWhatsAppContact = (data) => axiosWrapper.post("/api/whatsapp-campaign/customers", data);
+export const updateCampaignWhatsAppContact = ({ customerId, ...data }) =>
+  axiosWrapper.patch(`/api/whatsapp-campaign/customers/${customerId}`, data);
+export const previewWhatsAppCampaign = (data) => axiosWrapper.post("/api/whatsapp-campaign/preview", data);
+export const sendWhatsAppCampaignTest = (data) => axiosWrapper.post("/api/whatsapp-campaign/send-test", data);
+export const createWhatsAppCampaign = ({ requestKey, ...data }) =>
+  axiosWrapper.post("/api/whatsapp-campaign/campaigns", data, { headers: { "Idempotency-Key": requestKey } });
+export const getWhatsAppCampaigns = (params) => axiosWrapper.get("/api/whatsapp-campaign/campaigns", { params });
+export const getWhatsAppCampaign = (campaignId) => axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}`);
+export const scanWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/scan`);
+export const generateWhatsAppCampaignTokens = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/generate-tokens`);
+export const getWhatsAppCampaignRecipients = ({ campaignId, ...params }) =>
+  axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}/recipients`, { params });
+export const launchWhatsAppCampaign = ({ campaignId, confirmedEligibleCount }) =>
+  axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/launch`, { confirmedEligibleCount });
+export const pauseWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/pause`);
+export const cancelWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/cancel`);
+export const retryWhatsAppCampaignFailures = ({ campaignId, reason }) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/retry-failed`, { reason });
 
 // Order Endpoints
 export const addOrder = (data) => axiosWrapper.post("/api/order/", data);

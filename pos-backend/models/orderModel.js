@@ -26,6 +26,7 @@ const orderSchema = new mongoose.Schema({
         guests: { type: Number, required: true },
         address: { type: String, default: "" },
     },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null, index: true },
     orderStatus: {
         type: String,
         required: true,
@@ -49,6 +50,8 @@ const orderSchema = new mongoose.Schema({
         enum: ["POS", "Online"],
         default: "POS",
     },
+    idempotencyKeyHash: { type: String, select: false },
+    idempotencyRequestHash: { type: String, select: false },
     // Human-facing order number: "<YYYYMMDD><3-digit sequence>", e.g.
     // "20260927001" for the 1st order placed on 27 Sep 2026, "20260927002"
     // for the 2nd, and so on. The sequence resets to 001 at the start of
@@ -94,6 +97,7 @@ const orderSchema = new mongoose.Schema({
         discount: { type: Number, default: 0 },
         discountPercent: { type: Number, default: 0 },
         discountLabel: { type: String, default: "" },
+        couponDiscount: { type: Number, default: 0 },
         // Delivery charge, added AFTER tax (it is not taxed). 0 for pickup.
         deliveryFee: { type: Number, default: 0 },
     },
@@ -109,6 +113,10 @@ const orderSchema = new mongoose.Schema({
         minOrder: { type: Number, default: 0 },
         estimatedMinutes: { min: Number, max: Number },
         estimatedAt: Date,
+    },
+    coupon: {
+        couponId: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon", default: null },
+        code: { type: String, default: "" },
     },
     items: [],
     table: { type: mongoose.Schema.Types.ObjectId, ref: "Table" },
@@ -183,6 +191,15 @@ const orderSchema = new mongoose.Schema({
 // Fast lookups for the live queue / alert stamping (only indexes orders that
 // actually have a timer).
 orderSchema.index({ "prep.deadline": 1 }, { partialFilterExpression: { "prep.deadline": { $exists: true } } });
+
+orderSchema.index(
+    { idempotencyKeyHash: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { idempotencyKeyHash: { $type: "string" } },
+        name: "uniq_order_idempotency_key_hash",
+    }
+);
 
 orderSchema.statics.ORDER_STATUSES = ORDER_STATUSES;
 orderSchema.statics.PAYMENT_METHOD_COD = PAYMENT_METHOD_COD;

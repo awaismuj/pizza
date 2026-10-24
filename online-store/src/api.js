@@ -1,13 +1,65 @@
 // Talks to the same backend the POS uses (apipos.muscatfood.com), just
 // through the public, no-login endpoints.
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const CUSTOMER_TOKEN_KEY = "gzp_customer_token";
+const CHECKOUT_KEY = "gzp_checkout_idempotency_key";
+let inMemoryCheckoutKey = "";
+
+export const getCheckoutIdempotencyKey = () => {
+  if (inMemoryCheckoutKey) return inMemoryCheckoutKey;
+  try {
+    inMemoryCheckoutKey = sessionStorage.getItem(CHECKOUT_KEY) || "";
+  } catch {
+    // Fall back to the in-memory key when browser storage is unavailable.
+  }
+  if (!inMemoryCheckoutKey) {
+    const secureCrypto = globalThis.crypto;
+    if (secureCrypto?.randomUUID) {
+      inMemoryCheckoutKey = secureCrypto.randomUUID();
+    } else if (secureCrypto?.getRandomValues) {
+      inMemoryCheckoutKey = Array.from(
+        secureCrypto.getRandomValues(new Uint8Array(24)),
+        (byte) => byte.toString(16).padStart(2, "0")
+      ).join("");
+    } else {
+      throw new Error("Secure random generation is unavailable. Please use a modern browser to place your order.");
+    }
+    try {
+      sessionStorage.setItem(CHECKOUT_KEY, inMemoryCheckoutKey);
+    } catch {
+      // The key still protects repeat submits for the lifetime of this page.
+    }
+  }
+  return inMemoryCheckoutKey;
+};
+
+export const clearCheckoutIdempotencyKey = () => {
+  inMemoryCheckoutKey = "";
+  try {
+    sessionStorage.removeItem(CHECKOUT_KEY);
+  } catch {
+    // The in-memory key is still cleared.
+  }
+};
+
+export const setCustomerToken = (token) => {
+  if (token) sessionStorage.setItem(CUSTOMER_TOKEN_KEY, token);
+  else sessionStorage.removeItem(CUSTOMER_TOKEN_KEY);
+};
 
 async function request(path, options = {}) {
   let res;
   try {
+    const token = sessionStorage.getItem(CUSTOMER_TOKEN_KEY);
     res = await fetch(`${BACKEND_URL}${path}`, {
-      headers: { "Content-Type": "application/json" },
       ...options,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Storefront-Client": "online-store",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
     });
   } catch (networkErr) {
     // Network drop / server unreachable — not the same as "order doesn't exist".
@@ -38,11 +90,51 @@ export const getPublicDeals = () => request("/api/deal/public");
 // Full-width homepage slider photos, staff-managed from the POS dashboard.
 export const getPublicHeroSlides = () => request("/api/hero-slide/public");
 
-export const placeOrder = (payload) =>
+export const placeOrder = (payload, idempotencyKey) =>
   request("/api/order/public/checkout", {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    body: JSON.stringify(payload),
+  });
+
+export const validatePublicCoupon = (payload) =>
+  request("/api/coupon/validate", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+
+export const checkWelcomeOffer = (payload) =>
+  request("/api/coupon/welcome-offer/check", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const registerCustomer = (payload) =>
+  request("/api/customer/register", { method: "POST", body: JSON.stringify(payload) });
+
+export const loginCustomer = async (payload) => {
+  const result = await request("/api/customer/login", { method: "POST", body: JSON.stringify(payload) });
+  setCustomerToken(result.data.token);
+  return result;
+};
+
+export const getCustomerProfile = () => request("/api/customer/me");
+
+export const updateCustomerMarketingConsent = (marketingConsent) =>
+  request("/api/customer/me/marketing-consent", {
+    method: "PATCH",
+    body: JSON.stringify({ marketingConsent }),
+  });
+
+export const getMyCoupons = () => request("/api/coupon/mine");
+
+export const logoutCustomer = async () => {
+  try {
+    return await request("/api/customer/logout", { method: "POST" });
+  } finally {
+    setCustomerToken("");
+  }
+};
 
 export const getOrderStatus = (orderId) => request(`/api/order/public/${orderId}`);
 

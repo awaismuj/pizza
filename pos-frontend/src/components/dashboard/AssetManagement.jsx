@@ -442,7 +442,7 @@ const AssetManagement = ({ role }) => {
   const activityMutating = Object.values(actionMutations).some((mutation) => mutation.isPending);
 
   return (
-    <main className="container mx-auto space-y-6 px-4 pb-10 sm:px-6">
+    <main className="mx-auto w-full space-y-6 px-4 pb-10 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[#f6b100]">Finance &amp; operations</p>
@@ -609,7 +609,7 @@ const AssetManagement = ({ role }) => {
               <article key={asset._id} className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#171717] text-xl">
-                    {asset.image ? <img src={resolveImageUrl(asset.image)} alt="" className="h-full w-full object-cover" /> : "▣"}
+                    {asset.image ? <img src={resolveImageUrl(asset.image)} alt={asset.name ? `${asset.name} asset` : "Asset photo"} className="h-full w-full object-cover" /> : "▣"}
                   </div>
                   <div className="min-w-0">
                     <button type="button" onClick={() => setSelectedId(asset._id)} className="truncate text-left font-semibold text-white hover:text-[#f6b100]">

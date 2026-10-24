@@ -187,4 +187,22 @@ const sendPdfReport = async ({ to, buffer, filename, caption }) => {
   await state.client.sendMessage(chatId, media, { caption });
 };
 
-module.exports = { initWhatsapp, retryWhatsapp, unlinkWhatsapp, getStatus, sendPdfReport };
+const sendTextMessage = async ({ to, text }) => {
+  if (!state.client || state.status !== "ready") {
+    throw new Error(
+      state.status === "qr"
+        ? "WhatsApp isn't linked yet — scan the QR code shown in the coupon campaign panel first."
+        : `WhatsApp isn't connected (status: ${state.status}).`
+    );
+  }
+  if (typeof text !== "string" || !text.trim() || text.length > 4096) {
+    throw new Error("WhatsApp message text must be between 1 and 4096 characters.");
+  }
+  const chatId = toChatId(to);
+  const sent = await state.client.sendMessage(chatId, text.trim());
+  const messageId = sent?.id?._serialized || sent?.id?.id;
+  if (!messageId) throw new Error("WhatsApp returned no message ID.");
+  return { messageId, provider: "linked" };
+};
+
+module.exports = { initWhatsapp, retryWhatsapp, unlinkWhatsapp, getStatus, sendPdfReport, sendTextMessage };

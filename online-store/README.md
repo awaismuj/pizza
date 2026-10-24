@@ -24,6 +24,13 @@ npm install
 npm run dev
 ```
 
+The public site includes a privacy policy at `/privacy`, a generated sitemap
+at `/sitemap.xml`, and crawler rules at `/robots.txt`. Configure the static
+host to serve `404.html` with an HTTP 404 status for unknown paths while
+keeping `/` and `/privacy` mapped to the SPA entry point. SEO metadata and
+canonical links are updated per route. The POS dashboard is a separate,
+private app and is marked `noindex`.
+
 ## Deploying to genzpizza.online
 
 1. `npm run build` — outputs static files to `dist/`.
@@ -46,8 +53,25 @@ server {
     root /var/www/genzpizza-online/dist;
     index index.html;
 
+    location = / {
+        try_files /index.html =404;
+    }
+
+    location = /privacy {
+        try_files /index.html =404;
+    }
+
+    location = /privacy/ {
+        return 301 /privacy;
+    }
+
     location / {
-        try_files $uri /index.html;
+        try_files $uri =404;
+    }
+
+    error_page 404 /404.html;
+    location = /404.html {
+        internal;
     }
 }
 ```
