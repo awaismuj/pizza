@@ -624,6 +624,16 @@ const WhatsAppCampaignManager = () => {
                         {whatsappLinkStatus?.lastError && (
                           <p className="mt-2 text-xs text-red-300">{whatsappLinkStatus.lastError}</p>
                         )}
+                        {whatsappLinkStatus?.status === "ready" && (
+                          <button
+                            type="button"
+                            className={`${buttonClass} mt-3 bg-[#353535] text-white`}
+                            onClick={() => unlinkWhatsAppMutation.mutate()}
+                            disabled={unlinkWhatsAppMutation.isPending}
+                          >
+                            <FaTimes /> {unlinkWhatsAppMutation.isPending ? "Unlinking…" : "Unlink WhatsApp"}
+                          </button>
+                        )}
                         {!["qr", "initializing", "ready"].includes(whatsappLinkStatus?.status) && (
                           <button
                             type="button"
