@@ -35,6 +35,7 @@ whatsAppCampaignRecipientSchema.index({ campaignId: 1, customerId: 1 }, { unique
 whatsAppCampaignRecipientSchema.index({ status: 1, nextAttemptAt: 1, createdAt: 1 }, { name: "whatsapp_campaign_recipient_queue" });
 whatsAppCampaignRecipientSchema.index({ campaignId: 1, status: 1, createdAt: 1 }, { name: "whatsapp_campaign_recipient_results" });
 whatsAppCampaignRecipientSchema.index({ status: 1, updatedAt: -1 }, { name: "whatsapp_campaign_recent_messages" });
+whatsAppCampaignRecipientSchema.index({ campaignId: 1, updatedAt: -1 }, { name: "whatsapp_campaign_activity" });
 whatsAppCampaignRecipientSchema.index({ providerMessageId: 1 }, { unique: true, partialFilterExpression: { providerMessageId: { $type: "string" } }, name: "uniq_whatsapp_provider_message_id" });
 
 module.exports = mongoose.model("WhatsAppCampaignRecipient", whatsAppCampaignRecipientSchema);
