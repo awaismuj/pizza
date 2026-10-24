@@ -408,9 +408,13 @@ production, run `npm run migrate:welcome-offer-index` from `pos-backend` to
 create the unique phone-key index that prevents duplicate offers under
 concurrent requests.
 
-The **Send Coupons** campaign tool is under POS Dashboard > Coupons. Recipient
-lists are resolved from customer records and marketing consent on the backend;
-all-eligible selection cannot include opt-outs or invalid phone numbers.
+The **Send Coupons** campaign tool is under POS Dashboard > Coupons. Customer
+phone contacts can be added from the recipient list or are captured from new
+POS/online orders, then matched to completed/closed orders by phone. Contacts
+created from orders start opted out. Coupon assignment can include an active
+contact with a valid number and qualifying order; WhatsApp delivery also
+requires explicit marketing consent, and all-eligible sends cannot include
+opt-outs or invalid phone numbers.
 Customer status is derived from account activity and linked/guest order
 history; VIP filtering is not offered because the current customer model has
 no VIP classification. Campaigns save recipient records and standard coupon
@@ -439,6 +443,19 @@ adds the campaign permission to persisted Admin/Super Admin roles; it does not
 rewrite customer or order data. The existing linked-device WhatsApp Web
 integration remains reserved for daily reports and is not used for campaign
 automation.
+
+To enable the customer phonebook, back up MongoDB, deploy the updated backend
+files, and run `npm run migrate:customer-contacts` from `pos-backend` before
+restarting the backend. The migration safely imports valid phone numbers from
+historical orders into contact-only customer records and replaces the customer
+email index with a partial unique index that applies only to real email strings,
+so phone-only contacts do not need fake email addresses. Existing registered
+customer records are retained. Imported and automatically captured contacts
+are opted out of marketing by default; staff may record opt-in only after the
+customer has explicitly agreed. New POS and online orders capture a phone
+contact automatically after the order is saved. Phone-only contacts are
+internal records and cannot sign in to the storefront. The migration is safe
+to rerun and does not modify or delete orders.
 
 ### Price and redemption policy
 

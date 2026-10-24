@@ -7,7 +7,9 @@ process.env.WHATSAPP_CAMPAIGN_TEMPLATE_PREVIEW = "Hi {{1}}!\\nDiscount {{2}}%\nC
 process.env.WHATSAPP_CLOUD_APP_SECRET = "campaign-test-secret";
 const provider = require("../services/whatsAppCampaignProvider");
 const { digitsExpression, eligibilityFor, normalizeEligibleOrderStatuses, selectionFilter } = require("../services/whatsAppCampaignService");
+const { normalizeContactPhone } = require("../services/customerContactService");
 const { chooseDiscount } = require("../services/whatsAppCampaignCouponService");
+const Customer = require("../models/customerModel");
 
 test("normalizes local Pakistani mobile numbers for WhatsApp Cloud API", () => {
   assert.equal(provider.normalizeNumber("0300 123 4567"), "923001234567");
@@ -42,6 +44,25 @@ test("campaign phone matching builds a digit-only expression without newer regex
 test("customer phone search matches formatted numbers by their final nine digits", () => {
   const filter = selectionFilter({ search: "0301 331 0954" });
   assert.ok(filter.$or.some((entry) => entry.$expr?.$eq?.[1] === "313310954"));
+});
+
+test("order contact normalization deduplicates local and international phone formats", () => {
+  const local = normalizeContactPhone("0300-123-4567");
+  const international = normalizeContactPhone("+92 (300) 123 4567");
+  assert.ok(local);
+  assert.equal(local.phoneKey, international.phoneKey);
+  assert.equal(normalizeContactPhone("12345"), null);
+  assert.equal(normalizeContactPhone("not-a-phone-03001234567"), null);
+});
+
+test("phone-only customer contacts do not require storefront login credentials", () => {
+  const customer = new Customer({
+    name: "Order customer",
+    phone: "03001234567",
+    phoneKey: "contact-key",
+    contactOnly: true,
+  });
+  assert.equal(customer.validateSync(), undefined);
 });
 
 test("campaign discount selection supports the 8 percent tier", () => {

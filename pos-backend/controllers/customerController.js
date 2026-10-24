@@ -130,7 +130,7 @@ const loginCustomer = async (req, res, next) => {
     const password = String(req.body.password || "");
     if (!email || !password) throw createHttpError(400, "Email and password are required.");
     const customer = await Customer.findOne({ email }).select("+password +authVersion");
-    if (!customer || !await bcrypt.compare(password, customer.password)) {
+    if (!customer || customer.contactOnly || !await bcrypt.compare(password, customer.password)) {
       throw createHttpError(401, "Invalid email or password.");
     }
     if (!customer.active) throw createHttpError(403, "This customer account is inactive.");
