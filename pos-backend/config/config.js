@@ -62,7 +62,7 @@ const config = Object.freeze({
         autoSendMinute: Number(process.env.REPORT_AUTO_SEND_MINUTE ?? 5),
     },
     whatsappCampaign: {
-        provider: String(process.env.WHATSAPP_CAMPAIGN_PROVIDER || "mock").toLowerCase(),
+        provider: String(process.env.WHATSAPP_CAMPAIGN_PROVIDER || "linked").toLowerCase(),
         cloudApiVersion: process.env.WHATSAPP_CLOUD_API_VERSION || "v22.0",
         phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || "",
         accessToken: process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || "",

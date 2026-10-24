@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const config = require("../config/config");
+const whatsappService = require("./whatsappService");
 
 const campaignConfig = config.whatsappCampaign;
 
@@ -22,6 +23,13 @@ const assertConfigured = () => {
   if (campaignConfig.provider === "mock") {
     if (config.nodeEnv === "production") {
       throw new Error("Mock WhatsApp campaigns cannot send in production.");
+    }
+    return;
+  }
+  if (campaignConfig.provider === "linked") {
+    const status = whatsappService.getStatus();
+    if (status.status !== "ready") {
+      throw new Error(`Link WhatsApp before sending campaign messages (current status: ${status.status}).`);
     }
     return;
   }
@@ -53,6 +61,13 @@ const sendApprovedTemplate = async ({ to, name, discount, code, minimum, expiry,
 
   if (campaignConfig.provider === "mock") {
     return { messageId: `mock_${callbackId || crypto.randomUUID()}`, provider: "mock" };
+  }
+
+  if (campaignConfig.provider === "linked") {
+    return whatsappService.sendTextMessage({
+      to: recipient,
+      text: templatePreview({ name, discount, code, minimum, expiry }),
+    });
   }
 
   const response = await fetch(`https://graph.facebook.com/${campaignConfig.cloudApiVersion}/${campaignConfig.phoneNumberId}/messages`, {
@@ -121,9 +136,9 @@ const verifyWebhookChallenge = ({ mode, token, challenge }) => {
 };
 
 const getProviderStatus = () => ({
-  provider: campaignConfig.provider === "cloud" ? "cloud" : "mock",
-  configured: campaignConfig.provider === "mock"
-    ? config.nodeEnv !== "production"
+  provider: campaignConfig.provider,
+  configured: campaignConfig.provider === "linked"
+    ? whatsappService.getStatus().status === "ready"
     : Boolean(config.nodeEnv === "production" && campaignConfig.provider === "cloud" && campaignConfig.phoneNumberId && campaignConfig.accessToken
       && campaignConfig.appSecret && campaignConfig.verifyToken && campaignConfig.templateName && campaignConfig.templateLanguage
       && [1, 2, 3, 4, 5].every((index) => campaignConfig.templatePreviewText?.includes(`{{${index}}}`))),
