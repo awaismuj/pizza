@@ -6,12 +6,15 @@ process.env.WHATSAPP_CAMPAIGN_DEFAULT_COUNTRY_CODE = "92";
 process.env.WHATSAPP_CAMPAIGN_TEMPLATE_PREVIEW = "Hi {{1}}!\\nDiscount {{2}}%\nCode {{3}}\nMinimum Rs. {{4}}\nExpiry {{5}}";
 process.env.WHATSAPP_CLOUD_APP_SECRET = "campaign-test-secret";
 const provider = require("../services/whatsAppCampaignProvider");
-const { digitsExpression, eligibilityFor, normalizeEligibleOrderStatuses } = require("../services/whatsAppCampaignService");
+const { digitsExpression, eligibilityFor, normalizeEligibleOrderStatuses, selectionFilter } = require("../services/whatsAppCampaignService");
 const { chooseDiscount } = require("../services/whatsAppCampaignCouponService");
 
 test("normalizes local Pakistani mobile numbers for WhatsApp Cloud API", () => {
   assert.equal(provider.normalizeNumber("0300 123 4567"), "923001234567");
   assert.equal(provider.normalizeNumber("+92 300 1234567"), "923001234567");
+  assert.equal(provider.normalizeNumber("0092-300-1234567"), "923001234567");
+  assert.equal(provider.normalizeNumber("0092 (0300) 123-4567"), "923001234567");
+  assert.equal(provider.normalizeNumber("0300-123-4567"), "923001234567");
 });
 
 test("requires active customer, explicit consent, and valid WhatsApp phone", () => {
@@ -34,6 +37,11 @@ test("campaign phone matching builds a digit-only expression without newer regex
   assert.ok(expression.$reduce);
   assert.ok(serialized.includes('"$range"'));
   assert.ok(!serialized.includes("$regexReplace"));
+});
+
+test("customer phone search matches formatted numbers by their final nine digits", () => {
+  const filter = selectionFilter({ search: "0301 331 0954" });
+  assert.ok(filter.$or.some((entry) => entry.$expr?.$eq?.[1] === "313310954"));
 });
 
 test("campaign discount selection supports the 8 percent tier", () => {
