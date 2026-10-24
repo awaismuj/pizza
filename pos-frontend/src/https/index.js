@@ -245,6 +245,9 @@ export const unlinkWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-
 // Admin WhatsApp coupon campaigns (approved WhatsApp template provider only).
 export const getCampaignWhatsAppProvider = () => axiosWrapper.get("/api/whatsapp-campaign/provider");
 export const getCampaignWhatsAppCustomers = (params) => axiosWrapper.get("/api/whatsapp-campaign/customers", { params });
+export const createCampaignWhatsAppContact = (data) => axiosWrapper.post("/api/whatsapp-campaign/customers", data);
+export const updateCampaignWhatsAppContact = ({ customerId, ...data }) =>
+  axiosWrapper.patch(`/api/whatsapp-campaign/customers/${customerId}`, data);
 export const previewWhatsAppCampaign = (data) => axiosWrapper.post("/api/whatsapp-campaign/preview", data);
 export const sendWhatsAppCampaignTest = (data) => axiosWrapper.post("/api/whatsapp-campaign/send-test", data);
 export const createWhatsAppCampaign = ({ requestKey, ...data }) =>

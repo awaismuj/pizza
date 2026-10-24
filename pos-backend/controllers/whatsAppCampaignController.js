@@ -10,6 +10,8 @@ const campaignService = require("../services/whatsAppCampaignService");
 const campaignCouponService = require("../services/whatsAppCampaignCouponService");
 const provider = require("../services/whatsAppCampaignProvider");
 const Order = require("../models/orderModel");
+const Customer = require("../models/customerModel");
+const { normalizeContactPhone } = require("../services/customerContactService");
 
 const DISCOUNTS = [5, 7, 8, 10];
 const DISCOUNT_LABELS = DISCOUNTS.map((discount) => `${discount}%`).join(", ");
@@ -302,6 +304,76 @@ const customerList = async (req, res, next) => {
     });
     res.json({ success: true, data: result.data, pagination: result.pagination, summary: result.summary });
   } catch (error) {
+    next(error);
+  }
+};
+
+const createCustomerContact = async (req, res, next) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    if (name.length < 2 || name.length > 120) throw createHttpError(400, "Name must be 2 to 120 characters.");
+    const normalized = normalizeContactPhone(req.body.phone);
+    if (!normalized) throw createHttpError(400, "Enter a valid mobile number with 10 to 15 digits.");
+    if (req.body.marketingConsent !== undefined && typeof req.body.marketingConsent !== "boolean") {
+      throw createHttpError(400, "Marketing consent must be true or false.");
+    }
+    if (req.body.marketingConsent === true && req.body.consentConfirmed !== true) {
+      throw createHttpError(400, "Confirm that the customer explicitly agreed to receive WhatsApp marketing.");
+    }
+
+    const existing = await Customer.findOne({ phoneKey: normalized.phoneKey });
+    if (existing) {
+      return res.status(200).json({ success: true, existing: true, data: { id: String(existing._id), name: existing.name, phone: existing.phone } });
+    }
+
+    const now = new Date();
+    const customer = await Customer.create({
+      name,
+      phone: normalized.value,
+      phoneKey: normalized.phoneKey,
+      contactOnly: true,
+      active: true,
+      marketingConsent: req.body.marketingConsent === true,
+      marketingConsentAt: req.body.marketingConsent === true ? now : null,
+      marketingConsentSource: req.body.marketingConsent === true ? "admin-recorded" : "",
+    });
+    res.status(201).json({ success: true, data: { id: String(customer._id), name: customer.name, phone: customer.phone } });
+  } catch (error) {
+    if (error.code === 11000) return next(createHttpError(409, "A customer contact already uses this mobile number."));
+    next(error);
+  }
+};
+
+const updateCustomerContact = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.customerId)) throw createHttpError(404, "Customer contact not found.");
+    const customer = await Customer.findById(req.params.customerId);
+    if (!customer) throw createHttpError(404, "Customer contact not found.");
+
+    if (req.body.name !== undefined) {
+      const name = String(req.body.name || "").trim();
+      if (name.length < 2 || name.length > 120) throw createHttpError(400, "Name must be 2 to 120 characters.");
+      customer.name = name;
+    }
+    if (req.body.phone !== undefined) {
+      const normalized = normalizeContactPhone(req.body.phone);
+      if (!normalized) throw createHttpError(400, "Enter a valid mobile number with 10 to 15 digits.");
+      customer.phone = normalized.value;
+      customer.phoneKey = normalized.phoneKey;
+    }
+    if (req.body.marketingConsent !== undefined) {
+      if (typeof req.body.marketingConsent !== "boolean") throw createHttpError(400, "Marketing consent must be true or false.");
+      if (req.body.marketingConsent && req.body.consentConfirmed !== true) {
+        throw createHttpError(400, "Confirm that the customer explicitly agreed to receive WhatsApp marketing.");
+      }
+      customer.marketingConsent = req.body.marketingConsent;
+      customer.marketingConsentAt = new Date();
+      customer.marketingConsentSource = req.body.marketingConsent ? "admin-recorded" : "admin-contact-manager";
+    }
+    await customer.save();
+    res.json({ success: true, data: { id: String(customer._id), name: customer.name, phone: customer.phone } });
+  } catch (error) {
+    if (error.code === 11000) return next(createHttpError(409, "A customer contact already uses this mobile number."));
     next(error);
   }
 };
@@ -734,6 +806,7 @@ const getProvider = (req, res) => res.json({ success: true, data: provider.getPr
 module.exports = {
   cancelCampaign,
   createCampaign,
+  createCustomerContact,
   customerList,
   getCampaign,
   getCampaignRecipients,
@@ -746,6 +819,7 @@ module.exports = {
   retryFailed,
   sendTestMessage,
   scanCampaign,
+  updateCustomerContact,
   webhookStatus,
   webhookVerify,
 };

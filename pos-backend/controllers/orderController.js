@@ -42,6 +42,7 @@ const {
   publicPayment,
   isJazzcashOrder,
 } = require("../utils/paymentUtils");
+const { saveOrderContact } = require("../services/customerContactService");
 
 const VALID_ORDER_STATUSES = Order.ORDER_STATUSES;
 // Statuses that free up the dine-in table this order was sitting at.
@@ -66,6 +67,20 @@ const canCancelOrder = (req) =>
   ["cashier", "admin"].includes(String(req.user?.role || "").toLowerCase());
 
 const couponDisplayCode = (result) => result?.customerCoupon ? "CUSTOMER REWARD" : result?.code;
+
+const captureOrderContact = async (order) => {
+  try {
+    await saveOrderContact({
+      name: order.customerDetails?.name,
+      phone: order.customerDetails?.phone,
+    });
+  } catch (error) {
+    console.error("Could not add order phone to customer contacts:", {
+      orderId: String(order._id),
+      message: error.message,
+    });
+  }
+};
 
 const publicOrderResponse = (order) => {
   const orderData = order.toObject ? order.toObject() : order;
@@ -225,6 +240,7 @@ const addOrder = async (req, res, next) => {
     } else {
       await order.save();
     }
+    await captureOrderContact(order);
     res
       .status(201)
       .json({ success: true, message: "Order created!", data: order });
@@ -259,6 +275,7 @@ const addPublicOrder = async (req, res, next) => {
       if (priorOrder.idempotencyRequestHash !== idempotencyRequestHash) {
         throw createHttpError(409, "This checkout key was already used with different order details. Please review your order.");
       }
+      await captureOrderContact(priorOrder);
       return res.status(200).json(publicOrderResponse(priorOrder));
     }
 
@@ -642,6 +659,7 @@ const addPublicOrder = async (req, res, next) => {
     }
     invalidateAvailabilityCache(); // this order now reserves stock
 
+    await captureOrderContact(order);
     res.status(201).json(publicOrderResponse(order));
   } catch (error) {
     if (error?.code === 11000 && error?.keyPattern?.idempotencyKeyHash) {
@@ -651,6 +669,7 @@ const addPublicOrder = async (req, res, next) => {
         const priorOrder = await Order.findOne({ orderSource: "Online", idempotencyKeyHash: keyHash })
           .select("+idempotencyRequestHash");
         if (priorOrder?.idempotencyRequestHash === fingerprintRequest(req.body, req.customer?._id, config.idempotencySecret)) {
+          await captureOrderContact(priorOrder);
           return res.status(200).json(publicOrderResponse(priorOrder));
         }
         if (priorOrder) {

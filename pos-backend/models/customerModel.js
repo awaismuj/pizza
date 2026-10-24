@@ -6,7 +6,6 @@ const customerSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true, maxlength: 120 },
     email: {
       type: String,
-      required: true,
       trim: true,
       lowercase: true,
       maxlength: 254,
@@ -14,7 +13,8 @@ const customerSchema = new mongoose.Schema(
     },
     phone: { type: String, required: true, trim: true, maxlength: 30 },
     phoneKey: { type: String, required: true, trim: true },
-    password: { type: String, required: true, select: false },
+    password: { type: String, select: false },
+    contactOnly: { type: Boolean, default: false, index: true },
     emailVerifiedAt: { type: Date, default: null },
     verificationTokenHash: { type: String, default: null, select: false },
     verificationExpiresAt: { type: Date, default: null, select: false },
@@ -29,11 +29,11 @@ const customerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-customerSchema.index({ email: 1 }, { unique: true });
+customerSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { email: { $type: "string" } } });
 customerSchema.index({ phoneKey: 1 }, { unique: true });
 
 customerSchema.pre("save", async function hashCustomerPassword() {
-  if (this.isModified("password")) this.password = await bcrypt.hash(this.password, 12);
+  if (this.isModified("password") && this.password) this.password = await bcrypt.hash(this.password, 12);
 });
 
 module.exports = mongoose.model("Customer", customerSchema);
