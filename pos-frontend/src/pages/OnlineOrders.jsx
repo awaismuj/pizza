@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { enqueueSnackbar } from "notistack";
-import { FaPen, FaTrash } from "react-icons/fa";
+import { FaPen, FaPrint, FaTrash } from "react-icons/fa";
 import BackButton from "../components/shared/BackButton";
 import DeletedOrdersPanel from "../components/orders/DeletedOrdersPanel";
 import BottomNav from "../components/shared/BottomNav";
 import { getOrders, updateOrderStatus, deleteOrder as deleteOrderApi } from "../https";
 import OrderStageTracker from "../components/orders/OrderStageTracker";
 import EditOrderModal from "../components/orders/EditOrderModal";
-import { NEXT_ACTION, PAYMENT_WAITING } from "../utils/orderStages";
+import { PAYMENT_WAITING } from "../utils/orderStages";
 import { PaymentBadge, PaymentDetails, PaymentActions } from "../components/orders/PaymentPanel";
 import { paymentKind } from "../utils/payments";
 import Invoice from "../components/invoice/Invoice";
@@ -20,9 +20,9 @@ import ExtendTimeModal from "../components/prep/ExtendTimeModal";
 import { I } from "../components/shared/AppIcons";
 
 // The staff-facing flow for orders placed on genzpizza.online:
-//   Pending -> (Accept | Accept & Process | Cancel)
-//   Accepted -> Preparing (processing) -> Ready to Deliver -> Completed
+//   Pending -> Accepted -> Preparing (processing) -> Ready to Deliver -> Completed
 const TABS = [
+  { key: "All", label: "All Orders" },
   { key: PAYMENT_WAITING, label: "Verify Payment" },
   { key: "Pending", label: "New" },
   { key: "Accepted", label: "Accepted" },
@@ -37,7 +37,7 @@ const OnlineOrders = () => {
     document.title = "POS | Online Orders";
   }, []);
 
-  const [activeTab, setActiveTab] = useState("Pending");
+  const [activeTab, setActiveTab] = useState("All");
   const [payFilter, setPayFilter] = useState("all");
   const [printOrder, setPrintOrder] = useState(null);
   const jumpedToVerify = useRef(false);
@@ -93,13 +93,17 @@ const OnlineOrders = () => {
 
   const orders = (resData?.data?.data ?? []).filter((o) => o.orderSource === "Online");
   const visibleOrders = orders.filter(
-    (o) => o.orderStatus === activeTab && (payFilter === "all" || paymentKind(o) === payFilter)
+    (o) =>
+      (activeTab === "All" || o.orderStatus === activeTab) &&
+      (payFilter === "all" || paymentKind(o) === payFilter)
   );
 
-  // First time payments are waiting, open straight on the Verify tab.
+  // When staff are already in a status-specific tab, bring them to payment
+  // verification the first time a payment is waiting. All Orders stays put
+  // so the whole order lifecycle can be handled from one list.
   const waitingCount = orders.filter((o) => o.orderStatus === PAYMENT_WAITING).length;
   useEffect(() => {
-    if (!jumpedToVerify.current && waitingCount > 0) {
+    if (!jumpedToVerify.current && waitingCount > 0 && activeTab !== "All") {
       jumpedToVerify.current = true;
       setActiveTab(PAYMENT_WAITING);
     }
@@ -107,18 +111,6 @@ const OnlineOrders = () => {
 
   const setStatus = (order, orderStatus) => {
     statusMutation.mutate({ orderId: order._id, orderStatus });
-  };
-
-  // Accept the order (this is when stock is taken from inventory) and send
-  // it straight to the kitchen in one tap.
-  const acceptAndProcess = async (order) => {
-    try {
-      await statusMutation.mutateAsync({ orderId: order._id, orderStatus: "Accepted" });
-      await statusMutation.mutateAsync({ orderId: order._id, orderStatus: "Preparing" });
-      enqueueSnackbar("Order accepted and sent to processing", { variant: "success" });
-    } catch {
-      // The mutation's onError already showed the reason (e.g. not enough stock).
-    }
   };
 
   return (
@@ -139,7 +131,10 @@ const OnlineOrders = () => {
           broken even though it technically scrolled. */}
       <div className="flex flex-wrap gap-2 px-4 pb-2 sm:px-10">
         {TABS.map((tab) => {
-          const count = orders.filter((o) => o.orderStatus === tab.key).length;
+          const count =
+            tab.key === "All"
+              ? orders.length
+              : orders.filter((o) => o.orderStatus === tab.key).length;
           return (
             <button
               key={tab.key}
@@ -205,7 +200,22 @@ const OnlineOrders = () => {
 
             <PrepBadge order={order} showNumber className="mt-3" />
 
-            <OrderStageTracker order={order} />
+            <OrderStageTracker
+              order={order}
+              onAdvance={(orderStatus) => setStatus(order, orderStatus)}
+              isAdvancing={statusMutation.isPending}
+            />
+            {order.orderStatus !== PAYMENT_WAITING && order.orderStatus !== "Cancelled" && (
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPrintOrder(order)}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#2a2a2a] px-2.5 py-1.5 text-xs font-semibold text-[#f5f5f5] hover:bg-[#333]"
+                >
+                  <FaPrint size={11} /> Print
+                </button>
+              </div>
+            )}
 
             {order.orderStatus === PAYMENT_WAITING && (
               <>
@@ -240,32 +250,9 @@ const OnlineOrders = () => {
 
             <div className="mt-4 flex flex-wrap gap-2">
               {order.orderStatus === "Pending" && (
-                <>
-                  <button
-                    onClick={() => acceptAndProcess(order)}
-                    disabled={statusMutation.isPending}
-                    className="flex-1 rounded-lg bg-[#02ca3a] py-2 font-semibold text-[#1f1f1f] disabled:opacity-60"
-                  >
-                    Accept &amp; Process
-                  </button>
-                  <button
-                    onClick={() => setStatus(order, "Accepted")}
-                    disabled={statusMutation.isPending}
-                    className="flex-1 rounded-lg bg-[#2e4a40] py-2 font-semibold text-[#02ca3a] disabled:opacity-60"
-                  >
-                    Accept only
-                  </button>
-                </>
-              )}
-
-              {order.orderStatus !== "Pending" && NEXT_ACTION[order.orderStatus] && (
-                <button
-                  onClick={() => setStatus(order, NEXT_ACTION[order.orderStatus].to)}
-                  disabled={statusMutation.isPending}
-                  className="flex-1 rounded-lg bg-[#f6b100] py-2 font-semibold text-[#1f1f1f] disabled:opacity-60"
-                >
-                  {NEXT_ACTION[order.orderStatus].label}
-                </button>
+                <p className="w-full rounded-lg bg-[#2a2a2a] py-2 text-center text-xs text-[#ababab]">
+                  Click the next stage dot to accept this order.
+                </p>
               )}
 
               {canExtendPrep(role) && isPrepActive(order) && (
@@ -314,15 +301,6 @@ const OnlineOrders = () => {
                 </span>
               )}
             </div>
-
-            {order.orderStatus !== PAYMENT_WAITING && order.orderStatus !== "Cancelled" && (
-              <button
-                onClick={() => setPrintOrder(order)}
-                className="mt-2 w-full rounded-lg bg-[#2a2a2a] py-2 text-sm font-semibold text-[#f5f5f5] hover:bg-[#333]"
-              >
-                Print receipt (80mm)
-              </button>
-            )}
 
             {canDeleteOrder(role, order.orderStatus) && order.orderStatus !== PAYMENT_WAITING && (
               <button

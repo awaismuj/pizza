@@ -25,7 +25,7 @@ export const STAGE_LABELS = {
   Cancelled: "Cancelled",
 };
 
-// The single "next step" button for each status.
+// The only valid next status for each stage dot.
 export const NEXT_ACTION = {
   // dine-in
   "In Progress": { to: "Ready", label: "Mark Ready" },

@@ -8,13 +8,10 @@ import { printReceipt } from "../../utils/printReceipt";
 import { getOrderNumber } from "../../utils";
 import { paymentReceiptLine } from "../../utils/payments";
 
-// The final bill — shown once an order reaches its terminal "Closed"/
-// "Completed" stage (see OrderCard.jsx), i.e. when a table is being
-// cleared. This never prints itself automatically: it just appears on
-// screen, and staff click "Print Receipt" if a copy is actually needed, or
-// "Close" to dismiss it. For a dine-in table, this is the SECOND of the
-// two prints an order gets — the first being the Kitchen Order Slip
-// printed when the order was placed (see KitchenSlip.jsx / Bill.jsx).
+// The final bill, opened explicitly from an order's Print action. This
+// never prints itself automatically. For a dine-in table, this is the
+// SECOND of the two prints an order gets — the first being the Kitchen
+// Order Slip printed when the order was placed (see KitchenSlip.jsx / Bill.jsx).
 const Invoice = ({ orderInfo, setShowInvoice }) => {
   const invoiceRef = useRef(null);
   const handlePrint = () => {
