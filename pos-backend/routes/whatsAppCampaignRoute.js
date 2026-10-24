@@ -16,6 +16,7 @@ router.get("/webhook", controller.webhookVerify);
 router.post("/webhook", controller.webhookStatus);
 
 router.get("/provider", ...adminOnly, controller.getProvider);
+router.get("/messages/recent", ...adminOnly, controller.getRecentMessages);
 router.get("/whatsapp-link/status", ...adminOnly, controller.getLinkedWhatsAppStatus);
 router.post("/whatsapp-link/retry", ...adminOnly, controller.retryLinkedWhatsApp);
 router.post("/whatsapp-link/unlink", ...adminOnly, controller.unlinkLinkedWhatsApp);

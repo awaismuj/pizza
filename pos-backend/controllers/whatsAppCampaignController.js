@@ -806,6 +806,23 @@ const webhookStatus = async (req, res) => {
 
 const getProvider = (req, res) => res.json({ success: true, data: provider.getProviderStatus() });
 
+const getRecentMessages = async (req, res, next) => {
+  try {
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
+    const messages = await WhatsAppCampaignRecipient.find({
+      status: { $in: ["sending", "sent", "delivered", "failed"] },
+    })
+      .sort({ updatedAt: -1, _id: -1 })
+      .limit(limit)
+      .populate("campaignId", "name minimumOrderAmount expiresAt timezone")
+      .select("campaignId customerName phone status couponCode discountPercentage providerMessageId lastError sentAt deliveredAt failedAt updatedAt")
+      .lean();
+    res.json({ success: true, data: messages });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getLinkedWhatsAppStatus = (req, res) =>
   res.json({ success: true, data: whatsappService.getStatus() });
 
@@ -837,6 +854,7 @@ module.exports = {
   getCampaigns,
   getLinkedWhatsAppStatus,
   getProvider,
+  getRecentMessages,
   generateCampaignTokens,
   launchCampaign,
   pauseCampaign,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload, FaQrcode } from "react-icons/fa";
+import WhatsAppCampaignMonitor from "./WhatsAppCampaignMonitor";
 import {
   cancelWhatsAppCampaign,
   createCampaignWhatsAppContact,
@@ -550,9 +551,12 @@ const WhatsAppCampaignManager = () => {
           <h2 className="text-lg font-semibold text-white">Automated Customer Coupons</h2>
           <p className="text-xs text-[#999]">Scan eligible customers, save campaign tokens, and track consent-based WhatsApp delivery.</p>
         </div>
-        <button type="button" className={`${buttonClass} bg-[#25d366] px-4 py-2.5 text-[#11251a]`} onClick={() => setIsOpen(true)}>
-          <FaWhatsapp /> Send Coupons
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <WhatsAppCampaignMonitor />
+          <button type="button" className={`${buttonClass} bg-[#25d366] px-4 py-2.5 text-[#11251a]`} onClick={() => setIsOpen(true)}>
+            <FaWhatsapp /> Send Coupons
+          </button>
+        </div>
       </div>
 
       {isOpen && (

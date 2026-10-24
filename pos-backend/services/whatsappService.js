@@ -32,7 +32,7 @@
 // shows up in the dashboard as a link failure): install Chromium's runtime
 // libraries, then retry:
 //   sudo apt-get update && sudo apt-get install -y \
-//     libnss3 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 \
+//     libatk1.0-0 libatk-bridge2.0-0 libnss3 libx11-xcb1 libxcomposite1 libxdamage1 \
 //     libxrandr2 libgbm1 libasound2 libpangocairo-1.0-0 libxss1 libgtk-3-0
 // Then hit "Retry" in the dashboard's report panel (or restart the server).
 
