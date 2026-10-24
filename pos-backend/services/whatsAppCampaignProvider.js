@@ -6,8 +6,15 @@ const campaignConfig = config.whatsappCampaign;
 const normalizeNumber = (value) => {
   let digits = String(value || "").replace(/\D/g, "");
   if (digits.startsWith("00")) digits = digits.slice(2);
-  if (digits.startsWith("0")) digits = `${campaignConfig.defaultCountryCode}${digits.slice(1)}`;
-  else if (digits.length === 10 && campaignConfig.defaultCountryCode === "92" && digits.startsWith("3")) digits = `92${digits}`;
+  const countryCode = String(campaignConfig.defaultCountryCode || "");
+  if (countryCode && digits.startsWith(countryCode)) {
+    const nationalNumber = digits.slice(countryCode.length);
+    if (nationalNumber.startsWith("0")) digits = `${countryCode}${nationalNumber.slice(1)}`;
+  } else if (digits.startsWith("0")) {
+    digits = `${countryCode}${digits.slice(1)}`;
+  } else if (digits.length === 10 && countryCode === "92" && digits.startsWith("3")) {
+    digits = `${countryCode}${digits}`;
+  }
   return digits;
 };
 
