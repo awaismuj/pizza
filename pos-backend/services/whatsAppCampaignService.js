@@ -49,7 +49,15 @@ const selectionFilter = (selection = {}) => {
   }
   if (selection.search) {
     const expression = { $regex: escapeRegex(selection.search.trim().slice(0, 100)), $options: "i" };
+    const searchDigits = selection.search.replace(/\D/g, "");
     match.$or = [{ name: expression }, { phone: expression }];
+    if (searchDigits.length >= 9) {
+      match.$or.push({
+        $expr: {
+          $eq: [phoneSuffixExpression("$phone"), searchDigits.slice(-9)],
+        },
+      });
+    }
   }
   return match;
 };
@@ -270,4 +278,5 @@ module.exports = {
   digitsExpression,
   listCustomers,
   resolveRecipients,
+  selectionFilter,
 };

@@ -105,7 +105,7 @@ const WhatsAppCampaignManager = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState("create");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [selectionMode, setSelectionMode] = useState("all-eligible");
   const [selectedIds, setSelectedIds] = useState([]);
@@ -185,7 +185,7 @@ const WhatsAppCampaignManager = () => {
   }, [form, selection]);
 
   const requestPayload = () => ({
-    name: form.name,
+    name: form.name.trim() || "Customer Appreciation",
     campaignType: form.campaignType,
     discountOptions: form.discountOptions,
     discountWeights: form.discountWeights,
@@ -383,10 +383,7 @@ const WhatsAppCampaignManager = () => {
 
   const buildPreview = () => {
     try {
-      previewMutation.mutate({
-        ...requestPayload(),
-        name: form.name.trim() || "Customer Appreciation",
-      });
+      previewMutation.mutate(requestPayload());
     } catch (error) {
       setFeedback(error.message);
     }
@@ -518,7 +515,7 @@ const WhatsAppCampaignManager = () => {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h3 className="font-semibold text-white">Recipients</h3>
-                          <p className="text-xs text-[#999]">Only active accounts with explicit marketing consent and a valid WhatsApp number can be queued.</p>
+                          <p className="text-xs text-[#999]">Customer accounts are matched to completed/closed orders by account ID or the last 9 phone digits, regardless of phone formatting. Only active accounts with explicit marketing consent and a valid WhatsApp number can be sent messages. POS walk-in orders without an opted-in customer account cannot receive marketing messages.</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseActiveEligible}>Active &amp; opted-in customers</button>
