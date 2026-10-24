@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { FaLongArrowAltRight, FaPen, FaTrash } from "react-icons/fa";
+import { FaLongArrowAltRight, FaPen, FaPrint, FaTrash } from "react-icons/fa";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
 import { enqueueSnackbar } from "notistack";
 import { formatDateAndTime, getAvatarName, getOrderNumber } from "../../utils/index";
 import { updateOrderStatus, deleteOrder as deleteOrderApi } from "../../https";
-import { NEXT_ACTION, STAGE_LABELS, TERMINAL_STATUSES, statusPillClass } from "../../utils/orderStages";
+import { STAGE_LABELS, TERMINAL_STATUSES, statusPillClass } from "../../utils/orderStages";
 import { canEditOrder, canCancelOrder, canDeleteOrder, canExtendPrep } from "../../utils/orderPermissions";
 import { isPrepActive } from "../../utils/prepTimer";
 import PrepBadge from "../prep/PrepBadge";
@@ -15,25 +15,14 @@ import Invoice from "../invoice/Invoice";
 import EditOrderModal from "./EditOrderModal";
 import { I } from "../shared/AppIcons";
 
-// Orders finish on different final statuses depending on source (dine-in/
-// takeaway end at "Closed", online orders end at "Completed") — either one
-// means the order is actually done, so its final receipt should be shown
-// now (for staff to print or dismiss).
-const COMPLETION_STATUSES = ["Closed", "Completed"];
-
 const OrderCard = ({ order }) => {
   const queryClient = useQueryClient();
   const role = useSelector((state) => state.user.role);
   const isOnline = order.orderSource === "Online";
   const isTakeaway = !isOnline && !order.table;
   const isTerminal = TERMINAL_STATUSES.includes(order.orderStatus);
-  const next = NEXT_ACTION[order.orderStatus];
 
-  // Holds the order whose receipt should be shown, set only the moment
-  // it's marked complete (never at order creation — that gets its own
-  // Kitchen Order Slip instead, see Bill.jsx). The receipt is only shown on
-  // screen here, not auto-printed: staff click "Print Receipt" if a copy is
-  // actually needed, or "Close" to just dismiss it.
+  // The receipt is opened explicitly from the compact Print button.
   const [printOrder, setPrintOrder] = useState(null);
   // Edit-items modal — Cashier/Admin only (see orderPermissions.js).
   const [showEditModal, setShowEditModal] = useState(false);
@@ -50,9 +39,6 @@ const OrderCard = ({ order }) => {
       queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
       enqueueSnackbar(`Order is now ${STAGE_LABELS[vars.orderStatus] || vars.orderStatus}`, { variant: "success" });
 
-      if (COMPLETION_STATUSES.includes(vars.orderStatus)) {
-        setPrintOrder({ ...order, orderStatus: vars.orderStatus });
-      }
     },
     onError: (error) => {
       enqueueSnackbar(error?.response?.data?.message || "Failed to update order.", { variant: "error" });
@@ -120,8 +106,23 @@ const OrderCard = ({ order }) => {
 
       <PrepBadge order={order} showNumber className="mt-3" />
 
-      {/* Stage-by-stage progress: Processing -> Ready -> Completed */}
-      <OrderStageTracker order={order} />
+      {/* Clicking the next dot advances one valid order stage. */}
+      <OrderStageTracker
+        order={order}
+        onAdvance={setStatus}
+        isAdvancing={statusMutation.isPending}
+      />
+      {order.orderStatus !== "Cancelled" && (
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setPrintOrder(order)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-[#2a2a2a] px-2.5 py-1.5 text-xs font-semibold text-[#f5f5f5] hover:bg-[#333]"
+          >
+            <FaPrint size={11} /> Print
+          </button>
+        </div>
+      )}
 
       <div className="flex justify-between items-center mt-4 text-[#ababab]">
         <p>{formatDateAndTime(order.orderDate)}</p>
@@ -133,21 +134,12 @@ const OrderCard = ({ order }) => {
         <p className="text-[#f5f5f5] text-lg font-semibold">Rs {order.bills.totalWithTax.toFixed(2)}</p>
       </div>
 
-      {/* Action buttons: move the order to its next stage, edit its items,
-          cancel it, or (Admin only) delete it outright. Edit/Cancel are
+      {/* Edit, cancel, extend prep, or (Admin only) delete. Stage changes
+          happen from the progress dots above. Edit/Cancel are
           Cashier+Admin; Delete is Admin only — same rule the server
           enforces, see utils/orderPermissions.js. */}
       {!isTerminal && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {next && (
-            <button
-              onClick={() => setStatus(next.to)}
-              disabled={statusMutation.isPending}
-              className="flex-1 rounded-lg bg-[#02ca3a] py-2 font-semibold text-[#1f1f1f] disabled:opacity-60"
-            >
-              {next.label}
-            </button>
-          )}
           {canExtendPrep(role) && isPrepActive(order) && (
             <button
               onClick={() => setShowExtend(true)}
@@ -191,11 +183,7 @@ const OrderCard = ({ order }) => {
         </button>
       )}
 
-      {/* Shown here, and only here — the moment the order is actually
-          marked complete, not when it was first created. It does not
-          auto-print: it just appears on screen so staff can look it over
-          and click "Print Receipt" if a copy is needed, or "Close" to
-          dismiss it without printing. */}
+      {/* Opened by the compact Print button; it never prints automatically. */}
       {printOrder && (
         <Invoice orderInfo={printOrder} setShowInvoice={() => setPrintOrder(null)} />
       )}

@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
+const mongoose = require("mongoose");
 process.env.WHATSAPP_CAMPAIGN_PROVIDER = "mock";
 process.env.WHATSAPP_CAMPAIGN_DEFAULT_COUNTRY_CODE = "92";
 process.env.WHATSAPP_CAMPAIGN_TEMPLATE_PREVIEW = "Hi {{1}}!\\nDiscount {{2}}%\nCode {{3}}\nMinimum Rs. {{4}}\nExpiry {{5}}";
@@ -10,6 +11,8 @@ const { digitsExpression, eligibilityFor, normalizeEligibleOrderStatuses, select
 const { normalizeContactPhone } = require("../services/customerContactService");
 const { chooseDiscount } = require("../services/whatsAppCampaignCouponService");
 const Customer = require("../models/customerModel");
+const Coupon = require("../models/couponModel");
+const WhatsAppCampaign = require("../models/whatsAppCampaignModel");
 
 test("normalizes local Pakistani mobile numbers for WhatsApp Cloud API", () => {
   assert.equal(provider.normalizeNumber("0300 123 4567"), "923001234567");
@@ -67,6 +70,33 @@ test("phone-only customer contacts do not require storefront login credentials",
 
 test("campaign discount selection supports the 8 percent tier", () => {
   assert.equal(chooseDiscount({ discountOptions: [8], discountWeights: { 8: 1 } }), 8);
+});
+
+test("campaign discount selection supports custom percentages", () => {
+  assert.equal(chooseDiscount({ discountOptions: [13], discountWeights: { 13: 1 } }), 13);
+  const campaign = new WhatsAppCampaign({
+    name: "Custom campaign",
+    requestKey: "custom-campaign-request-key",
+    discountOptions: [13],
+    minimumOrderAmount: 1000,
+    expiresAt: new Date(Date.now() + 86400000),
+    selection: { mode: "all-eligible" },
+    templateName: "approved_template",
+    templateLanguage: "en",
+    createdBy: new mongoose.Types.ObjectId(),
+  });
+  assert.equal(campaign.validateSync()?.errors?.discountOptions, undefined);
+
+  const coupon = new Coupon({
+    name: "Custom campaign coupon",
+    code: "CUSTOM13",
+    source: "whatsapp_campaign",
+    campaignId: new mongoose.Types.ObjectId(),
+    campaignDiscountPercentage: 13,
+    discountType: "percentage",
+    discountValue: 13,
+  });
+  assert.equal(coupon.validateSync()?.errors?.campaignDiscountPercentage, undefined);
 });
 
 test("renders sample values into the server-configured WhatsApp template", () => {
