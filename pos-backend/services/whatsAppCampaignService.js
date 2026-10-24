@@ -114,7 +114,7 @@ const customerPipeline = ({ selection = {}, page = 1, limit = 50, applyEligibili
       },
     });
   }
-  pipeline.push({ $project: { _id: 1, name: 1, phone: 1, phoneKey: 1, active: 1, marketingConsent: 1, orderCount: 1, lastOrderDate: 1 } });
+  pipeline.push({ $project: { _id: 1, name: 1, phone: 1, phoneKey: 1, contactOnly: 1, active: 1, marketingConsent: 1, orderCount: 1, lastOrderDate: 1 } });
   if (page === null) return pipeline;
   pipeline.push({ $sort: { name: 1, _id: 1 } }, { $skip: (page - 1) * limit }, { $limit: limit });
   return pipeline;
@@ -154,6 +154,7 @@ const attachCampaignHistory = async (customers) => {
       id: String(customer._id),
       name: customer.name,
       phone: customer.phone,
+      contactOnly: customer.contactOnly === true,
       accountActive: Boolean(customer.active),
       marketingConsent: customer.marketingConsent === true,
       status: !customer.active ? "inactive" : customer.orderCount >= 2 ? "regular" : customer.orderCount > 0 ? "active" : "new",

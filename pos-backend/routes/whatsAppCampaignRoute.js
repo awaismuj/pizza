@@ -17,6 +17,8 @@ router.post("/webhook", controller.webhookStatus);
 
 router.get("/provider", ...adminOnly, controller.getProvider);
 router.get("/customers", ...adminOnly, controller.customerList);
+router.post("/customers", ...adminOnly, controller.createCustomerContact);
+router.patch("/customers/:customerId", ...adminOnly, controller.updateCustomerContact);
 router.post("/preview", ...adminOnly, controller.previewCampaign);
 router.post("/send-test", ...adminOnly, controller.sendTestMessage);
 router.post("/campaigns", ...adminOnly, controller.createCampaign);

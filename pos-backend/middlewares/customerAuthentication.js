@@ -19,7 +19,7 @@ const findCustomerFromRequest = async (req) => {
     throw createHttpError(401, "Customer session is invalid or expired. Please sign in again.");
   }
   const customer = await Customer.findById(decoded._id).select("+authVersion");
-  if (!customer || !customer.active || !customer.emailVerifiedAt) {
+  if (!customer || customer.contactOnly || !customer.active || !customer.emailVerifiedAt) {
     throw createHttpError(401, "Verify your email and sign in to continue.");
   }
   if ((decoded.authVersion ?? 0) !== customer.authVersion) {

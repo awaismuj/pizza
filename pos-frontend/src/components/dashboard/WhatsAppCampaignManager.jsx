@@ -4,6 +4,7 @@ import { enqueueSnackbar } from "notistack";
 import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload } from "react-icons/fa";
 import {
   cancelWhatsAppCampaign,
+  createCampaignWhatsAppContact,
   createWhatsAppCampaign,
   generateWhatsAppCampaignTokens,
   getCampaignWhatsAppCustomers,
@@ -17,6 +18,7 @@ import {
   retryWhatsAppCampaignFailures,
   scanWhatsAppCampaign,
   sendWhatsAppCampaignTest,
+  updateCampaignWhatsAppContact,
 } from "../../https";
 
 const inputClass = "w-full rounded border border-[#444] bg-[#1a1a1a] px-3 py-2 text-sm text-white placeholder:text-[#888]";
@@ -121,6 +123,8 @@ const WhatsAppCampaignManager = () => {
   const [recipientStatus, setRecipientStatus] = useState("all");
   const [tablePage, setTablePage] = useState(1);
   const [feedback, setFeedback] = useState("");
+  const [contactEditorOpen, setContactEditorOpen] = useState(false);
+  const [contactDraft, setContactDraft] = useState({ customerId: "", name: "", phone: "", marketingConsent: false });
 
   const providerQuery = useQuery({
     queryKey: ["wa-campaign-provider"],
@@ -246,6 +250,25 @@ const WhatsAppCampaignManager = () => {
     onSuccess: (response) => {
       setScanResult(response.data?.data || null);
       refreshCampaigns();
+    },
+    onError: (error) => setFeedback(errorMessage(error)),
+  });
+  const contactMutation = useMutation({
+    mutationFn: (draft) => {
+      const { customerId, ...data } = draft;
+      return customerId
+        ? updateCampaignWhatsAppContact({ customerId, ...data, consentConfirmed: data.marketingConsent })
+        : createCampaignWhatsAppContact({ ...data, consentConfirmed: data.marketingConsent });
+    },
+    onSuccess: (response) => {
+      const existing = response.data?.existing;
+      setContactEditorOpen(false);
+      setContactDraft({ customerId: "", name: "", phone: "", marketingConsent: false });
+      setFeedback("");
+      queryClient.invalidateQueries({ queryKey: ["wa-campaign-customers"] });
+      enqueueSnackbar(existing ? "This mobile number is already in the customer contacts." : "Customer contact saved.", {
+        variant: existing ? "info" : "success",
+      });
     },
     onError: (error) => setFeedback(errorMessage(error)),
   });
@@ -397,6 +420,11 @@ const WhatsAppCampaignManager = () => {
     autoAssignMutation.mutate();
   };
 
+  const saveContact = (event) => {
+    event.preventDefault();
+    contactMutation.mutate(contactDraft);
+  };
+
   const createDraft = () => {
     if (!preview) {
       setFeedback("Preview recipients before creating the campaign.");
@@ -515,9 +543,10 @@ const WhatsAppCampaignManager = () => {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h3 className="font-semibold text-white">Recipients</h3>
-                          <p className="text-xs text-[#999]">Customer accounts are matched to completed/closed orders by account ID or the last 9 phone digits, regardless of phone formatting. Only active accounts with explicit marketing consent and a valid WhatsApp number can be sent messages. POS walk-in orders without an opted-in customer account cannot receive marketing messages.</p>
+                          <p className="text-xs text-[#999]">Phone contacts are added from new POS/online orders and can also be entered here. Completed/closed orders are matched by the last 9 phone digits, regardless of format. Coupon assignment requires an active contact with a valid mobile and qualifying order; WhatsApp sending also requires explicit marketing consent.</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
+                          <button type="button" className={`${buttonClass} bg-amber-400 text-[#1c1600]`} onClick={() => { setContactDraft({ customerId: "", name: "", phone: "", marketingConsent: false }); setContactEditorOpen(true); }}>Add customer phone</button>
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseActiveEligible}>Active &amp; opted-in customers</button>
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseAllEligible}>All eligible customers</button>
                           <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={chooseFiltered}>Select Filtered Customers</button>
@@ -525,6 +554,27 @@ const WhatsAppCampaignManager = () => {
                           <button type="button" className={`${buttonClass} text-[#bbb] hover:bg-[#303030]`} onClick={deselectAll}>Deselect All</button>
                         </div>
                       </div>
+                      {contactEditorOpen && (
+                        <form className="space-y-3 rounded border border-[#444] bg-[#191919] p-3" onSubmit={saveContact}>
+                          <h4 className="font-semibold text-white">{contactDraft.customerId ? "Edit customer contact" : "Add customer phone"}</h4>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label className="space-y-1 text-xs text-[#aaa]">Customer name
+                              <input className={inputClass} required minLength="2" maxLength="120" value={contactDraft.name} onChange={(event) => setContactDraft((current) => ({ ...current, name: event.target.value }))} />
+                            </label>
+                            <label className="space-y-1 text-xs text-[#aaa]">Mobile number
+                              <input className={inputClass} required type="tel" value={contactDraft.phone} onChange={(event) => setContactDraft((current) => ({ ...current, phone: event.target.value }))} placeholder="03xx, +92, or 0092" />
+                            </label>
+                          </div>
+                          <label className="flex items-start gap-2 text-xs text-[#bbb]">
+                            <input type="checkbox" checked={contactDraft.marketingConsent} onChange={(event) => setContactDraft((current) => ({ ...current, marketingConsent: event.target.checked }))} />
+                            <span>I confirm the customer explicitly agreed to receive WhatsApp marketing. A phone number from an order is not consent.</span>
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button type="submit" className={`${buttonClass} bg-emerald-700 text-white`} disabled={contactMutation.isPending}>{contactMutation.isPending ? "Saving…" : "Save contact"}</button>
+                            <button type="button" className={`${buttonClass} text-[#bbb] hover:bg-[#333]`} onClick={() => setContactEditorOpen(false)}>Cancel</button>
+                          </div>
+                        </form>
+                      )}
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_190px_auto]">
                         <label className="relative">
                           <FaSearch className="absolute left-3 top-3 text-xs text-[#777]" />
@@ -540,10 +590,10 @@ const WhatsAppCampaignManager = () => {
                         <div className="flex items-center text-xs text-[#aaa]">Eligible in filter: {Number(customerSummary.eligible || 0).toLocaleString()} · Selected: {selectedCountLabel}</div>
                       </div>
                       <div className="overflow-x-auto rounded border border-[#333]">
-                        <table className="w-full min-w-[790px] text-left text-sm text-white">
-                          <thead className="bg-[#292929] text-xs text-[#aaa]"><tr><th className="w-10 p-2"><span className="sr-only">Select</span></th><th className="p-2">Customer</th><th>Mobile</th><th>Status</th><th>Consent</th><th>Eligibility</th><th>Previous campaign</th></tr></thead>
+                        <table className="w-full min-w-[900px] text-left text-sm text-white">
+                          <thead className="bg-[#292929] text-xs text-[#aaa]"><tr><th className="w-10 p-2"><span className="sr-only">Select</span></th><th className="p-2">Customer</th><th>Mobile</th><th>Record</th><th>Status</th><th>Consent</th><th>Eligibility</th><th>Action</th></tr></thead>
                           <tbody>
-                            {customersQuery.isLoading ? <tr><td colSpan="7" className="p-4 text-center text-[#999]">Loading customer records…</td></tr> : rows.length ? rows.map((customer) => {
+                            {customersQuery.isLoading ? <tr><td colSpan="8" className="p-4 text-center text-[#999]">Loading customer records…</td></tr> : rows.length ? rows.map((customer) => {
                               const checked = ["all-eligible", "filtered"].includes(selectionMode)
                                 ? (selectionMode === "filtered" || customer.eligible) && !excludedIds.includes(customer.id)
                                 : selectedIds.includes(customer.id);
@@ -553,13 +603,14 @@ const WhatsAppCampaignManager = () => {
                                   <td className="p-2"><input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleCustomer(customer)} aria-label={`Select ${customer.name}`} /></td>
                                   <td className="p-2">{customer.name || "—"}</td>
                                   <td className="font-mono text-xs">{customer.phone || "—"}</td>
+                                  <td className="text-xs text-[#aaa]">{customer.contactOnly ? "Order/manual contact" : "Store account"}</td>
                                   <td className="capitalize text-[#ccc]">{customer.status}</td>
                                   <td className={customer.marketingConsent ? "text-emerald-300" : "text-[#aaa]"}>{customer.marketingConsent ? "Opted in" : "Opted out"}</td>
                                   <td className={customer.eligible ? "text-emerald-300" : "text-[#999]"}>{customer.eligible ? "Eligible" : customer.ineligibleReason}</td>
-                                  <td className="capitalize text-[#aaa]">{customer.previousCampaignStatus === "none" ? "None" : customer.previousCampaignStatus}</td>
+                                  <td><button type="button" className="rounded px-2 py-1 text-xs text-sky-300 hover:bg-[#333]" onClick={() => { setContactDraft({ customerId: customer.id, name: customer.name || "", phone: customer.phone || "", marketingConsent: customer.marketingConsent }); setContactEditorOpen(true); }}>Edit</button></td>
                                 </tr>
                               );
-                            }) : <tr><td colSpan="7" className="p-4 text-center text-[#999]">No matching customer records.</td></tr>}
+                            }) : <tr><td colSpan="8" className="p-4 text-center text-[#999]">No matching customer records. Add a phone contact or place an order with a mobile number.</td></tr>}
                           </tbody>
                         </table>
                       </div>
