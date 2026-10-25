@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
-import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload, FaQrcode } from "react-icons/fa";
+import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload } from "react-icons/fa";
 import WhatsAppCampaignMonitor from "./WhatsAppCampaignMonitor";
 import {
   cancelWhatsAppCampaign,
@@ -9,7 +9,6 @@ import {
   createWhatsAppCampaign,
   generateWhatsAppCampaignTokens,
   getCampaignWhatsAppCustomers,
-  getCampaignLinkedWhatsAppStatus,
   getCampaignWhatsAppProvider,
   getWhatsAppCampaign,
   getWhatsAppCampaignRecipients,
@@ -20,8 +19,6 @@ import {
   retryWhatsAppCampaignFailures,
   scanWhatsAppCampaign,
   sendWhatsAppCampaignTest,
-  retryCampaignLinkedWhatsApp,
-  unlinkCampaignLinkedWhatsApp,
   updateCampaignWhatsAppContact,
 } from "../../https";
 
@@ -136,12 +133,6 @@ const WhatsAppCampaignManager = () => {
     enabled: isOpen,
     refetchInterval: isOpen && view === "create" ? 3000 : false,
   });
-  const whatsappLinkQuery = useQuery({
-    queryKey: ["whatsappStatus"],
-    queryFn: getCampaignLinkedWhatsAppStatus,
-    enabled: isOpen && view === "create" && providerQuery.data?.data?.data?.provider === "linked",
-    refetchInterval: isOpen && view === "create" ? 2000 : false,
-  });
   const customersQuery = useQuery({
     queryKey: ["wa-campaign-customers", search, statusFilter, page],
     queryFn: () => getCampaignWhatsAppCustomers({ search, status: statusFilter, page, limit: 50 }),
@@ -175,24 +166,6 @@ const WhatsAppCampaignManager = () => {
   const recipients = customerRows(recipientsQuery.data);
   const recipientsPagination = recipientsQuery.data?.pagination;
   const providerStatus = providerQuery.data?.data?.data || providerQuery.data?.data;
-  const whatsappLinkStatus = whatsappLinkQuery.data?.data?.data;
-
-  const linkWhatsAppMutation = useMutation({
-    mutationFn: retryCampaignLinkedWhatsApp,
-    onSuccess: (response) => {
-      queryClient.setQueryData(["whatsappStatus"], response);
-      queryClient.invalidateQueries({ queryKey: ["wa-campaign-provider"] });
-    },
-    onError: (error) => setFeedback(errorMessage(error)),
-  });
-  const unlinkWhatsAppMutation = useMutation({
-    mutationFn: unlinkCampaignLinkedWhatsApp,
-    onSuccess: (response) => {
-      queryClient.setQueryData(["whatsappStatus"], response);
-      queryClient.invalidateQueries({ queryKey: ["wa-campaign-provider"] });
-    },
-    onError: (error) => setFeedback(errorMessage(error)),
-  });
   const selectedCountLabel = selectionMode === "all-eligible"
     ? "all eligible customers"
     : selectionMode === "filtered" ? "all matching records" : selectedIds.length.toLocaleString();
@@ -568,7 +541,7 @@ const WhatsAppCampaignManager = () => {
                 <FaWhatsapp className="text-xl text-[#25d366]" />
                 <div>
                   <h2 className="text-lg font-semibold text-white">Send Coupons</h2>
-                  <p className="text-xs text-[#999]">Coupon campaigns sent from the linked WhatsApp account</p>
+                  <p className="text-xs text-[#999]">Coupon campaigns sent with an approved WhatsApp Cloud API template</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -585,19 +558,10 @@ const WhatsAppCampaignManager = () => {
                 <p>Assign coupons to active customers with qualifying orders. Marketing consent is still required before any WhatsApp send.</p>
                 <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 ${providerConfig ? "border-emerald-800 text-emerald-200" : "border-amber-800 text-amber-200"}`} aria-live="polite">
                   <FaWhatsapp />
-                  {providerStatus?.provider === "linked"
-                    ? whatsappLinkStatus?.status === "ready"
-                      ? `WhatsApp connected${whatsappLinkStatus.linkedNumber ? ` · +${whatsappLinkStatus.linkedNumber}` : ""}`
-                      : `WhatsApp ${whatsappLinkStatus?.status || "checking"}`
-                    : providerConfig
-                      ? `WhatsApp ${providerStatus?.provider || "ready"}`
-                      : `WhatsApp ${providerStatus?.provider === "mock" ? "mock mode" : "not configured"}`}
+                  {providerStatus?.provider === "mock"
+                    ? "WhatsApp mock mode"
+                    : `WhatsApp Cloud API ${providerConfig ? "ready" : "not configured"}`}
                 </span>
-                {providerStatus?.provider === "linked" && whatsappLinkStatus?.status !== "ready" && (
-                  <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={() => linkWhatsAppMutation.mutate()} disabled={linkWhatsAppMutation.isPending}>
-                    <FaQrcode /> {linkWhatsAppMutation.isPending ? "Starting…" : whatsappLinkStatus?.qrDataUrl ? "Refresh QR" : "Connect WhatsApp"}
-                  </button>
-                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={buildPreview} disabled={previewMutation.isPending || autoAssignMutation.isPending}>{previewMutation.isPending ? "Scanning…" : "Scan Eligible Customers"}</button>
@@ -621,59 +585,8 @@ const WhatsAppCampaignManager = () => {
                   )}
                   {providerStatus?.provider === "mock" && (
                     <p className="rounded border border-amber-800 bg-amber-950/30 p-3 text-sm text-amber-100">
-                      This server is in mock mode, so campaigns do not reach customers. To send from your WhatsApp account, set <code>WHATSAPP_CAMPAIGN_PROVIDER=linked</code> in the backend environment and restart the backend.
+                      This server is in development mock mode, so campaigns do not reach customers. Configure Meta WhatsApp Cloud API credentials and an approved template to enable production sends.
                     </p>
-                  )}
-                  {providerStatus?.provider === "linked" && (
-                    <section className="flex flex-wrap items-center gap-4 rounded border border-[#31573c] bg-[#1c291f] p-4">
-                      <div className="min-w-52 flex-1">
-                        <h3 className="flex items-center gap-2 font-semibold text-white">
-                          <FaQrcode className="text-[#25d366]" /> Link your WhatsApp
-                        </h3>
-                        <p className="mt-1 text-sm text-[#bbb]">
-                          Status: <b className={whatsappLinkStatus?.status === "ready" ? "text-emerald-300" : "text-amber-300"}>
-                            {whatsappLinkStatus?.status || "checking"}
-                          </b>
-                          {whatsappLinkStatus?.linkedNumber && ` · +${whatsappLinkStatus.linkedNumber}`}
-                        </p>
-                        {whatsappLinkStatus?.qrDataUrl ? (
-                          <p className="mt-2 text-xs text-[#bbb]">On your phone open WhatsApp → Linked Devices → Link a Device, then scan this QR.</p>
-                        ) : whatsappLinkStatus?.status === "ready" ? (
-                          <p className="mt-2 text-xs text-emerald-200">Connected. Campaign messages will be sent from this WhatsApp account.</p>
-                        ) : (
-                          <p className="mt-2 text-xs text-[#bbb]">Keep this screen open while WhatsApp connects and creates a QR code.</p>
-                        )}
-                        {whatsappLinkStatus?.lastError && (
-                          <p className="mt-2 text-xs text-red-300">{whatsappLinkStatus.lastError}</p>
-                        )}
-                        {whatsappLinkStatus?.status === "ready" && (
-                          <button
-                            type="button"
-                            className={`${buttonClass} mt-3 bg-[#353535] text-white`}
-                            onClick={() => unlinkWhatsAppMutation.mutate()}
-                            disabled={unlinkWhatsAppMutation.isPending}
-                          >
-                            <FaTimes /> {unlinkWhatsAppMutation.isPending ? "Unlinking…" : "Unlink WhatsApp"}
-                          </button>
-                        )}
-                        {!["qr", "initializing", "ready"].includes(whatsappLinkStatus?.status) && (
-                          <button
-                            type="button"
-                            className={`${buttonClass} mt-3 bg-[#353535] text-white`}
-                            onClick={() => linkWhatsAppMutation.mutate()}
-                            disabled={linkWhatsAppMutation.isPending}
-                          >
-                            <FaRedo /> {linkWhatsAppMutation.isPending ? "Starting…" : "Show / refresh QR"}
-                          </button>
-                        )}
-                      </div>
-                      {whatsappLinkStatus?.qrDataUrl && (
-                        <img src={whatsappLinkStatus.qrDataUrl} alt="WhatsApp linked-device QR code" className="h-40 w-40 rounded bg-white p-1" />
-                      )}
-                      <p className="w-full text-xs text-amber-200">
-                        Linked-device automation is not Meta’s official Business API and may risk WhatsApp account restrictions. Send only to customers who explicitly opted in.
-                      </p>
-                    </section>
                   )}
 
                   <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.8fr)]">
