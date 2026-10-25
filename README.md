@@ -448,6 +448,22 @@ campaign/coupon idempotency and query indexes and adds the campaign permission
 to persisted Admin/Super Admin roles; it does not rewrite customer or order
 data.
 
+For multiple backend instances, use `WHATSAPP_CAMPAIGN_PROVIDER=cloud` on every
+instance and configure the same approved template and Cloud API credentials on
+each one. All instances must use the same MongoDB database. The campaign worker
+claims each recipient atomically in MongoDB and shares its send-rate slot there,
+so replicas coordinate instead of each sending the same queued recipient. Run
+the WhatsApp campaign migration before enabling sends. Do not configure a
+separate local database per instance.
+
+Campaign Cloud API delivery does not need Chromium or a linked-device session.
+Set `WHATSAPP_ENABLED=false` on ordinary API instances. If daily reports still
+need WhatsApp Web, enable `WHATSAPP_ENABLED=true` and `REPORT_AUTO_SEND=true` on
+exactly one persistent instance only; keep `REPORT_AUTO_SEND=false` on the other
+instances. Never run multiple processes against the same WhatsApp Web session
+directory. This keeps the browser-based report connection separate from the
+Cloud API campaign sender.
+
 To enable the customer phonebook, back up MongoDB, deploy the updated backend
 files, and run `npm run migrate:customer-contacts` from `pos-backend` before
 restarting the backend. The migration safely imports valid phone numbers from
