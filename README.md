@@ -429,20 +429,24 @@ until each queued eligible recipient has a persisted, currently valid token.
 The worker rechecks current order eligibility, marketing consent, number
 validity, campaign state, and coupon validity immediately before sending.
 
-Campaign delivery uses the official WhatsApp Cloud API and an approved template
-with five body parameters (`{{1}}` through `{{5}}`). Set the campaign variables
-in `pos-backend/.env.example` in the deployment environment, including the
-approved template name, language, matching preview body, test number, app
-secret, and verify token. Development and tests are mock-only; Cloud sending is
-restricted to production. The configured test number is the only destination
-for test sends. Provider delivery callbacks are signature-verified; accepted
-messages are recorded as sent, not delivered, until WhatsApp confirms delivery.
-Before launching campaigns, run `npm run migrate:whatsapp-campaigns` from
-`pos-backend`. This creates campaign/coupon idempotency and query indexes and
-adds the campaign permission to persisted Admin/Super Admin roles; it does not
-rewrite customer or order data. The existing linked-device WhatsApp Web
-integration remains reserved for daily reports and is not used for campaign
-automation.
+Campaign delivery supports the official WhatsApp Cloud API (`cloud`), linked
+WhatsApp Web (`linked`), and a development-only no-delivery provider (`mock`).
+Cloud API use requires an approved template with five body parameters
+(`{{1}}` through `{{5}}`) and production credentials. The linked provider uses
+the backend's Chromium session, which must run on a persistent server with
+Chromium runtime libraries installed; it is not Meta's official API and may
+risk account restrictions. Configure `WHATSAPP_CAMPAIGN_PROVIDER` in the
+backend environment. In POS → Coupons, **WhatsApp link & activity** shows the
+link QR/status and per-recipient campaign records, including queued, sending,
+sent, delivered, failed, and skipped counts with paginated recipient details
+that refresh while a campaign is running. The configured test
+number is the only destination for test sends. Cloud delivery callbacks are
+signature-verified; accepted Cloud messages are recorded as sent, not delivered,
+until WhatsApp confirms delivery. Before launching campaigns, run
+`npm run migrate:whatsapp-campaigns` from `pos-backend`. This creates
+campaign/coupon idempotency and query indexes and adds the campaign permission
+to persisted Admin/Super Admin roles; it does not rewrite customer or order
+data.
 
 To enable the customer phonebook, back up MongoDB, deploy the updated backend
 files, and run `npm run migrate:customer-contacts` from `pos-backend` before

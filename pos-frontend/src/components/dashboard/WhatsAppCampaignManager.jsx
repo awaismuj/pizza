@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload, FaQrcode } from "react-icons/fa";
+import WhatsAppCampaignMonitor from "./WhatsAppCampaignMonitor";
 import {
   cancelWhatsAppCampaign,
   createCampaignWhatsAppContact,
@@ -540,6 +541,7 @@ const WhatsAppCampaignManager = () => {
 
   const providerConfig = providerStatus?.configured === true;
   const previewData = preview?.counts;
+  const assignmentEligibleCount = Number(previewData?.assignmentEligible || 0);
   const stats = selectedCampaign?.stats || campaigns.find((campaign) => campaign._id === selectedCampaignId)?.stats;
   const recipientStatusOptions = ["all", "pending", "failed", "delivered", "sent", "redeemed", "skipped"];
 
@@ -550,9 +552,12 @@ const WhatsAppCampaignManager = () => {
           <h2 className="text-lg font-semibold text-white">Automated Customer Coupons</h2>
           <p className="text-xs text-[#999]">Scan eligible customers, save campaign tokens, and track consent-based WhatsApp delivery.</p>
         </div>
-        <button type="button" className={`${buttonClass} bg-[#25d366] px-4 py-2.5 text-[#11251a]`} onClick={() => setIsOpen(true)}>
-          <FaWhatsapp /> Send Coupons
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <WhatsAppCampaignMonitor />
+          <button type="button" className={`${buttonClass} bg-[#25d366] px-4 py-2.5 text-[#11251a]`} onClick={() => setIsOpen(true)}>
+            <FaWhatsapp /> Send Coupons
+          </button>
+        </div>
       </div>
 
       {isOpen && (
@@ -576,7 +581,24 @@ const WhatsAppCampaignManager = () => {
             </header>
 
             {view === "create" && <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-[#333] bg-[#191919] px-4 py-3 sm:px-6">
-              <p className="text-xs text-[#bbb]">Assign coupons to active customers with qualifying orders. Marketing consent is still required before any WhatsApp send.</p>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[#bbb]">
+                <p>Assign coupons to active customers with qualifying orders. Marketing consent is still required before any WhatsApp send.</p>
+                <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 ${providerConfig ? "border-emerald-800 text-emerald-200" : "border-amber-800 text-amber-200"}`} aria-live="polite">
+                  <FaWhatsapp />
+                  {providerStatus?.provider === "linked"
+                    ? whatsappLinkStatus?.status === "ready"
+                      ? `WhatsApp connected${whatsappLinkStatus.linkedNumber ? ` · +${whatsappLinkStatus.linkedNumber}` : ""}`
+                      : `WhatsApp ${whatsappLinkStatus?.status || "checking"}`
+                    : providerConfig
+                      ? `WhatsApp ${providerStatus?.provider || "ready"}`
+                      : `WhatsApp ${providerStatus?.provider === "mock" ? "mock mode" : "not configured"}`}
+                </span>
+                {providerStatus?.provider === "linked" && whatsappLinkStatus?.status !== "ready" && (
+                  <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={() => linkWhatsAppMutation.mutate()} disabled={linkWhatsAppMutation.isPending}>
+                    <FaQrcode /> {linkWhatsAppMutation.isPending ? "Starting…" : whatsappLinkStatus?.qrDataUrl ? "Refresh QR" : "Connect WhatsApp"}
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={buildPreview} disabled={previewMutation.isPending || autoAssignMutation.isPending}>{previewMutation.isPending ? "Scanning…" : "Scan Eligible Customers"}</button>
                 <button type="button" className={`${buttonClass} bg-amber-400 px-4 text-[#1c1600]`} onClick={generateAutoCoupons} disabled={autoAssignMutation.isPending || tokenMutation.isPending}>{autoAssignMutation.isPending || tokenMutation.isPending ? "Generating & assigning…" : "Generate & Assign Auto Coupons"}</button>
@@ -831,7 +853,9 @@ const WhatsAppCampaignManager = () => {
                       </div>
                       {previewData.eligible === 0 && (
                         <p className="col-span-2 rounded border border-amber-800 bg-amber-950/30 p-3 text-xs text-amber-100 sm:col-span-4">
-                          No WhatsApp messages can be sent yet. Recipients need an active account, a valid mobile number, at least one completed/closed order, and explicit marketing consent. Use Edit in the customer list to record consent only if the customer agreed, verify their qualifying order, then click Generate &amp; Assign Tokens again before sending.
+                          No recipients are currently eligible for WhatsApp. {assignmentEligibleCount > 0
+                            ? `${assignmentEligibleCount} qualified customers can still receive coupon tokens; Generate & Assign Auto Coupons saves tokens without sending messages.`
+                            : "No customers currently qualify for coupon assignment; check active status, valid mobile numbers, and completed/closed orders."} To send later, get each customer's explicit marketing opt-in, record it with Edit, then refresh customer status and generate tokens again. Never infer consent from an order or phone number.
                         </p>
                       )}
                     </section>
@@ -839,7 +863,7 @@ const WhatsAppCampaignManager = () => {
 
                   {createdCampaignId ? (
                     <section className="flex flex-wrap items-center justify-between gap-3 rounded border border-amber-800 bg-amber-950/30 p-4">
-                      <div><b className="text-white">Draft saved.</b><p className="text-sm text-[#bbb]">{tokenResult ? `${tokenResult.created || 0} new · ${tokenResult.retained || 0} retained · ${tokenResult.failedValidation || 0} excluded` : "Assign and save coupon tokens before launch."} · {form.name}</p></div>
+                      <div><b className="text-white">Draft saved.</b><p className="text-sm text-[#bbb]">{tokenResult ? `${tokenResult.eligible || 0} WhatsApp-eligible · ${tokenResult.created || 0} new tokens · ${tokenResult.retained || 0} retained · ${tokenResult.failedValidation || 0} excluded` : "Assign and save coupon tokens before launch."} · {form.name}</p></div>
                       <div className="flex flex-wrap gap-2">
                         <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={() => scanMutation.mutate(createdCampaignId)} disabled={scanMutation.isPending}>{scanMutation.isPending ? "Refreshing…" : "Refresh Customer & Delivery Status"}</button>
                         <button type="button" className={`${buttonClass} bg-amber-700 text-white`} onClick={() => tokenMutation.mutate(createdCampaignId)} disabled={tokenMutation.isPending}>{tokenMutation.isPending ? "Generating…" : "Generate & Assign Tokens"}</button>
