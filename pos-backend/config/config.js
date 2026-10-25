@@ -46,23 +46,10 @@ const config = Object.freeze({
         pass: process.env.SMTP_PASS,
         from: process.env.SMTP_FROM,
     },
-    whatsapp: {
-        // Fully free WhatsApp sending via a linked-device session (see
-        // services/whatsappService.js) — set to "false" to disable entirely.
-        enabled: String(process.env.WHATSAPP_ENABLED || "true").toLowerCase() !== "false",
-        // Number the daily report is sent to, e.g. 923001234567 (no "+").
-        targetNumber: process.env.WHATSAPP_TARGET_NUMBER || "",
-        sessionDir: process.env.WHATSAPP_SESSION_DIR || undefined,
-        // Auto-send fires shortly after midnight for the day that just
-        // ended, so it always runs after the 23:59 profit lock and reads
-        // that day's frozen final figures — and only if nobody already sent
-        // that day's report manually (see models/reportLogModel.js).
-        autoSendEnabled: String(process.env.REPORT_AUTO_SEND || "true").toLowerCase() !== "false",
-        autoSendHour: Number(process.env.REPORT_AUTO_SEND_HOUR ?? 0),
-        autoSendMinute: Number(process.env.REPORT_AUTO_SEND_MINUTE ?? 5),
-    },
     whatsappCampaign: {
-        provider: String(process.env.WHATSAPP_CAMPAIGN_PROVIDER || "linked").toLowerCase(),
+        provider: ["cloud", "mock"].includes(String(process.env.WHATSAPP_CAMPAIGN_PROVIDER || "cloud").toLowerCase())
+            ? String(process.env.WHATSAPP_CAMPAIGN_PROVIDER || "cloud").toLowerCase()
+            : "cloud",
         cloudApiVersion: process.env.WHATSAPP_CLOUD_API_VERSION || "v22.0",
         phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || "",
         accessToken: process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || "",

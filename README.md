@@ -429,20 +429,19 @@ until each queued eligible recipient has a persisted, currently valid token.
 The worker rechecks current order eligibility, marketing consent, number
 validity, campaign state, and coupon validity immediately before sending.
 
-Campaign delivery supports the official WhatsApp Cloud API (`cloud`), linked
-WhatsApp Web (`linked`), and a development-only no-delivery provider (`mock`).
-Cloud API use requires an approved template with five body parameters
-(`{{1}}` through `{{5}}`) and production credentials. The linked provider uses
-the backend's Chromium session, which must run on a persistent server with
-Chromium runtime libraries installed; it is not Meta's official API and may
-risk account restrictions. Configure `WHATSAPP_CAMPAIGN_PROVIDER` in the
-backend environment. In POS → Coupons, **WhatsApp link & activity** shows the
-link QR/status and per-recipient campaign records, including queued, sending,
-sent, delivered, failed, and skipped counts with paginated recipient details
-that refresh while a campaign is running. The configured test
-number is the only destination for test sends. Cloud delivery callbacks are
+Campaign delivery uses the official WhatsApp Cloud API (`cloud`) or a
+development-only no-delivery provider (`mock`). Linked-device/WhatsApp Web
+automation is disabled and cannot send reports or campaign messages. Cloud API
+use requires an approved template with five body parameters (`{{1}}` through
+`{{5}}`) and production credentials. Configure `WHATSAPP_CAMPAIGN_PROVIDER=cloud`
+in the backend environment. In POS → Coupons, **WhatsApp campaign activity**
+shows provider readiness and per-recipient campaign records, including queued,
+sending, sent, delivered, failed, and skipped counts with paginated recipient
+details that refresh while a campaign is running. The configured test number is
+the only destination for test sends. Cloud delivery callbacks are
 signature-verified; accepted Cloud messages are recorded as sent, not delivered,
-until WhatsApp confirms delivery. Before launching campaigns, run
+until WhatsApp confirms delivery. Profit reports remain available as PDF
+downloads and email. Before launching campaigns, run
 `npm run migrate:whatsapp-campaigns` from `pos-backend`. This creates
 campaign/coupon idempotency and query indexes and adds the campaign permission
 to persisted Admin/Super Admin roles; it does not rewrite customer or order
@@ -456,13 +455,11 @@ so replicas coordinate instead of each sending the same queued recipient. Run
 the WhatsApp campaign migration before enabling sends. Do not configure a
 separate local database per instance.
 
-Campaign Cloud API delivery does not need Chromium or a linked-device session.
-Set `WHATSAPP_ENABLED=false` on ordinary API instances. If daily reports still
-need WhatsApp Web, enable `WHATSAPP_ENABLED=true` and `REPORT_AUTO_SEND=true` on
-exactly one persistent instance only; keep `REPORT_AUTO_SEND=false` on the other
-instances. Never run multiple processes against the same WhatsApp Web session
-directory. This keeps the browser-based report connection separate from the
-Cloud API campaign sender.
+Cloud API delivery does not need Chromium or a linked-device session. Legacy
+`WHATSAPP_ENABLED`, `WHATSAPP_SESSION_DIR`, and `REPORT_AUTO_SEND` variables are
+ignored by the backend. Keep Cloud API credentials in the deployment secret
+manager and rotate any credentials that were previously exposed or stored in
+unsecured files.
 
 To enable the customer phonebook, back up MongoDB, deploy the updated backend
 files, and run `npm run migrate:customer-contacts` from `pos-backend` before

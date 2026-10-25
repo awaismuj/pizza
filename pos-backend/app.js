@@ -95,11 +95,6 @@ app.use(globalErrorHandler);
 // server time — see services/dailyProfitScheduler.js.
 require("./services/dailyProfitScheduler").startDailyProfitScheduler();
 
-// Links to WhatsApp (free, QR-based — see services/whatsappService.js) and
-// starts the job that auto-sends the daily report if nobody sent it
-// manually — see services/dailyReportScheduler.js.
-require("./services/whatsappService").initWhatsapp();
-require("./services/dailyReportScheduler").startDailyReportScheduler();
 require("./services/whatsAppCampaignWorker").start();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).

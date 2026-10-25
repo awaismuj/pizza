@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FaQrcode, FaRedo, FaTimes, FaWhatsapp } from "react-icons/fa";
+import { useQuery } from "@tanstack/react-query";
 import {
   getCampaignWhatsAppProvider,
-  getCampaignLinkedWhatsAppStatus,
   getWhatsAppCampaigns,
   getRecentWhatsAppCampaignMessages,
-  retryCampaignLinkedWhatsApp,
-  unlinkCampaignLinkedWhatsApp,
 } from "../../https";
 
 const buttonClass = "inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50";
@@ -26,13 +22,6 @@ const WhatsAppCampaignMonitor = () => {
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
   const [messageStatus, setMessageStatus] = useState("all");
   const [page, setPage] = useState(1);
-  const queryClient = useQueryClient();
-  const statusQuery = useQuery({
-    queryKey: ["whatsappStatus"],
-    queryFn: getCampaignLinkedWhatsAppStatus,
-    enabled: isOpen,
-    refetchInterval: isOpen ? 2000 : false,
-  });
   const providerQuery = useQuery({
     queryKey: ["wa-campaign-provider"],
     queryFn: getCampaignWhatsAppProvider,
@@ -54,23 +43,12 @@ const WhatsAppCampaignMonitor = () => {
     enabled: isOpen && Boolean(selectedCampaignId),
     refetchInterval: isOpen ? 2500 : false,
   });
-  const linkMutation = useMutation({
-    mutationFn: retryCampaignLinkedWhatsApp,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["whatsappStatus"] }),
-  });
-  const unlinkMutation = useMutation({
-    mutationFn: unlinkCampaignLinkedWhatsApp,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["whatsappStatus"] }),
-  });
-
-  const status = statusQuery.data?.data?.data;
   const providerStatus = providerQuery.data?.data?.data;
   const campaigns = campaignsQuery.data?.data?.data || [];
   const messages = messagesQuery.data?.data?.data || [];
   const pagination = messagesQuery.data?.data?.pagination;
   const campaignStats = messagesQuery.data?.data?.stats;
   const selectedCampaign = campaigns.find((campaign) => campaign._id === selectedCampaignId);
-  const linkError = linkMutation.error || unlinkMutation.error;
   const messageTemplate = providerQuery.data?.data?.data?.templatePreviewText || defaultMessageTemplate;
   const errorMessage = (error) => error?.response?.data?.message || error?.message || "Request failed.";
   const statusOptions = ["all", "queued", "sending", "sent", "delivered", "failed", "skipped"];
@@ -102,7 +80,7 @@ const WhatsAppCampaignMonitor = () => {
         className={`${buttonClass} border border-[#31573c] bg-[#1c291f] text-[#d7ffe0]`}
         onClick={() => setIsOpen(true)}
       >
-        <FaWhatsapp className="text-[#25d366]" /> WhatsApp link &amp; activity
+        WhatsApp campaign activity
       </button>
 
       {isOpen && (
@@ -113,14 +91,12 @@ const WhatsAppCampaignMonitor = () => {
           <section
             role="dialog"
             aria-modal="true"
-            aria-label="WhatsApp link and campaign activity"
+            aria-label="WhatsApp campaign activity"
             className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-[#383838] bg-[#191919] shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <header className="flex items-center justify-between border-b border-[#333] px-4 py-3">
-              <h2 className="flex items-center gap-2 font-semibold text-white">
-                <FaWhatsapp className="text-[#25d366]" /> WhatsApp connection &amp; activity
-              </h2>
+              <h2 className="font-semibold text-white">WhatsApp campaign activity</h2>
               <button
                 type="button"
                 className="rounded p-2 text-xl text-[#aaa] hover:bg-[#333]"
@@ -133,66 +109,16 @@ const WhatsAppCampaignMonitor = () => {
 
             <div className="space-y-4 overflow-y-auto p-4">
               <section className="rounded border border-[#31573c] bg-[#1c291f] p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="flex items-center gap-2 font-semibold text-white">
-                      <FaQrcode className="text-[#25d366]" /> Link WhatsApp
-                    </h3>
-                    <p className="mt-1 text-sm text-[#bbb]">
-                      Status: <b className={status?.status === "ready" ? "text-emerald-300" : "text-amber-300"}>{status?.status || (statusQuery.isError ? "unavailable" : "checking")}</b>
-                      {status?.linkedNumber && ` · +${status.linkedNumber}`}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {status?.status === "ready" ? (
-                      <button
-                        type="button"
-                        className={`${buttonClass} bg-[#353535] text-white`}
-                        onClick={() => unlinkMutation.mutate()}
-                        disabled={unlinkMutation.isPending}
-                      >
-                        <FaTimes /> {unlinkMutation.isPending ? "Unlinking…" : "Unlink"}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className={`${buttonClass} bg-[#353535] text-white`}
-                        onClick={() => linkMutation.mutate()}
-                        disabled={linkMutation.isPending || status?.status === "initializing"}
-                      >
-                        <FaRedo /> {linkMutation.isPending ? "Starting…" : status?.status === "qr" ? "Refresh QR" : "Show QR"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {status?.qrDataUrl && (
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <img src={status.qrDataUrl} alt="WhatsApp linked-device QR code" className="h-44 w-44 rounded bg-white p-1" />
-                    <p className="max-w-xs text-sm text-[#bbb]">On your phone, open WhatsApp → Linked Devices → Link a Device, then scan this QR.</p>
-                  </div>
-                )}
-                {status?.status === "ready" && (
-                  <p className="mt-3 text-sm text-emerald-200">Connected. Coupon campaign messages are sent from this WhatsApp account.</p>
-                )}
-                {providerStatus?.provider === "mock" && (
-                  <p className="mt-3 text-sm text-amber-200">Mock provider is active; campaign activity is simulated and no WhatsApp messages are delivered.</p>
-                )}
-                {status?.lastError && (
-                  <div className="mt-3 space-y-2 text-sm text-red-200">
-                    <p className="break-words">{status.lastError}</p>
-                    {status.status === "init_failed" && (
-                      <p className="rounded bg-black/20 p-2 text-xs text-[#ddd]">
-                        On the Ubuntu backend host, install Chromium’s missing library and retry:
-                        <code className="mt-1 block select-all">sudo apt-get update &amp;&amp; sudo apt-get install -y libatk1.0-0 libatk-bridge2.0-0 libnss3 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2 libpangocairo-1.0-0 libxss1 libgtk-3-0</code>
-                      </p>
-                    )}
-                  </div>
-                )}
-                {statusQuery.isError && <p className="mt-2 text-sm text-red-300">{errorMessage(statusQuery.error)}</p>}
-                {linkError && <p className="mt-2 text-sm text-red-300">{errorMessage(linkError)}</p>}
-                <p className="mt-3 text-xs text-amber-200">
-                  Linked-device automation is not Meta’s official Business API and may risk WhatsApp account restrictions. Message only customers who opted in.
+                <h3 className="font-semibold text-white">Meta WhatsApp Cloud API</h3>
+                <p className="mt-1 text-sm text-[#bbb]">
+                  Status: <b className={providerStatus?.configured ? "text-emerald-300" : "text-amber-300"}>
+                    {providerQuery.isLoading ? "checking" : providerStatus?.configured ? "ready" : "not configured"}
+                  </b>
+                  {providerStatus?.templateName && ` · Template: ${providerStatus.templateName}`}
                 </p>
+                <p className="mt-2 text-xs text-[#bbb]">Campaigns send only through Meta’s approved template API. Explicit customer marketing consent is still required.</p>
+                {providerStatus?.provider === "mock" && <p className="mt-2 text-sm text-amber-200">Development mock mode is active; no WhatsApp messages are delivered.</p>}
+                {providerQuery.isError && <p className="mt-2 text-sm text-red-300">{errorMessage(providerQuery.error)}</p>}
               </section>
 
               <section>

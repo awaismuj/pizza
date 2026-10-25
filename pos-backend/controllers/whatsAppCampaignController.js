@@ -12,7 +12,6 @@ const provider = require("../services/whatsAppCampaignProvider");
 const Order = require("../models/orderModel");
 const Customer = require("../models/customerModel");
 const { normalizeContactPhone } = require("../services/customerContactService");
-const whatsappService = require("../services/whatsappService");
 
 const MAX_NAME = 120;
 
@@ -856,27 +855,6 @@ const getRecentMessages = async (req, res, next) => {
   }
 };
 
-const getLinkedWhatsAppStatus = (req, res) =>
-  res.json({ success: true, data: whatsappService.getStatus() });
-
-const retryLinkedWhatsApp = async (req, res, next) => {
-  try {
-    await whatsappService.retryWhatsapp();
-    res.json({ success: true, data: whatsappService.getStatus() });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const unlinkLinkedWhatsApp = async (req, res, next) => {
-  try {
-    await whatsappService.unlinkWhatsapp();
-    res.json({ success: true, data: whatsappService.getStatus() });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
   cancelCampaign,
   createCampaign,
@@ -885,7 +863,6 @@ module.exports = {
   getCampaign,
   getCampaignRecipients,
   getCampaigns,
-  getLinkedWhatsAppStatus,
   getProvider,
   getRecentMessages,
   generateCampaignTokens,
@@ -893,11 +870,9 @@ module.exports = {
   pauseCampaign,
   previewCampaign,
   retryFailed,
-  retryLinkedWhatsApp,
   sendTestMessage,
   scanCampaign,
   updateCustomerContact,
-  unlinkLinkedWhatsApp,
   webhookStatus,
   webhookVerify,
 };
