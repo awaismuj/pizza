@@ -14,7 +14,7 @@ const customerCouponSchema = new mongoose.Schema(
       maxlength: 64,
       match: /^[A-Z0-9_-]+$/,
     },
-    source: { type: String, enum: ["admin", "welcome", "whatsapp_campaign", "loyalty", "vip", "birthday", "referral", "win_back"], default: "admin" },
+    source: { type: String, enum: ["admin", "welcome", "whatsapp_campaign", "loyalty", "vip", "birthday", "referral", "win_back", "friday_campaign", "manual_campaign"], default: "admin" },
     idempotencyKey: { type: String, default: undefined },
     redemptionLimit: { type: Number, default: 1, min: 1 },
     redemptionCount: { type: Number, default: 0, min: 0 },

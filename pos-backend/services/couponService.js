@@ -13,7 +13,10 @@ const { calculateCoupon, normalizeCouponCode } = require("./couponRules");
 const { getOrCreateSettings } = require("../controllers/settingsController");
 const { normalizeByoConfig, byoDiscountPercent } = require("../utils/byoDiscount");
 const Settings = require("../models/settingsModel");
+const PromotionExecution = require("../models/promotionExecutionModel");
+const PromotionIssue = require("../models/promotionIssueModel");
 const customerPhoneKey = require("../utils/customerPhoneKey");
+const { calculateExpiry, getPromotionSettings } = require("../utils/promotionSettings");
 
 const normalizePhoneDigits = (phone) => {
   const digits = String(phone || "").replace(/\D/g, "");
@@ -30,7 +33,7 @@ const customerKeyFor = (phone) => {
 
 const getWelcomeOfferConfig = async (now = new Date()) => {
   const settings = await getOrCreateSettings();
-  const config = settings.firstTimeCustomerOffer || {
+  const legacyConfig = settings.firstTimeCustomerOffer || {
     enabled: false,
     minimumSubtotal: 1000,
     percentages: [5, 7, 10],
@@ -46,6 +49,15 @@ const getWelcomeOfferConfig = async (now = new Date()) => {
     applyButtonLabel: "Apply Discount",
     declineButtonLabel: "No Thanks",
   };
+  const storedPromotionSettings = settings.promotionSettings;
+  const promoWelcome = storedPromotionSettings ? getPromotionSettings(storedPromotionSettings).welcome : null;
+  const config = promoWelcome
+    ? {
+        ...legacyConfig,
+        ...promoWelcome,
+        maxDiscountAmount: promoWelcome.maximumDiscount,
+      }
+    : legacyConfig;
 
   const validPercentages = Array.isArray(config.percentages)
     ? config.percentages.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0 && value <= 100)
@@ -66,7 +78,7 @@ const getWelcomeOfferConfig = async (now = new Date()) => {
 const chooseWelcomeOfferPercentage = (config) => {
   const pool = [...new Set((config.validPercentages || []).map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))];
   if (!pool.length) return null;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[crypto.randomInt(pool.length)];
 };
 
 const calculateEligibleSubtotal = async (items, channel = "Online", session = null) => {
@@ -76,7 +88,56 @@ const calculateEligibleSubtotal = async (items, channel = "Online", session = nu
   return Math.max(0, grossSubtotal - existingDiscount);
 };
 
-const buildWelcomeOfferCoupon = async ({ customerId, phone, channel, subtotal, session, now = new Date() }) => {
+const recordWelcomeCouponIssue = async ({ coupon, customer, config }) => {
+  if (!customer?._id) return;
+  const executionKey = `welcome:${coupon._id}`;
+  let execution = await PromotionExecution.findOne({ executionKey });
+  if (!execution) {
+    try {
+      execution = await PromotionExecution.create({
+        kind: "welcome",
+        trigger: "automatic",
+        executionKey,
+        status: "completed",
+        settingsSnapshot: config,
+        startedAt: new Date(),
+        completedAt: new Date(),
+        counts: { eligible: 1, generated: 1, skipped: 0, failed: 0 },
+      });
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      execution = await PromotionExecution.findOne({ executionKey });
+      if (!execution) throw error;
+    }
+  }
+  const marketingConsent = customer.marketingConsent === true;
+  try {
+    await PromotionIssue.create({
+      executionId: execution._id,
+      customerId: customer._id,
+      couponId: coupon._id,
+      couponCode: coupon.code,
+      discountPercentage: Number(coupon.discountValue),
+      expiresAt: coupon.expiresAt,
+      emailStatus: config.sendEmail
+        ? (marketingConsent && customer.email ? "queued" : "skipped")
+        : "not_requested",
+      emailError: config.sendEmail && !marketingConsent
+        ? "Marketing consent is not recorded."
+        : config.sendEmail && !customer.email ? "A valid email address is unavailable." : "",
+      whatsappStatus: config.sendWhatsApp
+        ? (marketingConsent && customer.phone ? "queued" : "skipped")
+        : "not_requested",
+      whatsappError: config.sendWhatsApp && !marketingConsent
+        ? "Marketing consent is not recorded."
+        : config.sendWhatsApp && !customer.phone ? "A valid mobile number is unavailable." : "",
+    });
+  } catch (error) {
+    if (error.code !== 11000) throw error;
+  }
+};
+
+const buildWelcomeOfferCoupon = async ({ customerId, customer: customerRecord, phone, channel, subtotal, session, now = new Date() }) => {
   const config = await getWelcomeOfferConfig(now);
   if (!config.isActive || !Array.isArray(config.eligibleChannels) || !config.eligibleChannels.includes(channel)) {
     return { eligible: false, reason: "offer-not-active-for-channel" };
@@ -128,7 +189,9 @@ const buildWelcomeOfferCoupon = async ({ customerId, phone, channel, subtotal, s
         usageLimit: 1,
         perCustomerLimit: 1,
         startsAt: config.startsAt || now,
-        expiresAt: config.expiresAt || null,
+        expiresAt: config.expiryMode
+          ? calculateExpiry(config, now, config.timezone || "Asia/Karachi")
+          : config.expiresAt || null,
         timezone: "Asia/Karachi",
         firstOrderOnly: true,
         allowStacking: false,
@@ -147,11 +210,14 @@ const buildWelcomeOfferCoupon = async ({ customerId, phone, channel, subtotal, s
   if (!created || created.status !== "active" || (created.usageLimit != null && created.redemptionCount >= created.usageLimit)) {
     return { eligible: false, reason: "offer-not-active-for-channel" };
   }
+  const welcomeCustomer = customerRecord || (customerId
+    ? await Customer.findById(customerId).select("_id name email phone marketingConsent active").session(session || null)
+    : null);
+  if (welcomeCustomer) await recordWelcomeCouponIssue({ coupon: created, customer: welcomeCustomer, config });
   const discountAmount = Math.min(
     Number(subtotal || 0),
-    created.maximumDiscount != null
-      ? Number(created.maximumDiscount)
-      : Math.round((Number(subtotal || 0) * Number(created.discountValue)) / 100)
+    Math.round((Number(subtotal || 0) * Number(created.discountValue)) / 100),
+    created.maximumDiscount != null ? Number(created.maximumDiscount) : Number(subtotal || 0)
   );
   return {
     eligible: true,
@@ -265,6 +331,9 @@ const evaluateCoupon = async ({ code, phone, customerId, items, channel = "Onlin
   if (!coupon) throw createHttpError(400, "Invalid coupon code.");
   if (coupon.source === "whatsapp_campaign" && !assignment) {
     throw createHttpError(403, "This campaign coupon must be used with the private code sent to your mobile number.");
+  }
+  if (!assignment && ["friday_campaign", "birthday_campaign", "manual_campaign"].includes(coupon.source)) {
+    throw createHttpError(401, "Sign in and use the customer-specific coupon code.");
   }
   if (coupon.source === "welcome" && coupon.welcomeCustomerKey !== customerKey) {
     throw createHttpError(403, "This welcome offer is only available to the mobile number it was issued to.");

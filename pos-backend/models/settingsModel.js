@@ -89,6 +89,7 @@ const settingsSchema = new mongoose.Schema(
       applyButtonLabel: { type: String, default: "Apply Discount", maxlength: 40 },
       declineButtonLabel: { type: String, default: "No Thanks", maxlength: 40 },
     },
+    promotionSettings: { type: mongoose.Schema.Types.Mixed, default: undefined },
   },
   { timestamps: true }
 );

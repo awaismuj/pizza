@@ -288,6 +288,7 @@ const checkWelcomeOffer = async (req, res, next) => {
     const result = await buildWelcomeOfferCoupon({
       phone: normalizedPhone,
       customerId: req.customer?._id || null,
+      customer: req.customer,
       channel,
       subtotal,
       session: null,
