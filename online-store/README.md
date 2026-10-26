@@ -1,4 +1,4 @@
-# GenZ Pizza Land — Online Store (genzpizza.online)
+# GenZ Pizza Land — Online Store (genzpizza.muscatfood.com)
 
 A small, standalone customer-facing ordering site. It talks to the **same
 backend** as the POS (`apipos.muscatfood.com`), using public, no-login
@@ -38,22 +38,23 @@ The app sends a page view on the initial load and client-side route changes.
 Leave it empty to disable analytics. Update the privacy policy if your data
 practices change.
 
-For indexing, verify `https://genzpizza.online` in Google Search Console and
-submit `https://genzpizza.online/sitemap.xml` under **Sitemaps**. The sitemap
+For indexing, verify `https://genzpizza.muscatfood.com` in Google Search
+Console and submit `https://genzpizza.muscatfood.com/sitemap.xml` under
+**Sitemaps**. The sitemap
 lists the public home, help, terms, and privacy pages; `robots.txt` allows
 crawling and points crawlers to that sitemap. Analytics does not submit pages
 for indexing or guarantee when Google will index them.
 
-## Deploying to genzpizza.online
+## Deploying to genzpizza.muscatfood.com
 
 1. `npm run build` — outputs static files to `dist/`.
-2. Point the `genzpizza.online` domain's web server (nginx / Vercel /
+2. Point the `genzpizza.muscatfood.com` domain's web server (nginx / Vercel /
    Netlify / whatever you use) at that `dist/` folder as a static site.
 3. Make sure `VITE_BACKEND_URL` is set to your **public** backend URL
    (`https://apipos.muscatfood.com`) at build time — Vite bakes env vars
    into the build, so this can't be changed after the fact without
    rebuilding.
-4. On the backend, `https://genzpizza.online` (and `www.`) are already
+4. On the backend, `https://genzpizza.muscatfood.com` is already
    allow-listed in CORS (`pos-backend/app.js`) — if you use a different
    domain, add it there too.
 
@@ -62,8 +63,8 @@ for indexing or guarantee when Google will index them.
 ```nginx
 server {
     listen 80;
-    server_name genzpizza.online www.genzpizza.online;
-    root /var/www/genzpizza-online/dist;
+    server_name genzpizza.muscatfood.com;
+    root /var/www/genzpizza-muscatfood/dist;
     index index.html;
 
     location = / {
@@ -105,4 +106,4 @@ server {
 }
 ```
 
-(Then add SSL with `certbot --nginx -d genzpizza.online -d www.genzpizza.online`.)
+(Then add SSL with `certbot --nginx -d genzpizza.muscatfood.com`.)
