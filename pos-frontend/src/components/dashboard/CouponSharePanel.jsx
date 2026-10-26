@@ -33,6 +33,7 @@ const CouponSharePanel = () => {
   const [validationMessage, setValidationMessage] = useState("");
   const [emailConsentConfirmed, setEmailConsentConfirmed] = useState(false);
   const [sendFeedback, setSendFeedback] = useState("");
+  const [whatsAppWindowMessage, setWhatsAppWindowMessage] = useState("");
 
   const providerQuery = useQuery({
     queryKey: ["wa-campaign-provider"],
@@ -73,6 +74,27 @@ const CouponSharePanel = () => {
     : "";
   const cloudReady = providerStatus?.provider === "cloud" && providerStatus?.configured === true;
 
+  const openWhatsAppWeb = () => {
+    const width = Math.min(1100, window.screen.availWidth);
+    const height = Math.min(800, window.screen.availHeight);
+    const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
+    const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
+    const whatsappWindow = window.open(
+      "https://web.whatsapp.com/",
+      "whatsapp-web",
+      `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
+
+    if (!whatsappWindow) {
+      setWhatsAppWindowMessage("Your browser blocked the WhatsApp window. Allow pop-ups for this POS site, then try again.");
+      return;
+    }
+
+    whatsappWindow.opener = null;
+    whatsappWindow.focus();
+    setWhatsAppWindowMessage("");
+  };
+
   const findCustomer = (event) => {
     event.preventDefault();
     const digits = phone.replace(/\D/g, "");
@@ -99,15 +121,19 @@ const CouponSharePanel = () => {
         <p className="mt-1 text-sm text-[#aaa]">
           Search for an opted-in customer, choose an eligible coupon, review the approved template, and send without leaving this panel.
         </p>
-        <a
-          href="https://web.whatsapp.com/"
+        <button
+          type="button"
+          onClick={openWhatsAppWeb}
           className="mt-3 inline-flex items-center gap-2 rounded bg-[#25d366] px-3 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174]"
         >
-          <FaWhatsapp aria-hidden="true" /> Open WhatsApp Web in this tab
-        </a>
+          <FaWhatsapp aria-hidden="true" /> Open WhatsApp Web window
+        </button>
         <p className="mt-2 text-xs text-[#999]">
-          This navigates away from the POS page. WhatsApp does not allow its logged-in session to be embedded in this panel. Linking WhatsApp Web does not configure the Cloud API sender below.
+          WhatsApp opens in a separate window over the POS, like your screenshot. Its logged-in session cannot be embedded in this panel. Linking WhatsApp Web does not configure the Cloud API sender below.
         </p>
+        {whatsAppWindowMessage && (
+          <p className="mt-2 text-sm text-amber-200" role="alert">{whatsAppWindowMessage}</p>
+        )}
       </div>
 
       {providerQuery.isError && (
