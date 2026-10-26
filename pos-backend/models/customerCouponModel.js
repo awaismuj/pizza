@@ -10,7 +10,7 @@ const customerCouponSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
-      minlength: 16,
+      minlength: 7,
       maxlength: 64,
       match: /^[A-Z0-9_-]+$/,
     },

@@ -7,6 +7,7 @@ const promotionIssueSchema = new mongoose.Schema({
   couponId: { type: mongoose.Schema.Types.ObjectId, ref: "Coupon", default: null },
   couponCode: { type: String, default: "", maxlength: 64 },
   discountPercentage: { type: Number, default: null, min: 1, max: 100 },
+  minimumSubtotal: { type: Number, default: null, min: 0 },
   expiresAt: { type: Date, default: null },
   status: { type: String, enum: ["generated", "skipped", "failed"], default: "generated" },
   skipReason: { type: String, default: "", maxlength: 200 },

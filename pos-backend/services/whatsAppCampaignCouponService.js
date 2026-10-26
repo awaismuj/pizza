@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const Coupon = require("../models/couponModel");
 const CustomerCoupon = require("../models/customerCouponModel");
 const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientModel");
+const { createCustomerCouponCode } = require("../utils/customerCouponCode");
 
 const chooseDiscount = (campaign) => {
   const options = campaign.discountOptions || [];
@@ -67,26 +68,29 @@ const getOrCreateAssignment = async (campaign, recipient, customer) => {
   if (!assignment) {
     const discount = chooseDiscount(campaign);
     const coupon = await getCampaignCoupon(campaign, discount);
-    try {
-      assignment = await CustomerCoupon.create({
-        couponId: coupon._id,
-        customerId: customer._id,
-        code: `WAC_${crypto.randomBytes(18).toString("hex").toUpperCase()}`,
-        source: "whatsapp_campaign",
-        idempotencyKey,
-        redemptionLimit: campaign.maxUsesPerCoupon,
-        redemptionCount: 0,
-        startsAt: campaign.scheduledAt || campaign.startedAt || new Date(),
-        expiresAt: campaign.expiresAt,
-        status: "active",
-        assignedBy: campaign.createdBy,
-      });
-      created = true;
-    } catch (error) {
-      if (error.code !== 11000) throw error;
-      assignment = await CustomerCoupon.findOne({ customerId: customer._id, idempotencyKey });
-      if (!assignment) throw error;
+    for (let attempt = 0; attempt < 5 && !assignment; attempt += 1) {
+      try {
+        assignment = await CustomerCoupon.create({
+          couponId: coupon._id,
+          customerId: customer._id,
+          code: createCustomerCouponCode(),
+          source: "whatsapp_campaign",
+          idempotencyKey,
+          redemptionLimit: campaign.maxUsesPerCoupon,
+          redemptionCount: 0,
+          startsAt: campaign.scheduledAt || campaign.startedAt || new Date(),
+          expiresAt: campaign.expiresAt,
+          status: "active",
+          assignedBy: campaign.createdBy,
+        });
+        created = true;
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        assignment = await CustomerCoupon.findOne({ customerId: customer._id, idempotencyKey });
+        if (!assignment && attempt === 4) throw error;
+      }
     }
+    if (!assignment) throw new Error("Could not allocate a unique customer coupon code.");
   }
 
   const coupon = await Coupon.findById(assignment.couponId);

@@ -7,6 +7,7 @@ const {
   getPromotionSettings,
   validatePromotionSettings,
 } = require("../utils/promotionSettings");
+const { createCustomerCouponCode } = require("../utils/customerCouponCode");
 
 test("promotion defaults pass validation and preserve configured campaigns", () => {
   assert.equal(validatePromotionSettings(getPromotionSettings()), null);
@@ -51,4 +52,10 @@ test("duration expiry is absolute while calendar expiry uses the configured loca
     calculateExpiry({ expiryMode: "calendar", calendarDays: 3, expiryTime: "23:59" }, now, "Asia/Karachi").toISOString(),
     "2025-04-04T18:59:00.000Z"
   );
+});
+
+test("customer coupon codes are short, easy to read and safely formatted", () => {
+  const codes = Array.from({ length: 100 }, () => createCustomerCouponCode());
+  for (const code of codes) assert.match(code, /^FLAT[2-9A-HJ-NP-Z]{4}$/);
+  assert.equal(new Set(codes).size, codes.length);
 });

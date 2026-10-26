@@ -257,9 +257,9 @@ const CouponsCustomerMarketing = () => {
           <thead className="bg-[#292929] text-xs text-[#bbb]"><tr><th className="p-3">Customer</th><th>Coupon code</th><th>Discount</th><th>Expiry</th><th>Email</th><th>WhatsApp</th><th>Actions</th></tr></thead>
           <tbody>{issues.map((row) => <tr key={row._id} className="border-t border-[#383838]">
             <td className="p-3">{row.customerId?.name || "—"}</td>
-            <td className="font-mono">{row.couponCode}<button type="button" className="ml-2 rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => copyCode(row.couponCode)}>Copy</button></td>
+            <td className="font-mono">{row.couponCode}<button type="button" className="ml-2 rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => copyCode(row.couponCode)}>Copy code</button></td>
             <td>{row.discountPercentage}%</td><td>{row.expiresAt ? new Date(row.expiresAt).toLocaleString() : "No expiry"}</td>
-            <td className="capitalize">{emailStatus(row)}</td><td className="capitalize">{whatsappStatus(row)}</td><td className="space-x-1">{deliveryActions(row)}</td>
+            <td className="capitalize">{emailStatus(row)}</td><td className="capitalize">{whatsappStatus(row)}</td><td className="space-x-1">{row.customerId?.marketingConsent && <button type="button" className="rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => copyCustomerMessage(row)}>Copy message</button>}{deliveryActions(row)}</td>
           </tr>)}</tbody>
         </table>
       </div>}
@@ -271,6 +271,27 @@ const CouponsCustomerMarketing = () => {
       enqueueSnackbar("Coupon code copied.", { variant: "success" });
     } catch {
       window.prompt("Copy coupon code:", code);
+    }
+  };
+  const copyCustomerMessage = async (row) => {
+    const customerName = row.customerId?.name || "there";
+    const discount = Number(row.discountPercentage || 0);
+    const minimum = row.minimumSubtotal == null
+      ? "the minimum order shown at checkout"
+      : amount(row.minimumSubtotal);
+    const expiry = row.expiresAt
+      ? new Intl.DateTimeFormat("en-PK", {
+          timeZone: "Asia/Karachi",
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(row.expiresAt))
+      : "no expiry date";
+    const message = `Hi ${customerName}! Your coupon code is ${row.couponCode} for ${discount}% off. Minimum order: ${minimum}. Valid until ${expiry}. Apply it at checkout on https://genzpizza.online.`;
+    try {
+      await navigator.clipboard.writeText(message);
+      enqueueSnackbar("Ready-to-send coupon message copied.", { variant: "success" });
+    } catch {
+      window.prompt("Copy this message to send to the customer:", message);
     }
   };
   const executionTable = (items) => (
@@ -380,7 +401,7 @@ const CouponsCustomerMarketing = () => {
         <div className="space-y-4">
           <label className="block max-w-lg space-y-1 text-sm text-[#bbb]">Campaign execution<select className="w-full rounded border border-[#444] bg-[#191919] px-3 py-2 text-white" value={selectedExecutionId} onChange={(event) => setSelectedExecutionId(event.target.value)}><option value="">Choose execution</option>{executions.map((execution) => <option key={execution._id} value={execution._id}>{execution.kind} · {new Date(execution.startedAt).toLocaleString()} · {execution.status}</option>)}</select></label>
           {selectedExecution && <p className="text-sm text-[#aaa]">Email and WhatsApp logs show queued/sent/failed/skipped state. A `sent` state means the provider accepted the message; delivery is not asserted without webhook confirmation.</p>}
-          <div className="overflow-x-auto rounded border border-[#383838]"><table className="w-full min-w-[1040px] text-left text-sm text-white"><thead className="bg-[#292929] text-xs text-[#bbb]"><tr><th className="p-3">Customer</th><th>Coupon</th><th>Email</th><th>Email message ID</th><th>WhatsApp</th><th>WhatsApp message ID</th><th>Retry</th></tr></thead><tbody>{issues.map((row) => <tr key={row._id} className="border-t border-[#383838]"><td className="p-3">{row.customerId?.name || "—"}<span className="block text-xs text-[#aaa]">{row.customerId?.email || ""}</span></td><td className="font-mono">{row.couponCode}</td><td className="capitalize" title={row.emailError || ""}>{emailStatus(row)}</td><td className="font-mono text-xs">{row.emailMessageId || "—"}</td><td className="capitalize" title={row.whatsappError || ""}>{whatsappStatus(row)}</td><td className="font-mono text-xs">{row.whatsappMessageId || "—"}</td><td className="space-x-1">{row.emailStatus === "failed" && <button type="button" disabled={retryMutation.isPending} className="rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => { if (window.confirm("Retry this failed email? The previous send outcome may be uncertain.")) retryMutation.mutate({ issueId: row._id, channel: "email" }); }}>Email</button>}{row.whatsappStatus === "failed" && <button type="button" disabled={retryMutation.isPending} className="rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => { if (window.confirm("Retry this failed WhatsApp message? The previous send outcome may be uncertain.")) retryMutation.mutate({ issueId: row._id, channel: "whatsapp" }); }}>WhatsApp</button>}</td></tr>)}</tbody></table></div>
+          <div className="overflow-x-auto rounded border border-[#383838]"><table className="w-full min-w-[1040px] text-left text-sm text-white"><thead className="bg-[#292929] text-xs text-[#bbb]"><tr><th className="p-3">Customer</th><th>Coupon</th><th>Email</th><th>Email message ID</th><th>WhatsApp</th><th>WhatsApp message ID</th><th>Actions</th></tr></thead><tbody>{issues.map((row) => <tr key={row._id} className="border-t border-[#383838]"><td className="p-3">{row.customerId?.name || "—"}<span className="block text-xs text-[#aaa]">{row.customerId?.email || ""}</span></td><td className="font-mono">{row.couponCode}<button type="button" className="ml-2 rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => copyCode(row.couponCode)}>Copy code</button></td><td className="capitalize" title={row.emailError || ""}>{emailStatus(row)}</td><td className="font-mono text-xs">{row.emailMessageId || "—"}</td><td className="capitalize" title={row.whatsappError || ""}>{whatsappStatus(row)}</td><td className="font-mono text-xs">{row.whatsappMessageId || "—"}</td><td className="space-x-1">{row.customerId?.marketingConsent && <button type="button" className="rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => copyCustomerMessage(row)}>Copy message</button>}{row.emailStatus === "failed" && <button type="button" disabled={retryMutation.isPending} className="rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => { if (window.confirm("Retry this failed email? The previous send outcome may be uncertain.")) retryMutation.mutate({ issueId: row._id, channel: "email" }); }}>Email</button>}{row.whatsappStatus === "failed" && <button type="button" disabled={retryMutation.isPending} className="rounded bg-[#383838] px-2 py-1 text-xs" onClick={() => { if (window.confirm("Retry this failed WhatsApp message? The previous outcome may be uncertain.")) retryMutation.mutate({ issueId: row._id, channel: "whatsapp" }); }}>WhatsApp</button>}</td></tr>)}</tbody></table></div>
         </div>
       )}
       {section === "Coupon Settings" && settingsDraft && (
