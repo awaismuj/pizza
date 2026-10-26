@@ -85,6 +85,21 @@ const customerRows = (response) => response?.data?.data || [];
 const campaignRows = (response) => response?.data?.data || [];
 const campaignData = (response) => response?.data?.data || null;
 const errorMessage = (error) => error?.response?.data?.message || error?.message || "Request failed.";
+const campaignCouponMessage = (row, templateText, minimumOrderAmount, timezone) => {
+  const expiry = row.couponExpiresAt
+    ? new Intl.DateTimeFormat("en-PK", { timeZone: timezone || "Asia/Karachi", dateStyle: "medium" }).format(new Date(row.couponExpiresAt))
+    : "No expiry";
+  const parameters = [
+    String(row.name || "Customer"),
+    String(row.discountPercentage),
+    String(row.couponCode),
+    Number(minimumOrderAmount || 0).toLocaleString("en-US"),
+    expiry,
+  ];
+  return String(templateText || "Hi {{1}}! 🍕 Enjoy a special treat from our pizza shop!\\n\\nYour exclusive discount: {{2}}% OFF\\nCoupon Code: {{3}}\\nMinimum Order: Rs. {{4}}\\nValid Until: {{5}}\\n\\nOrder now and enjoy your pizza!")
+    .replaceAll("\\n", "\n")
+    .replace(/\{\{([1-5])\}\}/g, (_, index) => parameters[Number(index) - 1]);
+};
 
 const Status = ({ value }) => {
   const colors = {
@@ -129,6 +144,7 @@ const WhatsAppCampaignManager = () => {
   const [contactDraft, setContactDraft] = useState({ customerId: "", name: "", phone: "", marketingConsent: false });
   const [emailCouponsEnabled, setEmailCouponsEnabled] = useState(true);
   const [copiedCustomerId, setCopiedCustomerId] = useState("");
+  const [manualCopyMessage, setManualCopyMessage] = useState("");
 
   const providerQuery = useQuery({
     queryKey: ["wa-campaign-provider"],
@@ -496,13 +512,21 @@ const WhatsAppCampaignManager = () => {
     autoAssignMutation.mutate({ sendEmails: emailCouponsEnabled });
   };
 
-  const copyCouponCode = async (customerId, code) => {
+  const copyCouponMessage = async (row) => {
+    const message = campaignCouponMessage(
+      row,
+      providerStatus?.templatePreviewText,
+      form.minimumOrderAmount,
+      form.timezone
+    );
     try {
-      await navigator.clipboard.writeText(code);
-      setCopiedCustomerId(customerId);
+      await navigator.clipboard.writeText(message);
+      setCopiedCustomerId(row.id);
+      setManualCopyMessage("");
       window.setTimeout(() => setCopiedCustomerId(""), 1800);
     } catch {
-      setFeedback("Could not copy the coupon code. Select and copy it manually.");
+      setManualCopyMessage(message);
+      setFeedback("Clipboard access is blocked. Select the message below and copy it manually.");
     }
   };
 
@@ -619,7 +643,7 @@ const WhatsAppCampaignManager = () => {
                     checked={emailCouponsEnabled}
                     onChange={(event) => setEmailCouponsEnabled(event.target.checked)}
                   />
-                  Email customers with promotional consent
+                  Automatically email eligible customers
                 </label>
                 <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={buildPreview} disabled={previewMutation.isPending || autoAssignMutation.isPending}>{previewMutation.isPending ? "Scanning…" : "Scan Eligible Customers"}</button>
                 <button type="button" className={`${buttonClass} bg-amber-400 px-4 text-[#1c1600]`} onClick={generateAutoCoupons} disabled={autoAssignMutation.isPending || tokenMutation.isPending}>{autoAssignMutation.isPending || tokenMutation.isPending ? "Generating & assigning…" : "Generate & Assign Auto Coupons"}</button>
@@ -643,6 +667,11 @@ const WhatsAppCampaignManager = () => {
                   {providerStatus?.provider === "mock" && (
                     <p className="rounded border border-amber-800 bg-amber-950/30 p-3 text-sm text-amber-100">
                       This server is in development mock mode, so campaigns do not reach customers. Configure Meta WhatsApp Cloud API credentials and an approved template to enable production sends.
+                    </p>
+                  )}
+                  {emailCouponsEnabled && (
+                    <p className="text-xs text-[#aaa]">
+                      Emails are queued after coupon generation for customers with a valid email address and recorded promotional consent.
                     </p>
                   )}
 
@@ -855,7 +884,7 @@ const WhatsAppCampaignManager = () => {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h3 className="font-semibold text-white">Generated coupon codes</h3>
-                          <p className="text-xs text-[#999]">Copy a code to share it manually. Email status is shown for opted-in customers.</p>
+                          <p className="text-xs text-[#999]">Copy the complete approved WhatsApp template for opted-in customers. Emails are queued automatically when enabled.</p>
                         </div>
                         {tokenResult?.email && (
                           <p className="text-xs text-[#bbb]" role="status">
@@ -864,9 +893,9 @@ const WhatsAppCampaignManager = () => {
                         )}
                       </div>
                       <div className="max-h-64 overflow-auto rounded border border-[#333]">
-                        <table className="w-full min-w-[640px] text-left text-sm text-white">
+                        <table className="w-full min-w-[760px] text-left text-sm text-white">
                           <thead className="sticky top-0 bg-[#292929] text-xs text-[#aaa]">
-                            <tr><th className="p-2">Customer</th><th>Consent</th><th>Coupon code</th><th>Discount</th><th>Email</th><th>Copy</th></tr>
+                            <tr><th className="p-2">Customer</th><th>Consent</th><th>Coupon code</th><th>Discount</th><th>Email status</th><th>Copy WhatsApp message</th></tr>
                           </thead>
                           <tbody>
                             {scanResult.rows.filter((row) => row.couponCode).map((row) => (
@@ -875,15 +904,30 @@ const WhatsAppCampaignManager = () => {
                                 <td className={row.marketingConsent ? "text-emerald-300" : "text-amber-200"}>{row.marketingConsent ? "Opted in" : "No consent"}</td>
                                 <td className="font-mono">{row.marketingConsent ? row.couponCode : "Hidden until consent"}</td>
                                 <td>{row.discountPercentage}%</td>
-                                <td className="capitalize text-[#bbb]">{String(row.emailStatus || "not queued").replaceAll("_", " ")}</td>
+                                <td className="text-[#bbb]">
+                                  <span className="capitalize">{String(row.emailStatus || "not queued").replaceAll("_", " ")}</span>
+                                  {row.emailStatus === "skipped" && (
+                                    <span className="block max-w-52 text-xs text-amber-200">
+                                      {row.emailLastError?.toLowerCase().includes("consent")
+                                        ? "Promotional consent not recorded"
+                                        : row.emailLastError?.toLowerCase().includes("email")
+                                          ? "Email missing or invalid"
+                                          : row.emailLastError
+                                            ? "Coupon is no longer active"
+                                            : "Not eligible for email"}
+                                    </span>
+                                  )}
+                                  {row.emailStatus === "failed" && <span className="block text-xs text-red-200">Check SMTP settings and server logs</span>}
+                                  {row.emailStatus === "queued" && <span className="block text-xs text-emerald-200">Queued for delivery</span>}
+                                </td>
                                 <td>
                                   <button
                                     type="button"
                                     disabled={!row.marketingConsent}
                                     className="rounded bg-[#383838] px-2 py-1 text-xs hover:bg-[#4a4a4a] disabled:cursor-not-allowed disabled:opacity-50"
-                                    onClick={() => copyCouponCode(row.id, row.couponCode)}
+                                    onClick={() => copyCouponMessage(row)}
                                   >
-                                    {!row.marketingConsent ? "Consent required" : copiedCustomerId === row.id ? "Copied" : "Copy code"}
+                                    {!row.marketingConsent ? "Consent required" : copiedCustomerId === row.id ? "Message copied" : "Copy full message"}
                                   </button>
                                 </td>
                               </tr>
@@ -891,6 +935,23 @@ const WhatsAppCampaignManager = () => {
                           </tbody>
                         </table>
                       </div>
+                      {manualCopyMessage && (
+                        <label className="block space-y-1 text-xs text-[#bbb]">
+                          WhatsApp message (select and copy)
+                          <textarea
+                            className={`${inputClass} min-h-32`}
+                            readOnly
+                            value={manualCopyMessage}
+                            onFocus={(event) => event.target.select()}
+                            aria-label="WhatsApp coupon message to copy manually"
+                          />
+                        </label>
+                      )}
+                      {scanResult.rows.some((row) => row.couponCode && !row.marketingConsent) && (
+                        <p className="text-xs text-amber-200">
+                          Customers without recorded promotional consent cannot receive marketing emails or have a shareable message copied. Ask for their permission, record it with Edit, then click Generate &amp; Assign Tokens again to recheck email eligibility.
+                        </p>
+                      )}
                     </section>
                   )}
                 </div>
