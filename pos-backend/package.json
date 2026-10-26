@@ -11,6 +11,7 @@
     "migrate:payment-idempotency": "node scripts/migrate-checkout-idempotency.js",
     "migrate:welcome-offer-index": "node scripts/migrate-welcome-offer-index.js",
     "migrate:whatsapp-campaigns": "node scripts/migrate-whatsapp-campaigns.js",
+    "migrate:promotions": "node scripts/migrate-promotions.js",
     "migrate:customer-contacts": "node scripts/migrate-customer-contacts.js",
     "migrate:staff-hr": "node scripts/migrate-staff-hr.js",
     "migrate:asset-depreciation": "node scripts/migrate-asset-depreciation.js",

@@ -1,12 +1,13 @@
 const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
-const crypto = require("crypto");
 const Coupon = require("../models/couponModel");
+const Settings = require("../models/settingsModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
 const Customer = require("../models/customerModel");
 const CustomerCoupon = require("../models/customerCouponModel");
 const { resolveCartPrices, calculateEligibleSubtotal, evaluateCoupon, buildWelcomeOfferCoupon, normalizePhoneDigits } = require("../services/couponService");
 const customerPhoneKey = require("../utils/customerPhoneKey");
+const { createCustomerCouponCode } = require("../utils/customerCouponCode");
 
 const DISCOUNT_TYPES = ["percentage", "fixed"];
 const STATUSES = ["draft", "scheduled", "active", "paused", "expired", "archived"];
@@ -19,6 +20,26 @@ const parseIds = (value, fieldName) => {
   }
   return [...new Set(value.map(String))];
 };
+
+const couponAuditSnapshot = (coupon) => {
+  const value = coupon.toObject ? coupon.toObject() : coupon;
+  const fields = [
+    "name", "description", "code", "discountType", "discountValue",
+    "minimumSubtotal", "maximumDiscount", "eligibleDishIds", "excludedDishIds",
+    "eligibleCategoryIds", "excludedCategoryIds", "channels", "usageLimit",
+    "perCustomerLimit", "startsAt", "expiresAt", "timezone", "firstOrderOnly",
+    "allowStacking", "status",
+  ];
+  return Object.fromEntries(fields.map((field) => [field, value[field] ?? null]));
+};
+
+const couponAuditEntry = (req, previousValue, newValue) => ({
+  changedAt: new Date(),
+  changedBy: req.user?._id || null,
+  changedByName: String(req.user?.name || req.user?.email || "").slice(0, 120),
+  previousValue,
+  newValue,
+});
 
 const buildCouponPayload = (body, existing = {}) => {
   const name = String(body.name ?? existing.name ?? "").trim();
@@ -137,6 +158,7 @@ const getCoupons = async (req, res, next) => {
     }
     const [coupons, total] = await Promise.all([
       Coupon.find(filter)
+        .select("+auditHistory")
         .populate("eligibleDishIds", "name")
         .populate("excludedDishIds", "name")
         .populate("eligibleCategoryIds", "name")
@@ -193,7 +215,12 @@ const getCoupons = async (req, res, next) => {
 
 const createCoupon = async (req, res, next) => {
   try {
-    const coupon = await Coupon.create({ ...buildCouponPayload(req.body), createdBy: req.user._id });
+    const payload = buildCouponPayload(req.body);
+    const coupon = await Coupon.create({
+      ...payload,
+      createdBy: req.user._id,
+      auditHistory: [couponAuditEntry(req, null, payload)],
+    });
     res.status(201).json({ success: true, message: "Coupon created.", data: coupon });
   } catch (error) {
     next(error.code === 11000 ? createHttpError(409, "Coupon code already exists.") : error);
@@ -203,9 +230,12 @@ const createCoupon = async (req, res, next) => {
 const updateCoupon = async (req, res, next) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(400, "Invalid coupon ID.");
-    const coupon = await Coupon.findById(req.params.id);
+    const coupon = await Coupon.findById(req.params.id).select("+auditHistory");
     if (!coupon) throw createHttpError(404, "Coupon not found.");
-    coupon.set(buildCouponPayload(req.body, coupon.toObject()));
+    const previousValue = couponAuditSnapshot(coupon);
+    const payload = buildCouponPayload(req.body, coupon.toObject());
+    coupon.set(payload);
+    coupon.auditHistory = [...(coupon.auditHistory || []), couponAuditEntry(req, previousValue, payload)].slice(-100);
     await coupon.save();
     res.json({ success: true, message: "Coupon updated.", data: coupon });
   } catch (error) {
@@ -216,8 +246,12 @@ const updateCoupon = async (req, res, next) => {
 const archiveCoupon = async (req, res, next) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(400, "Invalid coupon ID.");
-    const coupon = await Coupon.findByIdAndUpdate(req.params.id, { status: "archived" }, { new: true });
+    const coupon = await Coupon.findById(req.params.id).select("+auditHistory");
     if (!coupon) throw createHttpError(404, "Coupon not found.");
+    const previousValue = couponAuditSnapshot(coupon);
+    coupon.status = "archived";
+    coupon.auditHistory = [...(coupon.auditHistory || []), couponAuditEntry(req, previousValue, couponAuditSnapshot(coupon))].slice(-100);
+    await coupon.save();
     res.json({ success: true, message: "Coupon archived.", data: coupon });
   } catch (error) {
     next(error);
@@ -234,6 +268,7 @@ const duplicateCoupon = async (req, res, next) => {
     delete source.createdAt;
     delete source.updatedAt;
     delete source.redemptionCount;
+    delete source.auditHistory;
     source.name = `${source.name} copy`;
     source.code = "";
     source.status = "draft";
@@ -288,6 +323,7 @@ const checkWelcomeOffer = async (req, res, next) => {
     const result = await buildWelcomeOfferCoupon({
       phone: normalizedPhone,
       customerId: req.customer?._id || null,
+      customer: req.customer,
       channel,
       subtotal,
       session: null,
@@ -406,17 +442,29 @@ const assignCoupon = async (req, res, next) => {
     if (coupon.expiresAt && (!expiresAt || expiresAt > coupon.expiresAt)) {
       throw createHttpError(400, "Assignment expiry cannot exceed the campaign expiry.");
     }
-    const code = `PVT_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
-    const assignment = await CustomerCoupon.create({
-      couponId: coupon._id,
-      customerId: customer._id,
-      code,
-      source: "admin",
-      redemptionLimit,
-      startsAt,
-      expiresAt,
-      assignedBy: req.user._id,
-    });
+    let assignment;
+    let code;
+    const globalSettings = (await Settings.findOne({ key: "global" }).select("promotionSettings").lean())?.promotionSettings?.global;
+    for (let attempt = 0; attempt < 5 && !assignment; attempt += 1) {
+      code = createCustomerCouponCode(globalSettings);
+      try {
+        assignment = await CustomerCoupon.create({
+          couponId: coupon._id,
+          customerId: customer._id,
+          code,
+          source: "admin",
+          redemptionLimit,
+          startsAt,
+          expiresAt,
+          assignedBy: req.user._id,
+        });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        if (error.keyPattern?.code && attempt < 4) continue;
+        throw error;
+      }
+    }
+    if (!assignment) throw createHttpError(500, "Could not allocate a unique customer coupon code.");
     res.status(201).json({
       success: true,
       message: "Customer coupon assigned. The private code is shown only once.",

@@ -74,6 +74,7 @@ app.use("/api/dish", require("./routes/dishRoute"));
 app.use("/api/deal", require("./routes/dealRoute"));
 app.use("/api/coupon", require("./routes/couponRoute"));
 app.use("/api/whatsapp-campaign", require("./routes/whatsAppCampaignRoute"));
+app.use("/api/promotions", require("./routes/promotionRoute"));
 app.use("/api/hero-slide", require("./routes/heroSlideRoute"));
 app.use("/api/inventory", require("./routes/inventoryRoute"));
 app.use("/api/assets", require("./routes/assetRoute"));
@@ -96,6 +97,7 @@ app.use(globalErrorHandler);
 require("./services/dailyProfitScheduler").startDailyProfitScheduler();
 
 require("./services/whatsAppCampaignWorker").start();
+require("./services/promotionCampaignWorker").start();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).
 require("./services/staffAttendanceScheduler").startStaffAttendanceScheduler();

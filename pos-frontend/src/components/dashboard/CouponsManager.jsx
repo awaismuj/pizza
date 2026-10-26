@@ -133,7 +133,7 @@ const IdSelector = ({ title, options, selectedIds, onChange, loading, error, emp
   );
 };
 
-const CouponsManager = () => {
+const CouponsManager = ({ showWelcomeOfferSettings = true }) => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -305,6 +305,11 @@ const CouponsManager = () => {
   };
   const submit = (event) => {
     event.preventDefault();
+    const editedCoupon = coupons.find((coupon) => coupon._id === editingId);
+    if (editedCoupon && ["active", "scheduled"].includes(editedCoupon.status)
+      && !window.confirm("This coupon is active or scheduled. Changes affect future redemptions for existing assignments, but completed orders and prior redemption records will remain unchanged. Continue?")) {
+      return;
+    }
     let startsAt;
     let expiresAt;
     try {
@@ -341,7 +346,7 @@ const CouponsManager = () => {
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Completed coupon uses</p><b className="text-2xl text-white">{redemptionSummary.redeemed || 0}</b><p className="text-xs text-[#aaa]">Pending: {redemptionSummary.reserved || 0} · Discounts: Rs {Number(redemptionSummary.discountTotal || 0).toLocaleString()}</p></div>
       </section>
 
-      <section className="rounded-lg bg-[#262626] p-5 space-y-4">
+      {showWelcomeOfferSettings && <section className="rounded-lg bg-[#262626] p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-white">First-Time Customer Welcome Offer</h2>
           <label className="flex items-center gap-2 text-sm text-white">
@@ -384,7 +389,7 @@ const CouponsManager = () => {
             });
           }}>{welcomeOfferMutation.isPending ? "Saving…" : "Save welcome offer"}</button>
         </div>
-      </section>
+      </section>}
 
       <form onSubmit={submit} className="rounded-lg bg-[#262626] p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -527,7 +532,17 @@ const CouponsManager = () => {
               <thead className="text-[#aaa]"><tr><th className="py-2">Coupon</th><th>Discount</th><th>Completed uses</th><th>Private assignments</th><th>Schedule</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>{coupons.map((coupon) => (
                 <tr key={coupon._id} className="border-t border-[#3c3c3c]">
-                  <td className="py-3"><b>{coupon.name}</b><div className="text-[#aaa]">{coupon.code}</div></td>
+                  <td className="py-3"><b>{coupon.name}</b><div className="text-[#aaa]">{coupon.code}</div>
+                    {coupon.auditHistory?.length > 0 && <details className="mt-1 text-xs text-[#aaa]">
+                      <summary className="cursor-pointer">Change history ({coupon.auditHistory.length})</summary>
+                      <div className="mt-1 space-y-2">
+                        {coupon.auditHistory.slice().reverse().map((entry, index) => <div key={`${entry.changedAt}-${index}`} className="border-l border-[#555] pl-2">
+                          <div>{new Date(entry.changedAt).toLocaleString()} · {entry.changedByName || "Admin"}</div>
+                          <pre className="max-w-[35vw] overflow-auto whitespace-pre-wrap">{JSON.stringify({ previous: entry.previousValue, new: entry.newValue }, null, 2)}</pre>
+                        </div>)}
+                      </div>
+                    </details>}
+                  </td>
                   <td>{amountText(coupon)}</td>
                   <td>{coupon.redeemedCount || 0} / {coupon.usageLimit ?? "∞"}<div className="text-xs text-[#aaa]">{coupon.reservedCount || 0} pending (counts toward limit)</div><div className="text-xs text-[#aaa]">per phone: {coupon.perCustomerLimit}</div></td>
                   <td>{coupon.assignedCount || 0} total<div className="text-xs text-[#aaa]">{coupon.activeAssignmentCount || 0} active</div></td>

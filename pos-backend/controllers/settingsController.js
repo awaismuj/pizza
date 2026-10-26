@@ -5,6 +5,7 @@ const { normalizeByoConfig } = require("../utils/byoDiscount");
 const { publicPaymentsShape, paymentsConfig, cleanText } = require("../utils/paymentUtils");
 const { normalizePrepSettings, mergePrepSettings } = require("../utils/prepTimer");
 const { normalizePasswordPolicy } = require("../utils/passwordPolicy");
+const { getPromotionSettings } = require("../utils/promotionSettings");
 
 const SETTINGS_KEY = "global";
 
@@ -14,21 +15,48 @@ const publicShape = (settings) => ({
   payments: publicPaymentsShape(settings),
   orderPrep: normalizePrepSettings(settings.orderPrep),
   passwordPolicy: normalizePasswordPolicy(settings.passwordPolicy),
+  couponEntryEnabled: settings.promotionSettings
+    ? getPromotionSettings(settings.promotionSettings).global.onlineCouponEntryEnabled
+    : true,
   firstTimeCustomerOffer: {
-    enabled: Boolean(settings.firstTimeCustomerOffer?.enabled),
-    minimumSubtotal: Number(settings.firstTimeCustomerOffer?.minimumSubtotal ?? 1000),
-    percentages: Array.isArray(settings.firstTimeCustomerOffer?.percentages)
-      ? settings.firstTimeCustomerOffer.percentages.map(Number).filter((value) => Number.isFinite(value) && value > 0)
+    discountType: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.discountType
+      : "percentage",
+    fixedAmount: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.fixedAmount
+      : null,
+    enabled: Boolean(settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.enabled
+      : settings.firstTimeCustomerOffer?.enabled),
+    minimumSubtotal: Number(settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.minimumSubtotal
+      : settings.firstTimeCustomerOffer?.minimumSubtotal ?? 1000),
+    percentages: Array.isArray(settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.percentages
+      : settings.firstTimeCustomerOffer?.percentages)
+      ? (settings.promotionSettings
+        ? getPromotionSettings(settings.promotionSettings).welcome.percentages
+        : settings.firstTimeCustomerOffer.percentages).map(Number).filter((value) => Number.isFinite(value) && value > 0)
       : [5, 7, 10],
     selectionMethod: settings.firstTimeCustomerOffer?.selectionMethod || "random",
-    maxDiscountAmount: settings.firstTimeCustomerOffer?.maxDiscountAmount ?? null,
-    startsAt: settings.firstTimeCustomerOffer?.startsAt || null,
-    expiresAt: settings.firstTimeCustomerOffer?.expiresAt || null,
-    maxCampaignRedemptions: settings.firstTimeCustomerOffer?.maxCampaignRedemptions ?? null,
+    maxDiscountAmount: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.maximumDiscount
+      : settings.firstTimeCustomerOffer?.maxDiscountAmount ?? null,
+    startsAt: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.startsAt
+      : settings.firstTimeCustomerOffer?.startsAt || null,
+    expiresAt: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.endsAt
+      : settings.firstTimeCustomerOffer?.expiresAt || null,
+    maxCampaignRedemptions: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.maxCampaignRedemptions
+      : settings.firstTimeCustomerOffer?.maxCampaignRedemptions ?? null,
     redemptionCount: Number(settings.welcomeOfferRedemptionCount || 0),
     maxOnePerCustomer: Boolean(settings.firstTimeCustomerOffer?.maxOnePerCustomer ?? true),
-    eligibleChannels: Array.isArray(settings.firstTimeCustomerOffer?.eligibleChannels) && settings.firstTimeCustomerOffer.eligibleChannels.length
-      ? settings.firstTimeCustomerOffer.eligibleChannels
+    eligibleChannels: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.eligibleChannels
+      : Array.isArray(settings.firstTimeCustomerOffer?.eligibleChannels) && settings.firstTimeCustomerOffer.eligibleChannels.length
+        ? settings.firstTimeCustomerOffer.eligibleChannels
       : ["Online", "POS", "Pickup", "Delivery"],
     popupTitle: settings.firstTimeCustomerOffer?.popupTitle || "Welcome to our Pizza Store!",
     popupDescription: settings.firstTimeCustomerOffer?.popupDescription || "You're eligible for a special first-order reward.",
@@ -72,6 +100,7 @@ const updateSettings = async (req, res, next) => {
     const { taxRatePercent, buildYourOwnDeal, payments, orderPrep, passwordPolicy, firstTimeCustomerOffer } = req.body;
     const settings = await getOrCreateSettings();
     const messages = [];
+    const couponAuditChanges = [];
 
     if (taxRatePercent !== undefined) {
       const value = Number(taxRatePercent);
@@ -241,8 +270,18 @@ const updateSettings = async (req, res, next) => {
         }
         nextOffer.maxDiscountAmount = maxDiscount;
       }
-      if (firstTimeCustomerOffer.startsAt !== undefined) nextOffer.startsAt = firstTimeCustomerOffer.startsAt ? new Date(firstTimeCustomerOffer.startsAt) : null;
-      if (firstTimeCustomerOffer.expiresAt !== undefined) nextOffer.expiresAt = firstTimeCustomerOffer.expiresAt ? new Date(firstTimeCustomerOffer.expiresAt) : null;
+      if (firstTimeCustomerOffer.startsAt !== undefined) {
+        nextOffer.startsAt = firstTimeCustomerOffer.startsAt ? new Date(firstTimeCustomerOffer.startsAt) : null;
+        if (nextOffer.startsAt && Number.isNaN(nextOffer.startsAt.getTime())) {
+          return next(createHttpError(400, "The offer start date must be valid."));
+        }
+      }
+      if (firstTimeCustomerOffer.expiresAt !== undefined) {
+        nextOffer.expiresAt = firstTimeCustomerOffer.expiresAt ? new Date(firstTimeCustomerOffer.expiresAt) : null;
+        if (nextOffer.expiresAt && Number.isNaN(nextOffer.expiresAt.getTime())) {
+          return next(createHttpError(400, "The offer expiry date must be valid."));
+        }
+      }
       if (nextOffer.startsAt && nextOffer.expiresAt && nextOffer.startsAt >= nextOffer.expiresAt) {
         return next(createHttpError(400, "The offer expiry date must be after the start date."));
       }
@@ -285,6 +324,25 @@ const updateSettings = async (req, res, next) => {
       }
 
       settings.firstTimeCustomerOffer = nextOffer;
+      const promotionSettings = getPromotionSettings(settings.promotionSettings);
+      promotionSettings.welcome = {
+        ...promotionSettings.welcome,
+        enabled: nextOffer.enabled,
+        discountType: "percentage",
+        minimumSubtotal: nextOffer.minimumSubtotal,
+        percentages: nextOffer.percentages,
+        maximumDiscount: nextOffer.maxDiscountAmount,
+        startsAt: nextOffer.startsAt,
+        endsAt: nextOffer.expiresAt,
+        eligibleChannels: nextOffer.eligibleChannels.filter((channel) => ["Online", "POS"].includes(channel)),
+      };
+      if (!promotionSettings.welcome.eligibleChannels.length) promotionSettings.welcome.eligibleChannels = ["Online"];
+      settings.promotionSettings = promotionSettings;
+      couponAuditChanges.push({
+        area: "welcome-offer",
+        previousValue: JSON.parse(JSON.stringify(currentOffer)),
+        newValue: JSON.parse(JSON.stringify(nextOffer)),
+      });
       messages.push("First-time customer welcome offer updated!");
     }
 
@@ -292,6 +350,18 @@ const updateSettings = async (req, res, next) => {
       return next(createHttpError(400, "Nothing to update."));
     }
 
+    if (couponAuditChanges.length) {
+      const audit = [...(settings.couponSettingsAudit || [])];
+      for (const change of couponAuditChanges) {
+        audit.push({
+          changedAt: new Date(),
+          changedBy: req.user?._id || null,
+          changedByName: String(req.user?.name || req.user?.email || "").slice(0, 120),
+          ...change,
+        });
+      }
+      settings.couponSettingsAudit = audit.slice(-200);
+    }
     await settings.save();
 
     res.status(200).json({
