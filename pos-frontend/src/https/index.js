@@ -136,22 +136,6 @@ export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.po
 export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
 export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
 export const checkWelcomeOffer = (data) => axiosWrapper.post("/api/coupon/welcome-offer/check", data);
-export const getPromotionSettings = () => axiosWrapper.get("/api/promotions/settings");
-export const updatePromotionSettings = (data) => axiosWrapper.put("/api/promotions/settings", data);
-export const getPromotionCustomers = (params) => axiosWrapper.get("/api/promotions/customers", { params });
-export const getPromotionPreview = (kind, customerIds = []) => axiosWrapper.get("/api/promotions/preview", {
-  params: { kind, ...(customerIds.length ? { customerIds: customerIds.join(",") } : {}) },
-});
-export const getPromotionExecutions = (params) => axiosWrapper.get("/api/promotions/executions", { params });
-export const runPromotionCampaign = (data) => axiosWrapper.post("/api/promotions/executions", data);
-export const getPromotionExecutionIssues = ({ executionId, ...params }) =>
-  axiosWrapper.get(`/api/promotions/executions/${executionId}/issues`, { params });
-export const queuePromotionIssueDelivery = ({ issueId, channel }) =>
-  axiosWrapper.post(`/api/promotions/issues/${issueId}/send`, { channel });
-export const retryPromotionIssueDelivery = ({ issueId, channel }) =>
-  axiosWrapper.post(`/api/promotions/issues/${issueId}/retry`, { channel });
-export const revokePromotionCoupon = (assignmentId) =>
-  axiosWrapper.patch(`/api/promotions/assignments/${assignmentId}/revoke`);
 
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");
