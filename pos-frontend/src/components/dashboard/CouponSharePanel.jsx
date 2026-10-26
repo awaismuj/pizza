@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FaEnvelope, FaSearch, FaWhatsapp } from "react-icons/fa";
+import { FaEnvelope, FaExternalLinkAlt, FaSearch, FaWhatsapp } from "react-icons/fa";
 import {
   getCampaignWhatsAppProvider,
   getCoupons,
@@ -98,6 +98,18 @@ const CouponSharePanel = () => {
         <h2 id="coupon-share-title" className="text-lg font-semibold text-white">Send a WhatsApp coupon</h2>
         <p className="mt-1 text-sm text-[#aaa]">
           Search for an opted-in customer, choose an eligible coupon, review the approved template, and send without leaving this panel.
+        </p>
+        <a
+          href="https://web.whatsapp.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-2 rounded bg-[#25d366] px-3 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174]"
+        >
+          <FaWhatsapp aria-hidden="true" /> Open WhatsApp Web to scan QR
+          <FaExternalLinkAlt aria-hidden="true" className="text-xs" />
+        </a>
+        <p className="mt-2 text-xs text-[#999]">
+          WhatsApp Web opens in a separate tab for QR linking; WhatsApp does not allow its session to be embedded in this panel. Linking WhatsApp Web does not configure the Cloud API sender below.
         </p>
       </div>
 
