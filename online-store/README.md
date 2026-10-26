@@ -24,12 +24,25 @@ npm install
 npm run dev
 ```
 
-The public site includes a privacy policy at `/privacy`, a generated sitemap
-at `/sitemap.xml`, and crawler rules at `/robots.txt`. Configure the static
-host to serve `404.html` with an HTTP 404 status for unknown paths while
-keeping `/` and `/privacy` mapped to the SPA entry point. SEO metadata and
-canonical links are updated per route. The POS dashboard is a separate,
-private app and is marked `noindex`.
+The public site includes customer help at `/help`, terms at `/terms`, a
+privacy policy at `/privacy`, a sitemap at `/sitemap.xml`, and crawler rules
+at `/robots.txt`. Configure the static host to serve `404.html` with an HTTP
+404 status for unknown paths while keeping `/`, `/help`, `/terms`, and
+`/privacy` mapped to the SPA entry point. SEO metadata and canonical links
+are updated per route. The POS dashboard is a separate, private app and is
+marked `noindex`.
+
+To enable Google Analytics 4, set `VITE_GA_MEASUREMENT_ID` to the site's
+measurement ID (format `G-...`) in the storefront environment before building.
+The app sends a page view on the initial load and client-side route changes.
+Leave it empty to disable analytics. Update the privacy policy if your data
+practices change.
+
+For indexing, verify `https://genzpizza.online` in Google Search Console and
+submit `https://genzpizza.online/sitemap.xml` under **Sitemaps**. The sitemap
+lists the public home, help, terms, and privacy pages; `robots.txt` allows
+crawling and points crawlers to that sitemap. Analytics does not submit pages
+for indexing or guarantee when Google will index them.
 
 ## Deploying to genzpizza.online
 
@@ -61,8 +74,24 @@ server {
         try_files /index.html =404;
     }
 
+    location = /help {
+        try_files /index.html =404;
+    }
+
+    location = /terms {
+        try_files /index.html =404;
+    }
+
     location = /privacy/ {
         return 301 /privacy;
+    }
+
+    location = /help/ {
+        return 301 /help;
+    }
+
+    location = /terms/ {
+        return 301 /terms;
     }
 
     location / {

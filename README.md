@@ -514,13 +514,13 @@ These in-memory rate limits are per backend process; use a shared
 gateway/store for multi-instance production deployments. Production startup
 also requires a unique `JWT_SECRET` of at least 32 characters.
 
-The public storefront exposes its home and privacy policy pages through
-`online-store/public/sitemap.xml` and `robots.txt`; the POS app is marked
-`noindex`. The storefront includes an app-level not-found page and static
-`404.html`; configure the web host to serve that file with an HTTP 404 status
-for unknown paths. Large uploaded images are resized/compressed in the POS
-browser before upload when supported. Existing review spam controls include
-a honeypot and rate limit; delivery quote and menu search inputs are
+The public storefront exposes its home, help, terms, and privacy policy pages
+through `online-store/public/sitemap.xml` and `robots.txt`; the POS app is
+marked `noindex`. The storefront includes an app-level not-found page and
+static `404.html`; configure the web host to serve that file with an HTTP 404
+status for unknown paths. Large uploaded images are resized/compressed in the
+POS browser before upload when supported. Existing review spam controls
+include a honeypot and rate limit; delivery quote and menu search inputs are
 debounced.
 
 ### Deployment and rollback
