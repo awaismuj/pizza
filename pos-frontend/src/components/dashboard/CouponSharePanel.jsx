@@ -1,37 +1,29 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FaEnvelope, FaSearch, FaWhatsapp } from "react-icons/fa";
-import { getCoupons, searchCouponCustomerByPhone } from "../../https";
+import {
+  getCampaignWhatsAppProvider,
+  getCoupons,
+  searchCouponCustomerByPhone,
+  sendWhatsAppIndividualCoupon,
+} from "../../https";
 
 const responseData = (response) => response?.data?.data;
 
-const normalizeWhatsAppNumber = (phone) => {
-  let digits = String(phone || "").replace(/\D/g, "");
-  if (digits.startsWith("00")) digits = digits.slice(2);
-  if (digits.startsWith("92")) {
-    if (digits.length === 13 && digits[2] === "0") digits = `92${digits.slice(3)}`;
-  } else if (digits.startsWith("0")) {
-    digits = `92${digits.slice(1)}`;
-  } else if (digits.length === 10 && digits.startsWith("3")) {
-    digits = `92${digits}`;
-  }
-  return /^\d{10,15}$/.test(digits) ? digits : "";
-};
-
-const couponMessage = (customer, coupon) => {
-  const discount = coupon.discountType === "percentage"
-    ? `${coupon.discountValue}% off`
-    : `Rs ${Number(coupon.discountValue).toLocaleString()} off`;
-  const minimum = Number(coupon.minimumSubtotal) > 0
-    ? ` Minimum order: Rs ${Number(coupon.minimumSubtotal).toLocaleString()}.`
-    : "";
+const couponMessage = (customer, coupon, templateText) => {
   const expiry = coupon.expiresAt
-    ? ` Valid until ${new Date(coupon.expiresAt).toLocaleDateString()}.`
-    : "";
-  const channels = Array.isArray(coupon.channels) && coupon.channels.length
-    ? ` Available for ${coupon.channels.join(" and ")} orders.`
-    : "";
-  return `Hi ${customer.name}, enjoy ${discount} with coupon code ${coupon.code}.${minimum}${expiry}${channels} Terms and eligible items apply.`;
+    ? new Intl.DateTimeFormat("en-PK", { timeZone: coupon.timezone || "Asia/Karachi", dateStyle: "medium" }).format(new Date(coupon.expiresAt))
+    : "No expiry";
+  const parameters = [
+    String(customer.name || "Customer"),
+    String(coupon.discountValue),
+    String(coupon.code),
+    Number(coupon.minimumSubtotal || 0).toLocaleString("en-US"),
+    expiry,
+  ];
+  return String(templateText || "Hi {{1}}! Enjoy {{2}}% OFF with coupon code {{3}}. Minimum order: Rs {{4}}. Valid until {{5}}.")
+    .replaceAll("\\n", "\n")
+    .replace(/\{\{([1-5])\}\}/g, (_, index) => parameters[Number(index) - 1]);
 };
 
 const CouponSharePanel = () => {
@@ -40,7 +32,12 @@ const CouponSharePanel = () => {
   const [selectedCouponId, setSelectedCouponId] = useState("");
   const [validationMessage, setValidationMessage] = useState("");
   const [emailConsentConfirmed, setEmailConsentConfirmed] = useState(false);
+  const [sendFeedback, setSendFeedback] = useState("");
 
+  const providerQuery = useQuery({
+    queryKey: ["wa-campaign-provider"],
+    queryFn: getCampaignWhatsAppProvider,
+  });
   const couponsQuery = useQuery({
     queryKey: ["coupon-share-active"],
     queryFn: () => getCoupons({ status: "active", page: 1, limit: 100 }),
@@ -51,18 +48,30 @@ const CouponSharePanel = () => {
     enabled: Boolean(searchedPhone),
     retry: false,
   });
+  const sendMutation = useMutation({
+    mutationFn: sendWhatsAppIndividualCoupon,
+    onSuccess: () => setSendFeedback("WhatsApp accepted the coupon message for delivery."),
+    onError: (error) => setSendFeedback(error?.response?.data?.message || error?.message || "Could not send the WhatsApp coupon."),
+  });
 
-  const coupons = (responseData(couponsQuery.data) || []).filter((coupon) => coupon.status === "active");
+  const now = Date.now();
+  const coupons = (responseData(couponsQuery.data) || []).filter((item) =>
+    item.status === "active"
+    && item.source === "admin"
+    && item.discountType === "percentage"
+    && item.channels?.includes("Online")
+    && (!item.startsAt || new Date(item.startsAt).getTime() <= now)
+    && (!item.expiresAt || new Date(item.expiresAt).getTime() > now)
+    && (item.usageLimit == null || Number(item.redemptionCount) < Number(item.usageLimit))
+  );
   const customer = responseData(customerQuery.data) || null;
   const coupon = coupons.find((item) => item._id === selectedCouponId);
-  const whatsappNumber = customer ? normalizeWhatsAppNumber(customer.phone) : "";
-  const message = customer && coupon ? couponMessage(customer, coupon) : "";
-  const whatsAppHref = whatsappNumber && message
-    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
-    : "";
+  const providerStatus = providerQuery.data?.data?.data || providerQuery.data?.data;
+  const message = customer && coupon ? couponMessage(customer, coupon, providerStatus?.templatePreviewText) : "";
   const emailHref = customer?.email && message && emailConsentConfirmed
     ? `mailto:${customer.email}?subject=${encodeURIComponent(`Your ${coupon.name} coupon`)}&body=${encodeURIComponent(message)}`
     : "";
+  const cloudReady = providerStatus?.provider === "cloud" && providerStatus?.configured === true;
 
   const findCustomer = (event) => {
     event.preventDefault();
@@ -70,22 +79,38 @@ const CouponSharePanel = () => {
     if (digits.length < 9 || digits.length > 15) {
       setValidationMessage("Enter at least the last 9 digits of the customer's phone number.");
       setSearchedPhone("");
+      setSelectedCouponId("");
+      setSendFeedback("");
+      sendMutation.reset();
       return;
     }
     setValidationMessage("");
     setSelectedCouponId("");
     setEmailConsentConfirmed(false);
+    setSendFeedback("");
+    sendMutation.reset();
     setSearchedPhone(digits);
   };
 
   return (
     <section className="space-y-4 rounded-lg border border-[#3a3a3a] bg-[#202020] p-5" aria-labelledby="coupon-share-title">
       <div>
-        <h2 id="coupon-share-title" className="text-lg font-semibold text-white">Send a coupon to one customer</h2>
+        <h2 id="coupon-share-title" className="text-lg font-semibold text-white">Send a WhatsApp coupon</h2>
         <p className="mt-1 text-sm text-[#aaa]">
-          Find a customer by phone, choose an active coupon, then review a prefilled message. WhatsApp and email open for you to send manually.
+          Search for an opted-in customer, choose an eligible coupon, review the approved template, and send without leaving this panel.
         </p>
       </div>
+
+      {providerQuery.isError && (
+        <p className="text-sm text-red-300" role="alert">
+          {providerQuery.error?.response?.data?.message || "Could not check WhatsApp Cloud API readiness."}
+        </p>
+      )}
+      {!providerQuery.isLoading && !cloudReady && (
+        <p className="rounded border border-amber-800 bg-amber-950/30 p-3 text-sm text-amber-100" role="status">
+          WhatsApp Cloud API is not ready. Configure the production Cloud API credentials and approved five-parameter coupon template on the backend. Mock mode does not send real messages.
+        </p>
+      )}
 
       <form className="flex flex-col gap-2 sm:flex-row" onSubmit={findCustomer}>
         <label className="sr-only" htmlFor="coupon-share-phone">Customer phone number</label>
@@ -101,6 +126,8 @@ const CouponSharePanel = () => {
             setSelectedCouponId("");
             setEmailConsentConfirmed(false);
             setValidationMessage("");
+            setSendFeedback("");
+            sendMutation.reset();
           }}
           placeholder="Search by customer phone number"
           className="min-w-0 flex-1 rounded border border-[#444] bg-[#191919] px-3 py-2 text-sm text-white placeholder:text-[#888]"
@@ -145,16 +172,18 @@ const CouponSharePanel = () => {
                 onChange={(event) => {
                   setSelectedCouponId(event.target.value);
                   setEmailConsentConfirmed(false);
+                  setSendFeedback("");
+                  sendMutation.reset();
                 }}
                 disabled={couponsQuery.isLoading || coupons.length === 0}
                 className="w-full rounded border border-[#444] bg-[#1a1a1a] px-3 py-2 text-white disabled:opacity-60"
               >
                 <option value="">
-                  {couponsQuery.isLoading ? "Loading coupons…" : coupons.length ? "Choose a coupon" : "No active coupons"}
+                  {couponsQuery.isLoading ? "Loading coupons…" : coupons.length ? "Choose a coupon" : "No compatible percentage coupons"}
                 </option>
                 {coupons.map((item) => (
                   <option key={item._id} value={item._id}>
-                    {item.name} · {item.code} · {item.discountType === "percentage" ? `${item.discountValue}%` : `Rs ${item.discountValue}`}
+                    {item.name} · {item.code} · {item.discountValue}% off
                   </option>
                 ))}
               </select>
@@ -162,7 +191,7 @@ const CouponSharePanel = () => {
 
             {coupon && (
               <div className="rounded border border-[#333] bg-[#202020] p-3 text-sm text-[#ccc]" aria-live="polite">
-                <p className="font-semibold text-white">{couponMessage(customer, coupon)}</p>
+                <p className="font-semibold whitespace-pre-wrap text-white">{message}</p>
                 <p className="mt-2 text-xs text-[#999]">The coupon's existing expiry, order-channel, eligibility, and usage rules still apply.</p>
               </div>
             )}
@@ -180,22 +209,17 @@ const CouponSharePanel = () => {
             )}
 
             <div className="flex flex-wrap gap-2">
-              <a
-                href={whatsAppHref || undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-disabled={!whatsAppHref || !customer.marketingConsent}
-                className={`inline-flex items-center gap-2 rounded px-3 py-2 text-sm font-semibold ${
-                  whatsAppHref && customer.marketingConsent
-                    ? "bg-[#25d366] text-[#11251a] hover:bg-[#32e174]"
-                    : "cursor-not-allowed bg-[#303030] text-[#777]"
-                }`}
-                onClick={(event) => {
-                  if (!whatsAppHref || !customer.marketingConsent) event.preventDefault();
+              <button
+                type="button"
+                disabled={!customer.marketingConsent || !coupon || !cloudReady || sendMutation.isPending || sendMutation.isSuccess}
+                className="inline-flex items-center gap-2 rounded bg-[#25d366] px-3 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174] disabled:cursor-not-allowed disabled:bg-[#303030] disabled:text-[#777]"
+                onClick={() => {
+                  setSendFeedback("");
+                  sendMutation.mutate({ customerId: customer._id, couponId: coupon._id });
                 }}
               >
-                <FaWhatsapp aria-hidden="true" /> Prepare WhatsApp message
-              </a>
+                <FaWhatsapp aria-hidden="true" /> {sendMutation.isPending ? "Sending…" : sendMutation.isSuccess ? "Sent" : "Send via WhatsApp"}
+              </button>
               <a
                 href={emailHref || undefined}
                 aria-disabled={!emailHref}
@@ -211,6 +235,11 @@ const CouponSharePanel = () => {
             </div>
             {!customer.marketingConsent && (
               <p className="text-xs text-amber-200">WhatsApp marketing is disabled until the customer's explicit consent is recorded.</p>
+            )}
+            {sendFeedback && (
+              <p className={`text-sm ${sendMutation.isError ? "text-red-300" : "text-emerald-300"}`} role={sendMutation.isError ? "alert" : "status"}>
+                {sendFeedback}
+              </p>
             )}
             {customer.email && !emailHref && (
               <p className="text-xs text-[#999]">Confirm email consent and choose a coupon to prepare the message in your device's mail app.</p>

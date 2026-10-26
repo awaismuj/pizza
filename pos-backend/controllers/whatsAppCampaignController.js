@@ -438,6 +438,117 @@ const sendTestMessage = async (req, res, next) => {
   }
 };
 
+const sendIndividualCoupon = async (req, res, next) => {
+  let audit;
+  try {
+    const customerId = String(req.body.customerId || "");
+    const couponId = String(req.body.couponId || "");
+    if (!mongoose.Types.ObjectId.isValid(customerId) || !mongoose.Types.ObjectId.isValid(couponId)) {
+      throw createHttpError(400, "Choose a valid customer and coupon.");
+    }
+
+    const providerStatus = provider.getProviderStatus();
+    if (providerStatus.provider !== "cloud" || !providerStatus.configured) {
+      throw createHttpError(503, "Configure the production WhatsApp Cloud API and approved campaign template before sending.");
+    }
+    provider.assertConfigured();
+
+    const [customer, coupon] = await Promise.all([
+      Customer.findById(customerId).select("name phone phoneKey active marketingConsent"),
+      Coupon.findById(couponId).select("name code source discountType discountValue minimumSubtotal channels status startsAt expiresAt timezone usageLimit redemptionCount firstOrderOnly perCustomerLimit"),
+    ]);
+    if (!customer || !customer.active) throw createHttpError(404, "Active customer not found.");
+    if (customer.marketingConsent !== true) {
+      throw createHttpError(403, "This customer has not explicitly opted in to WhatsApp marketing.");
+    }
+    if (!coupon || coupon.source !== "admin" || coupon.status !== "active") {
+      throw createHttpError(400, "Choose an active standard coupon.");
+    }
+    const now = new Date();
+    if (coupon.startsAt && coupon.startsAt > now) throw createHttpError(400, "This coupon is not active yet.");
+    if (coupon.expiresAt && coupon.expiresAt <= now) throw createHttpError(400, "This coupon has expired.");
+    if (!coupon.channels?.includes("Online")) {
+      throw createHttpError(400, "This coupon is not available for online orders.");
+    }
+    if (coupon.discountType !== "percentage") {
+      throw createHttpError(400, "The approved WhatsApp template supports percentage coupons only.");
+    }
+    if (!Number.isFinite(Number(coupon.discountValue)) || Number(coupon.discountValue) <= 0 || Number(coupon.discountValue) > 100) {
+      throw createHttpError(400, "This coupon has an invalid percentage discount.");
+    }
+    if (coupon.usageLimit != null && Number(coupon.redemptionCount) >= Number(coupon.usageLimit)) {
+      throw createHttpError(400, "This coupon has reached its usage limit.");
+    }
+    if (coupon.firstOrderOnly) {
+      const phoneSuffix = String(customer.phone || "").replace(/\D/g, "").slice(-9);
+      if (phoneSuffix.length < 9) throw createHttpError(400, "Customer phone number is invalid.");
+      const hasPreviousOrder = await Order.exists({
+        orderStatus: { $ne: "Cancelled" },
+        $or: [
+          { customerId: customer._id },
+          { "customerDetails.phone": { $regex: `${phoneSuffix}$` } },
+        ],
+      });
+      if (hasPreviousOrder) throw createHttpError(400, "This first-order coupon is not eligible for this customer.");
+    }
+    const priorRedemptions = await CouponRedemption.countDocuments({
+      couponId: coupon._id,
+      customerKey: customer.phoneKey,
+      status: { $in: ["reserved", "redeemed"] },
+    });
+    if (coupon.perCustomerLimit != null && priorRedemptions >= coupon.perCustomerLimit) {
+      throw createHttpError(400, "This customer has already used this coupon.");
+    }
+
+    const expiry = coupon.expiresAt
+      ? new Intl.DateTimeFormat("en-PK", { timeZone: coupon.timezone || "Asia/Karachi", dateStyle: "medium" }).format(coupon.expiresAt)
+      : "No expiry";
+    audit = await WhatsAppCampaignAudit.create({
+      actorId: req.user._id,
+      action: "send_individual",
+      reason: "Send approved coupon template to one opted-in customer.",
+      metadata: { customerId: customer._id, couponId: coupon._id, status: "sending" },
+    });
+
+    const result = await provider.sendApprovedTemplate({
+      to: customer.phone,
+      name: String(customer.name || "Customer").slice(0, 60),
+      discount: coupon.discountValue,
+      code: coupon.code,
+      minimum: Number(coupon.minimumSubtotal || 0).toLocaleString("en-US"),
+      expiry,
+      callbackId: `individual_${audit._id}`,
+    });
+
+    try {
+      await WhatsAppCampaignAudit.updateOne(
+        { _id: audit._id },
+        { $set: { "metadata.status": "sent", "metadata.provider": result.provider, "metadata.messageId": result.messageId } }
+      );
+    } catch (auditError) {
+      console.error("WhatsApp coupon message was sent, but its audit record could not be updated:", auditError.message);
+    }
+
+    res.json({
+      success: true,
+      message: "Coupon message accepted by WhatsApp.",
+      data: { provider: result.provider, messageId: result.messageId },
+    });
+  } catch (error) {
+    if (audit?._id) {
+      try {
+        await WhatsAppCampaignAudit.updateOne(
+          { _id: audit._id },
+          { $set: { "metadata.status": "failed", "metadata.error": String(error.message || "Send failed").slice(0, 300) } }
+        );
+      } catch (auditError) {
+        console.error("Failed to record WhatsApp coupon send failure:", auditError.message);
+      }
+    }
+    next(error.status ? error : createHttpError(503, error.message || "Could not send coupon message."));
+  }
+};
+
 const createCampaign = async (req, res, next) => {
   const session = await mongoose.startSession();
   try {
@@ -871,6 +982,7 @@ module.exports = {
   previewCampaign,
   retryFailed,
   sendTestMessage,
+  sendIndividualCoupon,
   scanCampaign,
   updateCustomerContact,
   webhookStatus,

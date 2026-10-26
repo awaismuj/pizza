@@ -248,6 +248,7 @@ export const updateCampaignWhatsAppContact = ({ customerId, ...data }) =>
   axiosWrapper.patch(`/api/whatsapp-campaign/customers/${customerId}`, data);
 export const previewWhatsAppCampaign = (data) => axiosWrapper.post("/api/whatsapp-campaign/preview", data);
 export const sendWhatsAppCampaignTest = (data) => axiosWrapper.post("/api/whatsapp-campaign/send-test", data);
+export const sendWhatsAppIndividualCoupon = (data) => axiosWrapper.post("/api/whatsapp-campaign/send-individual-coupon", data);
 export const createWhatsAppCampaign = ({ requestKey, ...data }) =>
   axiosWrapper.post("/api/whatsapp-campaign/campaigns", data, { headers: { "Idempotency-Key": requestKey } });
 export const getWhatsAppCampaigns = (params) => axiosWrapper.get("/api/whatsapp-campaign/campaigns", { params });

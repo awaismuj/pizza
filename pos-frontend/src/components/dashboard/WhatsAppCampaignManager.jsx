@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload } from "react-icons/fa";
 import WhatsAppCampaignMonitor from "./WhatsAppCampaignMonitor";
-import GoogleSearchPanel from "./GoogleSearchPanel";
+import CouponSharePanel from "./CouponSharePanel";
 import {
   cancelWhatsAppCampaign,
   createCampaignWhatsAppContact,
@@ -590,7 +590,7 @@ const WhatsAppCampaignManager = () => {
                     </p>
                   )}
 
-                  <GoogleSearchPanel />
+                  <CouponSharePanel />
 
                   <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.8fr)]">
                     <section className="space-y-3 rounded border border-[#333] bg-[#202020] p-4">
