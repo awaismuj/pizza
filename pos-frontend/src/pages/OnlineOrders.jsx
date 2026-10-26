@@ -15,6 +15,7 @@ import { paymentKind } from "../utils/payments";
 import Invoice from "../components/invoice/Invoice";
 import { canEditOrder, canCancelOrder, canDeleteOrder, canExtendPrep } from "../utils/orderPermissions";
 import { isPrepActive } from "../utils/prepTimer";
+import { replaceCachedOrder } from "../utils/orderQueryCache";
 import PrepBadge from "../components/prep/PrepBadge";
 import ExtendTimeModal from "../components/prep/ExtendTimeModal";
 import { I } from "../components/shared/AppIcons";
@@ -50,20 +51,22 @@ const OnlineOrders = () => {
     queryKey: ["orders"],
     queryFn: getOrders,
     placeholderData: keepPreviousData,
-    refetchInterval: 15000, // poll so new online orders show up without a manual refresh
+    refetchInterval: 5000, // keep incoming orders and staff status changes visible quickly
   });
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
-    onSuccess: () => {
-      queryClient.invalidateQueries(["orders"]);
+    onSuccess: (response, { orderStatus }) => {
+      replaceCachedOrder(queryClient, response?.data?.data);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
       // Accepting/cancelling moves stock in or out of inventory.
-      queryClient.invalidateQueries(["inventory"]);
-      queryClient.invalidateQueries(["low-stock"]);
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["low-stock"] });
       // Reaching "Completed" (or being Cancelled) changes whether this
       // online order counts as revenue, so Profit needs to know too.
-      queryClient.invalidateQueries(["dailyProfit"]);
-      queryClient.invalidateQueries(["monthlyProfit"]);
+      queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
+      queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
+      enqueueSnackbar(`Order moved to ${orderStatus}.`, { variant: "success" });
     },
     onError: (error) => {
       const message = error?.response?.data?.message || "Failed to update order.";
@@ -74,10 +77,10 @@ const OnlineOrders = () => {
   const deleteMutation = useMutation({
     mutationFn: deleteOrderApi,
     onSuccess: () => {
-      queryClient.invalidateQueries(["orders"]);
-      queryClient.invalidateQueries(["inventory"]);
-      queryClient.invalidateQueries(["dailyProfit"]);
-      queryClient.invalidateQueries(["monthlyProfit"]);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
+      queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
       enqueueSnackbar("Order deleted.", { variant: "success" });
     },
     onError: (error) => {
@@ -203,7 +206,7 @@ const OnlineOrders = () => {
             <OrderStageTracker
               order={order}
               onAdvance={(orderStatus) => setStatus(order, orderStatus)}
-              isAdvancing={statusMutation.isPending}
+              isAdvancing={statusMutation.isPending && statusMutation.variables?.orderId === order._id}
             />
             {order.orderStatus !== PAYMENT_WAITING && order.orderStatus !== "Cancelled" && (
               <div className="mt-2 flex justify-end">
@@ -282,7 +285,7 @@ const OnlineOrders = () => {
                       setStatus(order, "Cancelled");
                     }
                   }}
-                  disabled={statusMutation.isPending}
+                  disabled={statusMutation.isPending && statusMutation.variables?.orderId === order._id}
                   className="flex-1 rounded-lg bg-[#be3e3f] py-2 font-semibold text-[#f5f5f5] disabled:opacity-60"
                 >
                   Cancel
@@ -305,7 +308,7 @@ const OnlineOrders = () => {
             {canDeleteOrder(role, order.orderStatus) && order.orderStatus !== PAYMENT_WAITING && (
               <button
                 onClick={() => handleDelete(order)}
-                disabled={deleteMutation.isPending}
+                disabled={deleteMutation.isPending && deleteMutation.variables === order._id}
                 className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#3f1f1f] py-2 text-sm font-semibold text-[#e6402e] disabled:opacity-60"
               >
                 <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete order"}

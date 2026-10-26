@@ -10,6 +10,7 @@ const {
   getCouponRedemptions,
   getMyCoupons,
   assignCoupon,
+  searchCouponCustomerByPhone,
   getCouponAssignments,
   revokeCouponAssignment,
   checkWelcomeOffer,
@@ -27,6 +28,7 @@ router.post("/validate-pos", isVerifiedUser, requireRole("Admin", "Cashier"), va
 router.get("/mine", requireCustomer, getMyCoupons);
 router.get("/redemptions", ...adminOnly, getCouponRedemptions);
 router.get("/assignments", ...adminOnly, getCouponAssignments);
+router.get("/customers/search", ...adminOnly, searchCouponCustomerByPhone);
 router.get("/", ...adminOnly, getCoupons);
 router.post("/", ...adminOnly, createCoupon);
 router.post("/:id/assign", ...adminOnly, assignCoupon);

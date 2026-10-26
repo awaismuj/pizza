@@ -26,3 +26,10 @@ API key is needed for the embedded search widget. Search queries are sent
 directly to Google. The panel's **Open WhatsApp Web** button launches the
 official WhatsApp Web site in a new tab; WhatsApp does not allow its web app to
 be embedded inside the POS dialog.
+
+The Coupons page also provides **Send a coupon to one customer**. Search with
+at least the last nine phone digits, choose an active coupon, and review the
+message before opening a prefilled WhatsApp chat or email draft. These links
+do not send automatically: staff must review and send the message in WhatsApp
+Web or their configured mail app. WhatsApp coupon messages are disabled until
+the customer's explicit marketing consent is recorded.

@@ -124,6 +124,8 @@ export const deleteDeal = (dealId) => axiosWrapper.delete(`/api/deal/${dealId}`)
 
 // Coupon management and redemption reporting
 export const getCoupons = (params) => axiosWrapper.get("/api/coupon", { params });
+export const searchCouponCustomerByPhone = (phone) =>
+  axiosWrapper.get("/api/coupon/customers/search", { params: { phone } });
 export const addCoupon = (data) => axiosWrapper.post("/api/coupon", data);
 export const updateCoupon = ({ couponId, ...data }) => axiosWrapper.put(`/api/coupon/${couponId}`, data);
 export const archiveCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/${couponId}/archive`);
