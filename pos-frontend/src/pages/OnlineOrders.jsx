@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
-import { enqueueSnackbar } from "notistack";
 import { FaPen, FaPrint, FaTrash } from "react-icons/fa";
 import BackButton from "../components/shared/BackButton";
 import DeletedOrdersPanel from "../components/orders/DeletedOrdersPanel";
 import BottomNav from "../components/shared/BottomNav";
-import { getOrders, updateOrderStatus, deleteOrder as deleteOrderApi } from "../https";
+import ConfirmDialog from "../components/shared/ConfirmDialog";
+import { getOrders } from "../https";
 import OrderStageTracker from "../components/orders/OrderStageTracker";
 import EditOrderModal from "../components/orders/EditOrderModal";
-import { PAYMENT_WAITING } from "../utils/orderStages";
+import { NEXT_ACTION, PAYMENT_WAITING } from "../utils/orderStages";
+import { useOrderDelete, useOrderStatusChange } from "../hooks/useOrderActions";
 import { PaymentBadge, PaymentDetails, PaymentActions } from "../components/orders/PaymentPanel";
 import { paymentKind } from "../utils/payments";
 import Invoice from "../components/invoice/Invoice";
@@ -43,52 +44,29 @@ const OnlineOrders = () => {
   const jumpedToVerify = useRef(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [extendingOrder, setExtendingOrder] = useState(null);
-  const queryClient = useQueryClient();
+  // The order waiting on a Cancel / Delete confirmation: { type, order }.
+  const [confirming, setConfirming] = useState(null);
   const role = useSelector((state) => state.user.role);
 
   const { data: resData } = useQuery({
     queryKey: ["orders"],
     queryFn: getOrders,
     placeholderData: keepPreviousData,
-    refetchInterval: 15000, // poll so new online orders show up without a manual refresh
+    // Poll often and again whenever staff come back to this tab, so a new
+    // online order shows up within a few seconds without a manual refresh.
+    refetchInterval: 5000,
+    refetchOnWindowFocus: "always",
   });
 
-  const statusMutation = useMutation({
-    mutationFn: updateOrderStatus,
-    onSuccess: () => {
-      queryClient.invalidateQueries(["orders"]);
-      // Accepting/cancelling moves stock in or out of inventory.
-      queryClient.invalidateQueries(["inventory"]);
-      queryClient.invalidateQueries(["low-stock"]);
-      // Reaching "Completed" (or being Cancelled) changes whether this
-      // online order counts as revenue, so Profit needs to know too.
-      queryClient.invalidateQueries(["dailyProfit"]);
-      queryClient.invalidateQueries(["monthlyProfit"]);
-    },
-    onError: (error) => {
-      const message = error?.response?.data?.message || "Failed to update order.";
-      enqueueSnackbar(message, { variant: "error" });
-    },
-  });
+  // Buttons update the card immediately; see hooks/useOrderActions.js.
+  const { changeStatus, isPending } = useOrderStatusChange();
+  const { removeOrder, isRemoving } = useOrderDelete();
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteOrderApi,
-    onSuccess: () => {
-      queryClient.invalidateQueries(["orders"]);
-      queryClient.invalidateQueries(["inventory"]);
-      queryClient.invalidateQueries(["dailyProfit"]);
-      queryClient.invalidateQueries(["monthlyProfit"]);
-      enqueueSnackbar("Order deleted.", { variant: "success" });
-    },
-    onError: (error) => {
-      enqueueSnackbar(error?.response?.data?.message || "Failed to delete order.", { variant: "error" });
-    },
-  });
-
-  const handleDelete = (order) => {
-    if (window.confirm("Delete this order permanently? This can't be undone.")) {
-      deleteMutation.mutate(order._id);
-    }
+  const confirmAction = () => {
+    if (!confirming) return;
+    if (confirming.type === "cancel") changeStatus(confirming.order, "Cancelled");
+    else removeOrder(confirming.order);
+    setConfirming(null);
   };
 
   const orders = (resData?.data?.data ?? []).filter((o) => o.orderSource === "Online");
@@ -108,10 +86,6 @@ const OnlineOrders = () => {
       setActiveTab(PAYMENT_WAITING);
     }
   }, [waitingCount]);
-
-  const setStatus = (order, orderStatus) => {
-    statusMutation.mutate({ orderId: order._id, orderStatus });
-  };
 
   return (
     <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] overflow-x-hidden pb-40">
@@ -168,7 +142,10 @@ const OnlineOrders = () => {
           <p className="col-span-full text-gray-500">No orders here yet.</p>
         )}
 
-        {visibleOrders.map((order) => (
+        {visibleOrders.map((order) => {
+          const next = order.orderStatus === PAYMENT_WAITING ? null : NEXT_ACTION[order.orderStatus];
+          const busy = isPending(order._id) || isRemoving(order._id);
+          return (
           <div key={order._id} className="rounded-lg bg-[#262626] p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-[#f5f5f5]">{order.customerDetails?.name}</h2>
@@ -202,8 +179,8 @@ const OnlineOrders = () => {
 
             <OrderStageTracker
               order={order}
-              onAdvance={(orderStatus) => setStatus(order, orderStatus)}
-              isAdvancing={statusMutation.isPending}
+              onAdvance={(orderStatus) => changeStatus(order, orderStatus)}
+              isAdvancing={busy}
             />
             {order.orderStatus !== PAYMENT_WAITING && order.orderStatus !== "Cancelled" && (
               <div className="mt-2 flex justify-end">
@@ -249,14 +226,22 @@ const OnlineOrders = () => {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {order.orderStatus === "Pending" && (
-                <p className="w-full rounded-lg bg-[#2a2a2a] py-2 text-center text-xs text-[#ababab]">
-                  Click the next stage dot to accept this order.
-                </p>
+              {/* The main action for this order, as a big button instead of
+                  only the small numbered dot above. */}
+              {next && (
+                <button
+                  type="button"
+                  onClick={() => changeStatus(order, next.to)}
+                  disabled={busy}
+                  className="w-full rounded-lg bg-[#f6b100] py-3 font-bold text-[#1f1f1f] transition active:scale-[0.98] disabled:opacity-60"
+                >
+                  {busy ? "Updating…" : `${next.label} →`}
+                </button>
               )}
 
               {canExtendPrep(role) && isPrepActive(order) && (
                 <button
+                  type="button"
                   onClick={() => setExtendingOrder(order)}
                   className="rounded-lg border border-[#f6b100]/50 bg-[#f6b100]/10 px-3 py-2 font-semibold text-[#f6b100]"
                 >
@@ -268,8 +253,10 @@ const OnlineOrders = () => {
                   same rule the server enforces, see utils/orderPermissions.js. */}
               {![PAYMENT_WAITING, "Completed", "Cancelled"].includes(order.orderStatus) && canEditOrder(role) && (
                 <button
+                  type="button"
                   onClick={() => setEditingOrder(order)}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100]"
+                  disabled={busy}
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100] disabled:opacity-60"
                 >
                   <FaPen size={12} /> Edit
                 </button>
@@ -277,12 +264,9 @@ const OnlineOrders = () => {
 
               {![PAYMENT_WAITING, "Completed", "Cancelled"].includes(order.orderStatus) && canCancelOrder(role) && (
                 <button
-                  onClick={() => {
-                    if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
-                      setStatus(order, "Cancelled");
-                    }
-                  }}
-                  disabled={statusMutation.isPending}
+                  type="button"
+                  onClick={() => setConfirming({ type: "cancel", order })}
+                  disabled={busy}
                   className="flex-1 rounded-lg bg-[#be3e3f] py-2 font-semibold text-[#f5f5f5] disabled:opacity-60"
                 >
                   Cancel
@@ -304,16 +288,33 @@ const OnlineOrders = () => {
 
             {canDeleteOrder(role, order.orderStatus) && order.orderStatus !== PAYMENT_WAITING && (
               <button
-                onClick={() => handleDelete(order)}
-                disabled={deleteMutation.isPending}
+                type="button"
+                onClick={() => setConfirming({ type: "delete", order })}
+                disabled={busy}
                 className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#3f1f1f] py-2 text-sm font-semibold text-[#e6402e] disabled:opacity-60"
               >
-                <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete order"}
+                <FaTrash size={11} /> {isRemoving(order._id) ? "Deleting…" : "Delete order"}
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(confirming)}
+        danger
+        title={confirming?.type === "delete" ? "Delete this order?" : "Cancel this order?"}
+        message={
+          confirming?.type === "delete"
+            ? "It will be removed permanently. This can't be undone."
+            : "Any stock already taken for it goes back to inventory."
+        }
+        confirmLabel={confirming?.type === "delete" ? "Delete order" : "Cancel order"}
+        cancelLabel="Keep order"
+        onConfirm={confirmAction}
+        onClose={() => setConfirming(null)}
+      />
 
       {printOrder && <Invoice orderInfo={printOrder} setShowInvoice={() => setPrintOrder(null)} />}
 

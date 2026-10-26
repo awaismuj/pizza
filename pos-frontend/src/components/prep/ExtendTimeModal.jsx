@@ -1,7 +1,9 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { extendPrepTime } from "../../https";
+import { patchCachedOrder } from "../../hooks/useOrderActions";
 import useNow from "../../hooks/useNow";
 import usePrepSettings from "../../hooks/usePrepSettings";
 import { formatLocalTime, getPrepState, orderLabel } from "../../utils/prepTimer";
@@ -26,6 +28,9 @@ const ExtendTimeModal = ({ order, onClose }) => {
     mutationFn: extendPrepTime,
     onSuccess: (res) => {
       const updated = res?.data?.data;
+      // Show the new deadline on the card right away, then confirm in the
+      // background with a normal refresh.
+      if (updated?.prep) patchCachedOrder(queryClient, order._id, { prep: updated.prep });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       enqueueSnackbar(
         `Order #${orderLabel(order)} extended by ${minutes} minutes. New preparation deadline: ${formatLocalTime(updated?.prep?.deadline, timezone)}.`,
@@ -147,6 +152,11 @@ const ExtendTimeModal = ({ order, onClose }) => {
       </div>
     </div>
   );
+};
+
+ExtendTimeModal.propTypes = {
+  order: PropTypes.shape({ _id: PropTypes.string.isRequired }).isRequired,
+  onClose: PropTypes.func.isRequired,
 };
 
 export default ExtendTimeModal;

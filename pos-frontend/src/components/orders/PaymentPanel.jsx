@@ -109,11 +109,11 @@ export const PaymentActions = ({ order, role, onDone, compact = false }) => {
   const [reason, setReason] = useState("");
 
   const refresh = () => {
-    queryClient.invalidateQueries(["orders"]);
-    queryClient.invalidateQueries(["inventory"]);
-    queryClient.invalidateQueries(["low-stock"]);
-    queryClient.invalidateQueries(["dailyProfit"]);
-    queryClient.invalidateQueries(["monthlyProfit"]);
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+    queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    queryClient.invalidateQueries({ queryKey: ["low-stock"] });
+    queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
+    queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
   };
   const onError = (error) =>
     enqueueSnackbar(error?.response?.data?.message || "Something went wrong. Please try again.", { variant: "error" });

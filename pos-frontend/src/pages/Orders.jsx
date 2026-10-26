@@ -23,7 +23,8 @@ const Orders = () => {
       return await getOrders();
     },
     placeholderData: keepPreviousData,
-    refetchInterval: 10000, // keep the board live without a manual refresh
+    refetchInterval: 5000, // keep the board live without a manual refresh
+    refetchOnWindowFocus: "always",
   })
 
   if(isError) {

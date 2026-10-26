@@ -6,6 +6,7 @@ import { enqueueSnackbar } from "notistack";
 import { motion } from "framer-motion";
 import { getOrders, updateOrderStatus } from "../../https";
 import { PAYMENT_WAITING } from "../../utils/orderStages";
+import { refreshAfterOrderChange } from "../../hooks/useOrderActions";
 import { PaymentBadge, PaymentDetails, PaymentActions } from "../orders/PaymentPanel";
 
 // Short two-note chime using the Web Audio API - no audio file needed.
@@ -55,7 +56,12 @@ const NewOrderPopup = () => {
     queryKey: ["orders"],
     queryFn: getOrders,
     enabled: isAuth,
-    refetchInterval: 10000,
+    // This is the alert for a new order, so it keeps checking every few
+    // seconds even while the POS tab is in the background, and checks again
+    // the moment staff switch back to it.
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: "always",
   });
 
   useEffect(() => {
@@ -98,10 +104,8 @@ const NewOrderPopup = () => {
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
-    onSuccess: () => {
-      queryClient.invalidateQueries(["orders"]);
-      queryClient.invalidateQueries(["inventory"]);
-      queryClient.invalidateQueries(["low-stock"]);
+    onSuccess: (_response, { orderStatus }) => {
+      refreshAfterOrderChange(queryClient, orderStatus);
     },
     onError: (error) => {
       const message = error?.response?.data?.message || "Failed to update order.";
@@ -263,21 +267,21 @@ const NewOrderPopup = () => {
               disabled={statusMutation.isPending}
               className="flex-1 rounded-lg bg-[#be3e3f] py-3 font-semibold text-[#f5f5f5] disabled:opacity-60"
             >
-              Decline
+              {statusMutation.isPending && statusMutation.variables?.orderStatus === "Cancelled" ? "Declining…" : "Decline"}
             </button>
             <button
               onClick={() => handleDecide("Accepted")}
               disabled={statusMutation.isPending}
               className="flex-1 rounded-lg bg-[#2e4a40] py-3 font-semibold text-[#02ca3a] disabled:opacity-60"
             >
-              Accept
+              {statusMutation.isPending && statusMutation.variables?.orderStatus === "Accepted" ? "Accepting…" : "Accept"}
             </button>
             <button
               onClick={handleAcceptAndProcess}
               disabled={statusMutation.isPending}
               className="w-full rounded-lg bg-[#02ca3a] py-3 font-semibold text-[#1f1f1f] disabled:opacity-60"
             >
-              Accept &amp; Send to Processing
+              {statusMutation.isPending ? "Working…" : "Accept & Send to Processing"}
             </button>
           </div>
         </div>

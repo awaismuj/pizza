@@ -132,6 +132,10 @@ export const getCouponRedemptions = (params) => axiosWrapper.get("/api/coupon/re
 export const getCouponAssignments = (params) => axiosWrapper.get("/api/coupon/assignments", { params });
 export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
 export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
+// Send one coupon to one customer: returns the WhatsApp text/number and emails
+// the customer automatically when an email is on file.
+export const lookupCouponCustomer = (phone) => axiosWrapper.get("/api/coupon/customer-lookup", { params: { phone } });
+export const sendCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/send`, data);
 export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
 export const checkWelcomeOffer = (data) => axiosWrapper.post("/api/coupon/welcome-offer/check", data);
 

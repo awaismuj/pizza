@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import PropTypes from "prop-types";
 import { FaLongArrowAltRight, FaPen, FaPrint, FaTrash } from "react-icons/fa";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "react-redux";
-import { enqueueSnackbar } from "notistack";
 import { formatDateAndTime, getAvatarName, getOrderNumber } from "../../utils/index";
-import { updateOrderStatus, deleteOrder as deleteOrderApi } from "../../https";
-import { STAGE_LABELS, TERMINAL_STATUSES, statusPillClass } from "../../utils/orderStages";
+import { NEXT_ACTION, STAGE_LABELS, TERMINAL_STATUSES, statusPillClass } from "../../utils/orderStages";
+import { useOrderDelete, useOrderStatusChange } from "../../hooks/useOrderActions";
+import ConfirmDialog from "../shared/ConfirmDialog";
 import { canEditOrder, canCancelOrder, canDeleteOrder, canExtendPrep } from "../../utils/orderPermissions";
 import { isPrepActive } from "../../utils/prepTimer";
 import PrepBadge from "../prep/PrepBadge";
@@ -16,7 +16,6 @@ import EditOrderModal from "./EditOrderModal";
 import { I } from "../shared/AppIcons";
 
 const OrderCard = ({ order }) => {
-  const queryClient = useQueryClient();
   const role = useSelector((state) => state.user.role);
   const isOnline = order.orderSource === "Online";
   const isTakeaway = !isOnline && !order.table;
@@ -27,45 +26,20 @@ const OrderCard = ({ order }) => {
   // Edit-items modal — Cashier/Admin only (see orderPermissions.js).
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExtend, setShowExtend] = useState(false);
+  // "cancel" or "delete" while waiting for the in-app confirmation.
+  const [confirming, setConfirming] = useState(null);
 
-  const statusMutation = useMutation({
-    mutationFn: updateOrderStatus,
-    onSuccess: (_res, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["low-stock"] });
-      queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
-      queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
-      enqueueSnackbar(`Order is now ${STAGE_LABELS[vars.orderStatus] || vars.orderStatus}`, { variant: "success" });
+  // Buttons update the card immediately; see hooks/useOrderActions.js.
+  const { changeStatus, isPending } = useOrderStatusChange();
+  const { removeOrder, isRemoving } = useOrderDelete();
+  const setStatus = (orderStatus) => changeStatus(order, orderStatus);
+  const busy = isPending(order._id) || isRemoving(order._id);
+  const next = NEXT_ACTION[order.orderStatus];
 
-    },
-    onError: (error) => {
-      enqueueSnackbar(error?.response?.data?.message || "Failed to update order.", { variant: "error" });
-    },
-  });
-
-  const setStatus = (orderStatus) => statusMutation.mutate({ orderId: order._id, orderStatus });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteOrderApi,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
-      queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
-      enqueueSnackbar("Order deleted.", { variant: "success" });
-    },
-    onError: (error) => {
-      enqueueSnackbar(error?.response?.data?.message || "Failed to delete order.", { variant: "error" });
-    },
-  });
-
-  const handleDelete = () => {
-    if (window.confirm("Delete this order permanently? This can't be undone.")) {
-      deleteMutation.mutate(order._id);
-    }
+  const confirmAction = () => {
+    if (confirming === "cancel") setStatus("Cancelled");
+    else if (confirming === "delete") removeOrder(order);
+    setConfirming(null);
   };
 
   return (
@@ -110,7 +84,7 @@ const OrderCard = ({ order }) => {
       <OrderStageTracker
         order={order}
         onAdvance={setStatus}
-        isAdvancing={statusMutation.isPending}
+        isAdvancing={busy}
       />
       {order.orderStatus !== "Cancelled" && (
         <div className="mt-2 flex justify-end">
@@ -140,8 +114,21 @@ const OrderCard = ({ order }) => {
           enforces, see utils/orderPermissions.js. */}
       {!isTerminal && (
         <div className="mt-4 flex flex-wrap gap-2">
+          {/* The main action for this order, as a big button instead of
+              only the small numbered dot above. */}
+          {next && (
+            <button
+              type="button"
+              onClick={() => setStatus(next.to)}
+              disabled={busy}
+              className="w-full rounded-lg bg-[#f6b100] py-3 font-bold text-[#1f1f1f] transition active:scale-[0.98] disabled:opacity-60"
+            >
+              {busy ? "Updating…" : `${next.label} →`}
+            </button>
+          )}
           {canExtendPrep(role) && isPrepActive(order) && (
             <button
+              type="button"
               onClick={() => setShowExtend(true)}
               className="rounded-lg border border-[#f6b100]/50 bg-[#f6b100]/10 px-3 py-2 font-semibold text-[#f6b100]"
             >
@@ -150,8 +137,10 @@ const OrderCard = ({ order }) => {
           )}
           {canEditOrder(role) && (
             <button
+              type="button"
               onClick={() => setShowEditModal(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100]"
+              disabled={busy}
+              className="flex items-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100] disabled:opacity-60"
               aria-label="Edit order"
             >
               <FaPen size={12} /> Edit
@@ -159,12 +148,9 @@ const OrderCard = ({ order }) => {
           )}
           {canCancelOrder(role) && (
             <button
-              onClick={() => {
-                if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
-                  setStatus("Cancelled");
-                }
-              }}
-              disabled={statusMutation.isPending}
+              type="button"
+              onClick={() => setConfirming("cancel")}
+              disabled={busy}
               className="rounded-lg bg-[#be3e3f] px-4 py-2 font-semibold text-[#f5f5f5] disabled:opacity-60"
             >
               Cancel
@@ -175,13 +161,29 @@ const OrderCard = ({ order }) => {
 
       {canDeleteOrder(role, order.orderStatus) && (
         <button
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
+          type="button"
+          onClick={() => setConfirming("delete")}
+          disabled={busy}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#3f1f1f] py-2 text-sm font-semibold text-[#e6402e] disabled:opacity-60"
         >
-          <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete order"}
+          <FaTrash size={11} /> {isRemoving(order._id) ? "Deleting…" : "Delete order"}
         </button>
       )}
+
+      <ConfirmDialog
+        open={Boolean(confirming)}
+        danger
+        title={confirming === "delete" ? "Delete this order?" : "Cancel this order?"}
+        message={
+          confirming === "delete"
+            ? "It will be removed permanently. This can't be undone."
+            : "Any stock already taken for it goes back to inventory."
+        }
+        confirmLabel={confirming === "delete" ? "Delete order" : "Cancel order"}
+        cancelLabel="Keep order"
+        onConfirm={confirmAction}
+        onClose={() => setConfirming(null)}
+      />
 
       {/* Opened by the compact Print button; it never prints automatically. */}
       {printOrder && (
@@ -192,6 +194,19 @@ const OrderCard = ({ order }) => {
       {showExtend && <ExtendTimeModal order={order} onClose={() => setShowExtend(false)} />}
     </div>
   );
+};
+
+OrderCard.propTypes = {
+  order: PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    orderSource: PropTypes.string,
+    orderStatus: PropTypes.string.isRequired,
+    orderDate: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
+    customerDetails: PropTypes.shape({ name: PropTypes.string }).isRequired,
+    table: PropTypes.shape({ tableNo: PropTypes.oneOfType([PropTypes.string, PropTypes.number]) }),
+    items: PropTypes.arrayOf(PropTypes.object).isRequired,
+    bills: PropTypes.shape({ totalWithTax: PropTypes.number }).isRequired,
+  }).isRequired,
 };
 
 export default OrderCard;

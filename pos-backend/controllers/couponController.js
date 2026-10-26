@@ -6,6 +6,10 @@ const CouponRedemption = require("../models/couponRedemptionModel");
 const Customer = require("../models/customerModel");
 const CustomerCoupon = require("../models/customerCouponModel");
 const { resolveCartPrices, calculateEligibleSubtotal, evaluateCoupon, buildWelcomeOfferCoupon, normalizePhoneDigits } = require("../services/couponService");
+const { normalizeContactPhone } = require("../services/customerContactService");
+const { normalizeNumber } = require("../services/whatsAppCampaignProvider");
+const { buildCouponEmail, buildCouponMessage, isValidEmail, maskEmail } = require("../services/couponDeliveryService");
+const { sendMail } = require("../utils/mailer");
 
 const DISCOUNT_TYPES = ["percentage", "fixed"];
 const STATUSES = ["draft", "scheduled", "active", "paused", "expired", "archived"];
@@ -375,6 +379,32 @@ const getMyCoupons = async (req, res, next) => {
   }
 };
 
+// Creates a one-customer private code for a campaign. Shared by "assign" and
+// "send" so both apply exactly the same campaign date and status rules.
+const issuePrivateCode = async ({ coupon, customer, redemptionLimit, requestedStartsAt = null, requestedExpiresAt = null, assignedBy }) => {
+  if (!["active", "scheduled"].includes(coupon.status)) throw createHttpError(400, "Only active or scheduled coupons can be assigned.");
+  const startsAt = requestedStartsAt || coupon.startsAt || null;
+  const expiresAt = requestedExpiresAt || coupon.expiresAt || null;
+  if (startsAt && expiresAt && startsAt >= expiresAt) throw createHttpError(400, "Expiry must be after the start date.");
+  if (coupon.startsAt && startsAt && startsAt < coupon.startsAt) throw createHttpError(400, "Assignment cannot start before its campaign.");
+  if (coupon.expiresAt && coupon.expiresAt <= new Date()) throw createHttpError(400, "This coupon campaign has expired.");
+  if (coupon.expiresAt && (!expiresAt || expiresAt > coupon.expiresAt)) {
+    throw createHttpError(400, "Assignment expiry cannot exceed the campaign expiry.");
+  }
+  const code = `PVT_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
+  const assignment = await CustomerCoupon.create({
+    couponId: coupon._id,
+    customerId: customer._id,
+    code,
+    source: "admin",
+    redemptionLimit,
+    startsAt,
+    expiresAt,
+    assignedBy,
+  });
+  return { assignment, code };
+};
+
 const assignCoupon = async (req, res, next) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(400, "Invalid coupon ID.");
@@ -396,24 +426,12 @@ const assignCoupon = async (req, res, next) => {
     ]);
     if (!coupon) throw createHttpError(404, "Coupon not found.");
     if (!customer) throw createHttpError(404, "No verified customer account was found for that email.");
-    if (!["active", "scheduled"].includes(coupon.status)) throw createHttpError(400, "Only active or scheduled coupons can be assigned.");
-    const startsAt = requestedStartsAt || coupon.startsAt || null;
-    const expiresAt = requestedExpiresAt || coupon.expiresAt || null;
-    if (startsAt && expiresAt && startsAt >= expiresAt) throw createHttpError(400, "Expiry must be after the start date.");
-    if (coupon.startsAt && startsAt && startsAt < coupon.startsAt) throw createHttpError(400, "Assignment cannot start before its campaign.");
-    if (coupon.expiresAt && coupon.expiresAt <= new Date()) throw createHttpError(400, "This coupon campaign has expired.");
-    if (coupon.expiresAt && (!expiresAt || expiresAt > coupon.expiresAt)) {
-      throw createHttpError(400, "Assignment expiry cannot exceed the campaign expiry.");
-    }
-    const code = `PVT_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
-    const assignment = await CustomerCoupon.create({
-      couponId: coupon._id,
-      customerId: customer._id,
-      code,
-      source: "admin",
+    const { assignment, code } = await issuePrivateCode({
+      coupon,
+      customer,
       redemptionLimit,
-      startsAt,
-      expiresAt,
+      requestedStartsAt,
+      requestedExpiresAt,
       assignedBy: req.user._id,
     });
     res.status(201).json({
@@ -489,7 +507,102 @@ const revokeCouponAssignment = async (req, res, next) => {
   }
 };
 
+// Staff type a phone number; this tells the screen who it belongs to and
+// whether an email is on file, without returning the address itself.
+const lookupCouponCustomer = async (req, res, next) => {
+  try {
+    const contact = normalizeContactPhone(req.query.phone);
+    if (!contact) return res.json({ success: true, data: { valid: false } });
+    const customer = await Customer.findOne({ phoneKey: contact.phoneKey })
+      .select("name email emailVerifiedAt active contactOnly")
+      .lean();
+    res.json({
+      success: true,
+      data: {
+        valid: true,
+        found: Boolean(customer),
+        name: customer?.name || "",
+        hasEmail: Boolean(customer?.email),
+        emailMasked: maskEmail(customer?.email),
+        canReceivePrivateCode: Boolean(customer?.emailVerifiedAt && customer.active !== false),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Prepares a coupon for one customer: returns the WhatsApp text and number
+// (the POS opens WhatsApp Web with it) and, when the customer has an email
+// on file, emails the same coupon automatically.
+//   mode "campaign" - the shared campaign code (works for any phone number)
+//   mode "private"  - a new one-time code, verified customer accounts only
+const sendCoupon = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(400, "Invalid coupon ID.");
+    const contact = normalizeContactPhone(req.body.phone);
+    if (!contact) throw createHttpError(400, "Enter a valid mobile number.");
+    const whatsappPhone = normalizeNumber(contact.digits);
+    if (!/^\d{10,15}$/.test(whatsappPhone)) throw createHttpError(400, "Enter a valid mobile number.");
+    const mode = req.body.mode === "private" ? "private" : "campaign";
+    const typedEmail = String(req.body.email || "").trim().toLowerCase();
+    if (typedEmail && !isValidEmail(typedEmail)) throw createHttpError(400, "Enter a valid email address or leave it blank.");
+
+    const [coupon, customer] = await Promise.all([
+      Coupon.findById(req.params.id),
+      Customer.findOne({ phoneKey: contact.phoneKey }).select("name email emailVerifiedAt active"),
+    ]);
+    if (!coupon) throw createHttpError(404, "Coupon not found.");
+    if (!["active", "scheduled"].includes(coupon.status)) throw createHttpError(400, "Only active or scheduled coupons can be sent.");
+    if (coupon.expiresAt && coupon.expiresAt <= new Date()) throw createHttpError(400, "This coupon campaign has expired.");
+
+    let code = coupon.code;
+    if (mode === "private") {
+      if (!customer || !customer.emailVerifiedAt || customer.active === false) {
+        throw createHttpError(400, "A private one-time code needs a customer account with a verified email. Send the campaign code instead.");
+      }
+      ({ code } = await issuePrivateCode({ coupon, customer, redemptionLimit: 1, assignedBy: req.user._id }));
+    }
+
+    const name = String(req.body.name || "").trim().slice(0, 120) || customer?.name || "";
+    // A private code only ever goes to the verified address on the account.
+    const recipientEmail = mode === "private" ? customer.email : (typedEmail || customer?.email || "");
+
+    let email = { status: "none", to: "" };
+    if (recipientEmail) {
+      const { subject, html } = buildCouponEmail({ name, coupon, code });
+      try {
+        const result = await sendMail({ to: recipientEmail, subject, html });
+        email = { status: result?.skipped ? "not_configured" : "sent", to: maskEmail(recipientEmail) };
+      } catch (error) {
+        // Never block the WhatsApp message because the email failed.
+        console.error("Coupon email could not be sent.", error.code || "");
+        email = { status: "failed", to: maskEmail(recipientEmail) };
+      }
+    }
+
+    res.status(mode === "private" ? 201 : 200).json({
+      success: true,
+      message: "Coupon ready to send.",
+      data: {
+        code,
+        mode,
+        message: buildCouponMessage({ name, coupon, code }),
+        whatsapp: { phone: whatsappPhone },
+        email,
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return next(createHttpError(409, "This customer already has a private code for this coupon. Send the campaign code instead."));
+    }
+    next(error);
+  }
+};
+
 module.exports = {
+  lookupCouponCustomer,
+  sendCoupon,
   getCoupons,
   createCoupon,
   updateCoupon,

@@ -27,6 +27,8 @@ const config = Object.freeze({
     // allow-list from an env var without touching app.js in every deploy.
     storeUrl: process.env.STORE_URL || process.env.ONLINE_STORE_URL || "http://localhost:5174",
     backendUrl: process.env.BACKEND_URL || "http://localhost:3000",
+    // Shown in customer-facing coupon messages and emails.
+    storeName: process.env.STORE_NAME || "GenZ Pizza Land",
     cookieDomain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === "production" ? ".muscatfood.com" : undefined),
     accessTokenSecret: process.env.JWT_SECRET || defaultSecret,
     idempotencySecret,

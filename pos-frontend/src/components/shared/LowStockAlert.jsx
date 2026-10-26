@@ -44,8 +44,8 @@ const LowStockAlert = () => {
   const restockMutation = useMutation({
     mutationFn: adjustInventoryItem,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(LOW_STOCK_QUERY_KEY);
-      queryClient.invalidateQueries(["inventory"]);
+      queryClient.invalidateQueries({ queryKey: LOW_STOCK_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
       setRestockDrafts((prev) => ({ ...prev, [variables.inventoryId]: "" }));
       enqueueSnackbar("Stock added.", { variant: "success" });
     },
