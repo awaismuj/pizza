@@ -28,11 +28,15 @@ environment; mock mode does not deliver messages. A manual email draft remains
 available only after staff confirms email consent.
 
 For campaigns, scan to review eligible customers, then generate and assign
-private coupon codes; the codes appear in the dialog with per-customer copy
-buttons. The email option queues coupons only for customers with a saved email
-and recorded promotional consent. Emails use the backend's existing SMTP
-settings. Campaign WhatsApp results remain available in the campaign results
-tab.
+private coupon codes; opted-in customers have a per-customer action to copy the
+complete approved WhatsApp message with their coupon details. If browser
+clipboard access is blocked, the message is shown in a selectable text field.
+The email option automatically queues coupons after generation only for
+customers with a valid saved email and recorded promotional consent. Emails use
+the backend's existing SMTP settings. Campaign WhatsApp results remain
+available in the campaign results tab. After correcting an email address or
+recording consent, run **Generate & Assign Tokens** again to recheck previously
+skipped email recipients.
 
 Use **Open WhatsApp Web** to open the official WhatsApp Web site in a new tab
 while keeping the POS page open. WhatsApp Web does not permit embedding its

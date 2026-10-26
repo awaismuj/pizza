@@ -128,7 +128,7 @@ const scanCampaignData = async (campaign) => {
       match: { campaignId: campaign._id, status: "active", startsAt: { $lte: validAt }, expiresAt: { $gt: validAt } },
       select: "campaignId discountValue discountType minimumSubtotal maximumDiscount expiresAt",
     }).lean(),
-    WhatsAppCampaignRecipient.find({ campaignId: campaign._id, customerId: { $in: customerIds } }).select("customerId status couponCode emailStatus").lean(),
+    WhatsAppCampaignRecipient.find({ campaignId: campaign._id, customerId: { $in: customerIds } }).select("customerId status couponCode emailStatus emailLastError").lean(),
   ]);
   const assignmentByCustomer = new Map(assignments.filter((row) => row.couponId).map((row) => [String(row.customerId), row]));
   const recipientByCustomer = new Map(existingRecipients.map((row) => [String(row.customerId), row]));
@@ -149,6 +149,7 @@ const scanCampaignData = async (campaign) => {
       alreadyMessaged,
       messageStatus: existingRecipient?.status || "not sent",
       emailStatus: existingRecipient?.emailStatus || "not queued",
+      emailLastError: existingRecipient?.emailLastError || "",
       recipientId: existingRecipient?._id || null,
     };
   });
@@ -206,6 +207,7 @@ const scanCampaign = async (req, res, next) => {
       couponStatus: row.assignment ? "active" : "missing",
       messageStatus: row.messageStatus,
       emailStatus: row.emailStatus,
+      emailLastError: row.emailLastError,
       recipientId: row.recipientId ? String(row.recipientId) : null,
     })) } });
   } catch (error) {
@@ -321,7 +323,8 @@ const queueCampaignCouponEmails = async (req, res, next) => {
     }).select("_id status startsAt expiresAt couponId").populate("couponId", "status").lean();
     const assignmentById = new Map(assignments.map((assignment) => [String(assignment._id), assignment]));
     const counts = { queued: 0, skipped: 0, alreadyQueued: 0, alreadySent: 0, failed: 0 };
-    const operations = [];
+    const queueOperations = [];
+    const skipOperations = [];
     const now = new Date();
 
     for (const recipient of recipients) {
@@ -337,10 +340,6 @@ const queueCampaignCouponEmails = async (req, res, next) => {
         counts.failed += 1;
         continue;
       }
-      if (recipient.emailStatus === "skipped") {
-        counts.skipped += 1;
-        continue;
-      }
 
       const customer = customerById.get(String(recipient.customerId));
       const assignment = assignmentById.get(String(recipient.customerCouponId));
@@ -352,28 +351,38 @@ const queueCampaignCouponEmails = async (req, res, next) => {
         && (!campaign.expiresAt || campaign.expiresAt > now)
         && (!assignment.startsAt || assignment.startsAt <= now)
         && (!assignment.expiresAt || assignment.expiresAt > now);
-      operations.push({
-        updateOne: {
-          filter: {
-            _id: recipient._id,
-            $or: [{ emailStatus: { $exists: false } }, { emailStatus: null }],
+      const statusFilter = recipient.emailStatus === "skipped"
+        ? { _id: recipient._id, emailStatus: "skipped" }
+        : { _id: recipient._id, $or: [{ emailStatus: { $exists: false } }, { emailStatus: null }] };
+      const emailLastError = customer?.marketingConsent !== true
+        ? "Promotional consent is not recorded."
+        : !hasValidEmail ? "Customer email address is missing or invalid."
+          : "Customer coupon is not currently active.";
+
+      if (eligible) {
+        queueOperations.push({
+          updateOne: {
+            filter: statusFilter,
+            update: { $set: { emailStatus: "queued", emailQueuedAt: now, emailLastError: "" } },
           },
-          update: {
-            $set: eligible
-              ? { emailStatus: "queued", emailQueuedAt: now, emailLastError: "" }
-              : { emailStatus: "skipped", emailLastError: customer?.marketingConsent !== true
-                ? "Promotional consent is not recorded."
-                : !hasValidEmail ? "Customer email address is missing or invalid."
-                  : "Customer coupon is not currently active." },
+        });
+      } else {
+        counts.skipped += 1;
+        skipOperations.push({
+          updateOne: {
+            filter: statusFilter,
+            update: { $set: { emailStatus: "skipped", emailLastError } },
           },
-        },
-      });
+        });
+      }
     }
 
-    if (operations.length) {
-      const result = await WhatsAppCampaignRecipient.bulkWrite(operations, { ordered: false });
+    if (queueOperations.length) {
+      const result = await WhatsAppCampaignRecipient.bulkWrite(queueOperations, { ordered: false });
       counts.queued = result.modifiedCount;
-      counts.skipped = operations.length - result.modifiedCount;
+    }
+    if (skipOperations.length) {
+      await WhatsAppCampaignRecipient.bulkWrite(skipOperations, { ordered: false });
     }
 
     await WhatsAppCampaignAudit.create({
