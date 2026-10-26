@@ -22,6 +22,7 @@ router.post("/customers", ...adminOnly, controller.createCustomerContact);
 router.patch("/customers/:customerId", ...adminOnly, controller.updateCustomerContact);
 router.post("/preview", ...adminOnly, controller.previewCampaign);
 router.post("/send-test", ...adminOnly, controller.sendTestMessage);
+router.post("/send-individual-coupon", ...adminOnly, controller.sendIndividualCoupon);
 router.post("/campaigns", ...adminOnly, controller.createCampaign);
 router.get("/campaigns", ...adminOnly, controller.getCampaigns);
 router.get("/campaigns/:id", ...adminOnly, controller.getCampaign);
