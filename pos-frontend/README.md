@@ -23,4 +23,6 @@ Create a Google Programmable Search Engine, enable searching the entire web if
 desired, and set its public Search engine ID (`cx`) as
 `VITE_GOOGLE_CSE_ID` in the POS frontend environment before building. No Google
 API key is needed for the embedded search widget. Search queries are sent
-directly to Google.
+directly to Google. The panel's **Open WhatsApp Web** button launches the
+official WhatsApp Web site in a new tab; WhatsApp does not allow its web app to
+be embedded inside the POS dialog.
