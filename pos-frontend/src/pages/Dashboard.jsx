@@ -35,7 +35,6 @@ import Metrics from "../components/dashboard/Metrics";
 import RecentOrders from "../components/dashboard/RecentOrders";
 import Modal from "../components/dashboard/Modal";
 import DealsManager from "../components/dashboard/DealsManager";
-import CouponsManager from "../components/dashboard/CouponsManager";
 import HeroSliderManager from "../components/dashboard/HeroSliderManager";
 import ProfitExpenses from "../components/dashboard/ProfitExpenses";
 import PaymentsOverview from "../components/dashboard/PaymentsOverview";
@@ -79,7 +78,7 @@ const buttons = [
 // Sidebar sections. Order here is the order shown on screen.
 const tabGroups = [
   { label: "Overview", tabs: ["Metrics", "Orders", "Payments", "Profit"] },
-  { label: "Storefront", tabs: ["Menu", "Deals", "Coupons", "Hero Slider", "Build Your Own", "Reviews"] },
+  { label: "Storefront", tabs: ["Menu", "Deals", "Hero Slider", "Build Your Own", "Reviews"] },
   { label: "Delivery & Pickup", tabs: ["Branches"] },
   { label: "Operations", tabs: ["Inventory", "Staff", "Assets", "User & Employees"] },
   { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Music"] },
@@ -94,7 +93,6 @@ const tabIcons = {
   "Payment Settings": <MdQrCode2 />,
   Menu: <MdRestaurantMenu />,
   Deals: <MdLocalOffer />,
-  Coupons: <MdLocalOffer />,
   "Hero Slider": <MdViewCarousel />,
   Reviews: <MdRateReview />,
   "User & Employees": <MdBadge />,
@@ -116,7 +114,6 @@ const tabTheme = {
   Profit: "#22c55e",
   Menu: "#ef4444",
   Deals: "#ec4899",
-  Coupons: "#f6b100",
   "Hero Slider": "#a855f7",
   "Build Your Own": "#14b8a6",
   Reviews: "#f6b100",
@@ -148,7 +145,6 @@ const Dashboard = () => {
     "Payment Settings": "settings.manage",
     Menu: "menu.view",
     Deals: "deals.manage",
-    Coupons: "coupons.manage",
     "Hero Slider": "hero.manage",
     Reviews: "settings.manage",
     Profit: "finance.view",
@@ -887,8 +883,6 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-
-      {activeTab === "Coupons" && <CouponsManager />}
 
       {activeTab === "Deals" && (
         <div className="mx-auto w-full px-6 pb-10">
