@@ -35,7 +35,7 @@ import { I, FoodIcon } from "./AppIcons.jsx";
 import { FulfillmentPicker, FULFILLMENT_STYLES, useFulfillment } from "./Fulfillment.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
 import CustomerAccount, { useCustomerAccount } from "./CustomerAccount.jsx";
-import { PrivacyPolicy, StoreNotFound } from "./StorePages.jsx";
+import { HelpPage, PrivacyPolicy, StoreNotFound, TermsAndConditions } from "./StorePages.jsx";
 
 /* ---------------------------------------------------------------------------
    Everything the storefront needs lives in this one file: styles, fonts and
@@ -5853,14 +5853,29 @@ function App() {
       "/": {
         title: "Pizza, Burgers & Deals in Gojra | GenZ Pizza Land",
         description: "Order fresh pizza, burgers and deals online from GenZ Pizza Land in Gojra. Choose delivery or pickup, pay at the door or by JazzCash/Raast.",
-        canonical: "https://genzpizza.online/",
+        canonical: "https://genzpizza.muscatfood.com/",
         robots: "index,follow",
       },
       "/privacy": {
         title: "Privacy Policy | GenZ Pizza Land",
         description: "Learn how GenZ Pizza Land uses and protects information for online orders, customer accounts, payment verification and reviews.",
-        canonical: "https://genzpizza.online/privacy",
+        canonical: "https://genzpizza.muscatfood.com/privacy",
         robots: "index,follow",
+        label: "Privacy Policy",
+      },
+      "/terms": {
+        title: "Terms and Conditions | GenZ Pizza Land",
+        description: "Read the terms for ordering online from GenZ Pizza Land, including order availability, delivery, pickup, payments and cancellations.",
+        canonical: "https://genzpizza.muscatfood.com/terms",
+        robots: "index,follow",
+        label: "Terms and Conditions",
+      },
+      "/help": {
+        title: "Customer Help | GenZ Pizza Land",
+        description: "Get help with placing an order, delivery and pickup, payments, order tracking, changes and order issues.",
+        canonical: "https://genzpizza.muscatfood.com/help",
+        robots: "index,follow",
+        label: "Customer Help",
       },
     };
     const page = pages[pathname] || {
@@ -5883,7 +5898,7 @@ function App() {
     setMeta('meta[name="robots"]', { name: "robots" }, page.robots);
     setMeta('meta[property="og:title"]', { property: "og:title" }, page.title);
     setMeta('meta[property="og:description"]', { property: "og:description" }, page.description);
-    setMeta('meta[property="og:url"]', { property: "og:url" }, page.canonical || `https://genzpizza.online${pathname}`);
+    setMeta('meta[property="og:url"]', { property: "og:url" }, page.canonical || `https://genzpizza.muscatfood.com${pathname}`);
     let canonical = document.head.querySelector('link[rel="canonical"]');
     if (page.canonical) {
       if (!canonical) {
@@ -5917,8 +5932,8 @@ function App() {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Home", item: "https://genzpizza.online/" },
-              { "@type": "ListItem", position: 2, name: "Privacy Policy", item: page.canonical },
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://genzpizza.muscatfood.com/" },
+              { "@type": "ListItem", position: 2, name: page.label, item: page.canonical },
             ],
           });
     } else {
@@ -5926,8 +5941,41 @@ function App() {
     }
   }, [pathname]);
 
+  useEffect(() => {
+    const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim();
+    if (!measurementId) return;
+    if (!/^G-[A-Z0-9]+$/i.test(measurementId)) {
+      console.error("VITE_GA_MEASUREMENT_ID must be a valid GA4 measurement ID (G-...).");
+      return;
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function gtag() {
+      window.dataLayer.push(arguments);
+    };
+
+    const scriptId = "google-analytics-gtag";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+      document.head.appendChild(script);
+      window.gtag("js", new Date());
+      window.gtag("config", measurementId, { send_page_view: false });
+    }
+
+    window.gtag("event", "page_view", {
+      page_path: pathname,
+      page_location: `${window.location.origin}${pathname}`,
+      page_title: document.title,
+    });
+  }, [pathname]);
+
   if (pathname === "/") return <StorefrontHome />;
   if (pathname === "/privacy") return <PrivacyPolicy />;
+  if (pathname === "/terms") return <TermsAndConditions />;
+  if (pathname === "/help") return <HelpPage />;
   return <StoreNotFound />;
 }
 

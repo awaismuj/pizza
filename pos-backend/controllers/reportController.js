@@ -1,9 +1,7 @@
 const createHttpError = require("http-errors");
-const config = require("../config/config");
 const ReportLog = require("../models/reportLogModel");
 const { todayKey } = require("../utils/profitService");
 const { collectReportData, buildReportPdfBuffer } = require("../utils/reportPdf");
-const whatsappService = require("../services/whatsappService");
 const { sendMail } = require("../utils/mailer");
 
 const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,65 +70,6 @@ const downloadReport = async (req, res, next) => {
   }
 };
 
-// POST /api/report/send  { scope, from, to, month, to: phoneNumber? }
-// Body may include `number` to override the default WHATSAPP_TARGET_NUMBER.
-const sendReportToWhatsapp = async (req, res, next) => {
-  try {
-    const target = req.body?.number || config.whatsapp.targetNumber;
-    if (!target) {
-      return next(createHttpError(400, "No WhatsApp number configured. Set WHATSAPP_TARGET_NUMBER or pass 'number'."));
-    }
-
-    const { buffer, fromKey, toKey, rangeLabel } = await generatePdfBuffer(req.query.scope ? req.query : req.body);
-    const filename = fromKey === toKey ? `report-${fromKey}.pdf` : `report-${fromKey}_to_${toKey}.pdf`;
-
-    await whatsappService.sendPdfReport({
-      to: target,
-      buffer,
-      filename,
-      caption: `📊 GenZ Pizza Land — Profit & Expense Report\n${rangeLabel}`,
-    });
-
-    if (fromKey === toKey) {
-      await ReportLog.findOneAndUpdate(
-        { dayKey: fromKey },
-        { dayKey: fromKey, sentBy: "manual", channel: "whatsapp", sentTo: target, sentAt: new Date() },
-        { upsert: true, setDefaultsOnInsert: true }
-      );
-    }
-
-    res.status(200).json({ success: true, message: `Report sent to WhatsApp (${target}).` });
-  } catch (error) {
-    next(error instanceof Error && !error.status ? createHttpError(502, error.message) : error);
-  }
-};
-
-// GET /api/report/whatsapp-status
-const getWhatsappStatus = async (req, res) => {
-  res.status(200).json({ success: true, data: whatsappService.getStatus() });
-};
-
-// POST /api/report/whatsapp-retry — re-attempt linking without restarting the server
-const retryWhatsappLink = async (req, res, next) => {
-  try {
-    await whatsappService.retryWhatsapp();
-    res.status(200).json({ success: true, data: whatsappService.getStatus() });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// POST /api/report/whatsapp-unlink — logs the currently-linked phone out
-// and starts a fresh QR, for when the wrong phone scanned it.
-const unlinkWhatsappLink = async (req, res, next) => {
-  try {
-    await whatsappService.unlinkWhatsapp();
-    res.status(200).json({ success: true, data: whatsappService.getStatus() });
-  } catch (error) {
-    next(error);
-  }
-};
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // POST /api/report/send-email  { scope, from, to, month, email }
@@ -173,9 +112,5 @@ const sendReportToEmail = async (req, res, next) => {
 
 module.exports = {
   downloadReport,
-  sendReportToWhatsapp,
   sendReportToEmail,
-  getWhatsappStatus,
-  retryWhatsappLink,
-  unlinkWhatsappLink,
 };

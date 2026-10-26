@@ -16,6 +16,8 @@ const run = async () => {
   await WhatsAppCampaignRecipient.collection.createIndex({ campaignId: 1, customerId: 1 }, { unique: true, name: "uniq_campaign_customer_recipient" });
   await WhatsAppCampaignRecipient.collection.createIndex({ status: 1, nextAttemptAt: 1, createdAt: 1 }, { name: "whatsapp_campaign_recipient_queue" });
   await WhatsAppCampaignRecipient.collection.createIndex({ campaignId: 1, status: 1, createdAt: 1 }, { name: "whatsapp_campaign_recipient_results" });
+  await WhatsAppCampaignRecipient.collection.createIndex({ status: 1, updatedAt: -1 }, { name: "whatsapp_campaign_recent_messages" });
+  await WhatsAppCampaignRecipient.collection.createIndex({ campaignId: 1, updatedAt: -1 }, { name: "whatsapp_campaign_activity" });
   await WhatsAppCampaignRecipient.collection.createIndex({ providerMessageId: 1 }, {
     unique: true,
     partialFilterExpression: { providerMessageId: { $type: "string" } },

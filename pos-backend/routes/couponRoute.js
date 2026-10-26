@@ -13,6 +13,8 @@ const {
   getCouponAssignments,
   revokeCouponAssignment,
   checkWelcomeOffer,
+  lookupCouponCustomer,
+  sendCoupon,
 } = require("../controllers/couponController");
 const { isVerifiedUser, requireRole } = require("../middlewares/tokenVerification");
 const { requireCustomer, attachOptionalCustomer } = require("../middlewares/customerAuthentication");
@@ -27,9 +29,11 @@ router.post("/validate-pos", isVerifiedUser, requireRole("Admin", "Cashier"), va
 router.get("/mine", requireCustomer, getMyCoupons);
 router.get("/redemptions", ...adminOnly, getCouponRedemptions);
 router.get("/assignments", ...adminOnly, getCouponAssignments);
+router.get("/customer-lookup", ...adminOnly, lookupCouponCustomer);
 router.get("/", ...adminOnly, getCoupons);
 router.post("/", ...adminOnly, createCoupon);
 router.post("/:id/assign", ...adminOnly, assignCoupon);
+router.post("/:id/send", ...adminOnly, sendCoupon);
 router.patch("/assignments/:assignmentId/revoke", ...adminOnly, revokeCouponAssignment);
 router.post("/:id/duplicate", ...adminOnly, duplicateCoupon);
 router.patch("/:id/archive", ...adminOnly, archiveCoupon);

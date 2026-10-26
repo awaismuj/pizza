@@ -132,6 +132,10 @@ export const getCouponRedemptions = (params) => axiosWrapper.get("/api/coupon/re
 export const getCouponAssignments = (params) => axiosWrapper.get("/api/coupon/assignments", { params });
 export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
 export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
+// Send one coupon to one customer: returns the WhatsApp text/number and emails
+// the customer automatically when an email is on file.
+export const lookupCouponCustomer = (phone) => axiosWrapper.get("/api/coupon/customer-lookup", { params: { phone } });
+export const sendCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/send`, data);
 export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
 export const checkWelcomeOffer = (data) => axiosWrapper.post("/api/coupon/welcome-offer/check", data);
 
@@ -232,21 +236,14 @@ export const exportProfitReport = (params) =>
   axiosWrapper.get("/api/profit/export", { params, responseType: "blob" });
 export const getDailyOrders = (date) => axiosWrapper.get("/api/profit/day/orders", { params: { date } });
 
-// Report Endpoints (PDF download / send to WhatsApp)
-export const getWhatsappStatus = () => axiosWrapper.get("/api/report/whatsapp-status");
+// Report Endpoints (PDF download / email)
 export const downloadReportPdf = (params) =>
   axiosWrapper.get("/api/report/download", { params, responseType: "blob" });
-export const sendReportToWhatsapp = (params) => axiosWrapper.post("/api/report/send", params);
 export const sendReportToEmail = (params) => axiosWrapper.post("/api/report/send-email", params);
-export const retryWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-retry");
-export const unlinkWhatsapp = () => axiosWrapper.post("/api/report/whatsapp-unlink");
-export const unlinkWhatsappLink = () => axiosWrapper.post("/api/report/whatsapp-unlink");
 
 // Admin WhatsApp coupon campaigns (approved WhatsApp template provider only).
 export const getCampaignWhatsAppProvider = () => axiosWrapper.get("/api/whatsapp-campaign/provider");
-export const getCampaignLinkedWhatsAppStatus = () => axiosWrapper.get("/api/whatsapp-campaign/whatsapp-link/status");
-export const retryCampaignLinkedWhatsApp = () => axiosWrapper.post("/api/whatsapp-campaign/whatsapp-link/retry");
-export const unlinkCampaignLinkedWhatsApp = () => axiosWrapper.post("/api/whatsapp-campaign/whatsapp-link/unlink");
+export const getRecentWhatsAppCampaignMessages = (params) => axiosWrapper.get("/api/whatsapp-campaign/messages/recent", { params });
 export const getCampaignWhatsAppCustomers = (params) => axiosWrapper.get("/api/whatsapp-campaign/customers", { params });
 export const createCampaignWhatsAppContact = (data) => axiosWrapper.post("/api/whatsapp-campaign/customers", data);
 export const updateCampaignWhatsAppContact = ({ customerId, ...data }) =>

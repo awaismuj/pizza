@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import WhatsAppCampaignManager from "./WhatsAppCampaignManager";
+import SendCouponPanel from "./SendCouponPanel";
+import WhatsAppDock from "./WhatsAppDock";
+import ConfirmDialog from "../shared/ConfirmDialog";
 import {
   addCoupon,
   archiveCoupon,
@@ -75,6 +78,33 @@ const zonedDateToIso = (value, timezone) => {
   return new Date(targetUtc - (representedUtc - targetUtc)).toISOString();
 };
 const populatedIds = (values = []) => values.map((value) => String(value?._id || value));
+// A coupon with no limit comes back from the server as null. Inputs need
+// "" for "empty"; leaving null turned an untouched blank into 0 on save,
+// which the server rejected (usage limit) or saved as a zero cap.
+const blankIfNull = (value) => (value === null || value === undefined ? "" : value);
+const formFromCoupon = (coupon) => ({
+  ...EMPTY_FORM,
+  ...coupon,
+  description: coupon.description || "",
+  minimumSubtotal: blankIfNull(coupon.minimumSubtotal) === "" ? 0 : coupon.minimumSubtotal,
+  maximumDiscount: blankIfNull(coupon.maximumDiscount),
+  usageLimit: blankIfNull(coupon.usageLimit),
+  eligibleDishIds: populatedIds(coupon.eligibleDishIds),
+  excludedDishIds: populatedIds(coupon.excludedDishIds),
+  eligibleCategoryIds: populatedIds(coupon.eligibleCategoryIds),
+  excludedCategoryIds: populatedIds(coupon.excludedCategoryIds),
+  startsAt: dateInputValue(coupon.startsAt, coupon.timezone),
+  expiresAt: dateInputValue(coupon.expiresAt, coupon.timezone),
+});
+
+const TABS = [
+  { key: "send", label: "Send coupon" },
+  { key: "coupons", label: "All coupons" },
+  { key: "create", label: "Create / edit" },
+  { key: "private", label: "Private codes" },
+  { key: "welcome", label: "Welcome offer" },
+  { key: "redemptions", label: "Redemptions" },
+];
 const amountText = (coupon) =>
   coupon.discountType === "percentage"
     ? `${coupon.discountValue}%`
@@ -139,6 +169,10 @@ const CouponsManager = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [editingId, setEditingId] = useState("");
+  const [tab, setTab] = useState("send");
+  const [sendCouponId, setSendCouponId] = useState("");
+  const [archiving, setArchiving] = useState(null);
+  const dockRef = useRef(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [assignmentForm, setAssignmentForm] = useState({ couponId: "", email: "", redemptionLimit: 1 });
   const [lastAssignedCode, setLastAssignedCode] = useState("");
@@ -238,6 +272,7 @@ const CouponsManager = () => {
     mutationFn: (payload) => editingId ? updateCoupon({ couponId: editingId, ...payload }) : addCoupon(payload),
     onSuccess: () => {
       enqueueSnackbar(editingId ? "Coupon updated." : "Coupon created.", { variant: "success" });
+      setTab("coupons");
       setEditingId("");
       setForm(EMPTY_FORM);
       refresh();
@@ -265,18 +300,8 @@ const CouponsManager = () => {
     onSuccess: (response) => {
       const coupon = response.data.data;
       setEditingId("");
-      setForm({
-        ...EMPTY_FORM,
-        ...coupon,
-        code: "",
-        status: "draft",
-        eligibleDishIds: populatedIds(coupon.eligibleDishIds),
-        excludedDishIds: populatedIds(coupon.excludedDishIds),
-        eligibleCategoryIds: populatedIds(coupon.eligibleCategoryIds),
-        excludedCategoryIds: populatedIds(coupon.excludedCategoryIds),
-        startsAt: dateInputValue(coupon.startsAt, coupon.timezone),
-        expiresAt: dateInputValue(coupon.expiresAt, coupon.timezone),
-      });
+      setForm({ ...formFromCoupon(coupon), code: "", status: "draft" });
+      setTab("create");
       enqueueSnackbar("Copy ready to edit. Give it a new code before saving.", { variant: "info" });
     },
     onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not duplicate coupon.", { variant: "error" }),
@@ -284,16 +309,8 @@ const CouponsManager = () => {
 
   const beginEdit = (coupon) => {
     setEditingId(coupon._id);
-    setForm({
-      ...EMPTY_FORM,
-      ...coupon,
-      eligibleDishIds: populatedIds(coupon.eligibleDishIds),
-      excludedDishIds: populatedIds(coupon.excludedDishIds),
-      eligibleCategoryIds: populatedIds(coupon.eligibleCategoryIds),
-      excludedCategoryIds: populatedIds(coupon.excludedCategoryIds),
-      startsAt: dateInputValue(coupon.startsAt, coupon.timezone),
-      expiresAt: dateInputValue(coupon.expiresAt, coupon.timezone),
-    });
+    setForm(formFromCoupon(coupon));
+    setTab("create");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -340,6 +357,29 @@ const CouponsManager = () => {
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Completed coupon uses</p><b className="text-2xl text-white">{redemptionSummary.redeemed || 0}</b><p className="text-xs text-[#aaa]">Pending: {redemptionSummary.reserved || 0} · Discounts: Rs {Number(redemptionSummary.discountTotal || 0).toLocaleString()}</p></div>
       </section>
 
+      <nav className="flex flex-wrap gap-2 rounded-lg bg-[#262626] p-2" aria-label="Coupon sections" role="tablist">
+        {TABS.map((entry) => (
+          <button
+            key={entry.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === entry.key}
+            onClick={() => setTab(entry.key)}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${tab === entry.key ? "bg-[#f6b100] text-[#1f1f1f]" : "text-[#bbb] hover:bg-[#333]"}`}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
+      {tab === "send" && (
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <SendCouponPanel dockRef={dockRef} couponId={sendCouponId} onCouponChange={setSendCouponId} />
+          <WhatsAppDock dockRef={dockRef} />
+        </div>
+      )}
+
+{tab === "welcome" && (
       <section className="rounded-lg bg-[#262626] p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-white">First-Time Customer Welcome Offer</h2>
@@ -385,6 +425,8 @@ const CouponsManager = () => {
         </div>
       </section>
 
+)}
+{tab === "create" && (
       <form onSubmit={submit} className="rounded-lg bg-[#262626] p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-white">{editingId ? "Edit coupon" : "Create coupon"}</h2>
@@ -454,6 +496,8 @@ const CouponsManager = () => {
         <button disabled={saveMutation.isPending} className="rounded bg-[#f6b100] px-5 py-2 font-semibold text-black">{saveMutation.isPending ? "Saving…" : editingId ? "Save changes" : "Create coupon"}</button>
       </form>
 
+)}
+{tab === "private" && (
       <section className="rounded-lg bg-[#262626] p-5 space-y-4">
         <div>
           <h2 className="text-xl font-semibold text-white">Assign a private customer code</h2>
@@ -513,6 +557,8 @@ const CouponsManager = () => {
         </div>
       </section>
 
+)}
+{tab === "coupons" && (
       <section className="rounded-lg bg-[#262626] p-5">
         <div className="mb-4 flex flex-wrap gap-3">
           <input className={`${inputClass} max-w-sm`} placeholder="Search name or code" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
@@ -533,9 +579,12 @@ const CouponsManager = () => {
                   <td className="text-xs">{coupon.startsAt ? new Date(coupon.startsAt).toLocaleString(undefined, { timeZone: coupon.timezone }) : "Now"}<br />to {coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleString(undefined, { timeZone: coupon.timezone }) : "No expiry"}</td>
                   <td className="capitalize">{coupon.status}</td>
                   <td><div className="flex flex-wrap gap-2">
-                    <button className="text-[#f6b100]" onClick={() => beginEdit(coupon)}>Edit</button>
-                    <button className="text-[#f6b100]" onClick={() => duplicateMutation.mutate(coupon._id)}>Duplicate</button>
-                    {coupon.status !== "archived" && <button className="text-red-300" onClick={() => archiveMutation.mutate(coupon._id)}>Archive</button>}
+                    {["active", "scheduled"].includes(coupon.status) && (
+                      <button type="button" className="font-semibold text-[#25d366]" onClick={() => { setSendCouponId(coupon._id); setTab("send"); }}>Send</button>
+                    )}
+                    <button type="button" className="text-[#f6b100]" onClick={() => beginEdit(coupon)}>Edit</button>
+                    <button type="button" className="text-[#f6b100]" onClick={() => duplicateMutation.mutate(coupon._id)}>Duplicate</button>
+                    {coupon.status !== "archived" && <button type="button" className="text-red-300" onClick={() => setArchiving(coupon)}>Archive</button>}
                   </div></td>
                 </tr>
               ))}</tbody>
@@ -551,6 +600,8 @@ const CouponsManager = () => {
           </div>
         </div>
       </section>
+
+)}{tab === "redemptions" && (
       <section className="rounded-lg bg-[#262626] p-5">
         <h2 className="mb-3 text-lg font-semibold text-white">Recent redemptions</h2>
         {redemptions.length === 0 ? <p className="text-sm text-[#aaa]">No coupon redemptions yet.</p> : (
@@ -570,6 +621,18 @@ const CouponsManager = () => {
           </div>
         )}
       </section>
+
+)}      <ConfirmDialog
+        open={Boolean(archiving)}
+        danger
+        title="Archive this coupon?"
+        message={archiving ? `${archiving.code} will stop working for new orders. Past orders are not affected.` : ""}
+        confirmLabel="Archive"
+        cancelLabel="Keep"
+        busy={archiveMutation.isPending}
+        onConfirm={() => { archiveMutation.mutate(archiving._id); setArchiving(null); }}
+        onClose={() => setArchiving(null)}
+      />
     </div>
   );
 };

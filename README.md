@@ -429,20 +429,37 @@ until each queued eligible recipient has a persisted, currently valid token.
 The worker rechecks current order eligibility, marketing consent, number
 validity, campaign state, and coupon validity immediately before sending.
 
-Campaign delivery uses the official WhatsApp Cloud API and an approved template
-with five body parameters (`{{1}}` through `{{5}}`). Set the campaign variables
-in `pos-backend/.env.example` in the deployment environment, including the
-approved template name, language, matching preview body, test number, app
-secret, and verify token. Development and tests are mock-only; Cloud sending is
-restricted to production. The configured test number is the only destination
-for test sends. Provider delivery callbacks are signature-verified; accepted
-messages are recorded as sent, not delivered, until WhatsApp confirms delivery.
-Before launching campaigns, run `npm run migrate:whatsapp-campaigns` from
-`pos-backend`. This creates campaign/coupon idempotency and query indexes and
-adds the campaign permission to persisted Admin/Super Admin roles; it does not
-rewrite customer or order data. The existing linked-device WhatsApp Web
-integration remains reserved for daily reports and is not used for campaign
-automation.
+Campaign delivery uses the official WhatsApp Cloud API (`cloud`) or a
+development-only no-delivery provider (`mock`). Linked-device/WhatsApp Web
+automation is disabled and cannot send reports or campaign messages. Cloud API
+use requires an approved template with five body parameters (`{{1}}` through
+`{{5}}`) and production credentials. Configure `WHATSAPP_CAMPAIGN_PROVIDER=cloud`
+in the backend environment. In POS → Coupons, **WhatsApp campaign activity**
+shows provider readiness and per-recipient campaign records, including queued,
+sending, sent, delivered, failed, and skipped counts with paginated recipient
+details that refresh while a campaign is running. The configured test number is
+the only destination for test sends. Cloud delivery callbacks are
+signature-verified; accepted Cloud messages are recorded as sent, not delivered,
+until WhatsApp confirms delivery. Profit reports remain available as PDF
+downloads and email. Before launching campaigns, run
+`npm run migrate:whatsapp-campaigns` from `pos-backend`. This creates
+campaign/coupon idempotency and query indexes and adds the campaign permission
+to persisted Admin/Super Admin roles; it does not rewrite customer or order
+data.
+
+For multiple backend instances, use `WHATSAPP_CAMPAIGN_PROVIDER=cloud` on every
+instance and configure the same approved template and Cloud API credentials on
+each one. All instances must use the same MongoDB database. The campaign worker
+claims each recipient atomically in MongoDB and shares its send-rate slot there,
+so replicas coordinate instead of each sending the same queued recipient. Run
+the WhatsApp campaign migration before enabling sends. Do not configure a
+separate local database per instance.
+
+Cloud API delivery does not need Chromium or a linked-device session. Legacy
+`WHATSAPP_ENABLED`, `WHATSAPP_SESSION_DIR`, and `REPORT_AUTO_SEND` variables are
+ignored by the backend. Keep Cloud API credentials in the deployment secret
+manager and rotate any credentials that were previously exposed or stored in
+unsecured files.
 
 To enable the customer phonebook, back up MongoDB, deploy the updated backend
 files, and run `npm run migrate:customer-contacts` from `pos-backend` before
@@ -497,13 +514,13 @@ These in-memory rate limits are per backend process; use a shared
 gateway/store for multi-instance production deployments. Production startup
 also requires a unique `JWT_SECRET` of at least 32 characters.
 
-The public storefront exposes its home and privacy policy pages through
-`online-store/public/sitemap.xml` and `robots.txt`; the POS app is marked
-`noindex`. The storefront includes an app-level not-found page and static
-`404.html`; configure the web host to serve that file with an HTTP 404 status
-for unknown paths. Large uploaded images are resized/compressed in the POS
-browser before upload when supported. Existing review spam controls include
-a honeypot and rate limit; delivery quote and menu search inputs are
+The public storefront exposes its home, help, terms, and privacy policy pages
+through `online-store/public/sitemap.xml` and `robots.txt`; the POS app is
+marked `noindex`. The storefront includes an app-level not-found page and
+static `404.html`; configure the web host to serve that file with an HTTP 404
+status for unknown paths. Large uploaded images are resized/compressed in the
+POS browser before upload when supported. Existing review spam controls
+include a honeypot and rate limit; delivery quote and menu search inputs are
 debounced.
 
 ### Deployment and rollback

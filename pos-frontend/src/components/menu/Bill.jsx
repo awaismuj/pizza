@@ -193,9 +193,9 @@ const Bill = () => {
                 },
               };
 
-              setTimeout(() => {
-                orderMutation.mutate(orderData);
-              }, 1500);
+              // The customer has already paid, so place the order right
+              // away instead of leaving a gap where the page can be closed.
+              orderMutation.mutate(orderData);
             } catch (verifyError) {
               enqueueSnackbar(
                 "Payment was charged but verification failed to reach the server. Note the Razorpay payment ID and place this order manually.",
@@ -253,20 +253,20 @@ const Bill = () => {
       // Razorpay charge just went through) — the Payments/Profit/Home
       // dashboards should reflect that immediately, not next time someone
       // happens to reopen that tab.
-      queryClient.invalidateQueries(["orders"]);
-      queryClient.invalidateQueries(["dailyProfit"]);
-      queryClient.invalidateQueries(["monthlyProfit"]);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
+      queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
 
-      // Update Table
-      const tableData = {
+      // Book the table straight away. The cart used to stay on screen (and
+      // Place Order stayed clickable) until this finished, which left a
+      // window where a second click placed the same order twice.
+      tableUpdateMutation.mutate({
         status: "Booked",
         orderId: data._id,
         tableId: data.table,
-      };
-
-      setTimeout(() => {
-        tableUpdateMutation.mutate(tableData);
-      }, 1500);
+      });
+      dispatch(removeCustomer());
+      dispatch(removeAllItems());
 
       enqueueSnackbar("Order Placed!", {
         variant: "success",
@@ -290,13 +290,16 @@ const Bill = () => {
 
   const tableUpdateMutation = useMutation({
     mutationFn: (reqData) => updateTable(reqData),
-    onSuccess: (resData) => {
-      console.log(resData);
-      dispatch(removeCustomer());
-      dispatch(removeAllItems());
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
     },
     onError: (error) => {
-      console.log(error);
+      // The order itself is saved; only the table marker failed.
+      enqueueSnackbar(
+        error?.response?.data?.message || "Order placed, but the table could not be marked as booked. Check the Tables page.",
+        { variant: "warning", autoHideDuration: 6000 }
+      );
+      queryClient.invalidateQueries({ queryKey: ["tables"] });
     },
   });
 
