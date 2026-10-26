@@ -389,7 +389,7 @@ Before/after running it, read the console output carefully:
 
 ## Coupons and promotions
 
-The POS dashboard now includes **Coupons**. The first release supports shared
+The POS dashboard includes **Coupons & Customer Marketing** and shared
 percentage and fixed-amount codes for POS and online orders, with status and
 date windows, campaign/per-phone limits, minimum eligible subtotal, optional
 discount caps, product/category allowlists and exclusions, first-order checks,
@@ -407,6 +407,36 @@ transactionally with order redemption. Before enabling this offer in
 production, run `npm run migrate:welcome-offer-index` from `pos-backend` to
 create the unique phone-key index that prevents duplicate offers under
 concurrent requests.
+
+Coupons & Customer Marketing adds database-backed welcome, Friday, birthday,
+and manual campaign settings, execution history, customer coupon history, and
+email/WhatsApp delivery logs. Welcome checks require a signed-in customer with
+a verified email. Friday and birthday automation use the configured timezone
+(initially `Asia/Karachi`); automatic Friday generation defaults off and can be
+enabled from the POS. Campaign runs target active, verified customer accounts
+with qualifying completed/closed order history. Administrators can select
+customers from the customer database or preview and generate for all eligible
+customers. Discount and expiry values are snapshotted when each coupon is
+issued, and campaign executions are idempotent across backend instances.
+
+Before deploying this module, back up the database and run
+`npm run migrate:promotions` from `pos-backend`. The migration creates the
+execution, issue, coupon-tier, generated-discount-key, and customer-assignment
+idempotency indexes; it does not rewrite customer or order data. Use the existing SMTP configuration
+for email. WhatsApp delivery requires the production Cloud API configuration
+and approved template; mock mode does not send real messages. Both channels
+require current recorded marketing consent, and provider acceptance is logged
+as `sent` rather than confirmed delivery.
+
+New customer-specific codes use the configured prefix and random suffix
+(default example: `FLAT7K3M`). Administrators can configure the prefix,
+suffix length, and unique allowed alphabet subject to backend collision-safety
+validation. In
+campaign results, use **Copy code** to copy just the code or **Copy message**
+to copy a ready-to-send message with the customer's discount, minimum order,
+expiry, and store link. Copy message is available only when marketing consent
+is recorded. Use **Send email** or **Send WhatsApp** to queue delivery through
+the configured provider; those actions also require consent.
 
 The **Send Coupons** campaign tool is under POS Dashboard > Coupons. Customer
 phone contacts can be added from the recipient list or are captured from new
@@ -578,19 +608,39 @@ codes therefore require the verified-email account session. Phone-based order
 history is used to retain first-order and per-customer coupon checks when a
 guest customer later creates an account.
 
-This is not yet the full requested promotion suite: implemented discount types
-remain percentage and fixed amount. Free delivery, free products, BOGO,
-loyalty/VIP/birthday/referral/win-back eligibility, automated assignment jobs,
-pickup/delivery-specific coupon rules, assignment regeneration in the admin
-UI, advanced campaign analytics/exports, and incremental revenue attribution
-are not implemented. Do not advertise these as supported. Existing redemption
-reporting remains limited to recorded redemption counts and discount amounts.
+Coupon campaign settings are managed in POS Dashboard > Coupons. Administrators
+can enable or pause the built-in welcome, Friday, birthday, and manual campaign
+types; edit their names/descriptions, schedules where supported, timezones,
+discount values, minimum orders, caps, expiry rules, order channels, stacking,
+marketing-consent requirements, per-run generation limits, and per-customer
+redemption limits (with usage caps applied per generated discount code); and
+configure generated code format and online coupon entry.
+Changes are validated server-side, saved with an audit record, and apply to
+future issues/runs. Existing issued coupons retain their stored values and
+expiry, and completed orders are not recalculated. Friday and birthday
+automation can be enabled and uses the saved schedule. Manual campaigns are
+started by an administrator rather than scheduled. Individual coupon edits and
+archives keep a bounded administrator audit history visible from the coupon
+manager; editing an active or scheduled coupon requires confirmation because
+future redemptions by existing assignments will use the new terms.
+
+Supported technical boundaries are intentional: coupon discounts are percentage
+or fixed-amount only; checkout accepts one coupon per order; coupon channels are
+Online or POS and do not distinguish delivery from pickup; free delivery,
+free products, BOGO, and custom user-defined campaign types are not implemented.
+Product/category inclusion and exclusion rules are configurable on individual
+coupons in the coupon manager, but are not campaign-wide generation settings.
+Welcome coupons require a verified customer account; guest welcome-coupon
+issuance is unsupported. Automated WhatsApp uses the existing approved
+percentage-only template, so fixed-amount campaigns cannot send through it.
+Campaign logs report coupon generation and delivery states; they are not
+incremental revenue attribution or a financial export.
 
 ### Deploying customer accounts and private assignments
 
 1. Configure SMTP and a public `BACKEND_URL` so verification links reach the
-   deployed backend. Keep marketing consent opt-in; no promotional messages
-   are sent by this release.
+   deployed backend. Keep marketing consent opt-in; campaign sends require
+   recorded consent and working provider configuration.
 2. Back up MongoDB, deploy backend changes, and run `npm run migrate` from
    `pos-backend` to sync the additive customer and assignment indexes.
 3. Deploy both frontend applications with the backend. Customer accounts and

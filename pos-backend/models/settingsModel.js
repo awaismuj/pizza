@@ -89,6 +89,15 @@ const settingsSchema = new mongoose.Schema(
       applyButtonLabel: { type: String, default: "Apply Discount", maxlength: 40 },
       declineButtonLabel: { type: String, default: "No Thanks", maxlength: 40 },
     },
+    promotionSettings: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    couponSettingsAudit: [{
+      changedAt: { type: Date, required: true },
+      changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      changedByName: { type: String, default: "", maxlength: 120 },
+      area: { type: String, required: true, maxlength: 80 },
+      previousValue: { type: mongoose.Schema.Types.Mixed, default: null },
+      newValue: { type: mongoose.Schema.Types.Mixed, required: true },
+    }],
   },
   { timestamps: true }
 );

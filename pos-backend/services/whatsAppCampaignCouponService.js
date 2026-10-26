@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const Coupon = require("../models/couponModel");
 const CustomerCoupon = require("../models/customerCouponModel");
+const Settings = require("../models/settingsModel");
+const { getPromotionSettings } = require("../utils/promotionSettings");
 const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientModel");
 const { createCustomerCouponCode } = require("../utils/customerCouponCode");
 
@@ -68,12 +70,14 @@ const getOrCreateAssignment = async (campaign, recipient, customer) => {
   if (!assignment) {
     const discount = chooseDiscount(campaign);
     const coupon = await getCampaignCoupon(campaign, discount);
+    const settings = await Settings.findOne({ key: "global" }).select("promotionSettings").lean();
+    const codeSettings = getPromotionSettings(settings?.promotionSettings).global;
     for (let attempt = 0; attempt < 5 && !assignment; attempt += 1) {
       try {
         assignment = await CustomerCoupon.create({
           couponId: coupon._id,
           customerId: customer._id,
-          code: createCustomerCouponCode(),
+          code: createCustomerCouponCode(codeSettings),
           source: "whatsapp_campaign",
           idempotencyKey,
           redemptionLimit: campaign.maxUsesPerCoupon,
