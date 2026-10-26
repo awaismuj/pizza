@@ -16,6 +16,7 @@ const Settings = require("../models/settingsModel");
 const PromotionExecution = require("../models/promotionExecutionModel");
 const PromotionIssue = require("../models/promotionIssueModel");
 const customerPhoneKey = require("../utils/customerPhoneKey");
+const { createCustomerCouponCode } = require("../utils/customerCouponCode");
 const { calculateExpiry, getPromotionSettings } = require("../utils/promotionSettings");
 
 const normalizePhoneDigits = (phone) => {
@@ -118,6 +119,7 @@ const recordWelcomeCouponIssue = async ({ coupon, customer, config }) => {
       couponId: coupon._id,
       couponCode: coupon.code,
       discountPercentage: Number(coupon.discountValue),
+      minimumSubtotal: Number(coupon.minimumSubtotal || 0),
       expiresAt: coupon.expiresAt,
       emailStatus: config.sendEmail
         ? (marketingConsent && customer.email ? "queued" : "skipped")
@@ -173,38 +175,40 @@ const buildWelcomeOfferCoupon = async ({ customerId, customer: customerRecord, p
     if (!percentage) return { eligible: false, reason: "no-valid-percentages" };
     const welcomeChannels = config.eligibleChannels.filter((entry) => ["Online", "POS"].includes(entry));
     if (!welcomeChannels.length) return { eligible: false, reason: "offer-not-active-for-channel" };
-    const couponCode = `WELCOME_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
-    try {
-      [created] = await Coupon.create([{
-        name: "First-Time Customer Welcome Offer",
-        description: "Automatic first-order welcome discount for new customers.",
-        code: couponCode,
-        source: "welcome",
-        welcomeCustomerKey: customerKey,
-        discountType: "percentage",
-        discountValue: Number(percentage),
-        minimumSubtotal: Number(config.minimumSubtotal || 0),
-        maximumDiscount: config.maxDiscountAmount != null ? Number(config.maxDiscountAmount) : null,
-        channels: welcomeChannels,
-        usageLimit: 1,
-        perCustomerLimit: 1,
-        startsAt: config.startsAt || now,
-        expiresAt: config.expiryMode
-          ? calculateExpiry(config, now, config.timezone || "Asia/Karachi")
-          : config.expiresAt || null,
-        timezone: "Asia/Karachi",
-        firstOrderOnly: true,
-        allowStacking: false,
-        status: "active",
-      }], { session: session || null });
-    } catch (error) {
-      if (error.code !== 11000) throw error;
-      created = await Coupon.findOne({ source: "welcome", welcomeCustomerKey: customerKey })
-        .select("+welcomeCustomerKey")
-        .session(session || null);
-      if (!created) throw error;
-      alreadyAssigned = true;
+    for (let attempt = 0; attempt < 5 && !created; attempt += 1) {
+      try {
+        [created] = await Coupon.create([{
+          name: "First-Time Customer Welcome Offer",
+          description: "Automatic first-order welcome discount for new customers.",
+          code: createCustomerCouponCode(),
+          source: "welcome",
+          welcomeCustomerKey: customerKey,
+          discountType: "percentage",
+          discountValue: Number(percentage),
+          minimumSubtotal: Number(config.minimumSubtotal || 0),
+          maximumDiscount: config.maxDiscountAmount != null ? Number(config.maxDiscountAmount) : null,
+          channels: welcomeChannels,
+          usageLimit: 1,
+          perCustomerLimit: 1,
+          startsAt: config.startsAt || now,
+          expiresAt: config.expiryMode
+            ? calculateExpiry(config, now, config.timezone || "Asia/Karachi")
+            : config.expiresAt || null,
+          timezone: "Asia/Karachi",
+          firstOrderOnly: true,
+          allowStacking: false,
+          status: "active",
+        }], { session: session || null });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        created = await Coupon.findOne({ source: "welcome", welcomeCustomerKey: customerKey })
+          .select("+welcomeCustomerKey")
+          .session(session || null);
+        if (created) alreadyAssigned = true;
+        else if (attempt === 4) throw error;
+      }
     }
+    if (!created) throw new Error("Could not allocate a unique welcome coupon code.");
   }
 
   if (!created || created.status !== "active" || (created.usageLimit != null && created.redemptionCount >= created.usageLimit)) {

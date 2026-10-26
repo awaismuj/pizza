@@ -8,6 +8,7 @@ const PromotionExecution = require("../models/promotionExecutionModel");
 const PromotionIssue = require("../models/promotionIssueModel");
 const Settings = require("../models/settingsModel");
 const whatsappProvider = require("./whatsAppCampaignProvider");
+const { createCustomerCouponCode } = require("../utils/customerCouponCode");
 const { calculateExpiry, choosePercentage, getPromotionSettings } = require("../utils/promotionSettings");
 
 const currentLocalParts = (date, timezone) => {
@@ -107,6 +108,7 @@ const recordBirthdaySkip = async ({ execution, customer, assignment, coupon }) =
       couponId: coupon._id,
       couponCode: assignment.code,
       discountPercentage: Number(coupon.discountValue),
+      minimumSubtotal: Number(coupon.minimumSubtotal || 0),
       expiresAt: assignment.expiresAt,
       status: "skipped",
       skipReason: "A birthday coupon was already issued for this cycle.",
@@ -144,25 +146,28 @@ const createIssue = async ({ execution, customer, config, source }) => {
     const percentage = choosePercentage(config);
     if (!Number.isFinite(percentage) || percentage <= 0 || percentage > 100) throw new Error("Promotion discount configuration is invalid.");
     const coupon = await getCouponForExecution({ execution, percentage, config, source });
-    try {
-      assignment = await CustomerCoupon.create({
-        couponId: coupon._id,
-        customerId: customer._id,
-        code: `PRIV_${crypto.randomBytes(18).toString("hex").toUpperCase()}`,
-        source: source.assignment,
-        idempotencyKey,
-        redemptionLimit: 1,
-        redemptionCount: 0,
-        startsAt: now,
-        expiresAt: expiry,
-        status: "active",
-        assignedBy: execution.createdBy || null,
-      });
-    } catch (error) {
-      if (error.code !== 11000) throw error;
-      assignment = await CustomerCoupon.findOne({ customerId: customer._id, idempotencyKey });
-      if (!assignment) throw error;
+    for (let attempt = 0; attempt < 5 && !assignment; attempt += 1) {
+      try {
+        assignment = await CustomerCoupon.create({
+          couponId: coupon._id,
+          customerId: customer._id,
+          code: createCustomerCouponCode(),
+          source: source.assignment,
+          idempotencyKey,
+          redemptionLimit: 1,
+          redemptionCount: 0,
+          startsAt: now,
+          expiresAt: expiry,
+          status: "active",
+          assignedBy: execution.createdBy || null,
+        });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        assignment = await CustomerCoupon.findOne({ customerId: customer._id, idempotencyKey });
+        if (!assignment && attempt === 4) throw error;
+      }
     }
+    if (!assignment) throw new Error("Could not allocate a unique short coupon code after several attempts.");
   }
   const coupon = await Coupon.findById(assignment.couponId);
   if (!coupon) throw new Error("Coupon assigned to this customer is missing.");
@@ -182,6 +187,7 @@ const createIssue = async ({ execution, customer, config, source }) => {
       couponId: coupon._id,
       couponCode: assignment.code,
       discountPercentage: Number(coupon.discountValue),
+      minimumSubtotal: Number(coupon.minimumSubtotal || 0),
       expiresAt: assignment.expiresAt,
       emailStatus: sendEmail ? (consent && customer.email ? "queued" : "skipped") : "not_requested",
       emailError: sendEmail && !consent ? "Marketing consent is not recorded." : sendEmail && !customer.email ? "A valid email address is unavailable." : "",
@@ -347,4 +353,4 @@ const runScheduledPromotions = async (now = new Date()) => {
   }
 };
 
-module.exports = { previewPromotion, runPromotion, runScheduledPromotions };
+module.exports = { createCustomerCouponCode, previewPromotion, runPromotion, runScheduledPromotions };

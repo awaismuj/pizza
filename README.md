@@ -428,6 +428,14 @@ and approved template; mock mode does not send real messages. Both channels
 require current recorded marketing consent, and provider acceptance is logged
 as `sent` rather than confirmed delivery.
 
+New customer-specific codes use the shorter `FLAT` prefix plus four
+case-insensitive-safe letters/numbers (for example, `FLAT7K3M`). In
+campaign results, use **Copy code** to copy just the code or **Copy message**
+to copy a ready-to-send message with the customer's discount, minimum order,
+expiry, and store link. Copy message is available only when marketing consent
+is recorded. Use **Send email** or **Send WhatsApp** to queue delivery through
+the configured provider; those actions also require consent.
+
 The **Send Coupons** campaign tool is under POS Dashboard > Coupons. Customer
 phone contacts can be added from the recipient list or are captured from new
 POS/online orders, then matched to completed/closed orders by phone. Contacts
