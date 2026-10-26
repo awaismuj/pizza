@@ -2,7 +2,26 @@ import { useEffect, useState } from "react";
 
 const GOOGLE_CSE_ID = import.meta.env.VITE_GOOGLE_CSE_ID?.trim() || "";
 const GOOGLE_CSE_SCRIPT_ID = "genz-google-cse-script";
+const GOOGLE_CSE_NAME = "genz-coupon-search";
+const GOOGLE_CSE_SEARCHBOX_ID = "genz-google-cse-searchbox";
 const GOOGLE_CSE_RESULTS_ID = "genz-google-cse-results";
+
+const renderSearchElements = () => {
+  const searchElement = window.google?.search?.cse?.element;
+  if (typeof searchElement?.render !== "function") return false;
+
+  searchElement.render({
+    div: GOOGLE_CSE_SEARCHBOX_ID,
+    tag: "searchbox",
+    attributes: { gname: GOOGLE_CSE_NAME },
+  });
+  searchElement.render({
+    div: GOOGLE_CSE_RESULTS_ID,
+    tag: "searchresults",
+    attributes: { gname: GOOGLE_CSE_NAME },
+  });
+  return true;
+};
 
 const GoogleSearchPanel = () => {
   const [scriptError, setScriptError] = useState(false);
@@ -17,15 +36,7 @@ const GoogleSearchPanel = () => {
         return;
       }
       if (existingScript.dataset.loaded === "true") {
-        const searchElement = window.google?.search?.cse?.element;
-        if (typeof searchElement?.render === "function") {
-          searchElement.render({
-            div: GOOGLE_CSE_RESULTS_ID,
-            tag: "search",
-          });
-        } else {
-          setScriptError(true);
-        }
+        if (!renderSearchElements()) setScriptError(true);
       }
       return;
     }
@@ -59,8 +70,11 @@ const GoogleSearchPanel = () => {
           Google Search could not load. Check your connection and Programmable Search Engine ID.
         </p>
       ) : (
-        <div className="max-h-[420px] min-h-36 overflow-y-auto rounded bg-white p-3 text-[#202124]">
-          <div id={GOOGLE_CSE_RESULTS_ID} className="gcse-search" />
+        <div className="space-y-2 rounded bg-white p-3 text-[#202124]">
+          <div id={GOOGLE_CSE_SEARCHBOX_ID} className="gcse-searchbox" data-gname={GOOGLE_CSE_NAME} />
+          <div className="max-h-[360px] min-h-24 overflow-y-auto border-t border-[#ddd] pt-2">
+            <div id={GOOGLE_CSE_RESULTS_ID} className="gcse-searchresults" data-gname={GOOGLE_CSE_NAME} />
+          </div>
         </div>
       )}
     </section>
