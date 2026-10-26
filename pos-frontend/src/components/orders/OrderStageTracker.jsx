@@ -58,11 +58,12 @@ const OrderStageTracker = ({ order, onAdvance, isAdvancing = false }) => {
                 type="button"
                 onClick={() => onAdvance(stage)}
                 disabled={isAdvancing}
+                aria-busy={isAdvancing}
                 aria-label={`Move order to ${STAGE_LABELS[stage]}`}
                 title={`Move to ${STAGE_LABELS[stage]}`}
                 className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[#3a3a3a] text-xs font-bold text-[#f5f5f5] ring-2 ring-[#f6b100] transition hover:bg-[#f6b100] hover:text-[#1f1f1f] disabled:cursor-wait disabled:opacity-50"
               >
-                {index + 1}
+                {isAdvancing ? "…" : index + 1}
               </button>
             ) : (
               <span
@@ -80,13 +81,13 @@ const OrderStageTracker = ({ order, onAdvance, isAdvancing = false }) => {
             <span
               className={`mt-1 text-[10px] leading-tight sm:text-xs ${
                 current || stage === nextStage
-                  ? "font-semibold text-[#f6b100]"
+                  ? `font-semibold text-[#f6b100]${isAdvancing && stage === nextStage ? " animate-pulse" : ""}`
                   : done
                   ? "text-[#02ca3a]"
                   : "text-[#6b6b6b]"
               }`}
             >
-              {STAGE_LABELS[stage]}
+              {isAdvancing && stage === nextStage ? `${STAGE_LABELS[stage]}…` : STAGE_LABELS[stage]}
             </span>
             {stageTime && (
               <span className="text-[9px] leading-tight text-[#6b6b6b]">{formatTime(stageTime)}</span>

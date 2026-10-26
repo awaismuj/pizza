@@ -6,6 +6,7 @@ const CouponRedemption = require("../models/couponRedemptionModel");
 const Customer = require("../models/customerModel");
 const CustomerCoupon = require("../models/customerCouponModel");
 const { resolveCartPrices, calculateEligibleSubtotal, evaluateCoupon, buildWelcomeOfferCoupon, normalizePhoneDigits } = require("../services/couponService");
+const customerPhoneKey = require("../utils/customerPhoneKey");
 
 const DISCOUNT_TYPES = ["percentage", "fixed"];
 const STATUSES = ["draft", "scheduled", "active", "paused", "expired", "archived"];
@@ -427,6 +428,37 @@ const assignCoupon = async (req, res, next) => {
   }
 };
 
+const searchCouponCustomerByPhone = async (req, res, next) => {
+  try {
+    const digits = String(req.query.phone || "").replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 15) {
+      throw createHttpError(400, "Enter at least the last 9 digits of the customer's phone number.");
+    }
+
+    const customer = await Customer.findOne({
+      phoneKey: customerPhoneKey(digits),
+      active: true,
+    })
+      .select("_id name phone email marketingConsent")
+      .lean();
+
+    if (!customer) throw createHttpError(404, "No active customer contact was found for that phone number.");
+
+    res.json({
+      success: true,
+      data: {
+        id: String(customer._id),
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email || "",
+        marketingConsent: customer.marketingConsent === true,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCouponAssignments = async (req, res, next) => {
   try {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -501,6 +533,7 @@ module.exports = {
   getCouponRedemptions,
   getMyCoupons,
   assignCoupon,
+  searchCouponCustomerByPhone,
   getCouponAssignments,
   revokeCouponAssignment,
   buildCouponPayload,

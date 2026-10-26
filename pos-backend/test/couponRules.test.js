@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { calculateCoupon } = require("../services/couponRules");
+const customerPhoneKey = require("../utils/customerPhoneKey");
 
 const coupon = (overrides = {}) => ({
   code: "SAVE10",
@@ -29,6 +30,10 @@ const order = (overrides = {}) => ({
   existingDiscount: 0,
   now: new Date("2026-10-22T00:00:00.000Z"),
   ...overrides,
+});
+
+test("coupon customer lookup matches local and international formats of the same mobile number", () => {
+  assert.equal(customerPhoneKey("0301 331 0954"), customerPhoneKey("+92 301 331 0954"));
 });
 
 test("calculates percentage discounts and applies the maximum cap", () => {

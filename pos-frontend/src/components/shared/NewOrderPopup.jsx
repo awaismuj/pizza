@@ -6,6 +6,7 @@ import { enqueueSnackbar } from "notistack";
 import { motion } from "framer-motion";
 import { getOrders, updateOrderStatus } from "../../https";
 import { PAYMENT_WAITING } from "../../utils/orderStages";
+import { replaceCachedOrder } from "../../utils/orderQueryCache";
 import { PaymentBadge, PaymentDetails, PaymentActions } from "../orders/PaymentPanel";
 
 // Short two-note chime using the Web Audio API - no audio file needed.
@@ -55,7 +56,7 @@ const NewOrderPopup = () => {
     queryKey: ["orders"],
     queryFn: getOrders,
     enabled: isAuth,
-    refetchInterval: 10000,
+    refetchInterval: 5000,
   });
 
   useEffect(() => {
@@ -98,10 +99,11 @@ const NewOrderPopup = () => {
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
-    onSuccess: () => {
-      queryClient.invalidateQueries(["orders"]);
-      queryClient.invalidateQueries(["inventory"]);
-      queryClient.invalidateQueries(["low-stock"]);
+    onSuccess: (response) => {
+      replaceCachedOrder(queryClient, response?.data?.data);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["low-stock"] });
     },
     onError: (error) => {
       const message = error?.response?.data?.message || "Failed to update order.";
@@ -270,14 +272,18 @@ const NewOrderPopup = () => {
               disabled={statusMutation.isPending}
               className="flex-1 rounded-lg bg-[#2e4a40] py-3 font-semibold text-[#02ca3a] disabled:opacity-60"
             >
-              Accept
+              {statusMutation.isPending && statusMutation.variables?.orderStatus === "Accepted" ? "Accepting…" : "Accept"}
             </button>
             <button
               onClick={handleAcceptAndProcess}
               disabled={statusMutation.isPending}
               className="w-full rounded-lg bg-[#02ca3a] py-3 font-semibold text-[#1f1f1f] disabled:opacity-60"
             >
-              Accept &amp; Send to Processing
+              {statusMutation.isPending && statusMutation.variables?.orderStatus === "Preparing"
+                ? "Sending to Processing…"
+                : statusMutation.isPending && statusMutation.variables?.orderStatus === "Accepted"
+                  ? "Accepting…"
+                  : "Accept & Send to Processing"}
             </button>
           </div>
         </div>

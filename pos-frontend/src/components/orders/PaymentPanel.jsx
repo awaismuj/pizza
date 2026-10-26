@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { verifyOrderPayment, rejectOrderPayment, getPaymentProofBlob } from "../../https";
 import { canVerifyPayment } from "../../utils/orderPermissions";
+import { replaceCachedOrder } from "../../utils/orderQueryCache";
 import { PM_JAZZ, paymentKind, paymentKindLabel, PAYMENT_STATUS_STYLE } from "../../utils/payments";
 
 // Small badge: "JazzCash/Raast · Verified" / "Cash on Delivery".
@@ -109,18 +110,19 @@ export const PaymentActions = ({ order, role, onDone, compact = false }) => {
   const [reason, setReason] = useState("");
 
   const refresh = () => {
-    queryClient.invalidateQueries(["orders"]);
-    queryClient.invalidateQueries(["inventory"]);
-    queryClient.invalidateQueries(["low-stock"]);
-    queryClient.invalidateQueries(["dailyProfit"]);
-    queryClient.invalidateQueries(["monthlyProfit"]);
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+    queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    queryClient.invalidateQueries({ queryKey: ["low-stock"] });
+    queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
+    queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
   };
   const onError = (error) =>
     enqueueSnackbar(error?.response?.data?.message || "Something went wrong. Please try again.", { variant: "error" });
 
   const verify = useMutation({
     mutationFn: () => verifyOrderPayment(order._id),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      replaceCachedOrder(queryClient, response?.data?.data);
       refresh();
       enqueueSnackbar("Payment verified — order accepted", { variant: "success" });
       onDone?.("verified");
