@@ -27,7 +27,7 @@ Cloud API credentials and approved five-parameter template in the backend
 environment; mock mode does not deliver messages. A manual email draft remains
 available only after staff confirms email consent.
 
-Use **Open WhatsApp Web to scan QR** to open the official WhatsApp Web site in
-a separate tab and link a device. WhatsApp Web does not permit embedding its
-logged-in session inside the POS, and linking WhatsApp Web does not replace the
-Cloud API configuration required by the in-panel sender.
+Use **Open WhatsApp Web in this tab** to navigate to the official WhatsApp Web
+site and link a device. This leaves the POS page. WhatsApp Web does not permit
+embedding its logged-in session inside the POS, and linking WhatsApp Web does
+not replace the Cloud API configuration required by the in-panel sender.
