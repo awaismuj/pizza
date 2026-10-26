@@ -33,7 +33,6 @@ const CouponSharePanel = () => {
   const [validationMessage, setValidationMessage] = useState("");
   const [emailConsentConfirmed, setEmailConsentConfirmed] = useState(false);
   const [sendFeedback, setSendFeedback] = useState("");
-  const [whatsAppWindowMessage, setWhatsAppWindowMessage] = useState("");
 
   const providerQuery = useQuery({
     queryKey: ["wa-campaign-provider"],
@@ -74,27 +73,6 @@ const CouponSharePanel = () => {
     : "";
   const cloudReady = providerStatus?.provider === "cloud" && providerStatus?.configured === true;
 
-  const openWhatsAppWeb = () => {
-    const width = Math.min(1100, window.screen.availWidth);
-    const height = Math.min(800, window.screen.availHeight);
-    const left = Math.max(0, Math.round((window.screen.availWidth - width) / 2));
-    const top = Math.max(0, Math.round((window.screen.availHeight - height) / 2));
-    const whatsappWindow = window.open(
-      "https://web.whatsapp.com/",
-      "whatsapp-web",
-      `popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-    );
-
-    if (!whatsappWindow) {
-      setWhatsAppWindowMessage("Your browser blocked the WhatsApp window. Allow pop-ups for this POS site, then try again.");
-      return;
-    }
-
-    whatsappWindow.opener = null;
-    whatsappWindow.focus();
-    setWhatsAppWindowMessage("");
-  };
-
   const findCustomer = (event) => {
     event.preventDefault();
     const digits = phone.replace(/\D/g, "");
@@ -118,22 +96,13 @@ const CouponSharePanel = () => {
     <section className="space-y-4 rounded-lg border border-[#3a3a3a] bg-[#202020] p-5" aria-labelledby="coupon-share-title">
       <div>
         <h2 id="coupon-share-title" className="text-lg font-semibold text-white">Send a WhatsApp coupon</h2>
-        <p className="mt-1 text-sm text-[#aaa]">
-          Search for an opted-in customer, choose an eligible coupon, review the approved template, and send without leaving this panel.
-        </p>
         <button
           type="button"
-          onClick={openWhatsAppWeb}
+          onClick={() => window.open("https://web.whatsapp.com/", "_blank", "noopener,noreferrer")}
           className="mt-3 inline-flex items-center gap-2 rounded bg-[#25d366] px-3 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174]"
         >
-          <FaWhatsapp aria-hidden="true" /> Open WhatsApp Web window
+          <FaWhatsapp aria-hidden="true" /> Open WhatsApp Web
         </button>
-        <p className="mt-2 text-xs text-[#999]">
-          WhatsApp opens in a separate window over the POS, like your screenshot. Its logged-in session cannot be embedded in this panel. Linking WhatsApp Web does not configure the Cloud API sender below.
-        </p>
-        {whatsAppWindowMessage && (
-          <p className="mt-2 text-sm text-amber-200" role="alert">{whatsAppWindowMessage}</p>
-        )}
       </div>
 
       {providerQuery.isError && (
@@ -141,12 +110,6 @@ const CouponSharePanel = () => {
           {providerQuery.error?.response?.data?.message || "Could not check WhatsApp Cloud API readiness."}
         </p>
       )}
-      {!providerQuery.isLoading && !cloudReady && (
-        <p className="rounded border border-amber-800 bg-amber-950/30 p-3 text-sm text-amber-100" role="status">
-          WhatsApp Cloud API is not ready. Configure the production Cloud API credentials and approved five-parameter coupon template on the backend. Mock mode does not send real messages.
-        </p>
-      )}
-
       <form className="flex flex-col gap-2 sm:flex-row" onSubmit={findCustomer}>
         <label className="sr-only" htmlFor="coupon-share-phone">Customer phone number</label>
         <input
