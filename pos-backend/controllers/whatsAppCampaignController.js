@@ -1,5 +1,6 @@
 const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
+const config = require("../config/config");
 const WhatsAppCampaign = require("../models/whatsAppCampaignModel");
 const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientModel");
 const WhatsAppCampaignAudit = require("../models/whatsAppCampaignAuditModel");
@@ -9,6 +10,7 @@ const CouponRedemption = require("../models/couponRedemptionModel");
 const campaignService = require("../services/whatsAppCampaignService");
 const campaignCouponService = require("../services/whatsAppCampaignCouponService");
 const provider = require("../services/whatsAppCampaignProvider");
+const { sendMail } = require("../utils/mailer");
 const Order = require("../models/orderModel");
 const Customer = require("../models/customerModel");
 const { normalizeContactPhone } = require("../services/customerContactService");
@@ -126,7 +128,7 @@ const scanCampaignData = async (campaign) => {
       match: { campaignId: campaign._id, status: "active", startsAt: { $lte: validAt }, expiresAt: { $gt: validAt } },
       select: "campaignId discountValue discountType minimumSubtotal maximumDiscount expiresAt",
     }).lean(),
-    WhatsAppCampaignRecipient.find({ campaignId: campaign._id, customerId: { $in: customerIds } }).select("customerId status couponCode").lean(),
+    WhatsAppCampaignRecipient.find({ campaignId: campaign._id, customerId: { $in: customerIds } }).select("customerId status couponCode emailStatus").lean(),
   ]);
   const assignmentByCustomer = new Map(assignments.filter((row) => row.couponId).map((row) => [String(row.customerId), row]));
   const recipientByCustomer = new Map(existingRecipients.map((row) => [String(row.customerId), row]));
@@ -146,6 +148,7 @@ const scanCampaignData = async (campaign) => {
       assignment,
       alreadyMessaged,
       messageStatus: existingRecipient?.status || "not sent",
+      emailStatus: existingRecipient?.emailStatus || "not queued",
       recipientId: existingRecipient?._id || null,
     };
   });
@@ -202,6 +205,7 @@ const scanCampaign = async (req, res, next) => {
       couponExpiresAt: row.assignment?.expiresAt || null,
       couponStatus: row.assignment ? "active" : "missing",
       messageStatus: row.messageStatus,
+      emailStatus: row.emailStatus,
       recipientId: row.recipientId ? String(row.recipientId) : null,
     })) } });
   } catch (error) {
@@ -294,6 +298,97 @@ const generateCampaignTokens = async (req, res, next) => {
   }
 };
 
+const queueCampaignCouponEmails = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) throw createHttpError(404, "Campaign not found.");
+    const campaign = await WhatsAppCampaign.findById(req.params.id);
+    if (!campaign) throw createHttpError(404, "Campaign not found.");
+    if (campaign.status !== "draft") throw createHttpError(409, "Coupon emails can only be queued for a draft campaign.");
+    if (!config.smtp.host || !config.smtp.user || !config.smtp.pass) {
+      throw createHttpError(503, "SMTP is not configured. Coupon codes were generated, but emails cannot be queued.");
+    }
+
+    const recipients = await WhatsAppCampaignRecipient.find({
+      campaignId: campaign._id,
+      customerCouponId: { $ne: null },
+    }).select("_id customerId customerCouponId emailStatus").lean();
+    const customers = await Customer.find({
+      _id: { $in: recipients.map((row) => row.customerId) },
+    }).select("_id email marketingConsent").lean();
+    const customerById = new Map(customers.map((customer) => [String(customer._id), customer]));
+    const assignments = await CustomerCoupon.find({
+      _id: { $in: recipients.map((row) => row.customerCouponId) },
+    }).select("_id status startsAt expiresAt couponId").populate("couponId", "status").lean();
+    const assignmentById = new Map(assignments.map((assignment) => [String(assignment._id), assignment]));
+    const counts = { queued: 0, skipped: 0, alreadyQueued: 0, alreadySent: 0, failed: 0 };
+    const operations = [];
+    const now = new Date();
+
+    for (const recipient of recipients) {
+      if (recipient.emailStatus === "sent") {
+        counts.alreadySent += 1;
+        continue;
+      }
+      if (recipient.emailStatus === "queued" || recipient.emailStatus === "sending") {
+        counts.alreadyQueued += 1;
+        continue;
+      }
+      if (recipient.emailStatus === "failed") {
+        counts.failed += 1;
+        continue;
+      }
+      if (recipient.emailStatus === "skipped") {
+        counts.skipped += 1;
+        continue;
+      }
+
+      const customer = customerById.get(String(recipient.customerId));
+      const assignment = assignmentById.get(String(recipient.customerCouponId));
+      const hasValidEmail = /^\S+@\S+\.\S+$/.test(String(customer?.email || ""));
+      const eligible = customer?.marketingConsent === true
+        && hasValidEmail
+        && assignment?.status === "active"
+        && assignment?.couponId?.status === "active"
+        && (!campaign.expiresAt || campaign.expiresAt > now)
+        && (!assignment.startsAt || assignment.startsAt <= now)
+        && (!assignment.expiresAt || assignment.expiresAt > now);
+      operations.push({
+        updateOne: {
+          filter: {
+            _id: recipient._id,
+            $or: [{ emailStatus: { $exists: false } }, { emailStatus: null }],
+          },
+          update: {
+            $set: eligible
+              ? { emailStatus: "queued", emailQueuedAt: now, emailLastError: "" }
+              : { emailStatus: "skipped", emailLastError: customer?.marketingConsent !== true
+                ? "Promotional consent is not recorded."
+                : !hasValidEmail ? "Customer email address is missing or invalid."
+                  : "Customer coupon is not currently active." },
+          },
+        },
+      });
+    }
+
+    if (operations.length) {
+      const result = await WhatsAppCampaignRecipient.bulkWrite(operations, { ordered: false });
+      counts.queued = result.modifiedCount;
+      counts.skipped = operations.length - result.modifiedCount;
+    }
+
+    await WhatsAppCampaignAudit.create({
+      campaignId: campaign._id,
+      actorId: req.user._id,
+      action: "email_coupons_queued",
+      reason: "Queue coupon emails for customers with an email address and recorded promotional consent.",
+      metadata: counts,
+    });
+    res.json({ success: true, data: { counts } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const customerList = async (req, res, next) => {
   try {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -320,7 +415,7 @@ const createCustomerContact = async (req, res, next) => {
       throw createHttpError(400, "Marketing consent must be true or false.");
     }
     if (req.body.marketingConsent === true && req.body.consentConfirmed !== true) {
-      throw createHttpError(400, "Confirm that the customer explicitly agreed to receive WhatsApp marketing.");
+      throw createHttpError(400, "Confirm that the customer explicitly agreed to receive promotional messages.");
     }
 
     const existing = await Customer.findOne({ phoneKey: normalized.phoneKey });
@@ -366,7 +461,7 @@ const updateCustomerContact = async (req, res, next) => {
     if (req.body.marketingConsent !== undefined) {
       if (typeof req.body.marketingConsent !== "boolean") throw createHttpError(400, "Marketing consent must be true or false.");
       if (req.body.marketingConsent && req.body.consentConfirmed !== true) {
-        throw createHttpError(400, "Confirm that the customer explicitly agreed to receive WhatsApp marketing.");
+        throw createHttpError(400, "Confirm that the customer explicitly agreed to receive promotional messages.");
       }
       customer.marketingConsent = req.body.marketingConsent;
       customer.marketingConsentAt = new Date();
@@ -977,6 +1072,7 @@ module.exports = {
   getProvider,
   getRecentMessages,
   generateCampaignTokens,
+  queueCampaignCouponEmails,
   launchCampaign,
   pauseCampaign,
   previewCampaign,

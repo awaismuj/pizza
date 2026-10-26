@@ -13,6 +13,7 @@ const { chooseDiscount } = require("../services/whatsAppCampaignCouponService");
 const Customer = require("../models/customerModel");
 const Coupon = require("../models/couponModel");
 const WhatsAppCampaign = require("../models/whatsAppCampaignModel");
+const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientModel");
 
 test("normalizes local Pakistani mobile numbers for WhatsApp Cloud API", () => {
   assert.equal(provider.normalizeNumber("0300 123 4567"), "923001234567");
@@ -66,6 +67,17 @@ test("phone-only customer contacts do not require storefront login credentials",
     contactOnly: true,
   });
   assert.equal(customer.validateSync(), undefined);
+});
+
+test("campaign recipient email delivery uses its own status lifecycle", () => {
+  const recipient = new WhatsAppCampaignRecipient({
+    campaignId: new mongoose.Types.ObjectId(),
+    customerId: new mongoose.Types.ObjectId(),
+    emailStatus: "queued",
+  });
+  assert.equal(recipient.validateSync(), undefined);
+  recipient.emailStatus = "delivered";
+  assert.equal(recipient.validateSync()?.errors?.emailStatus?.kind, "enum");
 });
 
 test("campaign discount selection supports the 8 percent tier", () => {

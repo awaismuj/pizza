@@ -255,6 +255,8 @@ export const getWhatsAppCampaigns = (params) => axiosWrapper.get("/api/whatsapp-
 export const getWhatsAppCampaign = (campaignId) => axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}`);
 export const scanWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/scan`);
 export const generateWhatsAppCampaignTokens = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/generate-tokens`);
+export const queueWhatsAppCampaignCouponEmails = (campaignId) =>
+  axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/queue-coupon-emails`);
 export const getWhatsAppCampaignRecipients = ({ campaignId, ...params }) =>
   axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}/recipients`, { params });
 export const launchWhatsAppCampaign = ({ campaignId, confirmedEligibleCount }) =>

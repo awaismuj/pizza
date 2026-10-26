@@ -29,6 +29,7 @@ router.get("/campaigns/:id", ...adminOnly, controller.getCampaign);
 router.post("/campaigns/:id/scan", ...adminOnly, controller.scanCampaign);
 router.post("/campaigns/:id/generate-tokens", ...adminOnly, controller.generateCampaignTokens);
 router.get("/campaigns/:id/recipients", ...adminOnly, controller.getCampaignRecipients);
+router.post("/campaigns/:id/queue-coupon-emails", ...adminOnly, controller.queueCampaignCouponEmails);
 router.post("/campaigns/:id/launch", ...adminOnly, controller.launchCampaign);
 router.post("/campaigns/:id/pause", ...adminOnly, controller.pauseCampaign);
 router.post("/campaigns/:id/cancel", ...adminOnly, controller.cancelCampaign);

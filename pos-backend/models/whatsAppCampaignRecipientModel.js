@@ -20,6 +20,11 @@ const whatsAppCampaignRecipientSchema = new mongoose.Schema({
   customerCouponId: { type: mongoose.Schema.Types.ObjectId, ref: "CustomerCoupon", default: null },
   couponCode: { type: String, default: "", trim: true, maxlength: 64 },
   discountPercentage: { type: Number, min: 1, max: 100, default: null },
+  emailStatus: { type: String, enum: ["queued", "sending", "sent", "failed", "skipped"] },
+  emailQueuedAt: { type: Date, default: null },
+  emailLeaseUntil: { type: Date, default: null },
+  emailSentAt: { type: Date, default: null },
+  emailLastError: { type: String, default: "", maxlength: 500 },
   providerMessageId: { type: String, default: null, trim: true, maxlength: 160 },
   attempts: { type: Number, default: 0, min: 0 },
   retryable: { type: Boolean, default: false },
@@ -36,6 +41,7 @@ whatsAppCampaignRecipientSchema.index({ status: 1, nextAttemptAt: 1, createdAt: 
 whatsAppCampaignRecipientSchema.index({ campaignId: 1, status: 1, createdAt: 1 }, { name: "whatsapp_campaign_recipient_results" });
 whatsAppCampaignRecipientSchema.index({ status: 1, updatedAt: -1 }, { name: "whatsapp_campaign_recent_messages" });
 whatsAppCampaignRecipientSchema.index({ campaignId: 1, updatedAt: -1 }, { name: "whatsapp_campaign_activity" });
+whatsAppCampaignRecipientSchema.index({ emailStatus: 1, emailQueuedAt: 1 }, { name: "whatsapp_campaign_email_queue" });
 whatsAppCampaignRecipientSchema.index({ providerMessageId: 1 }, { unique: true, partialFilterExpression: { providerMessageId: { $type: "string" } }, name: "uniq_whatsapp_provider_message_id" });
 
 module.exports = mongoose.model("WhatsAppCampaignRecipient", whatsAppCampaignRecipientSchema);

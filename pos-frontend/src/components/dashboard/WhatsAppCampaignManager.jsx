@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaWhatsapp, FaSearch, FaPause, FaPlay, FaTimes, FaRedo, FaDownload } from "react-icons/fa";
-import WhatsAppCampaignMonitor from "./WhatsAppCampaignMonitor";
 import CouponSharePanel from "./CouponSharePanel";
 import {
   cancelWhatsAppCampaign,
@@ -17,6 +16,7 @@ import {
   launchWhatsAppCampaign,
   pauseWhatsAppCampaign,
   previewWhatsAppCampaign,
+  queueWhatsAppCampaignCouponEmails,
   retryWhatsAppCampaignFailures,
   scanWhatsAppCampaign,
   sendWhatsAppCampaignTest,
@@ -127,6 +127,8 @@ const WhatsAppCampaignManager = () => {
   const [feedback, setFeedback] = useState("");
   const [contactEditorOpen, setContactEditorOpen] = useState(false);
   const [contactDraft, setContactDraft] = useState({ customerId: "", name: "", phone: "", marketingConsent: false });
+  const [emailCouponsEnabled, setEmailCouponsEnabled] = useState(true);
+  const [copiedCustomerId, setCopiedCustomerId] = useState("");
 
   const providerQuery = useQuery({
     queryKey: ["wa-campaign-provider"],
@@ -210,6 +212,35 @@ const WhatsAppCampaignManager = () => {
     queryClient.invalidateQueries({ queryKey: ["wa-campaign-recipients", selectedCampaignId] });
   };
 
+  const generateTokensAndQueueEmails = async ({ campaignId, sendEmails }) => {
+    const tokenResponse = await generateWhatsAppCampaignTokens(campaignId);
+    let emailCounts = null;
+    let emailError = "";
+    if (sendEmails) {
+      try {
+        const emailResponse = await queueWhatsAppCampaignCouponEmails(campaignId);
+        emailCounts = emailResponse.data?.data?.counts || null;
+      } catch (error) {
+        emailError = errorMessage(error);
+      }
+    }
+    let scan = null;
+    let scanError = "";
+    try {
+      const scanResponse = await scanWhatsAppCampaign(campaignId);
+      scan = scanResponse.data?.data || null;
+    } catch (error) {
+      scanError = errorMessage(error);
+    }
+    return {
+      counts: tokenResponse.data?.data?.counts || null,
+      emailCounts,
+      emailError,
+      scan,
+      scanError,
+    };
+  };
+
   const previewMutation = useMutation({
     mutationFn: previewWhatsAppCampaign,
     onSuccess: (response) => {
@@ -239,10 +270,12 @@ const WhatsAppCampaignManager = () => {
     onError: (error) => setFeedback(errorMessage(error)),
   });
   const tokenMutation = useMutation({
-    mutationFn: generateWhatsAppCampaignTokens,
-    onSuccess: (response) => {
-      setTokenResult(response.data?.data?.counts || null);
-      enqueueSnackbar("Campaign coupon tokens generated and saved.", { variant: "success" });
+    mutationFn: generateTokensAndQueueEmails,
+    onSuccess: (result) => {
+      setTokenResult({ ...result.counts, email: result.emailCounts });
+      if (result.scan) setScanResult(result.scan);
+      setFeedback(result.emailError || result.scanError);
+      enqueueSnackbar(`${result.counts?.created || 0} coupon tokens assigned.`, { variant: "success" });
       refreshCampaigns();
     },
     onError: (error) => setFeedback(errorMessage(error)),
@@ -275,7 +308,7 @@ const WhatsAppCampaignManager = () => {
     onError: (error) => setFeedback(errorMessage(error)),
   });
   const autoAssignMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ sendEmails }) => {
       const payload = {
         ...requestPayload(),
         name: form.name.trim() || "Customer Appreciation",
@@ -285,24 +318,28 @@ const WhatsAppCampaignManager = () => {
       const previewData = previewResponse.data?.data;
       const eligibleForAssignment = Number(previewData?.counts?.assignmentEligible || 0);
       if (!eligibleForAssignment) throw new Error("No active customers with qualifying orders and valid mobile numbers were found.");
-      if (!window.confirm(`Generate and assign unique coupons to ${eligibleForAssignment} active customers with qualifying orders? ${Number(previewData.counts.eligible || 0)} customers can also receive WhatsApp marketing. No messages will be sent.`)) {
+      const emailNotice = sendEmails
+        ? " Coupons will also be emailed only to customers with an email address and recorded promotional consent."
+        : "";
+      if (!window.confirm(`Generate and assign unique coupons to ${eligibleForAssignment} active customers with qualifying orders?${emailNotice} WhatsApp messages will not be sent.`)) {
         return { cancelled: true };
       }
       const draftResponse = await createWhatsAppCampaign({ ...payload, requestKey });
       const campaignId = draftResponse.data?.data?.campaign?._id;
       if (!campaignId) throw new Error("Could not save the campaign draft.");
-      const tokenResponse = await generateWhatsAppCampaignTokens(campaignId);
-      return { campaignId, counts: tokenResponse.data?.data?.counts, preview: previewData };
+      const result = await generateTokensAndQueueEmails({ campaignId, sendEmails });
+      return { campaignId, ...result, preview: previewData };
     },
     onSuccess: (result) => {
       if (result.cancelled) return;
       setPreview(result.preview);
-      setTokenResult(result.counts);
+      setTokenResult({ ...result.counts, email: result.emailCounts });
+      if (result.scan) setScanResult(result.scan);
       setCreatedCampaignId(result.campaignId);
       setSelectedCampaignId(result.campaignId);
       setRequestKey(makeRequestKey());
-      setFeedback("");
-      enqueueSnackbar(`${result.counts?.created || 0} coupon tokens assigned. No messages were sent.`, { variant: "success" });
+      setFeedback(result.emailError || result.scanError);
+      enqueueSnackbar(`${result.counts?.created || 0} coupon tokens assigned${result.emailCounts?.queued ? `; ${result.emailCounts.queued} emails queued` : ""}.`, { variant: "success" });
       refreshCampaigns();
     },
     onError: (error) => setFeedback(errorMessage(error)),
@@ -449,10 +486,24 @@ const WhatsAppCampaignManager = () => {
 
   const generateAutoCoupons = () => {
     if (createdCampaignId) {
-      tokenMutation.mutate(createdCampaignId);
+      const emailNotice = emailCouponsEnabled
+        ? " Coupon emails will be queued only for customers with an email address and recorded promotional consent."
+        : "";
+      if (!window.confirm(`Generate and assign any missing coupon tokens?${emailNotice}`)) return;
+      tokenMutation.mutate({ campaignId: createdCampaignId, sendEmails: emailCouponsEnabled });
       return;
     }
-    autoAssignMutation.mutate();
+    autoAssignMutation.mutate({ sendEmails: emailCouponsEnabled });
+  };
+
+  const copyCouponCode = async (customerId, code) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCustomerId(customerId);
+      window.setTimeout(() => setCopiedCustomerId(""), 1800);
+    } catch {
+      setFeedback("Could not copy the coupon code. Select and copy it manually.");
+    }
   };
 
   const saveContact = (event) => {
@@ -524,10 +575,8 @@ const WhatsAppCampaignManager = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-white">Automated Customer Coupons</h2>
-          <p className="text-xs text-[#999]">Scan eligible customers, save campaign tokens, and track consent-based WhatsApp delivery.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <WhatsAppCampaignMonitor />
           <button type="button" className={`${buttonClass} bg-[#25d366] px-4 py-2.5 text-[#11251a]`} onClick={() => setIsOpen(true)}>
             <FaWhatsapp /> Send Coupons
           </button>
@@ -542,7 +591,6 @@ const WhatsAppCampaignManager = () => {
                 <FaWhatsapp className="text-xl text-[#25d366]" />
                 <div>
                   <h2 className="text-lg font-semibold text-white">Send Coupons</h2>
-                  <p className="text-xs text-[#999]">Coupon campaigns sent with an approved WhatsApp Cloud API template</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -556,7 +604,7 @@ const WhatsAppCampaignManager = () => {
 
             {view === "create" && <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b border-[#333] bg-[#191919] px-4 py-3 sm:px-6">
               <div className="flex flex-wrap items-center gap-3 text-xs text-[#bbb]">
-                <p>Assign coupons to active customers with qualifying orders. Marketing consent is still required before any WhatsApp send.</p>
+                <p>Select eligible customers and generate their coupon codes.</p>
                 <span className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 ${providerConfig ? "border-emerald-800 text-emerald-200" : "border-amber-800 text-amber-200"}`} aria-live="polite">
                   <FaWhatsapp />
                   {providerStatus?.provider === "mock"
@@ -564,7 +612,15 @@ const WhatsAppCampaignManager = () => {
                     : `WhatsApp Cloud API ${providerConfig ? "ready" : "not configured"}`}
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-xs text-[#bbb]">
+                  <input
+                    type="checkbox"
+                    checked={emailCouponsEnabled}
+                    onChange={(event) => setEmailCouponsEnabled(event.target.checked)}
+                  />
+                  Email customers with promotional consent
+                </label>
                 <button type="button" className={`${buttonClass} bg-[#353535] text-white`} onClick={buildPreview} disabled={previewMutation.isPending || autoAssignMutation.isPending}>{previewMutation.isPending ? "Scanning…" : "Scan Eligible Customers"}</button>
                 <button type="button" className={`${buttonClass} bg-amber-400 px-4 text-[#1c1600]`} onClick={generateAutoCoupons} disabled={autoAssignMutation.isPending || tokenMutation.isPending}>{autoAssignMutation.isPending || tokenMutation.isPending ? "Generating & assigning…" : "Generate & Assign Auto Coupons"}</button>
               </div>
@@ -597,7 +653,6 @@ const WhatsAppCampaignManager = () => {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h3 className="font-semibold text-white">Recipients</h3>
-                          <p className="text-xs text-[#999]">Phone contacts are added from new POS/online orders and can also be entered here. Completed/closed orders are matched by the last 9 phone digits, regardless of format. Coupon assignment requires an active contact with a valid mobile and qualifying order; WhatsApp sending also requires explicit marketing consent.</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <button type="button" className={`${buttonClass} bg-amber-400 text-[#1c1600]`} onClick={() => { setContactDraft({ customerId: "", name: "", phone: "", marketingConsent: false }); setContactEditorOpen(true); }}>Add customer phone</button>
@@ -621,7 +676,7 @@ const WhatsAppCampaignManager = () => {
                           </div>
                           <label className="flex items-start gap-2 text-xs text-[#bbb]">
                             <input type="checkbox" checked={contactDraft.marketingConsent} onChange={(event) => setContactDraft((current) => ({ ...current, marketingConsent: event.target.checked }))} />
-                            <span>I confirm the customer explicitly agreed to receive WhatsApp marketing. A phone number from an order is not consent.</span>
+                            <span>I confirm the customer explicitly agreed to receive promotional messages by WhatsApp or email. A phone number from an order is not consent.</span>
                           </label>
                           <div className="flex items-center gap-2">
                             <button type="submit" className={`${buttonClass} bg-emerald-700 text-white`} disabled={contactMutation.isPending}>{contactMutation.isPending ? "Saving…" : "Save contact"}</button>
@@ -770,7 +825,7 @@ const WhatsAppCampaignManager = () => {
                       {previewData.eligible === 0 && (
                         <p className="col-span-2 rounded border border-amber-800 bg-amber-950/30 p-3 text-xs text-amber-100 sm:col-span-4">
                           No recipients are currently eligible for WhatsApp. {assignmentEligibleCount > 0
-                            ? `${assignmentEligibleCount} qualified customers can still receive coupon tokens; Generate & Assign Auto Coupons saves tokens without sending messages.`
+                            ? `${assignmentEligibleCount} qualified customers can still receive coupon tokens; Generate & Assign Auto Coupons saves tokens without sending WhatsApp messages.`
                             : "No customers currently qualify for coupon assignment; check active status, valid mobile numbers, and completed/closed orders."} To send later, get each customer's explicit marketing opt-in, record it with Edit, then refresh customer status and generate tokens again. Never infer consent from an order or phone number.
                         </p>
                       )}
@@ -779,10 +834,10 @@ const WhatsAppCampaignManager = () => {
 
                   {createdCampaignId ? (
                     <section className="flex flex-wrap items-center justify-between gap-3 rounded border border-amber-800 bg-amber-950/30 p-4">
-                      <div><b className="text-white">Draft saved.</b><p className="text-sm text-[#bbb]">{tokenResult ? `${tokenResult.eligible || 0} WhatsApp-eligible · ${tokenResult.created || 0} new tokens · ${tokenResult.retained || 0} retained · ${tokenResult.failedValidation || 0} excluded` : "Assign and save coupon tokens before launch."} · {form.name}</p></div>
+                      <div><b className="text-white">Draft saved.</b><p className="text-sm text-[#bbb]">{tokenResult ? `${tokenResult.created || 0} new coupons · ${tokenResult.retained || 0} already assigned${tokenResult.email ? ` · ${tokenResult.email.queued || 0} emails queued` : ""}` : "Assign and save coupon tokens before launch."} · {form.name}</p></div>
                       <div className="flex flex-wrap gap-2">
                         <button type="button" className={`${buttonClass} bg-[#3a3a3a] text-white`} onClick={() => scanMutation.mutate(createdCampaignId)} disabled={scanMutation.isPending}>{scanMutation.isPending ? "Refreshing…" : "Refresh Customer & Delivery Status"}</button>
-                        <button type="button" className={`${buttonClass} bg-amber-700 text-white`} onClick={() => tokenMutation.mutate(createdCampaignId)} disabled={tokenMutation.isPending}>{tokenMutation.isPending ? "Generating…" : "Generate & Assign Tokens"}</button>
+                        <button type="button" className={`${buttonClass} bg-amber-700 text-white`} onClick={generateAutoCoupons} disabled={tokenMutation.isPending}>{tokenMutation.isPending ? "Generating…" : "Generate & Assign Tokens"}</button>
                         <button type="button" className={`${buttonClass} bg-[#25d366] px-4 text-[#11251a]`} onClick={confirmLaunch} title={!tokenResult?.eligible ? "No customers currently meet WhatsApp send requirements. Check consent and qualifying orders." : undefined} disabled={!providerConfig || !tokenResult?.eligible || tokenResult?.failedAssignment > 0 || launchMutation.isPending}>{launchMutation.isPending ? "Queueing…" : selectionMode === "selected" ? "Send to Selected" : "Send to All Eligible"}</button>
                       </div>
                       {scanResult?.counts && <p className="w-full text-xs text-[#bbb]" aria-live="polite">Latest scan: {scanResult.counts.customerRecordsFound} records · {scanResult.counts.uniqueValidPhoneNumbers} valid unique numbers · {scanResult.counts.customersWithQualifyingOrders} qualifying buyers · {scanResult.counts.eligibleForWhatsApp} marketing-eligible · {scanResult.counts.alreadyHaveValidCoupon} assigned · {scanResult.counts.excluded} excluded</p>}
@@ -794,6 +849,49 @@ const WhatsAppCampaignManager = () => {
                         <button type="button" className={`${buttonClass} bg-[#25d366] px-5 py-2.5 text-[#11251a]`} onClick={createDraft} disabled={!previewData?.eligible || createMutation.isPending}>{createMutation.isPending ? "Preparing campaign…" : "Prepare campaign for sending"}</button>
                       </div>
                     </div>
+                  )}
+                  {createdCampaignId && scanResult?.rows?.some((row) => row.couponCode) && (
+                    <section className="space-y-3 rounded border border-[#333] bg-[#202020] p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold text-white">Generated coupon codes</h3>
+                          <p className="text-xs text-[#999]">Copy a code to share it manually. Email status is shown for opted-in customers.</p>
+                        </div>
+                        {tokenResult?.email && (
+                          <p className="text-xs text-[#bbb]" role="status">
+                            {tokenResult.email.queued} queued · {tokenResult.email.alreadySent} already sent · {tokenResult.email.skipped} skipped · {tokenResult.email.failed} failed
+                          </p>
+                        )}
+                      </div>
+                      <div className="max-h-64 overflow-auto rounded border border-[#333]">
+                        <table className="w-full min-w-[640px] text-left text-sm text-white">
+                          <thead className="sticky top-0 bg-[#292929] text-xs text-[#aaa]">
+                            <tr><th className="p-2">Customer</th><th>Consent</th><th>Coupon code</th><th>Discount</th><th>Email</th><th>Copy</th></tr>
+                          </thead>
+                          <tbody>
+                            {scanResult.rows.filter((row) => row.couponCode).map((row) => (
+                              <tr key={row.id} className="border-t border-[#333]">
+                                <td className="p-2">{row.name}</td>
+                                <td className={row.marketingConsent ? "text-emerald-300" : "text-amber-200"}>{row.marketingConsent ? "Opted in" : "No consent"}</td>
+                                <td className="font-mono">{row.marketingConsent ? row.couponCode : "Hidden until consent"}</td>
+                                <td>{row.discountPercentage}%</td>
+                                <td className="capitalize text-[#bbb]">{String(row.emailStatus || "not queued").replaceAll("_", " ")}</td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    disabled={!row.marketingConsent}
+                                    className="rounded bg-[#383838] px-2 py-1 text-xs hover:bg-[#4a4a4a] disabled:cursor-not-allowed disabled:opacity-50"
+                                    onClick={() => copyCouponCode(row.id, row.couponCode)}
+                                  >
+                                    {!row.marketingConsent ? "Consent required" : copiedCustomerId === row.id ? "Copied" : "Copy code"}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
                   )}
                 </div>
               ) : (
