@@ -2681,6 +2681,15 @@ const isValidPhone = (value) => {
   return digits.length >= 10 && digits.length <= 13;
 };
 
+const welcomeOfferDismissalKey = (phone, items) => {
+  const value = JSON.stringify([String(phone || "").replace(/\D/g, ""), items]);
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  }
+  return `gzp_welcome_dismissed_${(hash >>> 0).toString(36)}`;
+};
+
 /* ---------------- Icons (inline so there's no icon dependency) ---------------- */
 
 const iconProps = {
@@ -3221,6 +3230,7 @@ function StorefrontHome() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [welcomeOffer, setWelcomeOffer] = useState(null);
+  const welcomeOfferRequestRef = useRef(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3656,8 +3666,39 @@ function StorefrontHome() {
   }, [cart, form.phone]);
 
   useEffect(() => {
-    setWelcomeOffer(null);
-  }, [cart, customer?.id, appliedCoupon, couponInput]);
+    if (!checkoutOpen || !welcomeOfferConfig?.enabled || !isValidPhone(form.phone) || !couponItems.length || appliedCoupon || couponInput.trim()) {
+      setWelcomeOffer(null);
+      return undefined;
+    }
+
+    const dismissalKey = welcomeOfferDismissalKey(form.phone, couponItems);
+    try {
+      if (sessionStorage.getItem(dismissalKey) === "1") {
+        setWelcomeOffer(null);
+        return undefined;
+      }
+    } catch {
+      // The prompt still works when browser storage is unavailable.
+    }
+
+    const requestId = welcomeOfferRequestRef.current + 1;
+    welcomeOfferRequestRef.current = requestId;
+    let active = true;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const response = await checkWelcomeOffer({ phone: form.phone, channel: "Online", items: couponItems });
+        if (!active || welcomeOfferRequestRef.current !== requestId) return;
+        setWelcomeOffer(response.data?.eligible ? { ...response.data, dismissalKey } : null);
+      } catch {
+        if (active && welcomeOfferRequestRef.current === requestId) setWelcomeOffer(null);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [checkoutOpen, welcomeOfferConfig?.enabled, form.phone, couponItems, appliedCoupon, couponInput]);
 
   // How many of a dish/deal are already in the cart, across all its
   // size/crust lines (they all draw from the same stock).
@@ -4104,35 +4145,14 @@ function StorefrontHome() {
     }
   };
 
-  const checkWelcomeCoupon = async () => {
-    if (!customer?.id) {
-      setCustomerAccountOpen(true);
-      setError("Sign in to your verified customer account to check welcome coupons.");
-      return;
-    }
-    if (!welcomeOfferConfig?.enabled) {
-      setError("Welcome coupons are currently unavailable.");
-      return;
-    }
-    if (!couponItems.length || validatingCoupon) return;
-    setValidatingCoupon(true);
-    setError("");
-    try {
-      const response = await checkWelcomeOffer({ items: couponItems });
-      if (response.data?.eligible) {
-        setWelcomeOffer(response.data);
-      } else {
-        setWelcomeOffer(null);
-        setError("No welcome coupon is available for this account and basket.");
-      }
-    } catch (requestError) {
-      setError(requestError.message || "Could not check coupon eligibility.");
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
   const declineWelcomeOffer = () => {
+    if (welcomeOffer?.dismissalKey) {
+      try {
+        sessionStorage.setItem(welcomeOffer.dismissalKey, "1");
+      } catch {
+        // Keep the dismissal for this render even when storage is unavailable.
+      }
+    }
     setWelcomeOffer(null);
   };
 
@@ -5613,16 +5633,6 @@ function StorefrontHome() {
 
                   <div className="gzp-field">
                     <span>Coupon code</span>
-                    {welcomeOfferConfig?.enabled && (
-                      <button
-                        type="button"
-                        className="gzp-btn gzp-btn-ghost"
-                        onClick={checkWelcomeCoupon}
-                        disabled={validatingCoupon}
-                      >
-                        {validatingCoupon ? "Checking…" : customer?.id ? "Check Coupon" : "Sign in to check coupons"}
-                      </button>
-                    )}
                     {assignedCoupons.length > 0 && (
                       <select
                         value=""

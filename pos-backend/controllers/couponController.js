@@ -1,12 +1,12 @@
 const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
 const Customer = require("../models/customerModel");
 const CustomerCoupon = require("../models/customerCouponModel");
 const { resolveCartPrices, calculateEligibleSubtotal, evaluateCoupon, buildWelcomeOfferCoupon, normalizePhoneDigits } = require("../services/couponService");
 const customerPhoneKey = require("../utils/customerPhoneKey");
-const { createCustomerCouponCode } = require("../utils/customerCouponCode");
 
 const DISCOUNT_TYPES = ["percentage", "fixed"];
 const STATUSES = ["draft", "scheduled", "active", "paused", "expired", "archived"];
@@ -288,7 +288,6 @@ const checkWelcomeOffer = async (req, res, next) => {
     const result = await buildWelcomeOfferCoupon({
       phone: normalizedPhone,
       customerId: req.customer?._id || null,
-      customer: req.customer,
       channel,
       subtotal,
       session: null,
@@ -407,28 +406,17 @@ const assignCoupon = async (req, res, next) => {
     if (coupon.expiresAt && (!expiresAt || expiresAt > coupon.expiresAt)) {
       throw createHttpError(400, "Assignment expiry cannot exceed the campaign expiry.");
     }
-    let assignment;
-    let code;
-    for (let attempt = 0; attempt < 5 && !assignment; attempt += 1) {
-      code = createCustomerCouponCode();
-      try {
-        assignment = await CustomerCoupon.create({
-          couponId: coupon._id,
-          customerId: customer._id,
-          code,
-          source: "admin",
-          redemptionLimit,
-          startsAt,
-          expiresAt,
-          assignedBy: req.user._id,
-        });
-      } catch (error) {
-        if (error.code !== 11000) throw error;
-        if (error.keyPattern?.code && attempt < 4) continue;
-        throw error;
-      }
-    }
-    if (!assignment) throw createHttpError(500, "Could not allocate a unique customer coupon code.");
+    const code = `PVT_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
+    const assignment = await CustomerCoupon.create({
+      couponId: coupon._id,
+      customerId: customer._id,
+      code,
+      source: "admin",
+      redemptionLimit,
+      startsAt,
+      expiresAt,
+      assignedBy: req.user._id,
+    });
     res.status(201).json({
       success: true,
       message: "Customer coupon assigned. The private code is shown only once.",

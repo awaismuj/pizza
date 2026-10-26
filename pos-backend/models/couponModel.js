@@ -14,10 +14,9 @@ const couponSchema = new mongoose.Schema(
       maxlength: 40,
       match: /^[A-Z0-9_-]+$/,
     },
-    source: { type: String, enum: ["admin", "welcome", "whatsapp_campaign", "friday_campaign", "birthday_campaign", "manual_campaign"], default: "admin" },
+    source: { type: String, enum: ["admin", "welcome", "whatsapp_campaign"], default: "admin" },
     welcomeCustomerKey: { type: String, default: undefined, select: false },
     campaignId: { type: mongoose.Schema.Types.ObjectId, ref: "WhatsAppCampaign", default: null },
-    promotionExecutionId: { type: mongoose.Schema.Types.ObjectId, ref: "PromotionExecution", default: null, index: true },
     campaignDiscountPercentage: { type: Number, min: 1, max: 100, default: null },
     discountType: { type: String, enum: ["percentage", "fixed"], required: true },
     discountValue: { type: Number, required: true, min: 0 },
@@ -56,9 +55,5 @@ couponSchema.index(
   { unique: true, partialFilterExpression: { source: "welcome", welcomeCustomerKey: { $type: "string" } } }
 );
 couponSchema.index({ campaignId: 1, campaignDiscountPercentage: 1 }, { unique: true, partialFilterExpression: { campaignId: { $type: "objectId" } }, name: "uniq_campaign_coupon_discount_tier" });
-couponSchema.index(
-  { promotionExecutionId: 1, campaignDiscountPercentage: 1 },
-  { unique: true, partialFilterExpression: { promotionExecutionId: { $type: "objectId" } }, name: "uniq_promotion_execution_discount_tier" }
-);
 
 module.exports = mongoose.model("Coupon", couponSchema);

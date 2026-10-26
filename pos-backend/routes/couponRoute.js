@@ -23,7 +23,7 @@ const router = express.Router();
 const adminOnly = [isVerifiedUser, requireRole("Admin")];
 
 router.post("/validate", couponValidationRateLimit, attachOptionalCustomer, validatePublicCoupon);
-router.post("/welcome-offer/check", couponValidationRateLimit, requireCustomer, checkWelcomeOffer);
+router.post("/welcome-offer/check", couponValidationRateLimit, attachOptionalCustomer, checkWelcomeOffer);
 router.post("/validate-pos", isVerifiedUser, requireRole("Admin", "Cashier"), validatePosCoupon);
 router.get("/mine", requireCustomer, getMyCoupons);
 router.get("/redemptions", ...adminOnly, getCouponRedemptions);

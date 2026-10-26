@@ -133,7 +133,7 @@ const IdSelector = ({ title, options, selectedIds, onChange, loading, error, emp
   );
 };
 
-const CouponsManager = ({ showWelcomeOfferSettings = true }) => {
+const CouponsManager = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -341,7 +341,7 @@ const CouponsManager = ({ showWelcomeOfferSettings = true }) => {
         <div className="rounded-lg bg-[#262626] p-4"><p className="text-sm text-[#aaa]">Completed coupon uses</p><b className="text-2xl text-white">{redemptionSummary.redeemed || 0}</b><p className="text-xs text-[#aaa]">Pending: {redemptionSummary.reserved || 0} · Discounts: Rs {Number(redemptionSummary.discountTotal || 0).toLocaleString()}</p></div>
       </section>
 
-      {showWelcomeOfferSettings && <section className="rounded-lg bg-[#262626] p-5 space-y-4">
+      <section className="rounded-lg bg-[#262626] p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-white">First-Time Customer Welcome Offer</h2>
           <label className="flex items-center gap-2 text-sm text-white">
@@ -384,7 +384,7 @@ const CouponsManager = ({ showWelcomeOfferSettings = true }) => {
             });
           }}>{welcomeOfferMutation.isPending ? "Saving…" : "Save welcome offer"}</button>
         </div>
-      </section>}
+      </section>
 
       <form onSubmit={submit} className="rounded-lg bg-[#262626] p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
