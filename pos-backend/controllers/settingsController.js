@@ -5,6 +5,7 @@ const { normalizeByoConfig } = require("../utils/byoDiscount");
 const { publicPaymentsShape, paymentsConfig, cleanText } = require("../utils/paymentUtils");
 const { normalizePrepSettings, mergePrepSettings } = require("../utils/prepTimer");
 const { normalizePasswordPolicy } = require("../utils/passwordPolicy");
+const { getPromotionSettings } = require("../utils/promotionSettings");
 
 const SETTINGS_KEY = "global";
 
@@ -15,20 +16,32 @@ const publicShape = (settings) => ({
   orderPrep: normalizePrepSettings(settings.orderPrep),
   passwordPolicy: normalizePasswordPolicy(settings.passwordPolicy),
   firstTimeCustomerOffer: {
-    enabled: Boolean(settings.firstTimeCustomerOffer?.enabled),
-    minimumSubtotal: Number(settings.firstTimeCustomerOffer?.minimumSubtotal ?? 1000),
-    percentages: Array.isArray(settings.firstTimeCustomerOffer?.percentages)
-      ? settings.firstTimeCustomerOffer.percentages.map(Number).filter((value) => Number.isFinite(value) && value > 0)
+    enabled: Boolean(settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.enabled
+      : settings.firstTimeCustomerOffer?.enabled),
+    minimumSubtotal: Number(settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.minimumSubtotal
+      : settings.firstTimeCustomerOffer?.minimumSubtotal ?? 1000),
+    percentages: Array.isArray(settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.percentages
+      : settings.firstTimeCustomerOffer?.percentages)
+      ? (settings.promotionSettings
+        ? getPromotionSettings(settings.promotionSettings).welcome.percentages
+        : settings.firstTimeCustomerOffer.percentages).map(Number).filter((value) => Number.isFinite(value) && value > 0)
       : [5, 7, 10],
     selectionMethod: settings.firstTimeCustomerOffer?.selectionMethod || "random",
-    maxDiscountAmount: settings.firstTimeCustomerOffer?.maxDiscountAmount ?? null,
+    maxDiscountAmount: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.maximumDiscount
+      : settings.firstTimeCustomerOffer?.maxDiscountAmount ?? null,
     startsAt: settings.firstTimeCustomerOffer?.startsAt || null,
     expiresAt: settings.firstTimeCustomerOffer?.expiresAt || null,
     maxCampaignRedemptions: settings.firstTimeCustomerOffer?.maxCampaignRedemptions ?? null,
     redemptionCount: Number(settings.welcomeOfferRedemptionCount || 0),
     maxOnePerCustomer: Boolean(settings.firstTimeCustomerOffer?.maxOnePerCustomer ?? true),
-    eligibleChannels: Array.isArray(settings.firstTimeCustomerOffer?.eligibleChannels) && settings.firstTimeCustomerOffer.eligibleChannels.length
-      ? settings.firstTimeCustomerOffer.eligibleChannels
+    eligibleChannels: settings.promotionSettings
+      ? getPromotionSettings(settings.promotionSettings).welcome.eligibleChannels
+      : Array.isArray(settings.firstTimeCustomerOffer?.eligibleChannels) && settings.firstTimeCustomerOffer.eligibleChannels.length
+        ? settings.firstTimeCustomerOffer.eligibleChannels
       : ["Online", "POS", "Pickup", "Delivery"],
     popupTitle: settings.firstTimeCustomerOffer?.popupTitle || "Welcome to our Pizza Store!",
     popupDescription: settings.firstTimeCustomerOffer?.popupDescription || "You're eligible for a special first-order reward.",

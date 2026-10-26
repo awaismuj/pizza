@@ -389,7 +389,7 @@ Before/after running it, read the console output carefully:
 
 ## Coupons and promotions
 
-The POS dashboard now includes **Coupons**. The first release supports shared
+The POS dashboard includes **Coupons & Customer Marketing** and shared
 percentage and fixed-amount codes for POS and online orders, with status and
 date windows, campaign/per-phone limits, minimum eligible subtotal, optional
 discount caps, product/category allowlists and exclusions, first-order checks,
@@ -407,6 +407,26 @@ transactionally with order redemption. Before enabling this offer in
 production, run `npm run migrate:welcome-offer-index` from `pos-backend` to
 create the unique phone-key index that prevents duplicate offers under
 concurrent requests.
+
+Coupons & Customer Marketing adds database-backed welcome, Friday, birthday,
+and manual campaign settings, execution history, customer coupon history, and
+email/WhatsApp delivery logs. Welcome checks require a signed-in customer with
+a verified email. Friday and birthday automation use the configured timezone
+(initially `Asia/Karachi`); automatic Friday generation defaults off and can be
+enabled from the POS. Campaign runs target active, verified customer accounts
+with qualifying completed/closed order history. Administrators can select
+customers from the customer database or preview and generate for all eligible
+customers. Discount and expiry values are snapshotted when each coupon is
+issued, and campaign executions are idempotent across backend instances.
+
+Before deploying this module, back up the database and run
+`npm run migrate:promotions` from `pos-backend`. The migration creates the
+execution, issue, coupon-tier, and customer-assignment idempotency indexes; it
+does not rewrite customer or order data. Use the existing SMTP configuration
+for email. WhatsApp delivery requires the production Cloud API configuration
+and approved template; mock mode does not send real messages. Both channels
+require current recorded marketing consent, and provider acceptance is logged
+as `sent` rather than confirmed delivery.
 
 The **Send Coupons** campaign tool is under POS Dashboard > Coupons. Customer
 phone contacts can be added from the recipient list or are captured from new
