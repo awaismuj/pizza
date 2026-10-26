@@ -27,6 +27,13 @@ Cloud API credentials and approved five-parameter template in the backend
 environment; mock mode does not deliver messages. A manual email draft remains
 available only after staff confirms email consent.
 
+For campaigns, scan to review eligible customers, then generate and assign
+private coupon codes; the codes appear in the dialog with per-customer copy
+buttons. The email option queues coupons only for customers with a saved email
+and recorded promotional consent. Emails use the backend's existing SMTP
+settings. Campaign WhatsApp results remain available in the campaign results
+tab.
+
 Use **Open WhatsApp Web** to open the official WhatsApp Web site in a new tab
 while keeping the POS page open. WhatsApp Web does not permit embedding its
 logged-in session inside the POS, and linking WhatsApp Web does not replace the

@@ -1,10 +1,13 @@
 const WhatsAppCampaign = require("../models/whatsAppCampaignModel");
 const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientModel");
 const WhatsAppCampaignRateLimit = require("../models/whatsAppCampaignRateLimitModel");
+const Customer = require("../models/customerModel");
+const CustomerCoupon = require("../models/customerCouponModel");
 const config = require("../config/config");
 const provider = require("./whatsAppCampaignProvider");
 const campaignService = require("./whatsAppCampaignService");
 const campaignCouponService = require("./whatsAppCampaignCouponService");
+const { sendMail } = require("../utils/mailer");
 
 let interval = null;
 let running = false;
@@ -15,6 +18,77 @@ const formatExpiry = (date, timezone) => new Intl.DateTimeFormat("en-PK", {
 }).format(date);
 
 const normalizeRecipient = (phone) => provider.normalizeNumber(phone);
+
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+}[character]));
+
+const processCouponEmail = async (recipient) => {
+  try {
+    const [campaign, customer, assignment] = await Promise.all([
+      WhatsAppCampaign.findById(recipient.campaignId),
+      Customer.findById(recipient.customerId).select("name email marketingConsent"),
+      CustomerCoupon.findById(recipient.customerCouponId).populate("couponId"),
+    ]);
+    if (campaign?.status === "cancelled") throw Object.assign(new Error("Campaign was cancelled before email delivery."), { skip: true });
+    if (!customer || customer.marketingConsent !== true) throw Object.assign(new Error("Promotional consent is no longer recorded."), { skip: true });
+    if (!/^\S+@\S+\.\S+$/.test(String(customer.email || ""))) throw Object.assign(new Error("Customer email address is missing or invalid."), { skip: true });
+    if (!assignment || assignment.status !== "active" || !assignment.couponId || assignment.couponId.status !== "active") {
+      throw Object.assign(new Error("Assigned coupon is no longer active."), { skip: true });
+    }
+    const now = new Date();
+    if ((assignment.startsAt && assignment.startsAt > now)
+      || (assignment.expiresAt && assignment.expiresAt <= now)
+      || (campaign?.expiresAt && campaign.expiresAt <= now)) {
+      throw Object.assign(new Error("Assigned coupon has expired or is not active yet."), { skip: true });
+    }
+    if (!config.smtp.host || !config.smtp.user || !config.smtp.pass) throw new Error("SMTP configuration is missing.");
+
+    const expiry = assignment.expiresAt
+      ? new Intl.DateTimeFormat("en-PK", { timeZone: campaign?.timezone || "Asia/Karachi", dateStyle: "medium" }).format(assignment.expiresAt)
+      : "No expiry";
+    const name = escapeHtml(customer.name || "Customer");
+    const code = escapeHtml(assignment.code);
+    const discount = escapeHtml(assignment.couponId.discountValue);
+    const minimum = Number(assignment.couponId.minimumSubtotal || 0).toLocaleString("en-US");
+    const storeUrl = escapeHtml(config.storeUrl);
+    const safeCampaignName = String(campaign?.name || "Customer offer").replace(/[\r\n]+/g, " ").slice(0, 120);
+    await sendMail({
+      to: customer.email,
+      subject: `Your ${safeCampaignName} coupon`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#222">
+          <h2>Hello ${name},</h2>
+          <p>Your promotional coupon is ready:</p>
+          <p style="font-size:24px;font-weight:bold;letter-spacing:2px">${code}</p>
+          <p><strong>${discount}% off</strong> · Minimum order Rs ${minimum}</p>
+          <p>Valid until ${escapeHtml(expiry)}. Terms and eligible items apply.</p>
+          <p><a href="${storeUrl}">Order online</a></p>
+          <p>You can withdraw promotional consent in your customer account settings.</p>
+        </div>
+      `,
+    });
+    await WhatsAppCampaignRecipient.updateOne(
+      { _id: recipient._id, emailStatus: "sending" },
+      { $set: { emailStatus: "sent", emailSentAt: new Date(), emailLeaseUntil: null, emailLastError: "" } }
+    );
+  } catch (error) {
+    await WhatsAppCampaignRecipient.updateOne(
+      { _id: recipient._id, emailStatus: "sending" },
+      {
+        $set: {
+          emailStatus: error.skip ? "skipped" : "failed",
+          emailLeaseUntil: null,
+          emailLastError: String(error.message || "Coupon email could not be sent.").slice(0, 500),
+        },
+      }
+    );
+  }
+};
 
 const acquireRateSlot = async () => {
   const now = new Date();
@@ -173,6 +247,17 @@ const tick = async () => {
       { status: "sending", leaseUntil: { $lte: now } },
       { $set: { status: "failed", failedAt: now, leaseUntil: null, lastError: "Worker stopped during send; delivery outcome is uncertain. Review before retrying." } }
     );
+    await WhatsAppCampaignRecipient.updateMany(
+      { emailStatus: "sending", emailLeaseUntil: { $lte: now } },
+      { $set: { emailStatus: "failed", emailLeaseUntil: null, emailLastError: "Worker stopped during email send; delivery outcome is uncertain. Review before retrying." } }
+    );
+    const emailRecipient = await WhatsAppCampaignRecipient.findOneAndUpdate(
+      { emailStatus: "queued" },
+      { $set: { emailStatus: "sending", emailLeaseUntil: new Date(now.getTime() + 2 * 60 * 1000) } },
+      { new: true, sort: { emailQueuedAt: 1, _id: 1 } }
+    );
+    if (emailRecipient) await processCouponEmail(emailRecipient);
+
     const campaigns = await WhatsAppCampaign.find({ status: "running" }).select("_id").limit(100);
     if (!campaigns.length || !await acquireRateSlot()) return;
 

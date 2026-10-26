@@ -428,14 +428,20 @@ idempotent; a repeated scan does not create coupons, and dispatch is blocked
 until each queued eligible recipient has a persisted, currently valid token.
 The worker rechecks current order eligibility, marketing consent, number
 validity, campaign state, and coupon validity immediately before sending.
+Generated coupon codes appear in the POS with a per-customer copy action.
+Coupon email delivery can be enabled during generation; only customers with a
+saved email and recorded promotional consent are queued. Email delivery uses
+the existing SMTP configuration and the campaign worker rechecks consent and
+coupon validity before sending. The campaign results tab shows WhatsApp
+delivery records; the separate campaign-activity button is not shown.
 
 Campaign delivery uses the official WhatsApp Cloud API (`cloud`) or a
 development-only no-delivery provider (`mock`). Linked-device/WhatsApp Web
 automation is disabled and cannot send reports or campaign messages. Cloud API
 use requires an approved template with five body parameters (`{{1}}` through
 `{{5}}`) and production credentials. Configure `WHATSAPP_CAMPAIGN_PROVIDER=cloud`
-in the backend environment. In POS → Coupons, **WhatsApp campaign activity**
-shows provider readiness and per-recipient campaign records, including queued,
+in the backend environment. In POS → Coupons, the campaign results tab shows
+provider readiness and per-recipient campaign records, including queued,
 sending, sent, delivered, failed, and skipped counts with paginated recipient
 details that refresh while a campaign is running. The configured test number is
 the only destination for test sends. Cloud delivery callbacks are

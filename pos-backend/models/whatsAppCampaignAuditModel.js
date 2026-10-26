@@ -5,7 +5,7 @@ const whatsAppCampaignAuditSchema = new mongoose.Schema({
   actorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
   action: {
     type: String,
-    enum: ["scan", "tokens_generated", "send_all", "send_selected", "send_individual", "refresh", "retry", "pause", "cancel", "create"],
+    enum: ["scan", "tokens_generated", "email_coupons_queued", "send_all", "send_selected", "send_individual", "refresh", "retry", "pause", "cancel", "create"],
     required: true,
   },
   reason: { type: String, default: "", trim: true, maxlength: 300 },
