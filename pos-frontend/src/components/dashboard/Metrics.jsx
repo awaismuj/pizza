@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiShoppingBag, FiUsers, FiBox, FiLayers, FiCoffee, FiActivity, FiGrid } from "react-icons/fi";
 import { getOrders, getCategories, getDishes, getTables } from "../../https";
-import { MdPayments, MdShoppingBag, MdPeople, MdRestaurant, MdCategory, MdLocalPizza, MdPendingActions, MdTableBar } from "react-icons/md";
+import { MdCategory, MdLocalPizza, MdPendingActions, MdTableBar } from "react-icons/md";
 import { computeMonthlyMetrics, computeOverallMetrics, formatCurrency } from "../../utils/orderMetrics";
 
 // Gradient + glow card shared by both rows of stats.
@@ -68,44 +68,44 @@ const Metrics = () => {
   const performanceCards = [
     {
       title: "Revenue",
-      icon: <MdPayments />,
       value: `Rs ${formatCurrency(monthly.revenue.value)}`,
       percentage: `${monthly.revenue.percentage}%`,
       isIncrease: monthly.revenue.percentage >= 0,
       icon: <FiDollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+      color: "#059669",
       badgeBg: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40",
       accentBorder: "border-l-4 border-l-emerald-500",
       helper: "vs previous month benchmark",
     },
     {
       title: "Total Orders",
-      icon: <MdShoppingBag />,
       value: monthly.totalOrders.value,
       percentage: `${monthly.totalOrders.percentage}%`,
       isIncrease: monthly.totalOrders.percentage >= 0,
       icon: <FiShoppingBag className="w-4 h-4 text-sky-600 dark:text-sky-400" />,
+      color: "#0284c7",
       badgeBg: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/40",
       accentBorder: "border-l-4 border-l-sky-500",
       helper: "all dine-in & online tickets",
     },
     {
       title: "Total Customers",
-      icon: <MdPeople />,
       value: monthly.totalCustomers.value,
       percentage: `${monthly.totalCustomers.percentage}%`,
       isIncrease: monthly.totalCustomers.percentage >= 0,
       icon: <FiUsers className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
+      color: "#d97706",
       badgeBg: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40",
       accentBorder: "border-l-4 border-l-amber-500",
       helper: "unique guests served",
     },
     {
       title: "Items Sold",
-      icon: <MdRestaurant />,
       value: monthly.itemsSold.value,
       percentage: `${monthly.itemsSold.percentage}%`,
       isIncrease: monthly.itemsSold.percentage >= 0,
       icon: <FiBox className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />,
+      color: "#4f46e5",
       badgeBg: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/40",
       accentBorder: "border-l-4 border-l-indigo-500",
       helper: "food & beverage units",
@@ -144,7 +144,7 @@ const Metrics = () => {
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {metricsData.map((metric) => (
+        {performanceCards.map((metric) => (
           <StatCard
             key={metric.title}
             color={metric.color}
@@ -177,4 +177,3 @@ const Metrics = () => {
 };
 
 export default Metrics;
-
