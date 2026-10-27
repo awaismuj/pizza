@@ -62,34 +62,51 @@ const dockFeatures = (anchor) => {
   return `popup=yes,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${clampedLeft},top=${clampedTop}`;
 };
 
+// A window that is already showing WhatsApp is on another site, so reading
+// its address throws; a brand-new blank window is still ours and readable.
+const isFreshBlankWindow = (win) => {
+  try {
+    return win.location.href === "about:blank";
+  } catch {
+    return false;
+  }
+};
+
 // Must be called straight from a click so the browser does not block it.
 // Returns { win, reused } or null when the browser blocked the window.
-export const openWhatsAppWindow = (anchor, url = "") => {
+//
+// The window has a fixed name, so even after the POS page is refreshed (which
+// forgets our handle) asking for that name finds the WhatsApp window that is
+// already open instead of making a second one. The window is deliberately
+// not cut off from the POS (no opener = null): that would stop the name
+// lookup from finding it again. It only ever shows web.whatsapp.com.
+export const openWhatsAppWindow = (anchor, url = "", { blank = false } = {}) => {
   if (isWhatsAppWindowOpen()) {
     if (url) whatsAppWindow.location.href = url;
     whatsAppWindow.focus();
     return { win: whatsAppWindow, reused: true };
   }
-  const win = window.open(url || "about:blank", WINDOW_NAME, dockFeatures(anchor));
+  // Empty address: only find an existing window by name, never reload it.
+  const win = window.open("", WINDOW_NAME, dockFeatures(anchor));
   if (!win) return null;
-  // The page we open is on another site; it should not be able to reach
-  // back into the POS through window.opener.
-  try {
-    win.opener = null;
-  } catch {
-    /* ignore: some browsers do not allow this */
-  }
+  const reused = !isFreshBlankWindow(win);
   whatsAppWindow = win;
-  if (!url) win.location.href = WHATSAPP_WEB;
-  return { win, reused: false };
+  if (!reused) {
+    // blank: the caller loads the chat itself a moment later, so do not
+    // load WhatsApp twice.
+    if (!blank || url) win.location.href = url || WHATSAPP_WEB;
+  } else if (url) {
+    win.location.href = url;
+  }
+  win.focus();
+  return { win, reused };
 };
 
 // For "press Send, then wait for the server": the window has to be opened
 // inside the click, but the chat link is only known a moment later. A new
 // window opens blank so WhatsApp Web loads once, straight into the chat; a
 // window that is already open is just brought forward and left alone.
-export const prepareWhatsAppWindow = (anchor) =>
-  isWhatsAppWindowOpen() ? openWhatsAppWindow(anchor) : openWhatsAppWindow(anchor, "about:blank");
+export const prepareWhatsAppWindow = (anchor) => openWhatsAppWindow(anchor, "", { blank: true });
 
 export const navigateWhatsAppWindow = (url) => {
   if (!isWhatsAppWindowOpen()) return false;

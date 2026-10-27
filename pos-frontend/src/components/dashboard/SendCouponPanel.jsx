@@ -8,6 +8,7 @@ import {
   closeWhatsAppWindow,
   navigateWhatsAppWindow,
   openWhatsAppWindow,
+  focusWhatsAppWindow,
   prepareWhatsAppWindow,
   toWhatsAppNumber,
   whatsAppChatUrl,
@@ -61,6 +62,7 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mode, setMode] = useState("campaign");
+  const [keepChat, setKeepChat] = useState(false);
   const [result, setResult] = useState(null);
   const nameTouched = useRef(false);
   const openedWindow = useRef(null);
@@ -102,8 +104,12 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
       const data = response.data.data;
       const chatUrl = whatsAppChatUrl(data.whatsapp.phone, data.message);
       setResult({ ...data, chatUrl });
-      // Point the WhatsApp window (opened on the click) at this customer's chat.
-      if (!navigateWhatsAppWindow(chatUrl)) {
+      // "Keep my open chat": WhatsApp Web must fully reload to open a chat from a
+      // link, so with this on, an already-open WhatsApp window is left alone and
+      // the message is copied for pasting after searching the number there.
+      if (keepChat && openedWindow.current?.reused && focusWhatsAppWindow()) {
+        copyText(data.message, "Message copied. Search the number in WhatsApp and paste it.");
+      } else if (!navigateWhatsAppWindow(chatUrl)) {
         enqueueSnackbar("WhatsApp window was blocked. Use “Open WhatsApp chat” below.", { variant: "warning" });
       }
       queryClient.invalidateQueries({ queryKey: ["coupon-assignments"] });
@@ -264,6 +270,14 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
             </span>
           </label>
         </fieldset>
+
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-[#ccc]">
+          <input type="checkbox" className="mt-1" checked={keepChat} onChange={(event) => setKeepChat(event.target.checked)} />
+          <span>
+            Don&apos;t reload WhatsApp
+            <span className="block text-xs text-[#999]">Copies the message instead; search the number in the open WhatsApp window and paste. Without this, WhatsApp reloads to open the chat.</span>
+          </span>
+        </label>
 
         <button
           type="submit"
