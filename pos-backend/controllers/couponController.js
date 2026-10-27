@@ -8,7 +8,7 @@ const CustomerCoupon = require("../models/customerCouponModel");
 const { resolveCartPrices, calculateEligibleSubtotal, evaluateCoupon, buildWelcomeOfferCoupon, normalizePhoneDigits } = require("../services/couponService");
 const { normalizeContactPhone } = require("../services/customerContactService");
 const { normalizeNumber } = require("../services/whatsAppCampaignProvider");
-const { buildCouponEmail, buildCouponMessage, isValidEmail, maskEmail } = require("../services/couponDeliveryService");
+const { buildCouponEmail, buildCouponMessage, generatePrivateCode, isValidEmail, maskEmail } = require("../services/couponDeliveryService");
 const { sendMail } = require("../utils/mailer");
 
 const DISCOUNT_TYPES = ["percentage", "fixed"];
@@ -391,17 +391,28 @@ const issuePrivateCode = async ({ coupon, customer, redemptionLimit, requestedSt
   if (coupon.expiresAt && (!expiresAt || expiresAt > coupon.expiresAt)) {
     throw createHttpError(400, "Assignment expiry cannot exceed the campaign expiry.");
   }
-  const code = `PVT_${crypto.randomBytes(18).toString("base64url").toUpperCase()}`;
-  const assignment = await CustomerCoupon.create({
-    couponId: coupon._id,
-    customerId: customer._id,
-    code,
-    source: "admin",
-    redemptionLimit,
-    startsAt,
-    expiresAt,
-    assignedBy,
-  });
+  // Short codes can collide now and then; try a few fresh ones before giving up.
+  let assignment = null;
+  let code = "";
+  for (let attempt = 0; attempt < 8 && !assignment; attempt += 1) {
+    code = generatePrivateCode();
+    try {
+      assignment = await CustomerCoupon.create({
+        couponId: coupon._id,
+        customerId: customer._id,
+        code,
+        source: "admin",
+        redemptionLimit,
+        startsAt,
+        expiresAt,
+        assignedBy,
+      });
+    } catch (error) {
+      if (error.code === 11000 && error.keyPattern?.code) continue;
+      throw error;
+    }
+  }
+  if (!assignment) throw createHttpError(503, "Could not create a unique code. Please try again.");
   return { assignment, code };
 };
 

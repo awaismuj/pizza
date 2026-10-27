@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
+  generatePrivateCode,
   buildCouponEmail,
   buildCouponMessage,
   discountText,
@@ -89,4 +90,14 @@ test("isValidEmail rejects blanks, spaces and missing domains", () => {
   assert.equal(isValidEmail("a b@c.co"), false);
   assert.equal(isValidEmail("a@b"), false);
   assert.equal(isValidEmail(""), false);
+});
+
+test("private codes are short FLAT codes without look-alike characters", () => {
+  const seen = new Set();
+  for (let i = 0; i < 500; i += 1) {
+    const code = generatePrivateCode();
+    assert.match(code, /^FLAT[A-HJ-NP-Z2-9]{4}$/);
+    seen.add(code);
+  }
+  assert.ok(seen.size > 400, "codes should be random");
 });

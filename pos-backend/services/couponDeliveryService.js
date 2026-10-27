@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const config = require("../config/config");
 
 // Builds the text a staff member sends to a customer for a coupon, and the
@@ -91,7 +92,20 @@ const buildCouponEmail = ({ name, coupon, code, brand = config.storeName, storeU
   };
 };
 
+// Short, easy-to-read private code such as FLAT7K4M. Letters and digits that
+// are easy to confuse (0/O, 1/I) are left out so it can be read over the
+// phone. Private codes only work for the customer they were issued to, so a
+// short code is safe; the caller retries if a code happens to be taken.
+const CODE_PREFIX = "FLAT";
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const generatePrivateCode = (length = 4) => {
+  let suffix = "";
+  for (let i = 0; i < length; i += 1) suffix += CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];
+  return `${CODE_PREFIX}${suffix}`;
+};
+
 module.exports = {
+  generatePrivateCode,
   buildCouponEmail,
   buildCouponMessage,
   discountText,
