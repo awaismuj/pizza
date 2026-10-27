@@ -129,20 +129,6 @@ const LowStockAlert = () => {
 
   const outCount = visibleItems.filter((i) => i.stockStatus === "out_of_stock").length;
 
-<<<<<<< HEAD
-  // Empty state modal: triggered when user clicks "Stock Alerts" and there are 0 low stock items
-  if (visibleItems.length === 0 && forceOpen) {
-    return createPortal(
-      <div className="pos-modal-backdrop" onClick={() => setForceOpen(false)}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          onClick={(e) => e.stopPropagation()}
-          className="pos-modal-card max-w-md p-6 text-center"
-        >
-          <div className="flex justify-end">
-=======
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4">
       <motion.div
@@ -225,35 +211,12 @@ const LowStockAlert = () => {
           )}
 
           <div className="mt-4 flex gap-3">
->>>>>>> origin/main
             <button
               onClick={() => setForceOpen(false)}
               aria-label="Close"
               className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
-<<<<<<< HEAD
-              <IoMdClose size={20} />
-            </button>
-          </div>
-
-          <div className="mx-auto mt-2 mb-4 w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center shadow-inner">
-            <FaCheckCircle size={32} />
-          </div>
-
-          <h2 className="text-xl font-black text-slate-900 dark:text-white">All Stock Levels Healthy</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-            No ingredients or inventory items are currently running low. All stock is above warning thresholds.
-          </p>
-
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={() => setForceOpen(false)}
-              className="pos-btn-secondary flex-1 py-2.5"
-            >
-              Close
-=======
               {canRestock ? "Remind me later" : "OK, got it"}
->>>>>>> origin/main
             </button>
             {canRestock && (
               <button

@@ -1,32 +1,8 @@
-<<<<<<< HEAD
-import React, { useState, useMemo } from "react";
-=======
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
->>>>>>> origin/main
 import { FaSearch } from "react-icons/fa";
 import { MdReceiptLong } from "react-icons/md";
 import OrderList from "./OrderList";
-<<<<<<< HEAD
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { enqueueSnackbar } from "notistack";
-import { getOrders } from "../../https/index";
-import { useNavigate } from "react-router-dom";
-import { useUITheme } from "../../context/UIThemeContext";
-
-const RecentOrders = () => {
-  const navigate = useNavigate();
-  const { isClean } = useUITheme();
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const { data: resData, isError } = useQuery({
-    queryKey: ["orders"],
-    queryFn: async () => {
-      return await getOrders();
-    },
-    placeholderData: keepPreviousData,
-  });
-=======
 import { getOrderNumber } from "../../utils/index";
 import { isSameDay } from "../../utils/orderMetrics";
 import { TERMINAL_STATUSES } from "../../utils/orderStages";
@@ -37,7 +13,6 @@ const FILTERS = [
   { key: "done", label: "Completed" },
   { key: "online", label: "Online" },
 ];
->>>>>>> origin/main
 
 const dateOf = (order) => new Date(order.orderDate || order.createdAt);
 
@@ -83,85 +58,15 @@ const RecentOrders = ({ orders = [], isLoading = false }) => {
   }, [allOrders, searchTerm]);
 
   return (
-<<<<<<< HEAD
-    <div className="mt-3 px-0 w-full">
-      <div
-        className={`w-full rounded-2xl min-h-[420px] p-2 sm:p-5 transition duration-200 ${
-          isClean
-            ? "bg-white border border-slate-200/90 shadow-sm"
-            : "bg-slate-900/90 border border-slate-800 shadow-xl"
-        }`}
-      >
-        <div className="flex items-center justify-between px-3 py-3 sm:px-4">
-          <div>
-            <h2
-              className={`text-base font-extrabold tracking-tight sm:text-lg ${
-                isClean ? "text-slate-900" : "text-white"
-              }`}
-            >
-              Live Order Activity
-            </h2>
-            <p className={`text-xs ${isClean ? "text-slate-500 font-medium" : "text-slate-400"}`}>
-              Recent Dine-In and Online transactions
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/orders")}
-            className={`text-xs font-bold transition px-3 py-1.5 rounded-xl border ${
-              isClean
-                ? "text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
-                : "text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30"
-            }`}
-          >
-            Open Orders Board →
-          </button>
-=======
     <section className="rounded-2xl border border-[#2b2b2b] bg-[#1a1a1a]">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
         <div>
           <h2 className="text-base font-semibold text-[#f5f5f5] sm:text-lg">{showingToday ? "Today's orders" : "Recent orders"}</h2>
           <p className="text-xs text-[#7a7a7a]">{visible.length} shown</p>
->>>>>>> origin/main
         </div>
         <Link to="/orders" className="text-sm font-semibold text-[#f6b100] hover:underline">View all →</Link>
       </div>
 
-<<<<<<< HEAD
-        <div
-          className={`mx-3 sm:mx-4 flex items-center gap-3 rounded-xl px-4 py-3 transition focus-within:ring-2 focus-within:ring-amber-500/30 ${
-            isClean
-              ? "bg-slate-50 border border-slate-200/90 text-slate-800 focus-within:bg-white focus-within:border-amber-500"
-              : "bg-slate-900 border border-slate-800 text-slate-100 focus-within:border-amber-500"
-          }`}
-        >
-          <FaSearch className={isClean ? "text-slate-400" : "text-slate-400"} />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search recent orders by customer, phone, or #"
-            className={`w-full text-sm outline-none bg-transparent ${
-              isClean ? "text-slate-900 placeholder:text-slate-400" : "text-slate-100 placeholder:text-slate-500"
-            }`}
-          />
-        </div>
-
-        <div className="mt-4 h-[320px] overflow-y-auto px-3 pb-4 sm:px-4 scrollbar-hide">
-          {filteredOrders.length > 0 ? (
-            filteredOrders.map((order) => {
-              return <OrderList key={order._id} order={order} />;
-            })
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mb-2">
-                <MdReceiptLong size={32} />
-              </span>
-              <p className={isClean ? "text-slate-500 font-medium text-sm" : "text-slate-400 text-sm"}>
-                {searchTerm ? `No orders matching "${searchTerm}"` : "No orders available"}
-              </p>
-            </div>
-          )}
-=======
       <div className="flex flex-col gap-3 px-4 pt-4 sm:px-5 md:flex-row md:items-center">
         <label className="flex flex-1 items-center gap-3 rounded-xl bg-[#1f1f1f] px-4 py-2.5 ring-1 ring-[#2b2b2b] focus-within:ring-[#f6b100]/60">
           <FaSearch className="shrink-0 text-[#7a7a7a]" />
@@ -189,7 +94,6 @@ const RecentOrders = ({ orders = [], isLoading = false }) => {
               {item.label}
             </button>
           ))}
->>>>>>> origin/main
         </div>
       </div>
 

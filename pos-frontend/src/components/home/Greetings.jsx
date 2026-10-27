@@ -9,14 +9,8 @@ const greetingFor = (hour) => {
 };
 
 const Greetings = () => {
-<<<<<<< HEAD
-  const userData = useSelector(state => state.user);
-  const { isClean } = useUITheme();
-  const [dateTime, setDateTime] = useState(new Date());
-=======
   const userName = useSelector((state) => state.user.name);
   const [now, setNow] = useState(new Date());
->>>>>>> origin/main
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -36,52 +30,6 @@ const Greetings = () => {
       : "Good Evening";
 
   return (
-<<<<<<< HEAD
-    <div className="flex flex-col gap-3 px-0 md:flex-row md:items-center md:justify-between mb-1">
-      <div className="min-w-0">
-        <h1
-          className={`text-xl font-black tracking-tight sm:text-2xl ${
-            isClean ? "text-slate-900" : "text-white"
-          }`}
-        >
-          {greetingText}, {userData.name || "Shift Manager"}
-        </h1>
-        <p
-          className={`text-xs sm:text-sm mt-0.5 ${
-            isClean ? "text-slate-600 font-medium" : "text-slate-400"
-          }`}
-        >
-          Terminal ready. Monitor live sales, manage floor tables, and fulfill kitchen orders.
-        </p>
-      </div>
-
-      <div
-        className={`flex items-center gap-4 px-4 py-2.5 rounded-2xl shadow-sm self-start md:self-auto transition-colors ${
-          isClean
-            ? "bg-white border border-slate-200/90 text-slate-800"
-            : "bg-slate-900/90 border border-slate-800 text-white"
-        }`}
-      >
-        <div className="text-right">
-          <p
-            className={`text-xl font-bold tracking-tight font-mono leading-none ${
-              isClean ? "text-slate-900" : "text-white"
-            }`}
-          >
-            {formatTime(dateTime)}
-          </p>
-          <p
-            className={`text-[11px] font-semibold mt-1 ${
-              isClean ? "text-slate-500" : "text-slate-400"
-            }`}
-          >
-            {formatDate(dateTime)}
-          </p>
-        </div>
-        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="System Synchronized"></span>
-      </div>
-    </div>
-=======
     <header className="relative overflow-hidden rounded-2xl border border-[#2b2b2b] bg-gradient-to-br from-[#262626] via-[#1c1c1c] to-[#171717] px-5 py-4 sm:px-8 sm:py-5">
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#f6b100]/10 blur-3xl" />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -101,7 +49,6 @@ const Greetings = () => {
         </div>
       </div>
     </header>
->>>>>>> origin/main
   );
 };
 

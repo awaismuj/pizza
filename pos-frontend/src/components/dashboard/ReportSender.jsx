@@ -116,84 +116,6 @@ const ReportSender = ({ defaultDate } = {}) => {
       </button>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Profit & expense report">
-<<<<<<< HEAD
-        {/* ---- WhatsApp link status ---- */}
-        <div className={`flex items-center gap-2 text-xs sm:text-sm mb-2 ${meta.color}`}>
-          <StatusIcon className="shrink-0" /> <span>{meta.label}</span>
-        </div>
-
-        {status?.status === "ready" && (
-          <div className="mb-4 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-1">
-            <p className="text-slate-600 dark:text-slate-400 break-all font-medium">
-              Sending from: <span className="text-slate-900 dark:text-white font-bold">{formatNumber(status.linkedNumber)}</span>
-            </p>
-            <button
-              onClick={handleUnlink}
-              disabled={busy !== ""}
-              className="flex items-center gap-1.5 text-rose-500 hover:text-rose-600 mt-1 font-bold text-[11px] disabled:opacity-60"
-            >
-              <FaUnlink /> {busy === "unlink" ? "Unlinking…" : "Wrong phone? Unlink & relink"}
-            </button>
-          </div>
-        )}
-
-        {/* ---- Ask-first confirmation, shown before any QR is requested ---- */}
-        {awaitingLinkConfirm && (
-          <div className="mb-4 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50 rounded-xl p-3.5">
-            <p className="text-xs text-amber-800 dark:text-amber-300 mb-3 leading-relaxed font-medium">
-              The next QR code can be scanned by <strong>any</strong> WhatsApp — whichever phone scans it becomes
-              the one reports send from. Make sure you're ready with the correct phone before continuing.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={confirmAndShowQr}
-                disabled={busy !== ""}
-                className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wider disabled:opacity-60 transition"
-              >
-                <FaLink /> I'm ready — show QR
-              </button>
-              <button
-                onClick={() => {
-                  setAwaitingLinkConfirm(false);
-                  setPendingSend(false);
-                }}
-                className="flex-1 sm:flex-initial bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-2 text-xs font-bold transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {status?.status === "qr" && status?.qrDataUrl && (
-          <div className="mb-4 flex flex-col items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4">
-            <img src={status.qrDataUrl} alt="WhatsApp QR code" className="w-40 h-40 sm:w-48 sm:h-48 rounded-lg" />
-            <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 text-center leading-relaxed">
-              WhatsApp on your phone → Settings → Linked Devices → Link a Device, then scan this.
-              {pendingSend && " Your report sends automatically the second it links."}
-            </p>
-          </div>
-        )}
-
-        {needsLink && !awaitingLinkConfirm && (
-          <div className="mb-4">
-            {status?.lastError && (
-              <p className="text-xs text-[#e6402e] bg-[#2a1414] rounded px-3 py-2 mb-2 break-words">
-                {status.lastError}
-              </p>
-            )}
-            <button
-              onClick={() => setAwaitingLinkConfirm(true)}
-              disabled={busy !== ""}
-              className="flex items-center gap-2 text-xs bg-[#262626] hover:bg-[#333] text-[#f5f5f5] rounded-md px-3 py-1.5 disabled:opacity-60"
-            >
-              <FaRedo className={busy === "retry" ? "animate-spin" : ""} /> {status?.lastError ? "Retry" : "Link WhatsApp"}
-            </button>
-          </div>
-        )}
-
-=======
->>>>>>> origin/main
         {/* ---- Scope picker ---- */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           {SCOPES.map((opt) => (
@@ -247,17 +169,6 @@ const ReportSender = ({ defaultDate } = {}) => {
           >
             <FaFilePdf size={12} /> {busy === "download" ? "Generating…" : "Download PDF"}
           </button>
-<<<<<<< HEAD
-          <button
-            onClick={handleSendClick}
-            disabled={busy !== "" || (pendingSend && status?.status !== "ready")}
-            className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl px-4 py-2.5 sm:py-2 text-xs font-black uppercase tracking-wider shadow-sm transition active:scale-95 disabled:opacity-60"
-          >
-            <FaWhatsapp size={14} />{" "}
-            {busy === "send" ? "Sending…" : pendingSend ? "Waiting for scan…" : "Send WhatsApp"}
-          </button>
-=======
->>>>>>> origin/main
         </div>
 
         {/* ---- Optional email delivery ---- */}

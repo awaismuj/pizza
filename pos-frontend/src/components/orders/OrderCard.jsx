@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-import { FaLongArrowAltRight, FaPen, FaTrash } from "react-icons/fa";
-import { MdLanguage, MdTakeoutDining, MdTableBar } from "react-icons/md";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-=======
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { FaLongArrowAltRight, FaPen, FaPrint, FaTrash } from "react-icons/fa";
->>>>>>> origin/main
 import { useSelector } from "react-redux";
 import { formatDateAndTime, getAvatarName, getOrderNumber } from "../../utils/index";
 import { NEXT_ACTION, STAGE_LABELS, TERMINAL_STATUSES, statusPillClass } from "../../utils/orderStages";
@@ -19,23 +13,9 @@ import ExtendTimeModal from "../prep/ExtendTimeModal";
 import OrderStageTracker from "./OrderStageTracker";
 import Invoice from "../invoice/Invoice";
 import EditOrderModal from "./EditOrderModal";
-<<<<<<< HEAD
-import { useUITheme } from "../../context/UIThemeContext";
-
-// Orders finish on different final statuses depending on source (dine-in/
-// takeaway end at "Closed", online orders end at "Completed") — either one
-// means the order is actually done, so its final receipt should be shown
-// now (for staff to print or dismiss).
-const COMPLETION_STATUSES = ["Closed", "Completed"];
-
-const OrderCard = ({ order }) => {
-  const queryClient = useQueryClient();
-  const { isClean } = useUITheme();
-=======
 import { I } from "../shared/AppIcons";
 
 const OrderCard = ({ order }) => {
->>>>>>> origin/main
   const role = useSelector((state) => state.user.role);
   const isOnline = order.orderSource === "Online";
   const isTakeaway = !isOnline && !order.table;
@@ -63,40 +43,6 @@ const OrderCard = ({ order }) => {
   };
 
   return (
-<<<<<<< HEAD
-    <div
-      className={`w-full p-4 rounded-2xl transition-all duration-200 flex flex-col justify-between border ${
-        isClean
-          ? "bg-white border-slate-200/90 hover:border-slate-300 shadow-sm hover:shadow-md"
-          : "bg-slate-900/95 border-slate-800 hover:border-slate-700 shadow-xl"
-      }`}
-    >
-      <div>
-        {/* Ticket Header */}
-        <div
-          className={`flex items-start justify-between gap-3 pb-3 border-b ${
-            isClean ? "border-slate-100" : "border-slate-800/80"
-          }`}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-sm flex items-center justify-center shrink-0 shadow-xs">
-              {getAvatarName(order.customerDetails.name)}
-            </div>
-            <div className="min-w-0">
-              <h3
-                className={`text-base font-extrabold truncate leading-tight ${
-                  isClean ? "text-slate-900" : "text-white"
-                }`}
-              >
-                {order.customerDetails.name}
-              </h3>
-              <p
-                className={`text-xs mt-0.5 font-mono ${
-                  isClean ? "text-slate-500 font-semibold" : "text-slate-400"
-                }`}
-              >
-                Order #{getOrderNumber(order)}
-=======
     <div className="w-full min-w-0 bg-[#262626] p-4 rounded-lg">
       <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <button className="shrink-0 bg-[#f6b100] p-3 text-xl font-bold rounded-lg">
@@ -121,18 +67,11 @@ const OrderCard = ({ order }) => {
             ) : (
               <p className="text-[#ababab] text-sm">
                 Table <FaLongArrowAltRight className="text-[#ababab] ml-2 inline" /> {order.table?.tableNo ?? "—"}
->>>>>>> origin/main
               </p>
             </div>
           </div>
-<<<<<<< HEAD
-
-          <div className="shrink-0 flex flex-col items-end gap-1">
-            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusPillClass(order.orderStatus)}`}>
-=======
           <div className="flex shrink-0 flex-col items-end gap-2">
             <p className={`px-2 py-1 rounded-lg text-sm font-semibold ${statusPillClass(order.orderStatus)}`}>
->>>>>>> origin/main
               {STAGE_LABELS[order.orderStatus] || order.orderStatus}
             </span>
             <div className={`flex items-center gap-1 text-[11px] font-semibold ${isClean ? "text-slate-600" : "text-slate-400"}`}>
@@ -200,15 +139,6 @@ const OrderCard = ({ order }) => {
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Action Buttons */}
-      {!isTerminal && (
-        <div
-          className={`mt-3 pt-3 border-t flex flex-wrap gap-2 ${
-            isClean ? "border-slate-100" : "border-slate-800/80"
-          }`}
-        >
-=======
       <PrepBadge order={order} showNumber className="mt-3" />
 
       {/* Clicking the next dot advances one valid order stage. */}
@@ -247,18 +177,10 @@ const OrderCard = ({ order }) => {
         <div className="mt-4 flex flex-wrap gap-2">
           {/* The main action for this order, as a big button instead of
               only the small numbered dot above. */}
->>>>>>> origin/main
           {next && (
             <button
               type="button"
               onClick={() => setStatus(next.to)}
-<<<<<<< HEAD
-              disabled={statusMutation.isPending}
-              className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition shadow-sm disabled:opacity-60 flex items-center justify-center gap-1"
-            >
-              <span>{next.label}</span>
-              <span>→</span>
-=======
               disabled={busy}
               className="w-full rounded-lg bg-[#f6b100] py-3 font-bold text-[#1f1f1f] transition active:scale-[0.98] disabled:opacity-60"
             >
@@ -272,23 +194,14 @@ const OrderCard = ({ order }) => {
               className="rounded-lg border border-[#f6b100]/50 bg-[#f6b100]/10 px-3 py-2 font-semibold text-[#f6b100]"
             >
               Extend Time
->>>>>>> origin/main
             </button>
           )}
           {canEditOrder(role) && (
             <button
               type="button"
               onClick={() => setShowEditModal(true)}
-<<<<<<< HEAD
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-bold text-xs border transition ${
-                isClean
-                  ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200"
-                  : "bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700"
-              }`}
-=======
               disabled={busy}
               className="flex items-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100] disabled:opacity-60"
->>>>>>> origin/main
               aria-label="Edit order"
             >
               <FaPen size={11} /> Edit
@@ -296,24 +209,10 @@ const OrderCard = ({ order }) => {
           )}
           {canCancelOrder(role) && (
             <button
-<<<<<<< HEAD
-              onClick={() => {
-                if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
-                  setStatus("Cancelled");
-                }
-              }}
-              disabled={statusMutation.isPending}
-              className={`rounded-xl px-3 py-2 font-bold text-xs border transition disabled:opacity-60 ${
-                isClean
-                  ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
-                  : "bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border-rose-800"
-              }`}
-=======
               type="button"
               onClick={() => setConfirming("cancel")}
               disabled={busy}
               className="rounded-lg bg-[#be3e3f] px-4 py-2 font-semibold text-[#f5f5f5] disabled:opacity-60"
->>>>>>> origin/main
             >
               Cancel
             </button>
@@ -323,27 +222,15 @@ const OrderCard = ({ order }) => {
 
       {canDeleteOrder(role, order.orderStatus) && (
         <button
-<<<<<<< HEAD
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
-          className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold border transition disabled:opacity-60 ${
-            isClean
-              ? "bg-rose-50/70 hover:bg-rose-100 text-rose-700 border-rose-200"
-              : "bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border-rose-900/60"
-          }`}
-=======
           type="button"
           onClick={() => setConfirming("delete")}
           disabled={busy}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#3f1f1f] py-2 text-sm font-semibold text-[#e6402e] disabled:opacity-60"
->>>>>>> origin/main
         >
           <FaTrash size={11} /> {isRemoving(order._id) ? "Deleting…" : "Delete order"}
         </button>
       )}
 
-<<<<<<< HEAD
-=======
       <ConfirmDialog
         open={Boolean(confirming)}
         danger
@@ -360,7 +247,6 @@ const OrderCard = ({ order }) => {
       />
 
       {/* Opened by the compact Print button; it never prints automatically. */}
->>>>>>> origin/main
       {printOrder && (
         <Invoice orderInfo={printOrder} setShowInvoice={() => setPrintOrder(null)} />
       )}

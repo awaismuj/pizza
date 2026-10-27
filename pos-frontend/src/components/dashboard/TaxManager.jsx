@@ -58,19 +58,11 @@ const TaxManager = () => {
   const presets = [0, 5, 10, 16, 17];
 
   return (
-<<<<<<< HEAD
-    <div className="pb-10 max-w-xl">
-      <div className="pos-card p-5 sm:p-6">
-        <h3 className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold tracking-tight mb-1">Tax Rate Setting</h3>
-        <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mb-6">
-          Applied automatically to dine-in, takeaway and online store checkouts.
-=======
     <div className="mx-auto w-full px-6">
       <div className="max-w-xl bg-[#262626] rounded-lg p-5 sm:p-6">
         <h3 className="text-[#f5f5f5] text-xl font-semibold mb-1">Tax rate</h3>
         <p className="text-[#ababab] text-sm mb-6">
           Applied automatically to dine-in, outdoor and online orders — set it once here.
->>>>>>> origin/main
         </p>
 
         {isLoading ? (

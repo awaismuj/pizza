@@ -9,11 +9,6 @@ import ConfirmDialog from "../components/shared/ConfirmDialog";
 import { getOrders } from "../https";
 import OrderStageTracker from "../components/orders/OrderStageTracker";
 import EditOrderModal from "../components/orders/EditOrderModal";
-<<<<<<< HEAD
-import { NEXT_ACTION } from "../utils/orderStages";
-import { canEditOrder, canCancelOrder, canDeleteOrder } from "../utils/orderPermissions";
-import { useUITheme } from "../context/UIThemeContext";
-=======
 import { NEXT_ACTION, PAYMENT_WAITING } from "../utils/orderStages";
 import { useOrderDelete, useOrderStatusChange } from "../hooks/useOrderActions";
 import { PaymentBadge, PaymentDetails, PaymentActions } from "../components/orders/PaymentPanel";
@@ -24,7 +19,6 @@ import { isPrepActive } from "../utils/prepTimer";
 import PrepBadge from "../components/prep/PrepBadge";
 import ExtendTimeModal from "../components/prep/ExtendTimeModal";
 import { I } from "../components/shared/AppIcons";
->>>>>>> origin/main
 
 // The staff-facing flow for orders placed on genzpizza.online:
 //   Pending -> Accepted -> Preparing (processing) -> Ready to Deliver -> Completed
@@ -164,9 +158,6 @@ const OnlineOrders = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
-      <div className="grid w-full grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 pb-24">
-=======
       {/* Wraps to as many rows as needed on narrow screens instead of
           relying on the person discovering a horizontal scroll - a row
           that just gets cut off mid-label ("Ready to Deli...") reads as
@@ -206,25 +197,12 @@ const OnlineOrders = () => {
       </div>
 
       <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 px-4 py-4 min-[480px]:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
->>>>>>> origin/main
         {visibleOrders.length === 0 && (
           <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No {activeTab} online orders at the moment.</p>
           </div>
         )}
 
-<<<<<<< HEAD
-        {visibleOrders.map((order) => (
-          <div
-            key={order._id}
-            className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 p-4 shadow-sm hover:shadow-md flex flex-col justify-between transition"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <h2 className="font-bold text-slate-900 dark:text-white">{order.customerDetails?.name}</h2>
-                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                  {new Date(order.orderDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-=======
         {visibleOrders.map((order) => {
           const next = order.orderStatus === PAYMENT_WAITING ? null : NEXT_ACTION[order.orderStatus];
           const busy = isPending(order._id) || isRemoving(order._id);
@@ -365,7 +343,6 @@ const OnlineOrders = () => {
                   }`}
                 >
                   {order.orderStatus}
->>>>>>> origin/main
                 </span>
               </div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{order.customerDetails?.phone}</p>
@@ -391,92 +368,6 @@ const OnlineOrders = () => {
               </ul>
             </div>
 
-<<<<<<< HEAD
-            <div>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</span>
-                <span className="font-black font-mono text-base text-amber-600 dark:text-amber-400">
-                  Rs {order.bills?.totalWithTax?.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {order.orderStatus === "Pending" && (
-                  <>
-                    <button
-                      onClick={() => acceptAndProcess(order)}
-                      disabled={statusMutation.isPending}
-                      className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 font-bold text-xs text-white shadow-sm transition disabled:opacity-60"
-                    >
-                      Accept &amp; Process
-                    </button>
-                    <button
-                      onClick={() => setStatus(order, "Accepted")}
-                      disabled={statusMutation.isPending}
-                      className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 py-2.5 font-bold text-xs text-slate-800 dark:text-slate-200 transition disabled:opacity-60"
-                    >
-                      Accept Only
-                    </button>
-                  </>
-                )}
-
-                {order.orderStatus !== "Pending" && NEXT_ACTION[order.orderStatus] && (
-                  <button
-                    onClick={() => setStatus(order, NEXT_ACTION[order.orderStatus].to)}
-                    disabled={statusMutation.isPending}
-                    className="flex-1 rounded-xl bg-amber-500 hover:bg-amber-400 py-2.5 font-black text-xs text-slate-950 shadow-sm transition disabled:opacity-60"
-                  >
-                    {NEXT_ACTION[order.orderStatus].label}
-                  </button>
-                )}
-
-                {!["Completed", "Cancelled"].includes(order.orderStatus) && canEditOrder(role) && (
-                  <button
-                    onClick={() => setEditingOrder(order)}
-                    className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 transition"
-                  >
-                    <FaPen size={11} /> Edit
-                  </button>
-                )}
-
-                {!["Completed", "Cancelled"].includes(order.orderStatus) && canCancelOrder(role) && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Cancel this order? Any deducted stock will be returned to inventory.")) {
-                        setStatus(order, "Cancelled");
-                      }
-                    }}
-                    disabled={statusMutation.isPending}
-                    className="flex-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 transition disabled:opacity-60"
-                  >
-                    Cancel
-                  </button>
-                )}
-
-                {["Completed", "Cancelled"].includes(order.orderStatus) && (
-                  <span
-                    className={`w-full rounded-xl py-2 text-center text-xs font-bold ${
-                      order.orderStatus === "Completed"
-                        ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                        : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
-                    }`}
-                  >
-                    {order.orderStatus}
-                  </span>
-                )}
-              </div>
-
-              {canDeleteOrder(role, order.orderStatus) && (
-                <button
-                  onClick={() => handleDelete(order)}
-                  disabled={deleteMutation.isPending}
-                  className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 py-2 text-xs font-semibold text-slate-400 transition disabled:opacity-60"
-                >
-                  <FaTrash size={11} /> {deleteMutation.isPending ? "Deleting…" : "Delete Order"}
-                </button>
-              )}
-            </div>
-=======
             {canDeleteOrder(role, order.orderStatus) && order.orderStatus !== PAYMENT_WAITING && (
               <button
                 type="button"
@@ -487,7 +378,6 @@ const OnlineOrders = () => {
                 <FaTrash size={11} /> {isRemoving(order._id) ? "Deleting…" : "Delete order"}
               </button>
             )}
->>>>>>> origin/main
           </div>
           );
         })}

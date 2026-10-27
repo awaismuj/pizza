@@ -100,22 +100,14 @@ const PaymentsOverview = () => {
 
   if (isError) {
     return (
-<<<<<<< HEAD
-      <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
-=======
       <div className="mx-auto w-full py-2 px-6 md:px-4 text-red-400 text-sm">
->>>>>>> origin/main
         Couldn't load orders — check the connection to the server and try again.
       </div>
     );
   }
 
   return (
-<<<<<<< HEAD
-    <div className="space-y-6">
-=======
     <div className="mx-auto w-full py-2 px-6 md:px-4">
->>>>>>> origin/main
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h2 className="font-extrabold text-slate-900 dark:text-white text-lg sm:text-xl tracking-tight">Payments & Settlement</h2>
@@ -222,8 +214,6 @@ const PaymentsOverview = () => {
                       </tr>
                     ))
                   )}
-<<<<<<< HEAD
-=======
                   {recent.map((o) => (
                     <tr key={o._id} className="border-b border-[#262626]">
                       <td className="py-2 pr-3 text-[#ababab]">
@@ -238,7 +228,6 @@ const PaymentsOverview = () => {
                       <td className="py-2 text-right font-semibold">Rs {formatCurrency(orderTotal(o))}</td>
                     </tr>
                   ))}
->>>>>>> origin/main
                 </tbody>
               </table>
             </div>

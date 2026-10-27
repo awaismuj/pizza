@@ -110,12 +110,8 @@ const Register = ({setIsRegister}) => {
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
             Password
           </label>
-<<<<<<< HEAD
-          <div className="flex items-center rounded-xl px-4 py-3 bg-slate-900/90 border border-slate-800 focus-within:border-amber-500 transition shadow-inner">
-=======
           <p className="mb-2 text-xs text-gray-400">Password policy: {describePasswordPolicy(passwordPolicy)}.</p>
           <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
->>>>>>> origin/main
             <input
               type="password"
               name="password"

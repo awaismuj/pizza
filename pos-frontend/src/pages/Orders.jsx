@@ -24,14 +24,9 @@ const Orders = () => {
       return await getOrders();
     },
     placeholderData: keepPreviousData,
-<<<<<<< HEAD
-    refetchInterval: 10000,
-  });
-=======
     refetchInterval: 5000, // keep the board live without a manual refresh
     refetchOnWindowFocus: "always",
   })
->>>>>>> origin/main
 
   if (isError) {
     enqueueSnackbar("Something went wrong!", { variant: "error" });
@@ -123,18 +118,6 @@ const Orders = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
-      <div className="grid w-full grid-cols-1 gap-3.5 overflow-y-auto pb-24 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-        {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => {
-            return <OrderCard key={order._id} order={order} />;
-          })
-        ) : (
-          <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8">
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No kitchen orders available for this filter.</p>
-          </div>
-        )}
-=======
       <div className="mx-auto grid w-full max-w-[1600px] grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3 overflow-y-auto px-4 py-4 scrollbar-hide sm:px-6">
         {
           filteredOrders.length > 0 ? (
@@ -143,7 +126,6 @@ const Orders = () => {
             })
           ) : <p className="col-span-full text-gray-500">No orders available</p>
         }
->>>>>>> origin/main
       </div>
 
       <BottomNav />

@@ -196,18 +196,6 @@ const Outdoor = () => {
         <MenuContainer onAddToCart={handleAddToCart} />
       </div>
 
-<<<<<<< HEAD
-      {/* Right: local cart + submit (Symmetrical, high-contrast, crystal-clear) */}
-      <div className="w-full lg:flex-[1.1] flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden h-fit">
-        <div className="p-3.5 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              <MdTakeoutDining size={18} className="text-amber-500" />
-              <span>Takeaway Order</span>
-            </h2>
-            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-              {cart.length} item{cart.length === 1 ? "" : "s"} added
-=======
       {/* Right: local cart + one-click submit. No explicit lg:h-full
           (h-auto instead) so the flex row's default align-items:stretch
           auto-computes the height - that's what makes lg:mb-36 actually
@@ -231,7 +219,6 @@ const Outdoor = () => {
           {cart.length === 0 ? (
             <p className="text-[#5f5f5f] text-sm text-center mt-10">
               No items yet — tap the cart button on any menu item to add it here.
->>>>>>> origin/main
             </p>
           </div>
           {cart.length > 0 && (
@@ -286,27 +273,6 @@ const Outdoor = () => {
           )}
         </div>
 
-<<<<<<< HEAD
-        <div className="p-4 bg-slate-50/80 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <span>Subtotal</span>
-            <span className="text-slate-800 dark:text-slate-200 font-mono font-bold">
-              Rs {total.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <span>Tax ({taxRate}%)</span>
-            <span className="text-slate-800 dark:text-slate-200 font-mono font-bold">
-              Rs {tax.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-            <span className="text-sm font-black text-slate-900 dark:text-white">Payable Total</span>
-            <span className="text-lg font-black font-mono text-amber-600 dark:text-amber-400">
-              Rs {totalWithTax.toFixed(2)}
-            </span>
-          </div>
-=======
         <div className="flex items-center gap-3 px-5 mt-4">
           <button
             onClick={() => setPaymentMethod("Cash")}
@@ -325,7 +291,6 @@ const Outdoor = () => {
             Online
           </button>
         </div>
->>>>>>> origin/main
 
           {/* Payment Method Selector */}
           <div className="grid grid-cols-2 gap-2 pt-2">

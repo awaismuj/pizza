@@ -13,11 +13,7 @@ import {
   getCategories,
 } from "../../https";
 import { resolveImageUrl } from "../../utils";
-<<<<<<< HEAD
-import FoodIcon from "../../utils/foodIcons";
-=======
 import { FoodIcon, foodIconKey } from "../shared/AppIcons";
->>>>>>> origin/main
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
@@ -30,31 +26,14 @@ const DAY_PRESETS = [
   { label: "Weekend (Sat+Sun)", days: [0, 6] },
 ];
 
-<<<<<<< HEAD
-const DEAL_ICON_OPTIONS = [
-  { id: "deal", label: "Special Deal" },
-  { id: "pizza", label: "Pizza" },
-  { id: "burger", label: "Burger" },
-  { id: "chicken", label: "Chicken / Wings" },
-  { id: "beverage", label: "Drinks" },
-  { id: "combo", label: "Combo Feast" },
-  { id: "discount", label: "Big Discount" },
-  { id: "dessert", label: "Dessert & Sweet" },
-];
-=======
 const EMOJI_OPTIONS = ["flame", "pizza", "burger", "chicken", "drink", "cake", "star", "cheese", "icecream"];
->>>>>>> origin/main
 
 const defaultDealForm = {
   name: "",
   badge: "",
   description: "",
   image: "",
-<<<<<<< HEAD
-  icon: "deal",
-=======
   icon: "flame",
->>>>>>> origin/main
   price: "",
   originalPrice: "",
   items: [{ label: "", quantity: 1, dishId: "", size: "", crust: "", customizable: false, allowedCategories: [] }],
@@ -77,11 +56,7 @@ const buildFormFromDeal = (deal) => ({
   badge: deal?.badge ?? "",
   description: deal?.description ?? "",
   image: deal?.image ?? "",
-<<<<<<< HEAD
-  icon: deal?.icon || "deal",
-=======
   icon: deal?.icon || "flame",
->>>>>>> origin/main
   price: deal?.price ?? "",
   originalPrice: deal?.originalPrice || "",
   items: deal?.items?.length
@@ -592,13 +567,8 @@ const DealsManager = () => {
                 {form.image && (
                   <img
                     src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
-<<<<<<< HEAD
-                    alt="Deal preview"
-                    className="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
-=======
                     alt={form.name ? `${form.name} deal preview` : "Deal image preview"}
                     className="w-14 h-14 rounded object-cover border border-[#3a3a3a]"
->>>>>>> origin/main
                   />
                 )}
                 <label className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white px-3.5 py-2 rounded-xl cursor-pointer text-xs font-bold transition border border-slate-200 dark:border-slate-700">
@@ -616,25 +586,12 @@ const DealsManager = () => {
                 {DEAL_ICON_OPTIONS.map((opt) => (
                   <button
                     type="button"
-<<<<<<< HEAD
-                    key={opt.id}
-                    onClick={() => setForm({ ...form, icon: opt.id })}
-                    className={`w-9 h-9 rounded-xl border flex items-center justify-center transition ${
-                      form.icon === opt.id
-                        ? "bg-amber-500 border-amber-500 text-slate-950 shadow-xs"
-                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-amber-500"
-                    }`}
-                    title={opt.label}
-                  >
-                    <FoodIcon icon={opt.id} className="text-base" />
-=======
                     key={emoji}
                     onClick={() => setForm({ ...form, icon: emoji })}
                     aria-label={`Icon: ${emoji}`}
                     className={`text-xl px-2.5 py-2 rounded ${foodIconKey(form.icon) === emoji ? "bg-[#f6b100] text-[#1f1f1f]" : "bg-[#1a1a1a] text-[#d6d6d6]"}`}
                   >
                     <FoodIcon icon={emoji} />
->>>>>>> origin/main
                   </button>
                 ))}
               </div>
@@ -705,13 +662,8 @@ const DealsManager = () => {
                       className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                     />
                   ) : (
-<<<<<<< HEAD
-                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                      <FoodIcon icon={deal.icon || "deal"} className="text-2xl" />
-=======
                     <div className="w-12 h-12 rounded bg-[#262626] flex items-center justify-center text-xl shrink-0">
                       <FoodIcon icon={deal.icon || "flame"} />
->>>>>>> origin/main
                     </div>
                   )}
 

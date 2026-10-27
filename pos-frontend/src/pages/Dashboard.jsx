@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-<<<<<<< HEAD
-import { MdTableBar, MdCategory } from "react-icons/md";
-import FoodIcon from "../utils/foodIcons";
-=======
 import {
   MdTableBar,
   MdCategory,
@@ -31,7 +27,6 @@ import {
   MdChevronRight,
   MdTimer,
 } from "react-icons/md";
->>>>>>> origin/main
 import { BiSolidDish } from "react-icons/bi";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
@@ -192,18 +187,8 @@ const Dashboard = () => {
   const requestedTab = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
   useEffect(() => {
-<<<<<<< HEAD
-    setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : (isAdmin ? "Metrics" : "Assets"));
-  }, [requestedTab, isAdmin]);
-
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    navigate(`/dashboard?tab=${tab}`, { replace: true });
-  };
-=======
     setActiveTab(visibleTabs.includes(requestedTab) ? requestedTab : defaultTab);
   }, [requestedTab, defaultTab]);
->>>>>>> origin/main
   const [restockAmounts, setRestockAmounts] = useState({});
   const [categorySearch, setCategorySearch] = useState("");
   const [dishSearch, setDishSearch] = useState("");
@@ -459,33 +444,6 @@ const Dashboard = () => {
     });
   };
 
-<<<<<<< HEAD
-  return (
-    <div className="pos-page-container space-y-4">
-      {/* Contextual Action Bar when managing catalog dishes & tables */}
-      {isAdmin && activeTab === "Menu" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-              Menu & Catalog Engineering
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Configure dishes, categories, pricing, and floor tables
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {buttons.map(({ label, icon, action }) => (
-              <button
-                key={action}
-                onClick={() => handleOpenModal(action)}
-                className="pos-btn-secondary py-1.5 text-xs font-semibold"
-              >
-                <span className="text-amber-500">{icon}</span>
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-=======
   const pickTab = (tab) => {
     setSectionSearch("");
     setActiveTab(tab);
@@ -600,18 +558,9 @@ const Dashboard = () => {
         <div className="flex items-center gap-2 text-[#f5f5f5] font-semibold">
           <span className="text-[#f6b100] text-lg">{tabIcons[activeTab]}</span>
           {activeTab}
->>>>>>> origin/main
         </div>
       )}
 
-<<<<<<< HEAD
-      {/* Tab Content Panes */}
-      <div className="pt-1">
-        {activeTab === "Metrics" && <Metrics />}
-        {activeTab === "Orders" && <RecentOrders />}
-        {activeTab === "Payments" && <PaymentsOverview />}
-        {activeTab === "Tax" && <TaxManager />}
-=======
       {sideOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setSideOpen(false)} aria-hidden="true" />
@@ -709,7 +658,6 @@ const Dashboard = () => {
       {activeTab === "Payment Settings" && <PaymentSettingsManager />}
       {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Order Prep" && <PrepSettingsManager />}
->>>>>>> origin/main
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}
       {activeTab === "Reviews" && <ReviewsManager />}
@@ -717,23 +665,6 @@ const Dashboard = () => {
       {activeTab === "Assets" && can("assets.view") && <AssetManagement role={role} />}
       {activeTab === "User & Employees" && can("users.view") && <UserManagement />}
       {activeTab === "Menu" && (
-<<<<<<< HEAD
-        <div className="w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">Categories</h3>
-              <div className="mb-3">
-                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200/80 dark:border-slate-700">
-                  <FaSearch className="text-slate-400 text-xs shrink-0" />
-                  <input
-                    type="text"
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                    placeholder="Search categories…"
-                    className="bg-transparent text-slate-900 dark:text-white text-xs outline-none w-full placeholder:text-slate-400"
-                  />
-                </div>
-=======
         <div className="mx-auto w-full px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-[#262626] rounded-lg p-5">
@@ -746,7 +677,6 @@ const Dashboard = () => {
                   placeholder="Search categories…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
->>>>>>> origin/main
               </div>
               {categorySearch.trim() ? (
                 <div className="space-y-2">
@@ -761,11 +691,7 @@ const Dashboard = () => {
                             {isUploadedImage(category.icon) ? (
                               <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                             ) : (
-<<<<<<< HEAD
-                              <FoodIcon icon={category.icon || category._id} className="text-xl text-amber-500" />
-=======
                               <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
->>>>>>> origin/main
                             )}
                           </div>
                           <div className="min-w-0">
@@ -773,13 +699,8 @@ const Dashboard = () => {
                             <p className="text-slate-400 text-[11px] truncate">{category.description || "No description"}</p>
                           </div>
                         </div>
-<<<<<<< HEAD
-                        <div className="flex gap-1.5 shrink-0">
-                          <button
-=======
                         <div className="flex gap-2 shrink-0">
                           {can("categories.manage") && <button
->>>>>>> origin/main
                             onClick={() => handleOpenModal("category", category)}
                             className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                           >
@@ -813,11 +734,7 @@ const Dashboard = () => {
                                     {isUploadedImage(category.icon) ? (
                                       <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                                     ) : (
-<<<<<<< HEAD
-                                      <FoodIcon icon={category.icon || category._id} className="text-xl text-amber-500" />
-=======
                                       <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
->>>>>>> origin/main
                                     )}
                                   </div>
                                   <div className="min-w-0">
@@ -825,13 +742,8 @@ const Dashboard = () => {
                                     <p className="text-slate-400 text-[11px] truncate">{category.description || "No description"}</p>
                                   </div>
                                 </div>
-<<<<<<< HEAD
-                                <div className="flex gap-1.5 shrink-0">
-                                  <button
-=======
                                 <div className="flex gap-2 shrink-0">
                                   {can("categories.manage") && <button
->>>>>>> origin/main
                                     onClick={() => handleOpenModal("category", category)}
                                     className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                                   >
@@ -859,21 +771,6 @@ const Dashboard = () => {
               )}
             </div>
 
-<<<<<<< HEAD
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">Dishes</h3>
-              <div className="mb-3">
-                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200/80 dark:border-slate-700">
-                  <FaSearch className="text-slate-400 text-xs shrink-0" />
-                  <input
-                    type="text"
-                    value={dishSearch}
-                    onChange={(e) => setDishSearch(e.target.value)}
-                    placeholder="Search dishes…"
-                    className="bg-transparent text-slate-900 dark:text-white text-xs outline-none w-full placeholder:text-slate-400"
-                  />
-                </div>
-=======
             <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Dishes</h3>
               <div className="mb-4">
@@ -884,7 +781,6 @@ const Dashboard = () => {
                   placeholder="Search dishes…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
->>>>>>> origin/main
               </div>
               {dishSearch.trim() ? (
                 <div className="space-y-2">
@@ -899,11 +795,7 @@ const Dashboard = () => {
                             {isUploadedImage(dish.image) ? (
                               <img src={resolveImageUrl(dish.image)} alt={dish.name || "Menu item"} className="w-full h-full object-cover" />
                             ) : (
-<<<<<<< HEAD
-                              <FoodIcon icon={dish.icon || dish.name} className="text-xl text-amber-500" />
-=======
                               <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
->>>>>>> origin/main
                             )}
                           </div>
                           <div className="min-w-0">
@@ -911,22 +803,13 @@ const Dashboard = () => {
                             <p className="text-slate-400 text-[11px] truncate">
                               {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                               {dish.isInventoryTracked && (
-<<<<<<< HEAD
-                                <span className="ml-1.5 text-emerald-500 font-semibold">🔗 Tracked</span>
-=======
                                 <span className="ml-2 text-green-400"><I.Check className="inline mr-1" />Inventory linked</span>
->>>>>>> origin/main
                               )}
                             </p>
                           </div>
                         </div>
-<<<<<<< HEAD
-                        <div className="flex gap-1.5 shrink-0">
-                          <button
-=======
                         <div className="flex gap-2 shrink-0">
                           {can("menu.edit") && <button
->>>>>>> origin/main
                             onClick={() => handleOpenModal("dishes", dish)}
                             className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                           >
@@ -960,11 +843,7 @@ const Dashboard = () => {
                                     {isUploadedImage(dish.image) ? (
                                       <img src={resolveImageUrl(dish.image)} alt={dish.name || "Menu item"} className="w-full h-full object-cover" />
                                     ) : (
-<<<<<<< HEAD
-                                      <FoodIcon icon={dish.icon || dish.name} className="text-xl text-amber-500" />
-=======
                                       <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
->>>>>>> origin/main
                                     )}
                                   </div>
                                   <div className="min-w-0">
@@ -972,22 +851,13 @@ const Dashboard = () => {
                                     <p className="text-slate-400 text-[11px] truncate">
                                       {dish.category?.name || "Uncategorized"} • Rs {dish.price}
                                       {dish.isInventoryTracked && (
-<<<<<<< HEAD
-                                        <span className="ml-1.5 text-emerald-500 font-semibold">🔗 Tracked</span>
-=======
                                         <span className="ml-2 text-green-400"><I.Check className="inline mr-1" />Inventory linked</span>
->>>>>>> origin/main
                                       )}
                                     </p>
                                   </div>
                                 </div>
-<<<<<<< HEAD
-                                <div className="flex gap-1.5 shrink-0">
-                                  <button
-=======
                                 <div className="flex gap-2 shrink-0">
                                   {can("menu.edit") && <button
->>>>>>> origin/main
                                     onClick={() => handleOpenModal("dishes", dish)}
                                     className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs"
                                   >
@@ -1021,21 +891,13 @@ const Dashboard = () => {
       {activeTab === "Coupons" && <CouponsManager />}
 
       {activeTab === "Deals" && (
-<<<<<<< HEAD
-        <div className="w-full pb-8">
-=======
         <div className="mx-auto w-full px-6 pb-10">
->>>>>>> origin/main
           <DealsManager />
         </div>
       )}
 
       {activeTab === "Hero Slider" && (
-<<<<<<< HEAD
-        <div className="w-full pb-8">
-=======
         <div className="mx-auto w-full px-6 pb-10">
->>>>>>> origin/main
           <HeroSliderManager />
         </div>
       )}
@@ -1047,17 +909,10 @@ const Dashboard = () => {
       )}
 
       {activeTab === "Inventory" && (
-<<<<<<< HEAD
-        <div className="w-full pb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-3.5">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">
-=======
         <div className="mx-auto w-full px-6 pb-10">
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
             {can("inventory.manage") && <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">
->>>>>>> origin/main
                 {editingInventory ? "Edit Inventory Item" : "Add Inventory Item"}
               </h3>
 
@@ -1147,21 +1002,6 @@ const Dashboard = () => {
               </form>
             </div>}
 
-<<<<<<< HEAD
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
-              <h3 className="text-slate-900 dark:text-white text-base font-black mb-3">Stock Overview</h3>
-              <div className="mb-3">
-                <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200/80 dark:border-slate-700">
-                  <FaSearch className="text-slate-400 text-xs shrink-0" />
-                  <input
-                    type="text"
-                    value={inventorySearch}
-                    onChange={(e) => setInventorySearch(e.target.value)}
-                    placeholder="Search inventory…"
-                    className="bg-transparent text-slate-900 dark:text-white text-xs outline-none w-full placeholder:text-slate-400"
-                  />
-                </div>
-=======
             <div className="bg-[#262626] rounded-lg p-5">
               <h3 className="text-[#f5f5f5] text-xl font-semibold mb-4">Stock Overview</h3>
               <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-[#1a1a1a] p-3">
@@ -1190,7 +1030,6 @@ const Dashboard = () => {
                   placeholder="Search inventory…"
                   className="w-full bg-[#1a1a1a] text-[#f5f5f5] text-sm rounded-lg px-4 py-2.5 outline-none border border-[#333] focus:border-[#525252] placeholder:text-[#6b6b6b]"
                 />
->>>>>>> origin/main
               </div>
               <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
                 {filteredInventoryItems.length > 0 ? (
@@ -1208,12 +1047,8 @@ const Dashboard = () => {
                         </span>
                       </div>
 
-<<<<<<< HEAD
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-=======
                       {can("inventory.adjust") || can("inventory.manage") || can("inventory.delete") ? <div className="mt-3 flex flex-wrap items-center gap-2">
                         {can("inventory.adjust") && <>
->>>>>>> origin/main
                         <input
                           type="number"
                           min="0"

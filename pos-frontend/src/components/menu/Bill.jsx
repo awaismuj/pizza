@@ -308,44 +308,6 @@ const Bill = () => {
 
   return (
     <>
-<<<<<<< HEAD
-      <div
-        className={`p-4 space-y-3 transition duration-150 ${
-          isClean ? "bg-slate-50/80 border-t border-slate-200/90" : "bg-slate-950/70"
-        }`}
-      >
-        {/* Financial Summary */}
-        <div className={`space-y-1.5 text-xs ${isClean ? "text-slate-600 font-medium" : "text-slate-400"}`}>
-          <div className="flex items-center justify-between">
-            <span>Subtotal ({cartData.length} lines)</span>
-            <span className={`font-mono font-bold ${isClean ? "text-slate-900" : "text-white"}`}>
-              Rs {total.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Sales Tax ({taxRate}%)</span>
-            <span className={`font-mono font-bold ${isClean ? "text-slate-900" : "text-white"}`}>
-              Rs {tax.toFixed(2)}
-            </span>
-          </div>
-          <div
-            className={`flex items-center justify-between pt-2 border-t text-sm font-bold ${
-              isClean ? "border-slate-200 text-slate-900" : "border-slate-800 text-white"
-            }`}
-          >
-            <span className={isClean ? "text-slate-900 font-extrabold" : "text-amber-400"}>
-              Payable Total
-            </span>
-            <span
-              className={`font-mono text-base font-black ${
-                isClean ? "text-amber-600" : "text-amber-400"
-              }`}
-            >
-              Rs {totalPriceWithTax.toFixed(2)}
-            </span>
-          </div>
-        </div>
-=======
       <div className="flex items-center justify-between px-5 mt-2">
         <p className="text-xs text-[#ababab] font-medium mt-2">
           Items({cartData.length})
@@ -411,7 +373,6 @@ const Bill = () => {
           Online
         </button>
       </div>
->>>>>>> origin/main
 
         {/* Payment Method Selector */}
         <div className="grid grid-cols-2 gap-2 pt-2">

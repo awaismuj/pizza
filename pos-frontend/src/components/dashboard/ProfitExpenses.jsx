@@ -125,79 +125,6 @@ const ProfitExpenses = () => {
   const isViewingToday = selectedDate === todayStr();
 
   return (
-<<<<<<< HEAD
-    <div className="space-y-6 max-w-full">
-      {/* ---- Daily Profit Section ---- */}
-      <div className="pos-card p-5 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-              <span>Daily Profit & Loss Statement</span>
-              {daily && !isDailyLoading && daily.locked && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
-                  <FaLock size={10} /> Locked at {new Date(daily.lockedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              )}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Net operating profit breakdown after raw ingredient costs and logged shift expenses
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <ReportSender defaultDate={selectedDate} />
-            {!isViewingToday && (
-              <button
-                onClick={() => setSelectedDate(todayStr())}
-                className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline px-2"
-              >
-                Today
-              </button>
-            )}
-            <input
-              type="date"
-              value={selectedDate}
-              max={todayStr()}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl px-3 py-1.5 text-xs font-bold outline-none border border-slate-200 dark:border-slate-700 shadow-xs"
-            />
-          </div>
-        </div>
-
-        {/* 4 Clean Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <ERPMetricCard
-            title="Gross Revenue"
-            value={daily?.revenue ?? 0}
-            subtitle="Dine-in, outdoor & delivered tickets"
-            accentBorder="border-l-4 border-l-blue-500"
-            icon={<FiDollarSign className="text-blue-600 dark:text-blue-400" />}
-            badgeBg="bg-blue-50 dark:bg-blue-950/40"
-          />
-          <ERPMetricCard
-            title="Cost of Goods (COGS)"
-            value={daily?.cost ?? 0}
-            subtitle="Deducted inventory recipe cost"
-            accentBorder="border-l-4 border-l-amber-500"
-            icon={<FiShoppingBag className="text-amber-600 dark:text-amber-400" />}
-            badgeBg="bg-amber-50 dark:bg-amber-950/40"
-          />
-          <ERPMetricCard
-            title="Shift Expenses"
-            value={daily?.expenses ?? 0}
-            subtitle="Fuel, cylinder & counter outlays"
-            accentBorder="border-l-4 border-l-rose-500"
-            icon={<FiCreditCard className="text-rose-600 dark:text-rose-400" />}
-            badgeBg="bg-rose-50 dark:bg-rose-950/40"
-          />
-          <ERPMetricCard
-            title="Net Operating Profit"
-            value={daily?.profit ?? 0}
-            subtitle={(daily?.profit ?? 0) >= 0 ? "Profitable trading margin" : "Operating loss recorded"}
-            accentBorder={`border-l-4 ${(daily?.profit ?? 0) >= 0 ? "border-l-emerald-500" : "border-l-rose-600"}`}
-            icon={<FiTrendingUp className={(daily?.profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"} />}
-            badgeBg={(daily?.profit ?? 0) >= 0 ? "bg-emerald-50 dark:bg-emerald-950/40" : "bg-rose-50 dark:bg-rose-950/40"}
-=======
     <div className="mx-auto w-full py-2 px-6 md:px-4">
       {/* ---- Daily profit ---- */}
       <div className="flex flex-wrap justify-between items-center gap-3">
@@ -225,7 +152,6 @@ const ProfitExpenses = () => {
             max={todayStr()}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="bg-[#1a1a1a] text-[#f5f5f5] rounded-md px-3 py-2 outline-none border border-[#333]"
->>>>>>> origin/main
           />
         </div>
 
@@ -246,25 +172,6 @@ const ProfitExpenses = () => {
             {showOrders ? <FaChevronUp className="text-slate-400" size={12} /> : <FaChevronDown className="text-slate-400" size={12} />}
           </button>
 
-<<<<<<< HEAD
-          {showOrders && (
-            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/80">
-              {isDayOrdersLoading && <p className="text-slate-400 text-xs">Loading orders…</p>}
-              {!isDayOrdersLoading && dayOrders.length === 0 && (
-                <p className="text-slate-400 text-xs py-2">No orders recorded on this date.</p>
-              )}
-              {dayOrders.length > 0 && (
-                <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-200 dark:border-slate-700">
-                      <tr>
-                        <th className="py-2.5 px-3">Order</th>
-                        <th className="py-2.5 px-3">Customer</th>
-                        <th className="py-2.5 px-3">Status</th>
-                        <th className="py-2.5 px-3 text-right">Revenue</th>
-                        <th className="py-2.5 px-3 text-right">Cost</th>
-                        <th className="py-2.5 px-3 text-right">Profit</th>
-=======
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
         <StatBox label="Revenue (excl. tax)" value={daily?.revenue ?? 0} color="#025cca" />
         <StatBox label="Coupon discounts" value={daily?.couponDiscount ?? 0} color="#7c3aed" />
@@ -352,7 +259,6 @@ const ProfitExpenses = () => {
                         >
                           Rs {formatCurrency(o.profit)}
                         </td>
->>>>>>> origin/main
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -448,16 +354,6 @@ const ProfitExpenses = () => {
                 key={exp._id}
                 className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 transition"
               >
-<<<<<<< HEAD
-                <div>
-                  <p className="text-slate-900 dark:text-white text-xs font-mono font-bold">
-                    Rs {formatCurrency(exp.amount)}
-                  </p>
-                  {exp.description && (
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{exp.description}</p>
-                  )}
-                </div>
-=======
                 <FaTrash />
               </button>
             </div>
@@ -517,7 +413,6 @@ const ProfitExpenses = () => {
             {monthly.days.map((d) => {
               const isSelected = d.dayKey === selectedDate;
               return (
->>>>>>> origin/main
                 <button
                   onClick={() => deleteExpenseMutation.mutate(exp._id)}
                   className="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"

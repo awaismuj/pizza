@@ -13,48 +13,6 @@ import LiveStatus from "../components/home/LiveStatus";
 import KitchenQueue from "../components/prep/KitchenQueue";
 import RecentOrders from "../components/home/RecentOrders";
 import { getOrders } from "../https";
-<<<<<<< HEAD
-import { computeDailyMetrics, formatCurrency } from "../utils/orderMetrics";
-import { useUITheme } from "../context/UIThemeContext";
-
-const Home = () => {
-  const { isModern } = useUITheme();
-
-  useEffect(() => {
-    document.title = "POS | Home";
-  }, []);
-
-  const { data: resData } = useQuery({
-    queryKey: ["orders"],
-    queryFn: getOrders,
-    placeholderData: keepPreviousData,
-  });
-
-  const { todayEarnings, earningsChangePct, inProgressCount, inProgressChangePct } =
-    useMemo(() => computeDailyMetrics(resData?.data?.data ?? []), [resData]);
-
-  return (
-    <section
-      className={`${
-        isModern ? "bg-transparent" : "bg-[#1f1f1f]"
-      } min-h-[calc(100vh-5rem)] overflow-x-hidden pb-8`}
-    >
-      <div className="flex w-full flex-col gap-3">
-        <Greetings />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <MiniCard
-            title="Total Earnings"
-            icon={<BsCashCoin />}
-            number={formatCurrency(todayEarnings)}
-            footerNum={earningsChangePct}
-          />
-          <MiniCard
-            title="In Progress"
-            icon={<GrInProgress />}
-            number={inProgressCount}
-            footerNum={inProgressChangePct}
-          />
-=======
 import { computeDailyMetrics, computeHomeStats, formatCurrency } from "../utils/orderMetrics";
 
 const Home = () => {
@@ -126,7 +84,6 @@ const Home = () => {
             </div>
             <LiveStatus stageCounts={stats.stageCounts} total={stats.liveCount} cancelledToday={stats.cancelledToday} />
           </div>
->>>>>>> origin/main
         </div>
         <RecentOrders />
       </div>

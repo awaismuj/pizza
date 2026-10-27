@@ -17,14 +17,10 @@ import {
 } from "../../https";
 import { enqueueSnackbar } from "notistack";
 import { resolveImageUrl } from "../../utils";
-<<<<<<< HEAD
-import { FoodIcon, VECTOR_FOOD_ICONS } from "../../utils/foodIcons";
-=======
 import { I, FoodIcon, FOOD_ICON_OPTIONS, foodIconKey } from "../shared/AppIcons";
 
 // Icon choices used for both category and dish icons (saved as a key like "pizza").
 const EMOJI_OPTIONS = FOOD_ICON_OPTIONS.map((o) => o.key);
->>>>>>> origin/main
 
 const UNIT_OPTIONS = ["pcs", "g", "kg", "ml", "l"];
 
@@ -453,13 +449,8 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
         {inventoryItems.find((i) => i._id === row.inventoryItem)?.unit || "items"}
       </span>
       {canRemove && (
-<<<<<<< HEAD
-        <button type="button" onClick={onRemove} className="text-rose-500 hover:text-rose-700 px-1 font-bold">
-          ✕
-=======
         <button type="button" onClick={onRemove} className="text-red-400 hover:text-red-500 px-2">
           <I.Close aria-hidden="true" />
->>>>>>> origin/main
         </button>
       )}
     </div>
@@ -667,17 +658,12 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               <div>
                 <label className="pos-label">Category Icon</label>
                 <div className="flex items-center gap-3 mb-3">
-<<<<<<< HEAD
-                  <div className="w-14 h-14 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center overflow-hidden shrink-0 border border-amber-500/30 shadow-xs">
-                    <FoodIcon icon={formData.icon} size={28} />
-=======
                   <div className="w-14 h-14 rounded-lg bg-[#1f1f1f] flex items-center justify-center overflow-hidden shrink-0">
                     {isUploadedImage(formData.icon) ? (
                       <img src={resolveImageUrl(formData.icon)} alt="Category icon" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl text-[#f6b100]"><FoodIcon icon={formData.icon} /></span>
                     )}
->>>>>>> origin/main
                   </div>
                   <label className="pos-btn-secondary cursor-pointer flex-1 py-3 text-xs font-bold">
                     <FaUpload size={13} />
@@ -691,29 +677,6 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                     />
                   </label>
                 </div>
-<<<<<<< HEAD
-                <p className="text-slate-400 text-xs mb-2 font-medium">Or choose a category vector icon:</p>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                  {VECTOR_FOOD_ICONS.map((item) => {
-                    const IconComponent = item.icon;
-                    const isSelected = formData.icon === item.id || (item.emojiMatch && item.emojiMatch.includes(formData.icon));
-                    return (
-                      <button
-                        type="button"
-                        key={item.id}
-                        onClick={() => setFormData((prev) => ({ ...prev, icon: item.id }))}
-                        title={item.label}
-                        className={`h-11 rounded-xl flex flex-col items-center justify-center gap-1 transition border ${
-                          isSelected
-                            ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900"
-                        }`}
-                      >
-                        <IconComponent size={20} />
-                      </button>
-                    );
-                  })}
-=======
                 <p className="text-[#767676] text-xs mb-2">Or pick an icon instead:</p>
                 <div className="flex flex-wrap gap-2">
                   {EMOJI_OPTIONS.map((emoji) => (
@@ -730,7 +693,6 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                       <FoodIcon icon={emoji} />
                     </button>
                   ))}
->>>>>>> origin/main
                 </div>
               </div>
             </>
@@ -896,28 +858,17 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               </div>
 
               <div>
-<<<<<<< HEAD
-                <label className="pos-label">Item Emoji</label>
-=======
                 <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Item Icon</label>
->>>>>>> origin/main
                 <div className="flex flex-wrap gap-2">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <button
                       type="button"
                       key={emoji}
                       onClick={() => setFormData((prev) => ({ ...prev, icon: emoji }))}
-<<<<<<< HEAD
-                      className={`text-xl w-10 h-10 rounded-xl flex items-center justify-center transition ${
-                        formData.icon === emoji
-                          ? "bg-amber-400 text-slate-950 ring-2 ring-amber-500 shadow-sm"
-                          : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
-=======
                       title={emoji}
                       aria-label={`Icon: ${emoji}`}
                       className={`text-xl w-10 h-10 rounded-lg flex items-center justify-center ${
                         foodIconKey(formData.icon) === emoji ? "bg-yellow-400 text-[#1f1f1f]" : "bg-[#1f1f1f] text-[#d6d6d6] hover:bg-[#2a2a2a]"
->>>>>>> origin/main
                       }`}
                     >
                       <FoodIcon icon={emoji} />

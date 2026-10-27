@@ -7,16 +7,6 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getCategories, getDishes, getDeals } from "../../https";
 import { addItems } from "../../redux/slices/cartSlice";
 import { resolveImageUrl } from "../../utils";
-<<<<<<< HEAD
-import { useUITheme } from "../../context/UIThemeContext";
-import { FoodIcon } from "../../utils/foodIcons";
-
-const MenuIcon = ({ icon }) => (
-  <span className="inline-flex items-center justify-center mr-1.5 align-middle shrink-0">
-    <FoodIcon icon={icon} size={18} />
-  </span>
-);
-=======
 import { FoodIcon } from "../shared/AppIcons";
 
 // A category icon is either an emoji or an uploaded photo (a path like
@@ -37,7 +27,6 @@ const MenuIcon = ({ icon }) =>
   ) : (
     <FoodIcon icon={icon} className="mr-1 inline-block align-middle" />
   );
->>>>>>> origin/main
 
 const palette = ["#b73e3e", "#5b45b0", "#7f167f", "#735f32", "#1d2569", "#285430", "#b73e3e", "#5b45b0"];
 
@@ -333,21 +322,9 @@ const MenuContainer = ({ onAddToCart }) => {
       >
         <div className="flex items-start justify-between w-full gap-2">
           <div className="min-w-0 flex-1">
-<<<<<<< HEAD
-            <h3
-              className={`text-sm sm:text-base font-bold line-clamp-2 break-words leading-tight flex items-center ${
-                isClean ? "text-slate-900" : "text-white"
-              }`}
-            >
-              <span className="inline-flex items-center justify-center mr-1.5 align-middle shrink-0">
-                <FoodIcon icon={item.icon} size={16} />
-              </span>
-              <span>{item.name}</span>
-=======
             <h1 className="text-[#f5f5f5] text-sm sm:text-lg font-semibold line-clamp-2 break-words">
               {item.icon ? <FoodIcon icon={item.icon} className="inline-block mr-1.5 align-[-2px] text-[#f6b100]" /> : null}
               {item.name}
->>>>>>> origin/main
               {item.isDeal && (
                 <span className="ml-2 align-middle text-[10px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-full shadow-xs">
                   DEAL

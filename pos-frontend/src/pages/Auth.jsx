@@ -31,44 +31,12 @@ const Auth = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Right Section */}
-      <div className="flex w-full min-h-screen flex-1 flex-col items-center justify-center bg-slate-950 px-6 py-10 sm:px-10 md:w-1/2">
-=======
       <div className="flex w-full min-h-screen flex-1 items-center justify-center bg-[#101821] px-6 py-10 sm:px-8 md:w-1/2">
->>>>>>> origin/main
         <div className="w-full max-w-sm">
           <div className="mb-6 flex items-center justify-center gap-3">
             <img
               src={genzLogo}
               alt="GenZ Pizza Land"
-<<<<<<< HEAD
-              className="h-16 w-16 rounded-2xl border-2 border-amber-500/50 object-cover shadow-lg shadow-amber-500/10"
-            />
-            <h1 className="text-xl font-black text-white tracking-tight">GenZ Pizza Land</h1>
-            <p className="text-xs text-slate-400 font-medium">Point of Sale Terminal</p>
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl text-center mt-8 font-black text-amber-500 mb-8 tracking-tight">
-            {isRegister ? "Employee Registration" : "Employee Sign In"}
-          </h2>
-
-          {/* Components */}
-          {isRegister ? <Register setIsRegister={setIsRegister} /> : <Login />}
-
-          <div className="flex justify-center mt-6">
-            <p className="text-xs text-slate-400">
-              {isRegister ? "Already have an employee account?" : "Don't have an employee account?"}
-              <button
-                type="button"
-                onClick={() => setIsRegister(!isRegister)}
-                className="text-amber-400 font-bold hover:underline ml-1.5 focus:outline-none"
-              >
-                {isRegister ? "Sign in" : "Register now"}
-              </button>
-            </p>
-          </div>
-=======
               className="h-14 w-14 rounded-full border-2 border-yellow-400 object-cover"
             />
             <div className="text-left text-[#f5f5f5]">
@@ -78,7 +46,6 @@ const Auth = () => {
           </div>
 
           <Login />
->>>>>>> origin/main
         </div>
       </div>
     </div>

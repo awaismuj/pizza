@@ -130,15 +130,10 @@ function Layout() {
   }, [location.pathname]);
   const hideHeaderRoutes = ["/auth"];
   const hideWhatsAppRoutes = ["/menu"];
-<<<<<<< HEAD
-  const { isAuth } = useSelector((state) => state.user);
-  const { isModern } = useUITheme();
-=======
   const { isAuth, role, permissions = [] } = useSelector(state => state.user);
   const isEmployee = String(role || "").toLowerCase() === "employee";
   const canCreateOrder = useHasPermission("orders.create");
   const canViewInventory = useHasPermission("inventory.view");
->>>>>>> origin/main
 
   if (isLoading) return <FullScreenLoader />;
 
@@ -154,13 +149,6 @@ function Layout() {
   // Classic Layout (Revertable at any time)
   return (
     <>
-<<<<<<< HEAD
-      {!hideHeaderRoutes.includes(location.pathname) && <Header />}
-      {isAuth && <NewOrderPopup />}
-      {isAuth && <LowStockAlert />}
-      {!hideWhatsAppRoutes.includes(location.pathname) && <WhatsAppButton />}
-      <AppRoutes />
-=======
       {!isEmployee && !hideHeaderRoutes.includes(location.pathname) && <Header />}
       {!isEmployee && isAuth && canCreateOrder && <NewOrderPopup />}
       {!isEmployee && isAuth && canViewInventory && <LowStockAlert />}
@@ -230,7 +218,6 @@ function Layout() {
         />
         <Route path="*" element={<main className="min-h-[70vh] px-4 py-16 text-center text-white"><h1 className="text-3xl font-bold">Page not found</h1><p className="mt-3 text-[#aaa]">The page you requested does not exist or you do not have access.</p><a className="mt-6 inline-block text-[#f6b100] underline" href="/">Return to POS</a></main>} />
       </Routes>
->>>>>>> origin/main
     </>
   );
 }

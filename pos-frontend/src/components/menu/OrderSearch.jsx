@@ -48,47 +48,20 @@ const OrderSearch = ({ variant = "panel" }) => {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="px-4 pt-3 relative">
-      <div
-        className={`flex items-center gap-2 rounded-xl px-3 py-2 transition border ${
-          isClean
-            ? "bg-slate-50 border-slate-200 text-slate-800 focus-within:bg-white focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500"
-            : "bg-slate-800/80 border-slate-700 text-white focus-within:border-amber-500/80 focus-within:ring-1 focus-within:ring-amber-500/30"
-        }`}
-      >
-        <FaSearch className={isClean ? "text-slate-400 text-xs shrink-0" : "text-slate-400 text-xs shrink-0"} />
-=======
     <div className={inHeader ? "relative w-full" : "px-4 pt-3 relative"}>
       <div className={`flex items-center gap-2 bg-[#1f1f1f] focus-within:ring-1 focus-within:ring-[#f6b100] ${inHeader ? "rounded-[15px] px-4 py-2 gap-3" : "rounded-lg px-3 py-2"}`}>
         <FaSearch className="text-[#767676] text-sm shrink-0" />
->>>>>>> origin/main
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-<<<<<<< HEAD
-          placeholder="Search order # / mobile / name"
-          className={`bg-transparent flex-1 text-xs outline-none min-w-0 ${
-            isClean ? "text-slate-900 placeholder:text-slate-400" : "text-white placeholder:text-slate-500"
-          }`}
-=======
           placeholder={inHeader ? "Search orders" : "Search order # / mobile / name"}
           className="bg-transparent flex-1 text-white text-sm outline-none placeholder:text-[#767676] min-w-0"
->>>>>>> origin/main
         />
       </div>
 
       {query.trim() && (
-<<<<<<< HEAD
-        <div
-          className={`absolute z-20 left-4 right-4 mt-1 rounded-xl shadow-xl max-h-64 overflow-y-auto border ${
-            isClean ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
-          }`}
-        >
-=======
         <div className={`absolute z-50 mt-1 ${inHeader ? "left-0 right-0 top-full" : "left-4 right-4"} bg-[#1f1f1f] rounded-lg shadow-lg max-h-64 overflow-y-auto border border-[#2a2a2a]`}>
->>>>>>> origin/main
           {results.length === 0 ? (
             <p className={`text-xs px-3 py-3 ${isClean ? "text-slate-400" : "text-slate-400"}`}>
               No matching orders.
