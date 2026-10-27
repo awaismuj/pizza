@@ -25,6 +25,7 @@ import {
   uploadImage,
 } from "../../https";
 import { resolveImageUrl } from "../../utils";
+import ExportButtons from "./ExportButtons";
 
 const CATEGORIES = [
   "Computers and Laptops",
@@ -287,12 +288,6 @@ const AssetManagement = ({ role }) => {
     onSuccess: () => { invalidateAssets(); enqueueSnackbar("Asset status updated.", { variant: "success" }); },
     onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not update asset status.", { variant: "error" }),
   });
-  const reportMutation = useMutation({
-    mutationFn: exportAssetReport,
-    onSuccess: (response, variables) => download(response.data, `asset-${variables.type}.${variables.format}`),
-    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not export asset report.", { variant: "error" }),
-  });
-
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
   const updateDialogForm = (field, value) => setDialogForm((current) => ({ ...current, [field]: value }));
   const openCreate = () => {
@@ -443,14 +438,11 @@ const AssetManagement = ({ role }) => {
     setFilters((current) => ({ ...current, [field]: value }));
   };
 
-  const openReport = (format) => {
-    reportMutation.mutate({ ...filters, page: undefined, limit: undefined, format, type: reportType });
-  };
-
   const acquisitionCost = Number(form.purchasePrice || 0) + Number(form.additionalCosts || 0);
   const activityMutating = Object.values(actionMutations).some((mutation) => mutation.isPending);
 
   return (
+<<<<<<< HEAD
     <main className="container mx-auto space-y-6 px-0 pb-10">
       <header className="flex flex-wrap items-end justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
         <div>
@@ -458,6 +450,15 @@ const AssetManagement = ({ role }) => {
           <h1 className="mt-0.5 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">Enterprise Asset Register</h1>
           <p className="mt-1 max-w-2xl text-xs text-slate-500 dark:text-slate-400">
             Lifecycle tracking, straight-line depreciation, scheduled maintenance, and disposal ledger.
+=======
+    <main className="mx-auto w-full space-y-6 px-4 pb-10 sm:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#f6b100]">Finance &amp; operations</p>
+          <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">Business Assets</h1>
+          <p className="mt-2 max-w-2xl text-sm text-[#999]">
+            Asset register, monthly depreciation, maintenance, custody, valuation, and disposal history.
+>>>>>>> origin/main
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -533,8 +534,13 @@ const AssetManagement = ({ role }) => {
         <section className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
+<<<<<<< HEAD
               <h2 className="font-bold text-slate-900 dark:text-white text-sm">Asset Reports Export</h2>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Exports use the filters selected below. Excel export is SpreadsheetML (.xls).</p>
+=======
+              <h2 className="font-semibold text-white">Asset reports</h2>
+              <p className="mt-1 text-xs text-[#888]">Downloads use the filters selected below and are available as CSV, Excel (.xlsx) or PDF.</p>
+>>>>>>> origin/main
             </div>
             <div className="flex flex-wrap gap-2">
               <select aria-label="Report type" value={reportType} onChange={(event) => setReportType(event.target.value)} className={`${inputClass} w-auto`}>
@@ -550,11 +556,19 @@ const AssetManagement = ({ role }) => {
                 <option value="monthly-summary">Monthly summary</option>
                 <option value="annual-summary">Financial-year summary</option>
               </select>
+<<<<<<< HEAD
               {["csv", "xls", "pdf"].map((format) => (
                 <button key={format} type="button" disabled={reportMutation.isPending} onClick={() => openReport(format)} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-1.5 text-xs font-bold uppercase text-slate-800 dark:text-white transition disabled:opacity-50">
                   {format === "xls" ? "Excel" : format}
                 </button>
               ))}
+=======
+              <ExportButtons
+                label="Download"
+                fallbackName={`asset-${reportType}`}
+                request={(format) => exportAssetReport({ ...filters, page: undefined, limit: undefined, format, type: reportType })}
+              />
+>>>>>>> origin/main
             </div>
           </div>
         </section>
@@ -617,8 +631,13 @@ const AssetManagement = ({ role }) => {
             {assets.map((asset) => (
               <article key={asset._id} className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
                 <div className="flex min-w-0 items-center gap-3">
+<<<<<<< HEAD
                   <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-amber-500/10 text-amber-500 text-lg font-bold">
                     {asset.image ? <img src={resolveImageUrl(asset.image)} alt="" className="h-full w-full object-cover" /> : "▣"}
+=======
+                  <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#171717] text-xl">
+                    {asset.image ? <img src={resolveImageUrl(asset.image)} alt={asset.name ? `${asset.name} asset` : "Asset photo"} className="h-full w-full object-cover" /> : "▣"}
+>>>>>>> origin/main
                   </div>
                   <div className="min-w-0">
                     <button type="button" onClick={() => setSelectedId(asset._id)} className="truncate text-left font-bold text-xs text-slate-900 dark:text-white hover:text-amber-500 transition">
@@ -711,8 +730,13 @@ const AssetManagement = ({ role }) => {
               </section>
             </div>
             {financeAccess && (
+<<<<<<< HEAD
               <section className="mt-5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
                 <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Valuation & accounting adjustment history</h3>
+=======
+              <section className="mt-5 rounded-xl bg-[#292929] p-4">
+                <h3 className="mb-3 font-semibold text-white">Valuation &amp; accounting adjustment history</h3>
+>>>>>>> origin/main
                 <div className="max-h-52 space-y-2 overflow-y-auto text-sm">
                   {(selectedAsset.valuationHistory || []).slice().reverse().map((entry) => (
                     <div key={entry._id}><p className="text-slate-800 dark:text-slate-200 font-medium">Manual market value · {money(entry.value, currency)}</p><p className="text-xs text-slate-400">{dateText(entry.valuedAt)} · {entry.note || "No source note"}</p></div>
@@ -735,8 +759,13 @@ const AssetManagement = ({ role }) => {
                   {!depreciationRows.length && <p className="text-sm text-slate-400">No depreciation entries posted yet.</p>}
                 </div>
               </section>
+<<<<<<< HEAD
               <section className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4">
                 <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Maintenance & transfers</h3>
+=======
+              <section className="rounded-xl bg-[#292929] p-4">
+                <h3 className="mb-3 font-semibold text-white">Maintenance &amp; transfers</h3>
+>>>>>>> origin/main
                 <div className="max-h-52 space-y-3 overflow-y-auto text-sm">
                   {(selectedAsset.maintenanceHistory || []).slice().reverse().map((entry) => (
                     <div key={entry._id} className="border-b border-slate-100 dark:border-slate-800 pb-2">

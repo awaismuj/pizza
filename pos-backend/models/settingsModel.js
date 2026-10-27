@@ -8,6 +8,7 @@ const settingsSchema = new mongoose.Schema(
     // Applied to every order - dine-in, outdoor/takeaway and online - from
     // wherever it's read. Admin-editable from Dashboard > Tax.
     taxRatePercent: { type: Number, required: true, default: 16, min: 0 },
+    welcomeOfferRedemptionCount: { type: Number, default: 0, min: 0 },
     // "Build Your Own Deal" (online store): the customer picks any items from
     // the menu - at least `minItems` of them - and gets a discount that grows
     // with how many they pick. Every number here is admin-editable from
@@ -26,9 +27,67 @@ const settingsSchema = new mongoose.Schema(
         maxlength: 300,
       },
     },
+    // Online-store payment options, editable from Dashboard > Payment Settings.
+    payments: {
+      codEnabled: { type: Boolean, default: true },
+      jazzcashEnabled: { type: Boolean, default: true },
+      merchantName: { type: String, default: "GEN Z FOOD", trim: true, maxlength: 60 },
+      tillId: { type: String, default: "984661930", trim: true, maxlength: 20 },
+      dialCode: { type: String, default: "*786*10#", trim: true, maxlength: 20 },
+      // "/uploads/xyz.png" once an admin uploads a new QR; empty = use the
+      // QR image bundled with the storefront.
+      qrImage: { type: String, default: "", trim: true, maxlength: 300 },
+    },
+    // Kitchen preparation countdown + mascot alerts. Editable by an Admin from
+    // Dashboard > Order Prep. Changing defaultMinutes only affects orders
+    // created afterwards - deadlines already stamped on open orders are never
+    // rewritten.
+    orderPrep: {
+      enabled: { type: Boolean, default: true },
+      defaultMinutes: { type: Number, default: 20, min: 1, max: 240 },
+      mascotEnabled: { type: Boolean, default: true },
+      soundEnabled: { type: Boolean, default: true },
+      timezone: { type: String, default: "Asia/Karachi" },
+      alerts: {
+        warn1: { enabled: { type: Boolean, default: true }, minutes: { type: Number, default: 10 } },
+        warn2: { enabled: { type: Boolean, default: true }, minutes: { type: Number, default: 5 } },
+        warn3: { enabled: { type: Boolean, default: true }, minutes: { type: Number, default: 2 } },
+        overdue: { enabled: { type: Boolean, default: true } },
+      },
+    },
     assetAccounting: {
       currency: { type: String, default: "PKR", match: /^[A-Z]{3}$/ },
       financialYearStartMonth: { type: Number, default: 1, min: 1, max: 12 },
+    },
+    passwordPolicy: {
+      minLength: { type: Number, default: 8, min: 8, max: 64 },
+      requireUppercase: { type: Boolean, default: false },
+      requireLowercase: { type: Boolean, default: false },
+      requireNumber: { type: Boolean, default: false },
+      requireSymbol: { type: Boolean, default: false },
+    },
+    firstTimeCustomerOffer: {
+      enabled: { type: Boolean, default: false },
+      minimumSubtotal: { type: Number, default: 1000, min: 0 },
+      percentages: { type: [Number], default: [5, 7, 10], validate: (value) => Array.isArray(value) && value.length > 0 },
+      selectionMethod: { type: String, enum: ["random"], default: "random" },
+      maxDiscountAmount: { type: Number, default: null, min: 0 },
+      startsAt: { type: Date, default: null },
+      expiresAt: { type: Date, default: null },
+      maxCampaignRedemptions: { type: Number, default: null, min: 1 },
+      maxOnePerCustomer: { type: Boolean, default: true },
+      eligibleChannels: {
+        type: [{ type: String, enum: ["Online", "POS", "Pickup", "Delivery"] }],
+        default: ["Online", "POS", "Pickup", "Delivery"],
+      },
+      popupTitle: { type: String, default: "Welcome to our Pizza Store!", maxlength: 120 },
+      popupDescription: {
+        type: String,
+        default: "You're eligible for a special first-order reward.",
+        maxlength: 300,
+      },
+      applyButtonLabel: { type: String, default: "Apply Discount", maxlength: 40 },
+      declineButtonLabel: { type: String, default: "No Thanks", maxlength: 40 },
     },
   },
   { timestamps: true }

@@ -64,6 +64,7 @@ body.is-scrolling {
   100% { transform: rotate(360deg); }
 }
 
+<<<<<<< HEAD
 /* =====================================================================
    GENZ POS SINGLE-POINT DESIGN SYSTEM (Executive Restaurant Standard)
    Change variables or utility classes here to customize the entire POS!
@@ -377,3 +378,25 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(245, 158, 11, 0.8);
 }
+=======
+.dash-tabs::-webkit-scrollbar { height: 0; }
+.dash-tabs { scrollbar-width: none; }
+
+/* ---- Pizza chef mascot + prep alerts (components/prep) ----------------- */
+@keyframes chef-bob { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-5px) rotate(1.5deg); } }
+@keyframes chef-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+@keyframes chef-wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+@keyframes chef-pop { 0% { opacity: 0; transform: translateY(18px) scale(0.92); } 60% { opacity: 1; transform: translateY(-4px) scale(1.02); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes chef-sweat { 0%, 100% { transform: translateY(0); opacity: 0.9; } 50% { transform: translateY(3px); opacity: 1; } }
+@keyframes prep-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--pulse, rgba(239,68,68,0.0)); } 50% { box-shadow: 0 0 0 5px var(--pulse, rgba(239,68,68,0.18)); } }
+.chef-bob { animation: chef-bob 2.6s ease-in-out infinite; transform-origin: 50% 90%; }
+.chef-bob-fast { animation: chef-bob 1.6s ease-in-out infinite; transform-origin: 50% 90%; }
+.chef-blink { animation: chef-blink 4s infinite; transform-box: fill-box; transform-origin: center; }
+.chef-wiggle { animation: chef-wiggle 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 20% 100%; }
+.chef-sweat { animation: chef-sweat 1.8s ease-in-out infinite; }
+.chef-pop { animation: chef-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.prep-pulse { animation: prep-pulse 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .chef-bob, .chef-bob-fast, .chef-blink, .chef-wiggle, .chef-sweat, .chef-pop, .prep-pulse { animation: none !important; }
+}
+>>>>>>> origin/main

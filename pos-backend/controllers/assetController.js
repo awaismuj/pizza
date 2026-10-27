@@ -1,6 +1,6 @@
 const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
-const PDFDocument = require("pdfkit");
+const { sendReport, normalizeFormat: normalizeExportFormat } = require("../utils/reportExport");
 const Counter = require("../models/counterModel");
 const { Asset, ASSET_CATEGORIES } = require("../models/assetModel");
 const AssetDepreciation = require("../models/assetDepreciationModel");
@@ -16,12 +16,12 @@ const {
 } = require("../utils/assetAccounting");
 
 const VALID_ROLES = ["admin", "accountant", "asset manager", "read only"];
-const FINANCIAL_ROLES = ["admin", "accountant"];
 const ASSET_STATUSES = ["Active", "Archived", "Sold", "Disposed", "Damaged", "Lost"];
 const validId = (value) => mongoose.Types.ObjectId.isValid(value);
 const normalizedRole = (req) => String(req.user?.role || "").toLowerCase();
-const isFinancialUser = (req) => FINANCIAL_ROLES.includes(normalizedRole(req));
-const isReadOnlyUser = (req) => normalizedRole(req) === "read only";
+const isFinancialUser = (req) => req.permissions?.includes("assets.financial") || false;
+const canViewAssetValuations = (req) =>
+  isFinancialUser(req) || req.permissions?.includes("assets.viewValuation") || false;
 const actorFor = (req) => ({
   actor: req.user?._id || null,
   actorName: req.user?.name || "Unknown user",
@@ -64,7 +64,7 @@ const decorateAssets = async (assets, req, asOf = new Date()) => {
     if (!byAsset.has(id)) byAsset.set(id, []);
     byAsset.get(id).push(row);
   });
-  const canSeeFinance = isFinancialUser(req) || normalizedRole(req) === "read only";
+  const canSeeFinance = canViewAssetValuations(req);
   return assets.map((asset) => {
     const raw = asset.toObject ? asset.toObject() : asset;
     const values = bookValueAt({
@@ -147,7 +147,7 @@ const getAssets = async (req, res, next) => {
     const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit) || 20)));
     const filter = parseFilterQuery(req.query);
     const sortableFields = ["purchaseDate", "name", "acquisitionCost", "status", "category", "location"];
-    const requestedSort = req.query.sort === "acquisitionCost" && !isFinancialUser(req) && !isReadOnlyUser(req)
+    const requestedSort = req.query.sort === "acquisitionCost" && !canViewAssetValuations(req)
       ? "purchaseDate"
       : req.query.sort;
     const sortField = sortableFields.includes(requestedSort) ? requestedSort : "purchaseDate";
@@ -321,6 +321,7 @@ const createAsset = async (req, res, next) => {
       serialNumber: String(body.serialNumber || "").trim(),
       purchaseDate,
       depreciationStartDate,
+      depreciationMethod: body.depreciationMethod,
       supplier: String(body.supplier || "").trim(),
       invoiceNumber: String(body.invoiceNumber || "").trim(),
       warrantyExpiry: dateValue(body.warrantyExpiry, "Warranty expiry", { optional: true }),
@@ -960,7 +961,7 @@ const getDashboard = async (req, res, next) => {
         status: entry.status,
       })),
     };
-    if (!isFinancialUser(req) && normalizedRole(req) !== "read only") {
+    if (!canViewAssetValuations(req)) {
       result.originalPurchaseCost = null;
       result.accumulatedDepreciation = null;
       result.currentBookValue = null;
@@ -1179,65 +1180,73 @@ const reportRows = async (query) => {
   return { assets: decorated, reports: registerRows };
 };
 
-const csvCell = (value) => {
-  let cell = String(value ?? "");
-  if (typeof value === "string" && /^[=+\-@\t\r]/.test(cell)) cell = `'${cell}`;
-  return `"${cell.replace(/"/g, '""')}"`;
+const REPORT_TITLES = {
+  register: "Complete Asset Register",
+  valuation: "Asset Valuation Report",
+  depreciation: "Depreciation Report",
+  category: "Assets by Category",
+  department: "Assets by Department",
+  location: "Assets by Location",
+  maintenance: "Maintenance Expenses",
+  warranty: "Warranty Expiry Report",
+  disposal: "Disposals and Sales",
+  "monthly-summary": "Monthly Asset Summary",
+  "annual-summary": "Financial-Year Asset Summary",
 };
-const toCsv = (rows) => {
-  const columns = Object.keys(rows[0] || {});
-  return [columns.map(csvCell).join(","), ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(","))].join("\r\n");
+const MONEY_KEY = /(cost|price|value|depreciation|amount|expenses|gainOrLoss|acquisitions|bookValue|residual|salePrice)/i;
+const DATE_KEY = /(date|At|expiry)$/;
+const NUMBER_KEYS = new Set(["assetCount", "usefulLifeYears"]);
+const labelFor = (key) => key
+  .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+  .replace(/^./, (char) => char.toUpperCase());
+const columnType = (key) => {
+  if (NUMBER_KEYS.has(key)) return "number";
+  if (DATE_KEY.test(key) || key === "date") return "date";
+  if (MONEY_KEY.test(key)) return "money";
+  return "text";
 };
-const xmlCell = (value) => {
-  const string = String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const numeric = typeof value === "number" && Number.isFinite(value);
-  return `<Cell><Data ss:Type="${numeric ? "Number" : "String"}">${string}</Data></Cell>`;
+const exportColumns = (rows) => {
+  const keys = [];
+  rows.forEach((row) => Object.keys(row).forEach((key) => { if (!keys.includes(key)) keys.push(key); }));
+  return keys.map((key) => ({ key, label: labelFor(key), type: columnType(key) }));
 };
-const toExcelXml = (rows) => {
-  const columns = Object.keys(rows[0] || {});
-  const header = `<Row>${columns.map((column) => xmlCell(column)).join("")}</Row>`;
-  const body = rows.map((row) => `<Row>${columns.map((column) => xmlCell(row[column])).join("")}</Row>`).join("");
-  return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Asset Report"><Table>${header}${body}</Table></Worksheet></Workbook>`;
-};
-
-const buildAssetReportPdf = (rows, title, currency = "PKR") =>
-  new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 32 });
-    const chunks = [];
-    doc.on("data", (chunk) => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-    doc.fontSize(18).fillColor("#222").text(title);
-    doc.fontSize(9).fillColor("#777").text(`Generated ${new Date().toISOString().slice(0, 10)} · ${currency}`);
-    doc.moveDown();
-    rows.forEach((row) => {
-      if (doc.y > 520) doc.addPage();
-      doc.fontSize(8).fillColor("#111")
-        .text(`${row.assetId} · ${row.name} · ${row.category} · ${row.status}`, { continued: false })
-        .fontSize(7).fillColor("#444")
-        .text(`${currency} ${row.acquisitionCost || row.cost || 0} | Depreciation: ${row.accumulatedDepreciation || row.depreciation || 0} | Book: ${row.currentBookValue || row.closingBookValue || 0} | Market: ${row.currentMarketValue === "" ? "Not valued" : row.currentMarketValue || 0}`)
-        .moveDown(0.4);
-    });
-    doc.end();
-  });
 
 const exportAssets = async (req, res, next) => {
   try {
+    const format = normalizeExportFormat(req.query.format);
     const { reports } = await reportRows(req.query);
-    const format = String(req.query.format || "csv").toLowerCase();
-    const type = String(req.query.type || "register").replace(/[^a-z-]/gi, "").slice(0, 32);
-    const filename = `asset-${type || "register"}`;
-    if (format === "csv") {
-      res.type("text/csv").attachment(`${filename}.csv`).send(toCsv(reports));
-    } else if (format === "xls") {
-      res.type("application/vnd.ms-excel").attachment(`${filename}.xls`).send(toExcelXml(reports));
-    } else if (format === "pdf") {
-        const settings = await Settings.findOne({ key: "global" }).select("assetAccounting");
-        const pdf = await buildAssetReportPdf(reports, `Business Asset Report — ${type}`, settings?.assetAccounting?.currency || "PKR");
-      res.type("application/pdf").attachment(`${filename}.pdf`).send(pdf);
-    } else {
-      throw createHttpError(400, "Choose CSV, Excel, or PDF export format.");
-    }
+    const type = String(req.query.type || "register").replace(/[^a-z-]/gi, "").slice(0, 32) || "register";
+    const settings = await Settings.findOne({ key: "global" }).select("assetAccounting");
+    const currency = settings?.assetAccounting?.currency || "PKR";
+    const columns = exportColumns(reports);
+    const moneyColumns = columns.filter((column) => column.type === "money");
+    const totals = reports.length && moneyColumns.length
+      ? {
+        [columns[0].key]: "Total",
+        ...Object.fromEntries(moneyColumns.map((column) => [
+          column.key,
+          roundMoney(reports.reduce((sum, row) => sum + (Number(row[column.key]) || 0), 0)),
+        ])),
+      }
+      : undefined;
+    const filterText = ["status", "category", "department", "location", "depreciationMethod", "from", "to", "search"]
+      .filter((key) => req.query[key])
+      .map((key) => `${labelFor(key)}: ${req.query[key]}`)
+      .join(" · ");
+    const title = REPORT_TITLES[type] || "Business Asset Report";
+    await sendReport(res, {
+      title,
+      filename: `asset-${type}-${new Date().toISOString().slice(0, 10)}`,
+      sheetName: "Summary",
+      subtitle: `Amounts in ${currency} · ${filterText || "No filters applied"}`,
+      footer: "GenZPizza POS · Business Assets",
+      summary: [
+        { label: "Records", value: reports.length, type: "number" },
+        { label: "Currency", value: currency },
+        { label: "Generated", value: new Date().toISOString().slice(0, 10) },
+      ],
+      sections: [{ title, sheetName: title, columns: columns.length ? columns : [{ key: "message", label: "Result" }], rows: reports, totals }],
+    }, format);
   } catch (error) {
     next(error);
   }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getSettings, updateSettings } from "../../https";
+import { FoodIcon } from "../shared/AppIcons";
 
 import { MdLocalPizza, MdLunchDining, MdLocalFireDepartment } from "react-icons/md";
 
@@ -24,9 +25,15 @@ const DEFAULTS = {
 };
 
 const TIERS = [
+<<<<<<< HEAD
   { field: "discount3", title: "3 items", hint: "Minimum to unlock deal", icon: MdLocalPizza },
   { field: "discount4", title: "4 items", hint: "Exactly four items", icon: MdLunchDining },
   { field: "discount5Plus", title: "5+ items", hint: "Five or more items", icon: MdLocalFireDepartment },
+=======
+  { field: "discount3", title: "3 items", hint: "Minimum to unlock the deal", icon: "pizza" },
+  { field: "discount4", title: "4 items", hint: "Exactly four items", icon: "burger" },
+  { field: "discount5Plus", title: "5+ items", hint: "Five or more items", icon: "flame" },
+>>>>>>> origin/main
 ];
 
 const toDraft = (cfg) => ({
@@ -106,9 +113,15 @@ const BuildYourOwnManager = () => {
   const exampleSaved = Math.round((exampleBase * examplePct) / 100);
 
   return (
+<<<<<<< HEAD
     <div className="pb-10 max-w-3xl">
       <div className="pos-card p-5 sm:p-6">
         <div className="flex items-start justify-between gap-4 mb-2">
+=======
+    <div className="mx-auto w-full px-6 pb-10">
+      <div className="max-w-2xl bg-[#262626] rounded-lg p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4 mb-1">
+>>>>>>> origin/main
           <div>
             <h3 className="text-slate-900 dark:text-white text-lg sm:text-xl font-bold tracking-tight">Build Your Own Deal</h3>
             <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
@@ -176,10 +189,15 @@ const BuildYourOwnManager = () => {
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
+<<<<<<< HEAD
                       <span className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
                         <IconComponent size={18} />
                       </span>
                       <span className="text-slate-900 dark:text-white font-bold text-sm">{t.title}</span>
+=======
+                      <span className="text-xl" aria-hidden="true"><FoodIcon icon={t.icon} /></span>
+                      <span className="text-[#f5f5f5] font-semibold">{t.title}</span>
+>>>>>>> origin/main
                     </div>
                     <p className="text-slate-400 text-xs mb-3">{t.hint}</p>
                     <div className="flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 shadow-xs">

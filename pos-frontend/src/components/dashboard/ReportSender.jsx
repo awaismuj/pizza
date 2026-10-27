@@ -1,27 +1,15 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   FaFilePdf,
-  FaWhatsapp,
   FaEnvelope,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaQrcode,
-  FaRedo,
-  FaLink,
-  FaUnlink,
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
 import { enqueueSnackbar } from "notistack";
 import Modal from "../shared/Modal";
 import {
-  getWhatsappStatus,
   downloadReportPdf,
-  sendReportToWhatsapp,
   sendReportToEmail,
-  retryWhatsappLink,
-  unlinkWhatsapp,
 } from "../../https";
 
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -33,18 +21,7 @@ const thisMonthStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 };
-const formatNumber = (n) => (n ? `+${n}` : "—");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const STATUS_META = {
-  ready: { label: "WhatsApp linked", color: "text-[#34c76f]", icon: FaCheckCircle },
-  qr: { label: "Scan the QR code below to link", color: "text-[#f6b100]", icon: FaQrcode },
-  initializing: { label: "Connecting to WhatsApp…", color: "text-[#8a7c66]", icon: FaExclamationTriangle },
-  disabled: { label: "WhatsApp isn't linked yet", color: "text-[#7a7a7a]", icon: FaExclamationTriangle },
-  init_failed: { label: "WhatsApp couldn't start — see error below", color: "text-[#e6402e]", icon: FaExclamationTriangle },
-  auth_failure: { label: "WhatsApp link failed — retry", color: "text-[#e6402e]", icon: FaExclamationTriangle },
-  disconnected: { label: "WhatsApp disconnected — relink", color: "text-[#e6402e]", icon: FaExclamationTriangle },
-};
 
 const SCOPES = [
   { key: "today", label: "Today" },
@@ -66,7 +43,7 @@ const ReportSender = ({ defaultDate } = {}) => {
   const [from, setFrom] = useState(defaultDate || todayStr());
   const [to, setTo] = useState(defaultDate || todayStr());
   const [month, setMonth] = useState(thisMonthStr());
-  const [busy, setBusy] = useState(""); // "" | "download" | "send" | "email" | "retry" | "unlink"
+  const [busy, setBusy] = useState("");
 
   // Keep the scope in sync with whatever day is currently picked outside
   // this component, but only re-sync each time the panel is (re)opened —
@@ -80,40 +57,8 @@ const ReportSender = ({ defaultDate } = {}) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, defaultDate]);
 
-  // The number reports go to — always shown and editable, never sent
-  // silently from a hidden default. Pre-filled once from the server's
-  // configured default, but the person must have this field in front of
-  // them (and can change it) before every WhatsApp send.
-  const [numberInput, setNumberInput] = useState("");
-  const [numberTouched, setNumberTouched] = useState(false);
-
   const [showEmail, setShowEmail] = useState(false);
   const [emailInput, setEmailInput] = useState("");
-
-  // Auto-send: once armed, the report fires itself the moment status flips
-  // to "ready" (i.e. right after the QR gets scanned) — no second click.
-  const [pendingSend, setPendingSend] = useState(false);
-  // Ask-first step: shown before we ever request a QR, so linking a phone
-  // is always a deliberate action, never something that happens silently.
-  const [awaitingLinkConfirm, setAwaitingLinkConfirm] = useState(false);
-
-  const { data: statusData } = useQuery({
-    queryKey: ["whatsappStatus"],
-    queryFn: getWhatsappStatus,
-    refetchInterval: isOpen ? (pendingSend || awaitingLinkConfirm ? 2000 : 5000) : false,
-  });
-  const status = statusData?.data?.data;
-  const meta = STATUS_META[status?.status] || STATUS_META.disabled;
-  const StatusIcon = meta.icon;
-  const needsLink = status && !["ready", "qr", "initializing"].includes(status.status);
-
-  // Fill the number field from the server default exactly once, without
-  // ever overwriting something the person already typed.
-  useEffect(() => {
-    if (!numberTouched && status?.targetNumber && !numberInput) {
-      setNumberInput(status.targetNumber);
-    }
-  }, [status?.targetNumber, numberTouched, numberInput]);
 
   const buildParams = () => {
     const base =
@@ -145,23 +90,6 @@ const ReportSender = ({ defaultDate } = {}) => {
     }
   };
 
-  const handleSendWhatsapp = async () => {
-    const number = numberInput.replace(/[^\d]/g, "");
-    if (!number) {
-      enqueueSnackbar("Enter the WhatsApp number to send this to.", { variant: "warning" });
-      return;
-    }
-    try {
-      setBusy("send");
-      const res = await sendReportToWhatsapp({ ...buildParams(), number });
-      enqueueSnackbar(res?.data?.message || "Report sent to WhatsApp.", { variant: "success" });
-    } catch (err) {
-      enqueueSnackbar(err?.response?.data?.message || "Failed to send to WhatsApp.", { variant: "error" });
-    } finally {
-      setBusy("");
-    }
-  };
-
   const handleSendEmail = async () => {
     if (!EMAIL_RE.test(emailInput)) {
       enqueueSnackbar("Enter a valid email address.", { variant: "warning" });
@@ -178,64 +106,6 @@ const ReportSender = ({ defaultDate } = {}) => {
     }
   };
 
-  // Actually requests a fresh QR — only ever called after the explicit
-  // confirm step below, never automatically.
-  const handleRetryLink = async () => {
-    try {
-      setBusy("retry");
-      await retryWhatsappLink();
-    } catch (err) {
-      enqueueSnackbar(err?.response?.data?.message || "Retry failed.", { variant: "error" });
-    } finally {
-      setBusy("");
-    }
-  };
-
-  const confirmAndShowQr = () => {
-    setAwaitingLinkConfirm(false);
-    handleRetryLink();
-  };
-
-  // Logs the currently-linked phone out and clears it, so a fresh QR can
-  // link the correct one instead.
-  const handleUnlink = async () => {
-    try {
-      setBusy("unlink");
-      await unlinkWhatsapp();
-      enqueueSnackbar("Unlinked. Scan a new QR with the correct phone.", { variant: "info" });
-    } catch (err) {
-      enqueueSnackbar(err?.response?.data?.message || "Failed to unlink.", { variant: "error" });
-    } finally {
-      setBusy("");
-    }
-  };
-
-  // Main "Send to WhatsApp" click. Always requires the number field to be
-  // filled first — the field sits right above the button, so this is
-  // always a deliberate, visible step, never a silent hidden-default send.
-  const handleSendClick = () => {
-    if (!numberInput.replace(/[^\d]/g, "")) {
-      enqueueSnackbar("Type the WhatsApp number to send this report to first.", { variant: "warning" });
-      return;
-    }
-    if (status?.status === "ready") {
-      handleSendWhatsapp();
-      return;
-    }
-    setPendingSend(true);
-    if (status?.status === "qr") return; // QR already showing, just wait
-    setAwaitingLinkConfirm(true); // ask first, don't request a QR silently
-  };
-
-  // Fires the queued send the instant WhatsApp reports "ready".
-  useEffect(() => {
-    if (pendingSend && status?.status === "ready" && busy === "") {
-      setPendingSend(false);
-      handleSendWhatsapp();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status?.status, pendingSend]);
-
   return (
     <>
       <button
@@ -246,6 +116,7 @@ const ReportSender = ({ defaultDate } = {}) => {
       </button>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Profit & expense report">
+<<<<<<< HEAD
         {/* ---- WhatsApp link status ---- */}
         <div className={`flex items-center gap-2 text-xs sm:text-sm mb-2 ${meta.color}`}>
           <StatusIcon className="shrink-0" /> <span>{meta.label}</span>
@@ -321,6 +192,8 @@ const ReportSender = ({ defaultDate } = {}) => {
           </div>
         )}
 
+=======
+>>>>>>> origin/main
         {/* ---- Scope picker ---- */}
         <div className="flex flex-wrap gap-1.5 mb-4">
           {SCOPES.map((opt) => (
@@ -365,25 +238,8 @@ const ReportSender = ({ defaultDate } = {}) => {
           </div>
         )}
 
-        {/* ---- WhatsApp number (always visible, always editable) ---- */}
-        <div className="mb-3">
-          <label className="text-xs text-[#ababab]">Send report to this WhatsApp number</label>
-          <input
-            type="tel"
-            inputMode="numeric"
-            placeholder="e.g. 923013310954"
-            value={numberInput}
-            onChange={(e) => {
-              setNumberTouched(true);
-              setNumberInput(e.target.value);
-            }}
-            className={inputCls}
-          />
-          <p className="text-[10px] text-[#7a7a7a] mt-1">International format, no "+" or spaces.</p>
-        </div>
-
         {/* ---- Actions ---- */}
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col gap-2">
           <button
             onClick={handleDownload}
             disabled={busy !== ""}
@@ -391,6 +247,7 @@ const ReportSender = ({ defaultDate } = {}) => {
           >
             <FaFilePdf size={12} /> {busy === "download" ? "Generating…" : "Download PDF"}
           </button>
+<<<<<<< HEAD
           <button
             onClick={handleSendClick}
             disabled={busy !== "" || (pendingSend && status?.status !== "ready")}
@@ -399,20 +256,16 @@ const ReportSender = ({ defaultDate } = {}) => {
             <FaWhatsapp size={14} />{" "}
             {busy === "send" ? "Sending…" : pendingSend ? "Waiting for scan…" : "Send WhatsApp"}
           </button>
+=======
+>>>>>>> origin/main
         </div>
-
-        {pendingSend && status?.status !== "ready" && !awaitingLinkConfirm && (
-          <p className="text-xs text-[#f6b100] mt-2 text-center">
-            Report will send automatically once the QR code above is scanned.
-          </p>
-        )}
 
         {/* ---- Optional email delivery ---- */}
         <button
           onClick={() => setShowEmail((v) => !v)}
           className="flex items-center gap-1.5 text-xs text-[#ababab] hover:text-[#f5f5f5] mt-4"
         >
-          {showEmail ? <FaChevronUp /> : <FaChevronDown />} Also send by email (optional)
+          {showEmail ? <FaChevronUp /> : <FaChevronDown />} Send by email
         </button>
 
         {showEmail && (
@@ -434,9 +287,6 @@ const ReportSender = ({ defaultDate } = {}) => {
           </div>
         )}
 
-        <p className="text-[10px] text-[#7a7a7a] mt-4 leading-relaxed">
-          If nobody generates today's report manually, it's sent to WhatsApp automatically shortly after midnight.
-        </p>
       </Modal>
     </>
   );

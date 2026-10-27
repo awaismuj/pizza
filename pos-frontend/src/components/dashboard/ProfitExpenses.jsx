@@ -3,7 +3,8 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { FaTrash, FaLock, FaBolt, FaChevronDown, FaChevronUp, FaReceipt, FaPlus } from "react-icons/fa";
 import { FiDollarSign, FiShoppingBag, FiCreditCard, FiTrendingUp } from "react-icons/fi";
 import { enqueueSnackbar } from "notistack";
-import { getDailyProfit, getMonthlyProfit, getDailyOrders, getExpenses, addExpense, deleteExpense } from "../../https";
+import { getDailyProfit, getMonthlyProfit, getDailyOrders, getExpenses, addExpense, deleteExpense, exportProfitReport } from "../../https";
+import ExportButtons from "./ExportButtons";
 import { formatCurrency } from "../../utils/orderMetrics";
 import ReportSender from "./ReportSender";
 import { useUITheme } from "../../context/UIThemeContext";
@@ -124,6 +125,7 @@ const ProfitExpenses = () => {
   const isViewingToday = selectedDate === todayStr();
 
   return (
+<<<<<<< HEAD
     <div className="space-y-6 max-w-full">
       {/* ---- Daily Profit Section ---- */}
       <div className="pos-card p-5 sm:p-6">
@@ -195,6 +197,35 @@ const ProfitExpenses = () => {
             accentBorder={`border-l-4 ${(daily?.profit ?? 0) >= 0 ? "border-l-emerald-500" : "border-l-rose-600"}`}
             icon={<FiTrendingUp className={(daily?.profit ?? 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"} />}
             badgeBg={(daily?.profit ?? 0) >= 0 ? "bg-emerald-50 dark:bg-emerald-950/40" : "bg-rose-50 dark:bg-rose-950/40"}
+=======
+    <div className="mx-auto w-full py-2 px-6 md:px-4">
+      {/* ---- Daily profit ---- */}
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <div>
+          <h2 className="font-semibold text-[#f5f5f5] text-xl">Daily Profit</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <ReportSender defaultDate={selectedDate} />
+          <ExportButtons
+            label="Export day"
+            fallbackName={`profit-day-${selectedDate}`}
+            request={(format) => exportProfitReport({ scope: "day", date: selectedDate, format })}
+          />
+          {!isViewingToday && (
+            <button
+              onClick={() => setSelectedDate(todayStr())}
+              className="text-xs text-[#f6b100] hover:underline"
+            >
+              Jump to today
+            </button>
+          )}
+          <input
+            type="date"
+            value={selectedDate}
+            max={todayStr()}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-[#1a1a1a] text-[#f5f5f5] rounded-md px-3 py-2 outline-none border border-[#333]"
+>>>>>>> origin/main
           />
         </div>
 
@@ -215,6 +246,7 @@ const ProfitExpenses = () => {
             {showOrders ? <FaChevronUp className="text-slate-400" size={12} /> : <FaChevronDown className="text-slate-400" size={12} />}
           </button>
 
+<<<<<<< HEAD
           {showOrders && (
             <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/80">
               {isDayOrdersLoading && <p className="text-slate-400 text-xs">Loading orders…</p>}
@@ -232,6 +264,95 @@ const ProfitExpenses = () => {
                         <th className="py-2.5 px-3 text-right">Revenue</th>
                         <th className="py-2.5 px-3 text-right">Cost</th>
                         <th className="py-2.5 px-3 text-right">Profit</th>
+=======
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        <StatBox label="Revenue (excl. tax)" value={daily?.revenue ?? 0} color="#025cca" />
+        <StatBox label="Coupon discounts" value={daily?.couponDiscount ?? 0} color="#7c3aed" />
+        <StatBox label="Purchases/Cost" value={daily?.cost ?? 0} color="#735f32" />
+        <StatBox label="Expenses" value={daily?.expenses ?? 0} color="#be3e3f" />
+        <StatBox label="Actual Profit" value={daily?.profit ?? 0} color={(daily?.profit ?? 0) >= 0 ? "#02ca3a" : "#7a1f1f"} />
+      </div>
+      <p className="mt-2 text-xs text-[#888]">
+        Revenue is discounted sales before tax, plus delivery fees. Coupon discounts are shown for reference and are not deducted twice; inventory cost is unchanged.
+      </p>
+
+      {/* ---- Per-order breakdown for this day ---- */}
+      <div className="mt-4 bg-[#1a1a1a] rounded-lg p-4">
+        <button
+          onClick={() => setShowOrders((v) => !v)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <span className="font-semibold text-[#f5f5f5]">
+            Orders on {selectedDate === todayStr() ? "today" : selectedDate}
+            {daily?.ordersCount != null && <span className="ml-2 text-xs text-[#7a7a7a]">({daily.ordersCount} counted)</span>}
+          </span>
+          {showOrders ? <FaChevronUp className="text-[#ababab]" /> : <FaChevronDown className="text-[#ababab]" />}
+        </button>
+
+        {showOrders && (
+          <div className="mt-3">
+            {isDayOrdersLoading && <p className="text-[#7a7a7a] text-sm">Loading orders…</p>}
+            {!isDayOrdersLoading && dayOrders.length === 0 && (
+              <p className="text-[#7a7a7a] text-sm">No orders received on this day.</p>
+            )}
+            {dayOrders.length > 0 && (
+              <div className="overflow-x-auto scrollbar-hide">
+                <table className="w-full min-w-[780px] text-sm">
+                  <thead>
+                    <tr className="text-left text-[#7a7a7a] text-xs uppercase">
+                      <th className="py-2 pr-3 font-medium">Order</th>
+                      <th className="py-2 pr-3 font-medium">Customer</th>
+                      <th className="py-2 pr-3 font-medium">Status</th>
+                      <th className="py-2 pr-3 font-medium">Payment</th>
+                      <th className="py-2 pr-3 font-medium text-right">Revenue (excl. tax)</th>
+                      <th className="py-2 pr-3 font-medium text-right">Coupon discount</th>
+                      <th className="py-2 pr-3 font-medium text-right">Cost</th>
+                      <th className="py-2 pr-3 font-medium text-right">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dayOrders.map((o) => (
+                      <tr key={o._id} className="border-t border-[#262626]">
+                        <td className="py-2 pr-3 text-[#f5f5f5] whitespace-nowrap">
+                          #{o.orderNumber}
+                          <span className="block text-[10px] text-[#7a7a7a]">
+                            {new Date(o.orderDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} ·{" "}
+                            {o.itemsCount} item{o.itemsCount === 1 ? "" : "s"}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-3 text-[#f5f5f5] truncate max-w-[140px]">{o.customerName}</td>
+                        <td className={`py-2 pr-3 whitespace-nowrap ${statusColor(o.orderStatus)}`}>
+                          {o.orderStatus}
+                          {!o.countedTowardsProfit && (
+                            <span className="block text-[10px] text-[#7a7a7a]">not counted</span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-[#f5f5f5] whitespace-nowrap">
+                          {o.paymentMethod || "—"}
+                          {o.paymentStatus && o.paymentMethod === "JazzCash/Raast" && (
+                            <span className="block text-[10px] text-[#7a7a7a]">
+                              {o.paymentStatus}
+                              {o.tid ? ` · TID ${o.tid}` : ""}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-[#f5f5f5] whitespace-nowrap">
+                          Rs {formatCurrency(o.revenue)}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-[#c4b5fd] whitespace-nowrap">
+                          Rs {formatCurrency(o.couponDiscount)}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-[#f5f5f5] whitespace-nowrap">
+                          Rs {formatCurrency(o.cost)}
+                        </td>
+                        <td
+                          className={`py-2 pr-3 text-right font-semibold whitespace-nowrap ${
+                            o.profit >= 0 ? "text-[#34c76f]" : "text-[#e6402e]"
+                          }`}
+                        >
+                          Rs {formatCurrency(o.profit)}
+                        </td>
+>>>>>>> origin/main
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -327,6 +448,7 @@ const ProfitExpenses = () => {
                 key={exp._id}
                 className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 transition"
               >
+<<<<<<< HEAD
                 <div>
                   <p className="text-slate-900 dark:text-white text-xs font-mono font-bold">
                     Rs {formatCurrency(exp.amount)}
@@ -335,6 +457,67 @@ const ProfitExpenses = () => {
                     <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{exp.description}</p>
                   )}
                 </div>
+=======
+                <FaTrash />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ---- Monthly profit ---- */}
+      <div className="mt-10 flex flex-wrap justify-between items-center gap-3">
+        <div>
+          <h2 className="font-semibold text-[#f5f5f5] text-xl">Monthly Profit</h2>
+          <p className="text-sm text-[#ababab]">Total revenue, expenses and actual profit for the month.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportButtons
+            label="Export month"
+            fallbackName={`profit-month-${selectedMonth}`}
+            request={(format) => exportProfitReport({ scope: "month", month: selectedMonth, format })}
+          />
+          <input
+            type="month"
+            value={selectedMonth}
+            max={thisMonthStr()}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="bg-[#1a1a1a] text-[#f5f5f5] rounded-md px-3 py-2 outline-none border border-[#333]"
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+        <StatBox label="Revenue (excl. tax)" value={monthly?.revenue ?? 0} color="#025cca" />
+        <StatBox label="Coupon discounts" value={monthly?.couponDiscount ?? 0} color="#7c3aed" />
+        <StatBox label="Purchases/Cost" value={monthly?.cost ?? 0} color="#735f32" />
+        <StatBox label="Expenses" value={monthly?.expenses ?? 0} color="#be3e3f" />
+        <StatBox label="Actual Profit" value={monthly?.profit ?? 0} color={(monthly?.profit ?? 0) >= 0 ? "#02ca3a" : "#7a1f1f"} />
+      </div>
+      <p className="mt-2 text-xs text-[#888]">
+        Revenue is discounted sales before tax, plus delivery fees. Coupon discounts are shown for reference and are not deducted twice; inventory cost is unchanged.
+      </p>
+
+      {monthly?.days?.length > 0 && (
+        <div className="mt-4 bg-[#1a1a1a] rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[#ababab] text-xs">
+              Every day this month — click any date to load its earnings above
+            </p>
+            <div className="flex items-center gap-3 text-[10px] text-[#7a7a7a]">
+              <span className="flex items-center gap-1">
+                <FaLock className="text-[8px]" /> Locked (final)
+              </span>
+              <span className="flex items-center gap-1">
+                <FaBolt className="text-[8px]" /> Live
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 md:grid-cols-6">
+            {monthly.days.map((d) => {
+              const isSelected = d.dayKey === selectedDate;
+              return (
+>>>>>>> origin/main
                 <button
                   onClick={() => deleteExpenseMutation.mutate(exp._id)}
                   className="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40"

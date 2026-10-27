@@ -1,18 +1,17 @@
-import React, { useRef } from "react";
+import PropTypes from "prop-types";
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { FaCheck } from "react-icons/fa6";
 import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
 import ReceiptFooter from "../shared/ReceiptFooter";
 import { printReceipt } from "../../utils/printReceipt";
 import { getOrderNumber } from "../../utils";
+import { paymentReceiptLine } from "../../utils/payments";
 
-// The final bill — shown once an order reaches its terminal "Closed"/
-// "Completed" stage (see OrderCard.jsx), i.e. when a table is being
-// cleared. This never prints itself automatically: it just appears on
-// screen, and staff click "Print Receipt" if a copy is actually needed, or
-// "Close" to dismiss it. For a dine-in table, this is the SECOND of the
-// two prints an order gets — the first being the Kitchen Order Slip
-// printed when the order was placed (see KitchenSlip.jsx / Bill.jsx).
+// The final bill, opened explicitly from an order's Print action. This
+// never prints itself automatically. For a dine-in table, this is the
+// SECOND of the two prints an order gets — the first being the Kitchen
+// Order Slip printed when the order was placed (see KitchenSlip.jsx / Bill.jsx).
 const Invoice = ({ orderInfo, setShowInvoice }) => {
   const invoiceRef = useRef(null);
   const handlePrint = () => {
@@ -20,6 +19,8 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
   };
 
   const isWalkIn = orderInfo.customerDetails?.name === "Walk-in Customer";
+  const couponDiscount = Number(orderInfo.bills?.couponDiscount) || 0;
+  const otherDiscount = Math.max(0, (Number(orderInfo.bills?.discount) || 0) - couponDiscount);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center px-4">
@@ -116,12 +117,20 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
                   <strong>Subtotal:</strong> Rs{" "}
                   {Number(orderInfo.bills.subtotal ?? orderInfo.bills.total + orderInfo.bills.discount).toFixed(2)}
                 </p>
-                <p>
-                  <strong>
-                    Build Your Own Deal ({orderInfo.bills.discountPercent}% off):
-                  </strong>{" "}
-                  -Rs {Number(orderInfo.bills.discount).toFixed(2)}
-                </p>
+                {otherDiscount > 0 && (
+                  <p>
+                    <strong>
+                      Build Your Own Deal ({orderInfo.bills.discountPercent}% off):
+                    </strong>{" "}
+                    -Rs {otherDiscount.toFixed(2)}
+                  </p>
+                )}
+                {couponDiscount > 0 && (
+                  <p>
+                    <strong>Coupon ({orderInfo.coupon?.code || "discount"}):</strong>{" "}
+                    -Rs {couponDiscount.toFixed(2)}
+                  </p>
+                )}
                 <p>
                   <strong>After discount:</strong> Rs {orderInfo.bills.total.toFixed(2)}
                 </p>
@@ -134,6 +143,11 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
             <p>
               <strong>Tax:</strong> Rs {orderInfo.bills.tax.toFixed(2)}
             </p>
+            {Number(orderInfo.bills.deliveryFee) > 0 && (
+              <p>
+                <strong>Delivery fee:</strong> Rs {Number(orderInfo.bills.deliveryFee).toFixed(2)}
+              </p>
+            )}
             <p className="text-md font-semibold">
               <strong>Grand Total:</strong> Rs{" "}
               {orderInfo.bills.totalWithTax.toFixed(2)}
@@ -143,7 +157,27 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           {/* Payment Details */}
 
           <div className="mb-2 mt-2 text-xs">
-            {orderInfo.paymentMethod === "Cash" ? (
+            {orderInfo.paymentMethod === "JazzCash/Raast" || orderInfo.paymentMethod === "Cash on Delivery" ? (
+              <>
+                {/* Online orders: "Paid via JazzCash/Raast (TID: xxxx)" or "Cash on Delivery" */}
+                <p>
+                  <strong>{paymentReceiptLine(orderInfo)}</strong>
+                </p>
+                {orderInfo.paymentMethod === "JazzCash/Raast" && orderInfo.paymentStatus && orderInfo.paymentStatus !== "Verified" && (
+                  <p>Payment status: {orderInfo.paymentStatus}</p>
+                )}
+                {orderInfo.fulfillment?.method === "pickup" && (
+                  <p>
+                    <strong>Pickup at:</strong> {orderInfo.fulfillment.branchName}
+                  </p>
+                )}
+                {orderInfo.fulfillment?.method !== "pickup" && orderInfo.customerDetails?.address && (
+                  <p>
+                    <strong>Deliver to:</strong> {orderInfo.customerDetails.address}
+                  </p>
+                )}
+              </>
+            ) : orderInfo.paymentMethod === "Cash" ? (
               <p>
                 <strong>Payment Method:</strong> {orderInfo.paymentMethod}
               </p>
@@ -185,6 +219,39 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
       </div>
     </div>
   );
+};
+
+Invoice.propTypes = {
+  orderInfo: PropTypes.shape({
+    _id: PropTypes.string,
+    orderNumber: PropTypes.string,
+    customerDetails: PropTypes.shape({
+      name: PropTypes.string,
+      phone: PropTypes.string,
+      guests: PropTypes.number,
+    }),
+    items: PropTypes.arrayOf(PropTypes.shape({
+      name: PropTypes.string,
+      quantity: PropTypes.number,
+      price: PropTypes.number,
+    })),
+    bills: PropTypes.shape({
+      subtotal: PropTypes.number,
+      discount: PropTypes.number,
+      discountPercent: PropTypes.number,
+      couponDiscount: PropTypes.number,
+      total: PropTypes.number,
+      tax: PropTypes.number,
+      totalWithTax: PropTypes.number,
+    }),
+    coupon: PropTypes.shape({ code: PropTypes.string }),
+    paymentMethod: PropTypes.string,
+    paymentData: PropTypes.shape({
+      razorpay_order_id: PropTypes.string,
+      razorpay_payment_id: PropTypes.string,
+    }),
+  }).isRequired,
+  setShowInvoice: PropTypes.func.isRequired,
 };
 
 export default Invoice;

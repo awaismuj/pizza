@@ -8,6 +8,7 @@ import { IoMdClose } from "react-icons/io";
 import { FaCheckCircle, FaExclamationTriangle, FaBoxes } from "react-icons/fa";
 import { enqueueSnackbar } from "notistack";
 import { getLowStockItems, adjustInventoryItem } from "../../https";
+import { I } from "./AppIcons";
 
 export const LOW_STOCK_QUERY_KEY = ["low-stock"];
 export const OPEN_LOW_STOCK_EVENT = "open-low-stock";
@@ -26,18 +27,16 @@ const readSnoozed = () => {
   }
 };
 
-export const isStockRole = (role) => ["admin", "cashier"].includes(String(role || "").toLowerCase());
-
 // Popup that warns Admin and Cashier when inventory is running low:
 //   < 1000 g (1 kg) / 1000 ml (1 l) / 10 pcs, or already out of stock.
 // Admin gets a "Restock" button that opens the Inventory tab. Cashier only
 // sees the warning - stock can only be changed by the Admin.
 const LowStockAlert = () => {
-  const { isAuth, role } = useSelector((state) => state.user);
+  const { isAuth, permissions = [] } = useSelector((state) => state.user);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const enabled = isAuth && isStockRole(role);
-  const isAdmin = String(role || "").toLowerCase() === "admin";
+  const enabled = isAuth && permissions.includes("inventory.view");
+  const canRestock = permissions.includes("inventory.adjust");
 
   const [snoozed, setSnoozed] = useState(readSnoozed);
   const [forceOpen, setForceOpen] = useState(false);
@@ -48,8 +47,8 @@ const LowStockAlert = () => {
   const restockMutation = useMutation({
     mutationFn: adjustInventoryItem,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(LOW_STOCK_QUERY_KEY);
-      queryClient.invalidateQueries(["inventory"]);
+      queryClient.invalidateQueries({ queryKey: LOW_STOCK_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
       setRestockDrafts((prev) => ({ ...prev, [variables.inventoryId]: "" }));
       enqueueSnackbar("Stock added successfully.", { variant: "success" });
     },
@@ -130,6 +129,7 @@ const LowStockAlert = () => {
 
   const outCount = visibleItems.filter((i) => i.stockStatus === "out_of_stock").length;
 
+<<<<<<< HEAD
   // Empty state modal: triggered when user clicks "Stock Alerts" and there are 0 low stock items
   if (visibleItems.length === 0 && forceOpen) {
     return createPortal(
@@ -142,11 +142,96 @@ const LowStockAlert = () => {
           className="pos-modal-card max-w-md p-6 text-center"
         >
           <div className="flex justify-end">
+=======
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        role="alertdialog"
+        aria-label="Low stock warning"
+        className="w-full max-w-md overflow-hidden rounded-xl border border-[#be3e3f] bg-[#1f1f1f] shadow-2xl"
+      >
+        <div className="flex items-center gap-3 bg-[#be3e3f] px-5 py-3">
+          <span className="text-2xl" aria-hidden="true">
+            <I.Warning />
+          </span>
+          <div>
+            <h2 className="text-lg font-bold text-[#f5f5f5]">Stock is going low</h2>
+            <p className="text-xs text-[#f5f5f5]/80">
+              {visibleItems.length} item{visibleItems.length === 1 ? "" : "s"} need attention
+              {outCount > 0 ? ` · ${outCount} out of stock` : ""}
+            </p>
+          </div>
+        </div>
+
+        <div className="px-5 py-4">
+          <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+            {visibleItems.map((item) => {
+              const out = item.stockStatus === "out_of_stock";
+              return (
+                <li
+                  key={item._id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-[#262626] px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[#f5f5f5]">{item.name}</p>
+                    <p className="text-xs text-[#ababab]">
+                      Warning below {item.threshold} {item.unit}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`font-bold ${out ? "text-red-500" : "text-yellow-400"}`}>
+                      {out ? "Out of stock" : `${Number(item.quantity.toFixed(2))} ${item.unit} left`}
+                    </p>
+                    {canRestock && (
+                      <div className="mt-1 flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder={`+${item.unit}`}
+                          value={restockDrafts[item._id] ?? ""}
+                          onChange={(e) =>
+                            setRestockDrafts((prev) => ({ ...prev, [item._id]: e.target.value }))
+                          }
+                          className="w-16 rounded bg-[#1a1a1a] px-2 py-1 text-right text-xs text-[#f5f5f5] outline-none"
+                        />
+                        <button
+                          onClick={() => quickRestock(item)}
+                          disabled={restockMutation.isPending || !(Number(restockDrafts[item._id]) > 0)}
+                          className="rounded bg-[#34c76f] px-2 py-1 text-xs font-bold text-[#0f1f14] disabled:opacity-40"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {canRestock ? (
+            <p className="mt-4 text-sm text-[#ababab]">
+              Type how much stock arrived and hit "Add" next to any item above — no need to leave this page.
+              Online customers can no longer order more than what is left.
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-[#ababab]">
+              Please tell the admin to restock. Only the admin can change stock.
+            </p>
+          )}
+
+          <div className="mt-4 flex gap-3">
+>>>>>>> origin/main
             <button
               onClick={() => setForceOpen(false)}
               aria-label="Close"
               className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
+<<<<<<< HEAD
               <IoMdClose size={20} />
             </button>
           </div>
@@ -166,8 +251,11 @@ const LowStockAlert = () => {
               className="pos-btn-secondary flex-1 py-2.5"
             >
               Close
+=======
+              {canRestock ? "Remind me later" : "OK, got it"}
+>>>>>>> origin/main
             </button>
-            {isAdmin && (
+            {canRestock && (
               <button
                 onClick={takeAction}
                 className="pos-btn-primary flex-1 py-2.5"

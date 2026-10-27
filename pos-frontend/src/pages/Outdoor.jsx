@@ -7,7 +7,13 @@ import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import MenuContainer from "../components/menu/MenuContainer";
 import Invoice from "../components/invoice/Invoice";
-import { addOrder, createOrderRazorpay, verifyPaymentRazorpay } from "../https";
+import {
+  addOrder,
+  clearPaymentIdempotencyKey,
+  createOrderRazorpay,
+  getPaymentIdempotencyKey,
+  verifyPaymentRazorpay,
+} from "../https";
 import useTaxRate from "../hooks/useTaxRate";
 import { useUITheme } from "../context/UIThemeContext";
 import { FoodIcon } from "../utils/foodIcons";
@@ -42,6 +48,10 @@ const Outdoor = () => {
   const total = cart.reduce((sum, item) => sum + item.price, 0);
   const tax = (total * taxRate) / 100;
   const totalWithTax = total + tax;
+  const paymentFingerprint = JSON.stringify({
+    amount: Math.round(totalWithTax * 100),
+    items: cart.map((item) => [item.id, item.name, item.price]),
+  });
 
   const handleAddToCart = (item) => {
     setCart((prev) => [...prev, item]);
@@ -59,6 +69,7 @@ const Outdoor = () => {
       setShowInvoice(true);
       setCart([]);
       setIsProcessing(false);
+      clearPaymentIdempotencyKey();
       queryClient.invalidateQueries(["orders"]);
       queryClient.invalidateQueries(["dailyProfit"]);
       queryClient.invalidateQueries(["monthlyProfit"]);
@@ -101,7 +112,10 @@ const Outdoor = () => {
           return;
         }
 
-        const { data } = await createOrderRazorpay({ amount: totalWithTax.toFixed(2) });
+        const { data } = await createOrderRazorpay(
+          { amount: totalWithTax.toFixed(2) },
+          getPaymentIdempotencyKey(paymentFingerprint)
+        );
 
         const options = {
           key: `${import.meta.env.VITE_RAZORPAY_KEY_ID}`,
@@ -148,7 +162,10 @@ const Outdoor = () => {
         rzp.open();
       } catch (error) {
         setIsProcessing(false);
-        enqueueSnackbar("Payment failed to start!", { variant: "error" });
+        enqueueSnackbar(
+          error?.response?.data?.message || error.message || "Payment failed to start.",
+          { variant: "error" }
+        );
       }
       return;
     }
@@ -179,6 +196,7 @@ const Outdoor = () => {
         <MenuContainer onAddToCart={handleAddToCart} />
       </div>
 
+<<<<<<< HEAD
       {/* Right: local cart + submit (Symmetrical, high-contrast, crystal-clear) */}
       <div className="w-full lg:flex-[1.1] flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden h-fit">
         <div className="p-3.5 pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -189,6 +207,31 @@ const Outdoor = () => {
             </h2>
             <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
               {cart.length} item{cart.length === 1 ? "" : "s"} added
+=======
+      {/* Right: local cart + one-click submit. No explicit lg:h-full
+          (h-auto instead) so the flex row's default align-items:stretch
+          auto-computes the height - that's what makes lg:mb-36 actually
+          reserve real space instead of just pushing the panel past the
+          container's bottom. That reserved space is for the fixed
+          BottomNav *and* the WhatsApp button that floats above it (both
+          global, on every page) - without it, the Submit Order button ends
+          up rendered underneath them. */}
+      <div className="w-full lg:flex-[1] bg-[#1a1a1a] mx-3 mb-4 lg:mx-0 lg:mt-4 lg:mr-3 lg:mb-36 lg:h-auto rounded-lg pt-2 flex flex-col">
+        <div className="px-5 pt-3 pb-2">
+          <h1 className="text-lg text-[#f5f5f5] font-semibold tracking-wide">
+            Takeaway Order
+          </h1>
+          <p className="text-xs text-[#ababab] font-medium">
+            {cart.length} item{cart.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <hr className="border-[#2a2a2a] border-t-2" />
+
+        <div className="flex-1 overflow-y-auto px-5 py-3">
+          {cart.length === 0 ? (
+            <p className="text-[#5f5f5f] text-sm text-center mt-10">
+              No items yet — tap the cart button on any menu item to add it here.
+>>>>>>> origin/main
             </p>
           </div>
           {cart.length > 0 && (
@@ -243,6 +286,7 @@ const Outdoor = () => {
           )}
         </div>
 
+<<<<<<< HEAD
         <div className="p-4 bg-slate-50/80 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
             <span>Subtotal</span>
@@ -262,6 +306,26 @@ const Outdoor = () => {
               Rs {totalWithTax.toFixed(2)}
             </span>
           </div>
+=======
+        <div className="flex items-center gap-3 px-5 mt-4">
+          <button
+            onClick={() => setPaymentMethod("Cash")}
+            className={`bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${
+              paymentMethod === "Cash" ? "bg-[#383737] text-[#f5f5f5]" : ""
+            }`}
+          >
+            Cash
+          </button>
+          <button
+            onClick={() => setPaymentMethod("Online")}
+            className={`bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${
+              paymentMethod === "Online" ? "bg-[#383737] text-[#f5f5f5]" : ""
+            }`}
+          >
+            Online
+          </button>
+        </div>
+>>>>>>> origin/main
 
           {/* Payment Method Selector */}
           <div className="grid grid-cols-2 gap-2 pt-2">

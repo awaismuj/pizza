@@ -6,6 +6,9 @@ import { useSelector } from "react-redux";
 import { enqueueSnackbar } from "notistack";
 import { motion } from "framer-motion";
 import { getOrders, updateOrderStatus } from "../../https";
+import { PAYMENT_WAITING } from "../../utils/orderStages";
+import { refreshAfterOrderChange } from "../../hooks/useOrderActions";
+import { PaymentBadge, PaymentDetails, PaymentActions } from "../orders/PaymentPanel";
 
 // Short two-note chime using the Web Audio API - no audio file needed.
 // Browsers block audio until the user has interacted with the page at
@@ -54,13 +57,20 @@ const NewOrderPopup = () => {
     queryKey: ["orders"],
     queryFn: getOrders,
     enabled: isAuth,
-    refetchInterval: 10000,
+    // This is the alert for a new order, so it keeps checking every few
+    // seconds even while the POS tab is in the background, and checks again
+    // the moment staff switch back to it.
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: "always",
   });
 
   useEffect(() => {
     const orders = resData?.data?.data ?? [];
+    // New online orders (Pending) AND JazzCash/Raast payments waiting to be
+    // verified both trigger the alert.
     const pending = orders.filter(
-      (o) => o.orderSource === "Online" && o.orderStatus === "Pending"
+      (o) => o.orderSource === "Online" && (o.orderStatus === "Pending" || o.orderStatus === PAYMENT_WAITING)
     );
 
     if (isFirstLoad.current) {
@@ -83,6 +93,8 @@ const NewOrderPopup = () => {
   }, [resData]);
 
   const current = queue[0];
+  const role = useSelector((state) => state.user.role);
+  const isPaymentAlert = current?.orderStatus === PAYMENT_WAITING;
 
   useEffect(() => {
     if (!current) return;
@@ -93,10 +105,8 @@ const NewOrderPopup = () => {
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
-    onSuccess: () => {
-      queryClient.invalidateQueries(["orders"]);
-      queryClient.invalidateQueries(["inventory"]);
-      queryClient.invalidateQueries(["low-stock"]);
+    onSuccess: (_response, { orderStatus }) => {
+      refreshAfterOrderChange(queryClient, orderStatus);
     },
     onError: (error) => {
       const message = error?.response?.data?.message || "Failed to update order.";
@@ -142,6 +152,7 @@ const NewOrderPopup = () => {
 
   const total = current.bills?.totalWithTax;
 
+<<<<<<< HEAD
     return createPortal(
       <div className="pos-modal-backdrop">
         <motion.div
@@ -217,6 +228,140 @@ const NewOrderPopup = () => {
                 Accept &amp; Send to Processing
               </button>
             </div>
+=======
+  // Payment alerts: screenshot, TID, amount and customer in one place, with
+  // Verify & Accept / Reject Payment right here.
+  if (isPaymentAlert) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/70 px-4 py-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="my-auto w-full max-w-lg overflow-hidden rounded-xl border border-[#f6b100] bg-[#1f1f1f] shadow-2xl"
+        >
+          <div className="flex items-center justify-between bg-[#f6b100] px-5 py-3">
+            <h2 className="text-lg font-bold text-[#1f1f1f]">Payment to Verify · JazzCash/Raast</h2>
+            {queue.length > 1 && (
+              <span className="rounded-full bg-[#1f1f1f]/20 px-2 py-0.5 text-xs font-semibold text-[#1f1f1f]">
+                +{queue.length - 1} more waiting
+              </span>
+            )}
+          </div>
+
+          <div className="max-h-[78vh] overflow-y-auto px-5 py-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-[#f5f5f5]">{current.customerDetails?.name}</h3>
+              <span className="text-xs text-[#ababab]">{new Date(current.orderDate).toLocaleTimeString()}</span>
+            </div>
+            <p className="text-xs text-[#ababab]">{current.customerDetails?.phone}</p>
+            {current.customerDetails?.address && (
+              <p className="mt-1 text-xs text-[#ababab]">{current.customerDetails.address}</p>
+            )}
+            <PaymentBadge order={current} />
+
+            <PaymentDetails order={current} proofClassName="max-h-64" />
+
+            <ul className="mt-3 max-h-28 space-y-1 overflow-y-auto text-sm text-[#f5f5f5]">
+              {(current.items || []).map((item, idx) => (
+                <li key={idx} className="flex justify-between">
+                  <span>{item.quantity}x {item.name}</span>
+                  <span>Rs {(item.price * item.quantity).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+
+            <PaymentActions
+              order={current}
+              role={role}
+              onDone={(result) => {
+                setQueue((prev) => prev.filter((q) => q._id !== current._id));
+                if (result === "verified" && location.pathname !== "/online-orders") navigate("/online-orders");
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setQueue((prev) => prev.slice(1))}
+              className="mt-2 w-full rounded-lg bg-[#2a2a2a] py-2 text-sm font-semibold text-[#ababab] hover:bg-[#333]"
+            >
+              Review later (find it under Online Orders → Verify Payment)
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="w-full max-w-md overflow-hidden rounded-xl border border-[#f6b100] bg-[#1f1f1f] shadow-2xl"
+      >
+        <div className="flex items-center justify-between bg-[#f6b100] px-5 py-3">
+          <h2 className="text-lg font-bold text-[#1f1f1f]">New Online Order</h2>
+          {queue.length > 1 && (
+            <span className="rounded-full bg-[#1f1f1f]/20 px-2 py-0.5 text-xs font-semibold text-[#1f1f1f]">
+              +{queue.length - 1} more waiting
+            </span>
+          )}
+        </div>
+
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-[#f5f5f5]">{current.customerDetails?.name}</h3>
+            <span className="text-xs text-[#ababab]">
+              {new Date(current.orderDate).toLocaleTimeString()}
+            </span>
+          </div>
+          <p className="text-xs text-[#ababab]">{current.customerDetails?.phone}</p>
+          {current.customerDetails?.address && (
+            <p className="mt-1 text-xs text-[#ababab]">{current.customerDetails.address}</p>
+          )}
+
+          <ul className="mt-3 max-h-40 space-y-1 overflow-y-auto text-sm text-[#f5f5f5]">
+            {(current.items || []).map((item, idx) => (
+              <li key={idx} className="flex justify-between">
+                <span>
+                  {item.quantity}x {item.name}
+                </span>
+                <span>Rs {(item.price * item.quantity).toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-3 flex items-center justify-between border-t border-[#383838] pt-2">
+            <span className="text-sm text-[#ababab]">Total</span>
+            <span className="font-semibold text-[#f5f5f5]">
+              Rs {typeof total === "number" ? total.toFixed(2) : "-"}
+            </span>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              onClick={() => handleDecide("Cancelled")}
+              disabled={statusMutation.isPending}
+              className="flex-1 rounded-lg bg-[#be3e3f] py-3 font-semibold text-[#f5f5f5] disabled:opacity-60"
+            >
+              {statusMutation.isPending && statusMutation.variables?.orderStatus === "Cancelled" ? "Declining…" : "Decline"}
+            </button>
+            <button
+              onClick={() => handleDecide("Accepted")}
+              disabled={statusMutation.isPending}
+              className="flex-1 rounded-lg bg-[#2e4a40] py-3 font-semibold text-[#02ca3a] disabled:opacity-60"
+            >
+              {statusMutation.isPending && statusMutation.variables?.orderStatus === "Accepted" ? "Accepting…" : "Accept"}
+            </button>
+            <button
+              onClick={handleAcceptAndProcess}
+              disabled={statusMutation.isPending}
+              className="w-full rounded-lg bg-[#02ca3a] py-3 font-semibold text-[#1f1f1f] disabled:opacity-60"
+            >
+              {statusMutation.isPending ? "Working…" : "Accept & Send to Processing"}
+            </button>
+>>>>>>> origin/main
           </div>
         </motion.div>
       </div>,

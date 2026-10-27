@@ -172,8 +172,13 @@ const HeroSliderManager = () => {
               {form.image && (
                 <img
                   src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
+<<<<<<< HEAD
                   alt="Slide preview"
                   className="w-24 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
+=======
+                  alt={form.altText || "Promotional slide image preview"}
+                  className="w-24 h-16 rounded object-cover border border-[#3a3a3a]"
+>>>>>>> origin/main
                 />
               )}
               <label className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white px-3.5 py-2 rounded-xl cursor-pointer text-xs font-bold transition border border-slate-200 dark:border-slate-700">
@@ -266,8 +271,13 @@ const HeroSliderManager = () => {
                 <div className="flex gap-3 min-w-0">
                   <img
                     src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
+<<<<<<< HEAD
                     alt={slide.altText || ""}
                     className="w-18 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+=======
+                    alt={slide.altText || `Promotional slide ${index + 1}`}
+                    className="w-16 h-12 rounded object-cover border border-[#3a3a3a] shrink-0"
+>>>>>>> origin/main
                   />
                   <div className="min-w-0">
                     <p className="text-slate-900 dark:text-white font-bold text-xs truncate">

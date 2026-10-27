@@ -7,13 +7,25 @@
     "start": "node app.js",
     "test": "node --test",
     "migrate": "node scripts/migrate.js",
+    "migrate:checkout-idempotency": "node scripts/migrate-checkout-idempotency.js",
+    "migrate:payment-idempotency": "node scripts/migrate-checkout-idempotency.js",
+    "migrate:welcome-offer-index": "node scripts/migrate-welcome-offer-index.js",
+    "migrate:whatsapp-campaigns": "node scripts/migrate-whatsapp-campaigns.js",
+    "migrate:customer-contacts": "node scripts/migrate-customer-contacts.js",
+    "migrate:staff-hr": "node scripts/migrate-staff-hr.js",
     "migrate:asset-depreciation": "node scripts/migrate-asset-depreciation.js",
     "seed": "node scripts/seed.js",
     "seed:pizzaland": "node scripts/seedPizzaLandRecipes.js",
     "reset:sales": "node scripts/reset-sales.js",
     "backfill:order-numbers": "node scripts/backfill-order-numbers.js",
+<<<<<<< HEAD
     "mongo": "node scripts/start-local-mongo.js",
     "db:setup": "node scripts/db-bootstrap.js"
+=======
+    "db:setup": "node scripts/db-bootstrap.js",
+    "migrate:rbac": "node scripts/migrate-rbac.js",
+    "rbac:promote-owner": "node scripts/promote-owner.js"
+>>>>>>> origin/main
   },
   "keywords": [],
   "author": "",
@@ -25,6 +37,7 @@
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.2",

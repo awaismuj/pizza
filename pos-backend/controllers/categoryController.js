@@ -39,7 +39,7 @@ const addCategory = async (req, res, next) => {
     const category = await Category.create({
       name: categoryName,
       description: description || "",
-      icon: icon || "🍽️",
+      icon: icon || "utensils",
     });
 
     res.status(201).json({
@@ -98,7 +98,7 @@ const updateCategory = async (req, res, next) => {
 
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
-      { name: name.trim(), description: description || "", icon: icon || "🍽️" },
+      { name: name.trim(), description: description || "", icon: icon || "utensils" },
       { new: true }
     );
 
@@ -228,7 +228,7 @@ const addDish = async (req, res, next) => {
       variants: sanitizedVariants,
       category: categoryDoc._id,
       image: image || "",
-      icon: icon || "🍽️",
+      icon: icon || "utensils",
       inventoryItem: trackedFlag && inventoryItem ? inventoryItem : null,
       inventoryItemQty: Number(inventoryItemQty) > 0 ? Number(inventoryItemQty) : 1,
       isInventoryTracked: trackedFlag,
@@ -313,6 +313,20 @@ const updateDish = async (req, res, next) => {
 
     const trackedFlag = isInventoryTracked === true || isInventoryTracked === "true";
     const sanitizedVariants = sanitizeVariants(variants);
+    const existingDish = await Dish.findById(id);
+    if (!existingDish) return next(createHttpError(404, "Dish not found!"));
+    const pricesChanged =
+      existingDish.price !== Number(price) ||
+      existingDish.originalPrice !== (originalPrice ? Number(originalPrice) : 0) ||
+      JSON.stringify((existingDish.variants || []).map(({ size, price: variantPrice, originalPrice: variantOriginal }) =>
+        [size, variantPrice, variantOriginal || 0]
+      )) !== JSON.stringify(sanitizedVariants.map(({ size, price: variantPrice, originalPrice: variantOriginal }) =>
+        [size, variantPrice, variantOriginal || 0]
+      ));
+    if (pricesChanged && !req.permissions?.includes("menu.changePrice")) {
+      return next(createHttpError(403, "You do not have permission to change dish prices."));
+    }
+    if (pricesChanged) req.auditActionOverride = "dish.price.changed";
 
     const updateData = {
       name: name.trim(),
@@ -322,7 +336,7 @@ const updateDish = async (req, res, next) => {
       variants: sanitizedVariants,
       category: categoryDoc._id,
       image: image || "",
-      icon: icon || "🍽️",
+      icon: icon || "utensils",
       inventoryItem: trackedFlag && inventoryItem ? inventoryItem : null,
       inventoryItemQty: Number(inventoryItemQty) > 0 ? Number(inventoryItemQty) : 1,
       isInventoryTracked: trackedFlag,

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getOrders } from "../../https";
 import { isEarnedOrder, orderTotal, formatCurrency } from "../../utils/orderMetrics";
+import { I } from "../shared/AppIcons";
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const dayKeyOf = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -99,14 +100,22 @@ const PaymentsOverview = () => {
 
   if (isError) {
     return (
+<<<<<<< HEAD
       <div className="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
+=======
+      <div className="mx-auto w-full py-2 px-6 md:px-4 text-red-400 text-sm">
+>>>>>>> origin/main
         Couldn't load orders — check the connection to the server and try again.
       </div>
     );
   }
 
   return (
+<<<<<<< HEAD
     <div className="space-y-6">
+=======
+    <div className="mx-auto w-full py-2 px-6 md:px-4">
+>>>>>>> origin/main
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
           <h2 className="font-extrabold text-slate-900 dark:text-white text-lg sm:text-xl tracking-tight">Payments & Settlement</h2>
@@ -213,6 +222,23 @@ const PaymentsOverview = () => {
                       </tr>
                     ))
                   )}
+<<<<<<< HEAD
+=======
+                  {recent.map((o) => (
+                    <tr key={o._id} className="border-b border-[#262626]">
+                      <td className="py-2 pr-3 text-[#ababab]">
+                        {new Date(o.orderDate || o.createdAt).toLocaleString([], {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </td>
+                      <td className="py-2 pr-3">{o.customerDetails?.name || "—"}</td>
+                      <td className="py-2 pr-3 text-[#ababab]"><span className="inline-flex items-center gap-1.5">{o.orderSource === "Online" ? <><I.Cart /> Online</> : <><I.Store /> POS</>}</span></td>
+                      <td className="py-2 pr-3 text-[#ababab]">{methodLabel(o.paymentMethod)}</td>
+                      <td className="py-2 text-right font-semibold">Rs {formatCurrency(orderTotal(o))}</td>
+                    </tr>
+                  ))}
+>>>>>>> origin/main
                 </tbody>
               </table>
             </div>

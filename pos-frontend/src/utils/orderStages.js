@@ -7,6 +7,9 @@
 
 export const DINE_IN_STAGES = ["In Progress", "Ready", "Closed"];
 export const ONLINE_STAGES = ["Pending", "Accepted", "Preparing", "Ready to Deliver", "Completed"];
+// Online order paid by JazzCash/Raast QR: staff verify the money first.
+export const PAYMENT_WAITING = "Payment Pending Verification";
+export const PAID_ONLINE_STAGES = [PAYMENT_WAITING, "Accepted", "Preparing", "Ready to Deliver", "Completed"];
 
 // Friendly names shown to staff.
 export const STAGE_LABELS = {
@@ -14,6 +17,7 @@ export const STAGE_LABELS = {
   Ready: "Ready",
   Closed: "Completed",
   Pending: "New",
+  [PAYMENT_WAITING]: "Verify Payment",
   Accepted: "Accepted",
   Preparing: "Processing",
   "Ready to Deliver": "Ready to Deliver",
@@ -21,7 +25,7 @@ export const STAGE_LABELS = {
   Cancelled: "Cancelled",
 };
 
-// The single "next step" button for each status.
+// The only valid next status for each stage dot.
 export const NEXT_ACTION = {
   // dine-in
   "In Progress": { to: "Ready", label: "Mark Ready" },
@@ -35,7 +39,10 @@ export const NEXT_ACTION = {
 
 export const TERMINAL_STATUSES = ["Closed", "Completed", "Cancelled"];
 
-export const stagesFor = (order) => (order?.orderSource === "Online" ? ONLINE_STAGES : DINE_IN_STAGES);
+export const stagesFor = (order) => {
+  if (order?.orderSource !== "Online") return DINE_IN_STAGES;
+  return order?.paymentMethod === "JazzCash/Raast" ? PAID_ONLINE_STAGES : ONLINE_STAGES;
+};
 
 // Tailwind classes for the little status pill.
 export const statusPillClass = (status) => {
@@ -49,6 +56,7 @@ export const statusPillClass = (status) => {
     case "Cancelled":
       return "text-red-500 bg-[#3b1d1d]";
     case "Pending":
+    case PAYMENT_WAITING:
       return "text-orange-400 bg-[#4a3a2e]";
     default:
       return "text-yellow-500 bg-[#4a452e]";

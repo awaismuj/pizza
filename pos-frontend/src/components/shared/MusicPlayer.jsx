@@ -233,9 +233,13 @@ const MusicPlayer = ({ variant = "compact", canManage = false }) => {
                       aria-label={`Play ${track.title}`}
                       className="min-w-0 flex-1 truncate text-left text-sm py-1"
                     >
+<<<<<<< HEAD
                       <span className="mr-2 text-amber-600 dark:text-amber-400 font-bold">
                         {track.id === currentTrack?.id && isPlaying ? "♫" : `${index + 1}.`}
                       </span>
+=======
+                      <span className="mr-2 text-red-400">{track.id === currentTrack?.id && isPlaying ? "•" : `${index + 1}.`}</span>
+>>>>>>> origin/main
                       {track.title}
                     </button>
                     <button

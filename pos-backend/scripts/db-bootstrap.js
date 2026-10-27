@@ -3,7 +3,12 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const Order = require("../models/orderModel");
+const Coupon = require("../models/couponModel");
+const CouponRedemption = require("../models/couponRedemptionModel");
+const Customer = require("../models/customerModel");
+const CustomerCoupon = require("../models/customerCouponModel");
 const config = require("../config/config");
+const { getPasswordPolicy, getPasswordPolicyError } = require("../utils/passwordPolicy");
 
 const bootstrap = async () => {
   if (!config.databaseURI) {
@@ -18,6 +23,20 @@ const bootstrap = async () => {
     console.log("✅ User indexes synced");
   } catch (error) {
     console.warn(`⚠️ Could not sync indexes: ${error.message}`);
+  }
+
+  for (const [name, Model] of [
+    ["Coupon", Coupon],
+    ["CouponRedemption", CouponRedemption],
+    ["Customer", Customer],
+    ["CustomerCoupon", CustomerCoupon],
+  ]) {
+    try {
+      await Model.syncIndexes();
+      console.log(`✅ ${name} indexes synced`);
+    } catch (error) {
+      console.warn(`⚠️ Could not sync ${name} indexes: ${error.message}`);
+    }
   }
 
   try {
@@ -40,6 +59,14 @@ const bootstrap = async () => {
     return;
   }
 
+  if (!config.defaultAdmin.password) {
+    console.log("ℹ️ No default admin was created. Set ADMIN_PASSWORD explicitly or create an account through the secure owner setup process.");
+    return;
+  }
+
+  const passwordError = getPasswordPolicyError(config.defaultAdmin.password, await getPasswordPolicy());
+  if (passwordError) throw new Error(`Default admin password does not meet the current policy: ${passwordError}`);
+
   const adminUser = new User({
     name: config.defaultAdmin.name,
     email: adminEmail,
@@ -50,7 +77,7 @@ const bootstrap = async () => {
   });
 
   await adminUser.save();
-  console.log(`✅ Seeded default admin user: ${adminEmail} / ${config.defaultAdmin.password}`);
+  console.log(`✅ Seeded admin user: ${adminEmail}`);
 };
 
 bootstrap()

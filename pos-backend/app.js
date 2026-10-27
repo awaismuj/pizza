@@ -6,13 +6,18 @@ const globalErrorHandler = require("./middlewares/globalErrorHandler");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { serveUploadedImage } = require("./controllers/uploadController");
+const { rejectMongoOperators, securityHeaders } = require("./middlewares/requestSecurity");
 const app = express();
+// Behind Cloudflare/nginx: needed so req.ip is the visitor, not the proxy.
+app.set("trust proxy", 1);
 
 const PORT = config.port;
 connectDB();
 
 const allowedOrigins = [
     config.frontendUrl,
+    'http://localhost:4175',
+    'http://127.0.0.1:4175',
     config.storeUrl,
     // POS frontend dev server (vite default)
     'http://localhost:5173',
@@ -30,6 +35,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 // Middlewares
+app.use(securityHeaders);
 app.use(cors({
     credentials: true,
     origin: (origin, callback) => {
@@ -40,8 +46,11 @@ app.use(cors({
         return callback(new Error('Not allowed by CORS'));
     }
 }));
-app.use(express.json()); // parse incoming request in json format
+app.use("/api/whatsapp-campaign/webhook", express.raw({ type: "application/json", limit: "1mb" }));
+app.use("/api/payment/webhook-verification", express.raw({ type: "application/json", limit: "1mb" }));
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser())
+app.use(rejectMongoOperators);
 
 // Serve uploaded images (category icons, dish images, etc.) so URLs returned by
 // the /api/upload endpoint (e.g. /uploads/xyz.png) are actually reachable.
@@ -57,11 +66,14 @@ app.get("/", (req,res) => {
 
 // Other Endpoints
 app.use("/api/user", require("./routes/userRoute"));
+app.use("/api/customer", require("./routes/customerRoute"));
 app.use("/api/order", require("./routes/orderRoute"));
 app.use("/api/table", require("./routes/tableRoute"));
 app.use("/api/category", require("./routes/categoryRoute"));
 app.use("/api/dish", require("./routes/dishRoute"));
 app.use("/api/deal", require("./routes/dealRoute"));
+app.use("/api/coupon", require("./routes/couponRoute"));
+app.use("/api/whatsapp-campaign", require("./routes/whatsAppCampaignRoute"));
 app.use("/api/hero-slide", require("./routes/heroSlideRoute"));
 app.use("/api/inventory", require("./routes/inventoryRoute"));
 app.use("/api/assets", require("./routes/assetRoute"));
@@ -73,6 +85,8 @@ app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
 app.use("/api/music", require("./routes/musicRoute"));
+app.use("/api/review", require("./routes/reviewRoute"));
+app.use("/api/branch", require("./routes/branchRoute"));
 
 // Global Error Handler
 app.use(globalErrorHandler);
@@ -81,14 +95,17 @@ app.use(globalErrorHandler);
 // server time — see services/dailyProfitScheduler.js.
 require("./services/dailyProfitScheduler").startDailyProfitScheduler();
 
-// Links to WhatsApp (free, QR-based — see services/whatsappService.js) and
-// starts the job that auto-sends the daily report if nobody sent it
-// manually — see services/dailyReportScheduler.js.
-require("./services/whatsappService").initWhatsapp();
-require("./services/dailyReportScheduler").startDailyReportScheduler();
+require("./services/whatsAppCampaignWorker").start();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).
 require("./services/staffAttendanceScheduler").startStaffAttendanceScheduler();
+
+// Accrues staff leave and retries HR notifications.
+require("./services/staffHrScheduler").startStaffHrScheduler();
+
+// Raises kitchen preparation-countdown alerts (10/5/2 min left, overdue) once
+// per order - see services/prepAlertScheduler.js.
+require("./services/prepAlertScheduler").startPrepAlertScheduler();
 
 // Posts closed-month asset depreciation. Each asset+period has a unique
 // ledger key, so multiple checks or server processes cannot double-post.

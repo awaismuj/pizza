@@ -7,6 +7,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getCategories, getDishes, getDeals } from "../../https";
 import { addItems } from "../../redux/slices/cartSlice";
 import { resolveImageUrl } from "../../utils";
+<<<<<<< HEAD
 import { useUITheme } from "../../context/UIThemeContext";
 import { FoodIcon } from "../../utils/foodIcons";
 
@@ -15,23 +16,45 @@ const MenuIcon = ({ icon }) => (
     <FoodIcon icon={icon} size={18} />
   </span>
 );
+=======
+import { FoodIcon } from "../shared/AppIcons";
+
+// A category icon is either an emoji or an uploaded photo (a path like
+// "/uploads/fries-123.jpg"). Photos must be drawn as an <img>; printing the
+// value as text is what showed the raw path next to the category name.
+const isImageIcon = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
+
+const MenuIcon = ({ icon }) =>
+  isImageIcon(icon) ? (
+    <img
+      src={resolveImageUrl(icon)}
+      alt=""
+      className="mr-1 inline-block h-7 w-7 rounded-md object-cover align-middle"
+      onError={(e) => {
+        e.currentTarget.style.display = "none";
+      }}
+    />
+  ) : (
+    <FoodIcon icon={icon} className="mr-1 inline-block align-middle" />
+  );
+>>>>>>> origin/main
 
 const palette = ["#b73e3e", "#5b45b0", "#7f167f", "#735f32", "#1d2569", "#285430", "#b73e3e", "#5b45b0"];
 
 const categoryIcons = {
-  starters: "🍲",
-  salads: "🥗",
-  pizza: "🍕",
-  beverages: "🍹",
-  soups: "🍜",
-  desserts: "🍰",
-  "main course": "🍛",
-  "alcoholic drinks": "🍺",
+  starters: "bowl",
+  salads: "salad",
+  pizza: "pizza",
+  beverages: "cocktail",
+  soups: "bowl",
+  desserts: "cake",
+  "main course": "rice",
+  "alcoholic drinks": "beer",
 };
 
 const getCategoryIcon = (name = "") => {
   const key = name.toLowerCase();
-  return categoryIcons[key] || categoryIcons[key.split(" ")[0]] || "🍽️";
+  return categoryIcons[key] || categoryIcons[key.split(" ")[0]] || "utensils";
 };
 
 // `onAddToCart`, when passed, receives each cart-line object instead of it
@@ -96,7 +119,7 @@ const MenuContainer = ({ onAddToCart }) => {
           description: dish.description || "",
           variants: Array.isArray(dish.variants) ? dish.variants : [],
           category: category.name,
-          icon: dish.icon || "🍽️",
+          icon: dish.icon || "utensils",
           isInventoryTracked: Boolean(dish.isInventoryTracked),
           // Live from inventory: how many can still be sold (null = untracked).
           availableQty: typeof dish.availableQty === "number" ? dish.availableQty : null,
@@ -111,7 +134,7 @@ const MenuContainer = ({ onAddToCart }) => {
         id: "__deals__",
         name: "Deals",
         bgColor: "#c8102e",
-        icon: "🔥",
+        icon: "flame",
         items: deals.map((deal) => ({
           id: deal._id,
           name: deal.name,
@@ -121,7 +144,7 @@ const MenuContainer = ({ onAddToCart }) => {
             (deal.items || []).map((it) => (it.quantity > 1 ? `${it.quantity}x ${it.label}` : it.label)).join(", "),
           variants: [],
           category: "Deals",
-          icon: deal.icon || "🔥",
+          icon: deal.icon || "flame",
           isInventoryTracked: false,
           availableQty: typeof deal.availableQty === "number" ? deal.availableQty : null,
           isDeal: true,
@@ -310,6 +333,7 @@ const MenuContainer = ({ onAddToCart }) => {
       >
         <div className="flex items-start justify-between w-full gap-2">
           <div className="min-w-0 flex-1">
+<<<<<<< HEAD
             <h3
               className={`text-sm sm:text-base font-bold line-clamp-2 break-words leading-tight flex items-center ${
                 isClean ? "text-slate-900" : "text-white"
@@ -319,6 +343,11 @@ const MenuContainer = ({ onAddToCart }) => {
                 <FoodIcon icon={item.icon} size={16} />
               </span>
               <span>{item.name}</span>
+=======
+            <h1 className="text-[#f5f5f5] text-sm sm:text-lg font-semibold line-clamp-2 break-words">
+              {item.icon ? <FoodIcon icon={item.icon} className="inline-block mr-1.5 align-[-2px] text-[#f6b100]" /> : null}
+              {item.name}
+>>>>>>> origin/main
               {item.isDeal && (
                 <span className="ml-2 align-middle text-[10px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-full shadow-xs">
                   DEAL
