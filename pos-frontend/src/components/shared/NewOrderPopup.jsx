@@ -285,10 +285,10 @@ const NewOrderPopup = () => {
               {statusMutation.isPending ? "Working…" : "Accept & Send to Processing"}
             </button>
           </div>
+        </div>
         </motion.div>
-      </div>,
-      document.body
+      </div>
     );
-  };
+};
 
 export default NewOrderPopup;

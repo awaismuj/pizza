@@ -68,74 +68,13 @@ const OrderCard = ({ order }) => {
               <p className="text-[#ababab] text-sm">
                 Table <FaLongArrowAltRight className="text-[#ababab] ml-2 inline" /> {order.table?.tableNo ?? "—"}
               </p>
-            </div>
+            )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <p className={`px-2 py-1 rounded-lg text-sm font-semibold ${statusPillClass(order.orderStatus)}`}>
               {STAGE_LABELS[order.orderStatus] || order.orderStatus}
-            </span>
-            <div className={`flex items-center gap-1 text-[11px] font-semibold ${isClean ? "text-slate-600" : "text-slate-400"}`}>
-              {isOnline ? (
-                <>
-                  <MdLanguage size={13} className="text-sky-500" />
-                  <span>Online</span>
-                </>
-              ) : isTakeaway ? (
-                <>
-                  <MdTakeoutDining size={13} className="text-amber-500" />
-                  <span>Takeaway</span>
-                </>
-              ) : (
-                <>
-                  <MdTableBar size={13} className="text-emerald-500" />
-                  <span>Table {order.table?.tableNo ?? "—"}</span>
-                </>
-              )}
-            </div>
+            </p>
           </div>
-        </div>
-
-        {/* Stage-by-stage progress tracker */}
-        <div className="py-2">
-          <OrderStageTracker order={order} />
-        </div>
-
-        {/* Order Details & Items Count */}
-        <div
-          className={`flex justify-between items-center py-2 text-xs ${
-            isClean ? "text-slate-500 font-medium" : "text-slate-400"
-          }`}
-        >
-          <span>{formatDateAndTime(order.orderDate)}</span>
-          <span
-            className={`px-2 py-0.5 rounded-md font-bold ${
-              isClean ? "bg-slate-100 text-slate-700" : "bg-slate-800 text-slate-300"
-            }`}
-          >
-            {order.items.length} {order.items.length === 1 ? "Item" : "Items"}
-          </span>
-        </div>
-
-        {/* Bill Total */}
-        <div
-          className={`flex items-center justify-between py-2 border-t my-1 ${
-            isClean ? "border-slate-100" : "border-slate-800/80"
-          }`}
-        >
-          <span
-            className={`text-xs uppercase tracking-wider font-bold ${
-              isClean ? "text-slate-500" : "text-slate-400"
-            }`}
-          >
-            Total Amount
-          </span>
-          <span
-            className={`text-base font-black font-mono ${
-              isClean ? "text-slate-900" : "text-white"
-            }`}
-          >
-            Rs {order.bills.totalWithTax.toFixed(2)}
-          </span>
         </div>
       </div>
 
@@ -204,7 +143,7 @@ const OrderCard = ({ order }) => {
               className="flex items-center gap-1.5 rounded-lg bg-[#2a2a2a] px-3 py-2 font-semibold text-[#f6b100] disabled:opacity-60"
               aria-label="Edit order"
             >
-              <FaPen size={11} /> Edit
+              <FaPen size={12} /> Edit
             </button>
           )}
           {canCancelOrder(role) && (
@@ -271,5 +210,3 @@ OrderCard.propTypes = {
 };
 
 export default OrderCard;
-
-

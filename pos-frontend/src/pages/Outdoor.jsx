@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaTrash } from "react-icons/fa";
-import { MdTakeoutDining, MdShoppingCart, MdAttachMoney, MdCreditCard } from "react-icons/md";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import MenuContainer from "../components/menu/MenuContainer";
@@ -15,8 +14,6 @@ import {
   verifyPaymentRazorpay,
 } from "../https";
 import useTaxRate from "../hooks/useTaxRate";
-import { useUITheme } from "../context/UIThemeContext";
-import { FoodIcon } from "../utils/foodIcons";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -36,7 +33,6 @@ function loadScript(src) {
 // right before submitting. The bill prints automatically the moment the
 // order is created — no extra click needed.
 const Outdoor = () => {
-  const { isClean } = useUITheme();
   const queryClient = useQueryClient();
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
@@ -176,18 +172,19 @@ const Outdoor = () => {
   };
 
   return (
-    <section className="min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-3 pb-32 lg:pb-4 transition-colors">
-      {/* Left: menu */}
-      <div className="w-full lg:flex-[3] flex flex-col min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs mb-3">
-          <div className="flex items-center gap-3">
+    <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] lg:h-[calc(100vh-5rem)] overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row gap-3 pb-40 lg:pb-0">
+      {/* Left: menu - scrolls its own content on desktop; pb-28 clears the
+          fixed BottomNav so the last row of dishes is actually reachable. */}
+      <div className="w-full lg:flex-[3] lg:h-full lg:overflow-y-auto lg:pb-28">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-10">
+          <div className="flex items-center gap-4">
             <BackButton />
             <div>
-              <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
+              <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
                 Outdoor / Takeaway
               </h1>
-              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                Fast counter takeaway — select items and complete in one tap
+              <p className="text-xs text-[#ababab] font-medium">
+                No name or table needed — pick items and submit
               </p>
             </div>
           </div>
@@ -220,57 +217,45 @@ const Outdoor = () => {
             <p className="text-[#5f5f5f] text-sm text-center mt-10">
               No items yet — tap the cart button on any menu item to add it here.
             </p>
-          </div>
-          {cart.length > 0 && (
-            <button
-              onClick={() => setCart([])}
-              className="text-xs font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 transition"
-            >
-              Clear Cart
-            </button>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {cart.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[#f5f5f5] text-sm font-medium truncate">
+                      {item.icon ? `${item.icon} ` : ""}
+                      {item.name} x{item.quantity}
+                    </p>
+                    <p className="text-[#ababab] text-xs">Rs {item.price.toFixed(2)}</p>
+                  </div>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="text-[#e05353] p-2 shrink-0"
+                    aria-label={`Remove ${item.name}`}
+                  >
+                    <FaTrash size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        <div className="max-h-[360px] overflow-y-auto p-4 space-y-3">
-          {cart.length === 0 ? (
-            <div className="py-12 text-center">
-              <span className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 inline-flex items-center justify-center mb-2 shadow-xs">
-                <MdShoppingCart size={28} />
-              </span>
-              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                Cart is empty
-              </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Tap the shopping cart button on any item to add.
-              </p>
-            </div>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 transition"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate flex items-center">
-                    <span className="inline-flex items-center justify-center mr-1.5 align-middle shrink-0">
-                      <FoodIcon icon={item.icon} size={15} />
-                    </span>
-                    <span>{item.name}</span>
-                  </p>
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                    Qty: {item.quantity} · Rs {item.price.toFixed(2)}
-                  </p>
-                </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0"
-                  aria-label={`Remove ${item.name}`}
-                >
-                  <FaTrash size={12} />
-                </button>
-              </div>
-            ))
-          )}
+        <hr className="border-[#2a2a2a] border-t-2" />
+
+        <div className="px-5 pt-3">
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-[#ababab] font-medium">Subtotal</p>
+            <h1 className="text-[#f5f5f5] text-md font-bold">Rs {total.toFixed(2)}</h1>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-[#ababab] font-medium">Tax ({taxRate}%)</p>
+            <h1 className="text-[#f5f5f5] text-md font-bold">Rs {tax.toFixed(2)}</h1>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-[#ababab] font-medium">Total</p>
+            <h1 className="text-[#f5f5f5] text-lg font-bold">Rs {totalWithTax.toFixed(2)}</h1>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 px-5 mt-4">
@@ -292,49 +277,19 @@ const Outdoor = () => {
           </button>
         </div>
 
-          {/* Payment Method Selector */}
-          <div className="grid grid-cols-2 gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("Cash")}
-              className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
-                paymentMethod === "Cash"
-                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-            >
-              <MdAttachMoney size={16} />
-              <span>Cash</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("Online")}
-              className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
-                paymentMethod === "Online"
-                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              }`}
-            >
-              <MdCreditCard size={16} />
-              <span>Online</span>
-            </button>
-          </div>
-
-          {/* Submit Action */}
-          <div className="pt-2">
-            <button
-              onClick={handleSubmit}
-              disabled={isProcessing || orderMutation.isPending || cart.length === 0}
-              className="pos-btn-primary w-full py-3.5 text-sm font-black rounded-xl shadow-md shadow-amber-500/20 disabled:opacity-40"
-            >
-              {isProcessing || orderMutation.isPending
-                ? "Submitting Order..."
-                : `Submit Order · Rs ${totalWithTax.toFixed(2)}`}
-            </button>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-2 font-medium">
-              Receipt prints automatically once submitted.
-            </p>
-          </div>
+        <div className="px-5 mt-4 mb-4">
+          <button
+            onClick={handleSubmit}
+            disabled={isProcessing || orderMutation.isPending || cart.length === 0}
+            className="bg-[#f6b100] px-4 py-4 w-full rounded-lg text-[#1f1f1f] font-bold text-lg disabled:opacity-60"
+          >
+            {isProcessing || orderMutation.isPending
+              ? "Submitting..."
+              : `Submit Order · Rs ${totalWithTax.toFixed(2)}`}
+          </button>
+          <p className="text-[10px] text-[#6b6b6b] text-center mt-2">
+            Bill prints automatically once the order is submitted.
+          </p>
         </div>
       </div>
 

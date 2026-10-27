@@ -52,7 +52,6 @@ const getCategoryIcon = (name = "") => {
 // against its own local, table-free cart.
 const MenuContainer = ({ onAddToCart }) => {
   const dispatch = useDispatch();
-  const { isClean } = useUITheme();
   const cartLines = useSelector((state) => state.cart);
   const [selected, setSelected] = useState(null);
   const [itemCount, setItemCount] = useState(0);
@@ -309,16 +308,11 @@ const MenuContainer = ({ onAddToCart }) => {
     const selection = hasVariants ? getSelection(item) : null;
     const crusts = hasVariants ? crustOptions(item, selection.size) : [];
     const displayPrice = priceFor(item);
-    const isOutOfStock = item.availableQty !== null && item.availableQty <= 0;
 
     return (
       <div
         key={item.id}
-        className={`flex flex-col justify-between gap-3 p-4 rounded-2xl transition-all duration-150 min-h-[175px] border ${
-          isClean
-            ? "bg-white border-slate-200/90 hover:border-amber-400 shadow-xs hover:shadow-md"
-            : "bg-slate-900/90 border-slate-800 hover:border-amber-500/50 shadow-md hover:shadow-amber-500/5"
-        }`}
+        className="flex flex-col items-start justify-between gap-2 p-3 sm:p-4 rounded-lg min-h-[160px] cursor-pointer hover:bg-[#2a2a2a] bg-[#1a1a1a]"
       >
         <div className="flex items-start justify-between w-full gap-2">
           <div className="min-w-0 flex-1">
@@ -326,48 +320,35 @@ const MenuContainer = ({ onAddToCart }) => {
               {item.icon ? <FoodIcon icon={item.icon} className="inline-block mr-1.5 align-[-2px] text-[#f6b100]" /> : null}
               {item.name}
               {item.isDeal && (
-                <span className="ml-2 align-middle text-[10px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-full shadow-xs">
+                <span className="ml-2 align-middle text-[10px] font-bold bg-[#c8102e] text-white px-1.5 py-0.5 rounded">
                   DEAL
                 </span>
               )}
-            </h3>
+            </h1>
             {item.description && (
-              <p className={`text-xs mt-1 line-clamp-2 leading-relaxed ${isClean ? "text-slate-500" : "text-slate-400"}`}>
-                {item.description}
-              </p>
+              <p className="text-[#ababab] text-xs mt-0.5 line-clamp-2">{item.description}</p>
             )}
             {item.availableQty !== null && item.availableQty <= 5 && (
-              <p
-                className={`text-[11px] font-bold mt-1.5 flex items-center gap-1 ${
-                  isOutOfStock ? "text-rose-500" : "text-amber-500"
-                }`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                {isOutOfStock ? "Out of stock" : `Only ${item.availableQty} left`}
+              <p className={`text-xs font-semibold mt-1 ${item.availableQty <= 0 ? "text-red-500" : "text-yellow-400"}`}>
+                {item.availableQty <= 0 ? "Out of stock" : `Only ${item.availableQty} left`}
               </p>
             )}
           </div>
-
           <button
             onClick={() => handleAddToCart(item)}
-            disabled={isOutOfStock}
-            className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shrink-0 transition disabled:opacity-30 disabled:pointer-events-none shadow-xs"
-            title="Add to cart"
+            disabled={item.availableQty !== null && item.availableQty <= 0}
+            className="bg-[#2e4a40] text-[#02ca3a] p-2 rounded-lg shrink-0 disabled:opacity-40"
           >
-            <FaShoppingCart size={16} />
+            <FaShoppingCart size={18} />
           </button>
         </div>
 
         {hasVariants && (
-          <div className="flex items-center gap-2 w-full pt-1">
+          <div className="flex items-center gap-2 w-full">
             <select
               value={selection.size}
               onChange={(e) => setSelection(item, { size: e.target.value, crust: "" })}
-              className={`flex-1 min-w-0 text-xs rounded-xl px-2.5 py-2 outline-none border transition ${
-                isClean
-                  ? "bg-slate-50 text-slate-900 border-slate-200 focus:border-amber-500 focus:bg-white"
-                  : "bg-slate-950/80 text-white border-slate-800 focus:border-amber-500"
-              }`}
+              className="flex-1 min-w-0 bg-[#1f1f1f] text-[#f5f5f5] text-xs rounded px-2 py-2 outline-none border border-[#333]"
             >
               {sizeOptions(item).map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -377,11 +358,7 @@ const MenuContainer = ({ onAddToCart }) => {
               <select
                 value={selection.crust}
                 onChange={(e) => setSelection(item, { crust: e.target.value })}
-                className={`flex-1 min-w-0 text-xs rounded-xl px-2.5 py-2 outline-none border transition ${
-                  isClean
-                    ? "bg-slate-50 text-slate-900 border-slate-200 focus:border-amber-500 focus:bg-white"
-                    : "bg-slate-950/80 text-white border-slate-800 focus:border-amber-500"
-                }`}
+                className="flex-1 min-w-0 bg-[#1f1f1f] text-[#f5f5f5] text-xs rounded px-2 py-2 outline-none border border-[#333]"
               >
                 {crusts.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -391,57 +368,21 @@ const MenuContainer = ({ onAddToCart }) => {
           </div>
         )}
 
-        <div
-          className={`flex items-center justify-between gap-2 w-full pt-2 border-t mt-auto ${
-            isClean ? "border-slate-100" : "border-slate-800/80"
-          }`}
-        >
-          <div>
-            <span
-              className={`text-[10px] uppercase font-bold block leading-none ${
-                isClean ? "text-slate-400" : "text-slate-400"
-              }`}
-            >
-              Price
-            </span>
-            <p
-              className={`text-base sm:text-lg font-black font-mono mt-0.5 ${
-                isClean ? "text-slate-900" : "text-white"
-              }`}
-            >
-              Rs {displayPrice}
-            </p>
-          </div>
-
-          <div
-            className={`flex items-center justify-between px-2 py-1.5 rounded-xl gap-2 sm:gap-4 shrink-0 border ${
-              isClean ? "bg-slate-100 border-slate-200" : "bg-slate-950 border-slate-800"
-            }`}
-          >
+        <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+          <p className="text-[#f5f5f5] text-base sm:text-xl font-bold">Rs {displayPrice}</p>
+          <div className="flex items-center justify-between bg-[#1f1f1f] px-2 py-2 sm:px-4 sm:py-3 rounded-lg gap-2 sm:gap-6 flex-1 min-w-[96px] max-w-[140px]">
             <button
               onClick={() => decrement(item.id)}
-              className={`w-7 h-7 rounded-lg font-bold text-base flex items-center justify-center transition ${
-                isClean
-                  ? "bg-white text-slate-900 hover:bg-slate-200 shadow-xs"
-                  : "bg-slate-800 hover:bg-slate-700 text-amber-400"
-              }`}
+              className="text-yellow-500 text-xl sm:text-2xl leading-none"
             >
               &minus;
             </button>
-            <span
-              className={`text-xs sm:text-sm font-black min-w-4 text-center ${
-                isClean ? "text-slate-900" : "text-white"
-              }`}
-            >
+            <span className="text-white text-sm sm:text-base">
               {itemId === item.id ? itemCount : "0"}
             </span>
             <button
               onClick={() => increment(item.id)}
-              className={`w-7 h-7 rounded-lg font-bold text-base flex items-center justify-center transition ${
-                isClean
-                  ? "bg-white text-slate-900 hover:bg-slate-200 shadow-xs"
-                  : "bg-slate-800 hover:bg-slate-700 text-amber-400"
-              }`}
+              className="text-yellow-500 text-xl sm:text-2xl leading-none"
             >
               &#43;
             </button>
@@ -462,68 +403,53 @@ const MenuContainer = ({ onAddToCart }) => {
 
   return (
     <>
-      {/* Search Bar */}
-      <div className="w-full mb-3">
-        <div
-          className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 shadow-xs transition ${
-            isClean
-              ? "bg-white border border-slate-200/90 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20"
-              : "bg-slate-900/90 border border-slate-800 focus-within:border-amber-500/60 shadow-md"
-          }`}
-        >
-          <FaSearch className={isClean ? "text-slate-400 shrink-0" : "text-slate-500 shrink-0"} size={15} />
+      {/* Search — matches by name anywhere on the menu (deals included),
+          regardless of which category tab is currently open, so staff don't
+          have to hunt for which tab an item lives in. */}
+      <div className="px-4 sm:px-6 lg:px-10 pt-4">
+        <div className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] rounded-lg px-4 py-3">
+          <FaSearch className="text-[#ababab] shrink-0" size={16} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             type="text"
-            placeholder="Search menu dishes, pizza, burgers, deals…"
-            className={`bg-transparent flex-1 text-xs sm:text-sm outline-none ${
-              isClean ? "text-slate-900 placeholder:text-slate-400" : "text-white placeholder:text-slate-500"
-            }`}
+            placeholder="Search the menu — try “Wings”…"
+            className="bg-transparent flex-1 text-[#f5f5f5] text-sm outline-none placeholder:text-[#6b6b6b]"
           />
           {search && (
-            <button
-              onClick={() => setSearch("")}
-              className={`shrink-0 ${isClean ? "text-slate-400 hover:text-slate-700" : "text-slate-400 hover:text-white"}`}
-              aria-label="Clear search"
-            >
-              <FaTimes size={13} />
+            <button onClick={() => setSearch("")} className="text-[#ababab] shrink-0" aria-label="Clear search">
+              <FaTimes size={14} />
             </button>
           )}
         </div>
       </div>
 
       {searchResults ? (
-        <div className="w-full">
-          <p
-            className={`text-xs font-bold uppercase tracking-wider mb-2.5 ${
-              isClean ? "text-slate-500" : "text-slate-400"
-            }`}
-          >
+        <div className="px-4 sm:px-6 lg:px-10 pt-4">
+          <p className="text-[#ababab] text-xs font-medium mb-3">
             {searchResults.length === 0
               ? `No items match "${search}"`
               : `${searchResults.length} result${searchResults.length === 1 ? "" : "s"} for "${search}"`}
           </p>
-          <div className="grid grid-cols-2 gap-2.5 w-full sm:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 w-full sm:grid-cols-3 lg:grid-cols-4">
             {searchResults.map(renderItemCard)}
           </div>
         </div>
       ) : (
         <>
-          {/* Category Tabs */}
-          <div className="grid grid-cols-2 gap-2.5 w-full sm:grid-cols-3 xl:grid-cols-4 mb-3">
+          <div className="grid grid-cols-2 gap-3 px-4 py-4 w-full sm:gap-4 sm:grid-cols-3 sm:px-6 lg:grid-cols-4 lg:px-10">
             {dynamicMenus.map((menu) => {
-              const isSelected = selected?.id === menu.id;
               return (
                 <div
                   key={menu.id}
-                  className={`flex flex-col items-start justify-between gap-1.5 p-3 rounded-2xl cursor-pointer transition-all duration-150 border min-h-[75px] sm:min-h-[85px] ${
-                    isSelected
-                      ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-bold"
-                      : isClean
-                      ? "bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 shadow-xs hover:bg-slate-50/80"
-                      : "bg-slate-900/90 text-slate-200 border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 shadow-md"
-                  }`}
+                  // No fixed height - a long category name (e.g. "Burgers &
+                  // Shami") wraps to 2 lines on a narrow mobile card, and a
+                  // fixed h-[100px] used to clip/overlap that second line
+                  // with the "selected" icon. min-h keeps cards the same
+                  // size for the common (1-line) case without breaking the
+                  // rare long-name one.
+                  className="flex flex-col items-start justify-between gap-3 p-3 sm:p-4 rounded-lg min-h-[90px] sm:min-h-[100px] cursor-pointer"
+                  style={{ backgroundColor: menu.bgColor }}
                   onClick={() => {
                     setSelected(menu);
                     setItemId(0);
@@ -531,37 +457,24 @@ const MenuContainer = ({ onAddToCart }) => {
                   }}
                 >
                   <div className="flex items-start justify-between w-full gap-2">
-                    <h3
-                      className={`text-xs sm:text-sm font-extrabold line-clamp-2 break-words min-w-0 flex-1 leading-tight ${
-                        isSelected ? "text-slate-950" : isClean ? "text-slate-900" : "text-white"
-                      }`}
-                    >
+                    <h1 className="text-[#f5f5f5] text-sm sm:text-lg font-semibold line-clamp-2 break-words min-w-0 flex-1">
                       <MenuIcon icon={menu.icon} /> {menu.name}
-                    </h3>
-                    {isSelected && (
-                      <GrRadialSelected className="text-slate-950 shrink-0 mt-0.5" size={15} />
+                    </h1>
+                    {selected?.id === menu.id && (
+                      <GrRadialSelected className="text-white shrink-0 mt-0.5" size={18} />
                     )}
                   </div>
-                  <p
-                    className={`text-[11px] font-semibold ${
-                      isSelected
-                        ? "text-slate-900/80"
-                        : isClean
-                        ? "text-slate-400"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    {menu.items.length} {menu.items.length === 1 ? "Item" : "Items"}
+                  <p className="text-[#ababab] text-xs sm:text-sm font-semibold">
+                    {menu.items.length} Items
                   </p>
                 </div>
               );
             })}
           </div>
 
-          <div className="w-full my-2 border-t border-slate-200/80 dark:border-slate-800/80" />
+          <hr className="border-[#2a2a2a] border-t-2 mt-4" />
 
-          {/* Dishes Grid */}
-          <div className="grid grid-cols-2 gap-2.5 w-full sm:grid-cols-3 xl:grid-cols-4 pt-1">
+          <div className="grid grid-cols-2 gap-3 px-4 py-4 w-full sm:gap-4 sm:grid-cols-3 sm:px-6 lg:grid-cols-4 lg:px-10">
             {selected?.items.map(renderItemCard)}
           </div>
         </>

@@ -34,8 +34,6 @@ const TABS = [
 ];
 
 const OnlineOrders = () => {
-  const { isClean } = useUITheme();
-
   useEffect(() => {
     document.title = "POS | Online Orders";
   }, []);
@@ -90,71 +88,14 @@ const OnlineOrders = () => {
   }, [waitingCount]);
 
   return (
-    <section className="min-h-[calc(100vh-5rem)] overflow-x-hidden pb-8">
-      <div
-        className={`flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl mb-3 transition duration-200 ${
-          isClean
-            ? "bg-white border border-slate-200/90 shadow-xs"
-            : "bg-slate-900/90 border border-slate-800 shadow-md"
-        }`}
-      >
-        <div className="flex items-center gap-3">
+    <section className="bg-[#1f1f1f] min-h-[calc(100vh-5rem)] overflow-x-hidden pb-40">
+      <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-10">
+        <div className="flex items-center gap-4">
           <BackButton />
-          <div>
-            <h1
-              className={`text-lg sm:text-xl font-black tracking-tight leading-none ${
-                isClean ? "text-slate-900" : "text-white"
-              }`}
-            >
-              Online Orders Dispatch Pipeline
-            </h1>
-            <p className={`text-[11px] mt-0.5 ${isClean ? "text-slate-400" : "text-slate-500"}`}>
-              Incoming storefront delivery & takeaway orders
-            </p>
-          </div>
-          <div className="ml-2">
-            <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
-          </div>
-        </div>
-
-        {/* Status Stage Tabs */}
-        <div
-          className={`flex items-center gap-1.5 p-1 rounded-2xl overflow-x-auto scrollbar-hide ${
-            isClean ? "bg-slate-100 border border-slate-200/90" : "bg-slate-950/80 border border-slate-800"
-          }`}
-        >
-          {TABS.map((tab) => {
-            const count = orders.filter((o) => o.orderStatus === tab.key).length;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-amber-500 text-slate-950 shadow-sm font-black"
-                    : isClean
-                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                }`}
-              >
-                <span>{tab.label}</span>
-                {count > 0 && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isActive
-                        ? "bg-slate-950/20 text-slate-950 font-black"
-                        : isClean
-                        ? "bg-white text-slate-800 shadow-xs"
-                        : "bg-slate-800 text-slate-300"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          <h1 className="text-[#f5f5f5] text-xl sm:text-2xl font-bold tracking-wider">
+            Online Orders
+          </h1>
+          <DeletedOrdersPanel isAdmin={String(role || "").toLowerCase() === "admin"} />
         </div>
       </div>
 
@@ -198,9 +139,7 @@ const OnlineOrders = () => {
 
       <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 px-4 py-4 min-[480px]:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {visibleOrders.length === 0 && (
-          <div className="col-span-full py-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No {activeTab} online orders at the moment.</p>
-          </div>
+          <p className="col-span-full text-gray-500">No orders here yet.</p>
         )}
 
         {visibleOrders.map((order) => {
@@ -344,28 +283,7 @@ const OnlineOrders = () => {
                 >
                   {order.orderStatus}
                 </span>
-              </div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">{order.customerDetails?.phone}</p>
-              {order.customerDetails?.address && (
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-700/60">
-                  📍 {order.customerDetails.address}
-                </p>
               )}
-
-              <div className="my-2.5">
-                <OrderStageTracker order={order} />
-              </div>
-
-              <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-200 border-t border-slate-100 dark:border-slate-800 pt-2">
-                {(order.items || []).map((item, idx) => (
-                  <li key={idx} className="flex justify-between text-xs">
-                    <span className="font-medium">
-                      {item.quantity}x {item.name}
-                    </span>
-                    <span className="font-mono font-semibold">Rs {(item.price * item.quantity).toFixed(2)}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
 
             {canDeleteOrder(role, order.orderStatus) && order.orderStatus !== PAYMENT_WAITING && (

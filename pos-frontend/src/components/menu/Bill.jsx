@@ -17,8 +17,6 @@ import { removeCustomer } from "../../redux/slices/customerSlice";
 import useTaxRate from "../../hooks/useTaxRate";
 import PendingReceipt from "./PendingReceipt";
 import KitchenSlip from "./KitchenSlip";
-import { useUITheme } from "../../context/UIThemeContext";
-import { MdAttachMoney, MdCreditCard, MdPrint } from "react-icons/md";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -37,7 +35,6 @@ function loadScript(src) {
 const Bill = () => {
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
-  const { isClean } = useUITheme();
 
   const customerData = useSelector((state) => state.customer);
   const cartData = useSelector((state) => state.cart);
@@ -374,64 +371,21 @@ const Bill = () => {
         </button>
       </div>
 
-        {/* Payment Method Selector */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("Cash")}
-            className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
-              paymentMethod === "Cash"
-                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
-                : isClean
-                ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
-            }`}
-          >
-            <MdAttachMoney size={16} />
-            <span>Cash</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("Online")}
-            className={`py-2 px-3 rounded-xl font-bold text-xs transition border flex items-center justify-center gap-1.5 ${
-              paymentMethod === "Online"
-                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-sm font-black"
-                : isClean
-                ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                : "bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700"
-            }`}
-          >
-            <MdCreditCard size={16} />
-            <span>Online / Card</span>
-          </button>
-        </div>
-
-        {/* Action Buttons: Print Receipt & Place Order */}
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <button
-            type="button"
-            onClick={() => setShowPendingReceipt(true)}
-            disabled={cartData.length === 0}
-            className={`py-2.5 px-3 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40 ${
-              isClean
-                ? "border-slate-300 bg-white hover:bg-slate-100 text-slate-700 shadow-xs"
-                : "border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200"
-            }`}
-          >
-            <MdPrint size={16} />
-            <span>Print Slip</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePlaceOrder}
-            disabled={orderMutation.isPending || cartData.length === 0}
-            className="py-3 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition active:scale-95 disabled:opacity-40"
-          >
-            {orderMutation.isPending ? "Ringing In..." : "Complete Order →"}
-          </button>
-        </div>
+      <div className="flex items-center gap-3 px-5 mt-4">
+        <button
+          onClick={() => setShowPendingReceipt(true)}
+          disabled={cartData.length === 0}
+          className="bg-[#025cca] px-4 py-3 w-full rounded-lg text-[#f5f5f5] font-semibold text-lg disabled:opacity-60"
+        >
+          Print Receipt
+        </button>
+        <button
+          onClick={handlePlaceOrder}
+          disabled={orderMutation.isPending || cartData.length === 0}
+          className="bg-[#f6b100] px-4 py-3 w-full rounded-lg text-[#1f1f1f] font-semibold text-lg disabled:opacity-60"
+        >
+          {orderMutation.isPending ? "Placing Order..." : "Place Order"}
+        </button>
       </div>
 
       {showKitchenSlip && orderInfo && (
