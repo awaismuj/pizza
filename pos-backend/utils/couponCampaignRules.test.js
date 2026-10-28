@@ -4,7 +4,6 @@ const {
   normalizeCouponCode,
   formatCouponCode,
   generateCouponCode,
-  generateFridayCouponCode,
   deduplicateCustomers,
   fridayCampaignCycle,
   birthdayCampaignCycle,
@@ -23,8 +22,7 @@ test("coupon codes normalize case-insensitively and accept campaign and Flat for
     "WACMP_1795C7023560FED71CE5F9C7AE6DC988"
   );
   for (let index = 0; index < 100; index += 1) {
-    assert.match(generateCouponCode(), /^Flat\d{3,5}$/);
-    assert.match(generateFridayCouponCode(), /^WACMP_[0-9A-F]{32}$/);
+    assert.match(generateCouponCode(), /^Flat\d{3,4}$/);
   }
 });
 

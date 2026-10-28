@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import {
   cancelCoupon,
+  deleteCoupon,
   generateFridayCoupons,
   getBirthdayCouponNotifications,
   getCoupon,
@@ -190,7 +191,11 @@ const CampaignSettingsPanel = ({ type, title, initial, canManage, onSave, saving
   };
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-[#343434] bg-[#222] p-5">
+    <form
+      id={type === "birthday" ? "birthday-campaign-settings" : undefined}
+      onSubmit={submit}
+      className="rounded-xl border border-[#343434] bg-[#222] p-5"
+    >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-white">{type === "welcome" ? title : form.campaignName || title}</h3>
@@ -386,7 +391,7 @@ const CouponsManager = ({ canManage }) => {
           ? `Generation completed with errors: ${result.generated || 0} generated, ${result.skipped || 0} skipped, ${result.errors} errors.`
           : result.totalCustomers === 0
             ? "No eligible customers were found."
-            : `Coupons: ${result.generated || 0} generated, ${result.skipped || 0} skipped, 0 errors.`,
+            : `Coupons: ${result.generated || 0} generated, ${result.skipped || 0} skipped, ${result.codesShortened || 0} old codes shortened, ${result.updatedExisting || 0} existing recipients refreshed, 0 errors.`,
         { variant: result.errors ? "warning" : "success" }
       );
       invalidateCouponViews();
@@ -400,6 +405,14 @@ const CouponsManager = ({ canManage }) => {
       invalidateCouponViews();
     },
     onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not cancel coupon.", { variant: "error" }),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: deleteCoupon,
+    onSuccess: () => {
+      enqueueSnackbar("Coupon removed from the list; its redemption and audit history were retained.", { variant: "success" });
+      invalidateCouponViews();
+    },
+    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not delete coupon.", { variant: "error" }),
   });
   const readMutation = useMutation({
     mutationFn: markBirthdayCouponNotificationRead,
@@ -424,7 +437,7 @@ const CouponsManager = ({ canManage }) => {
   const pagination = listData.pagination || { page: 1, pages: 1 };
 
   const openFridayGeneration = () => {
-    if (!window.confirm("Generate a Friday coupon for each eligible customer? Duplicate customer records and customers already issued a coupon this campaign will be skipped.")) return;
+    if (!window.confirm("Generate a Friday coupon for each eligible customer? Duplicate customers and customers already issued this campaign will not receive another coupon. Existing long unused Friday codes may be shortened, and missing recipient details will be refreshed; copy updated messages again.")) return;
     generateMutation.mutate();
   };
 
@@ -436,9 +449,14 @@ const CouponsManager = ({ canManage }) => {
           <p className="mt-1 text-sm text-[#a3a3a3]">Manage customer coupon campaigns, expiry, usage and birthday notifications.</p>
         </div>
         {canManage && (
-          <button type="button" onClick={openFridayGeneration} disabled={generateMutation.isPending} className="rounded-lg bg-[#f6b100] px-4 py-2.5 text-sm font-bold text-[#171717] disabled:opacity-50">
-            {generateMutation.isPending ? "Generating coupons…" : "Generate coupons now"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => document.getElementById("birthday-coupons")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded-lg border border-[#8b6a14] px-4 py-2.5 text-sm font-bold text-amber-200">
+              Birthday notifications · {birthdayData.unreadCount || 0} unread
+            </button>
+            <button type="button" onClick={openFridayGeneration} disabled={generateMutation.isPending} className="rounded-lg bg-[#f6b100] px-4 py-2.5 text-sm font-bold text-[#171717] disabled:opacity-50">
+              {generateMutation.isPending ? "Generating coupons…" : "Generate coupons now"}
+            </button>
+          </div>
         )}
       </header>
 
@@ -452,6 +470,8 @@ const CouponsManager = ({ canManage }) => {
             <p>Skipped customers: <strong>{generationSummary.skipped ?? 0}</strong></p>
             <p>Duplicate customer records: <strong>{generationSummary.duplicateCustomers ?? 0}</strong></p>
             <p>Already issued this campaign: <strong>{generationSummary.alreadyIssued ?? 0}</strong></p>
+            <p>Existing recipients refreshed: <strong>{generationSummary.updatedExisting ?? 0}</strong></p>
+            <p>Long Friday codes shortened: <strong>{generationSummary.codesShortened ?? 0}</strong></p>
             <p>Errors: <strong className={generationSummary.errors ? "text-red-300" : ""}>{generationSummary.errors ?? 0}</strong></p>
             <p>Batches processed: <strong>{generationSummary.batchesProcessed ?? 0}/{generationSummary.batchesTotal ?? 0}</strong></p>
           </div>
@@ -510,7 +530,7 @@ const CouponsManager = ({ canManage }) => {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold">Customer coupons</h3>
-            <p className="text-xs text-[#999]">Codes are displayed as Flat plus random digits. Expiry times use the campaign timezone shown in settings; welcome coupons use UTC.</p>
+            <p className="text-xs text-[#999]">New coupons use short, random Flat codes. Expiry times use the campaign timezone shown in settings; welcome coupons use UTC.</p>
           </div>
         </div>
         <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
@@ -577,6 +597,20 @@ const CouponsManager = ({ canManage }) => {
                         {canManage && couponStatus === "Active" && <button className="rounded bg-red-900/70 px-2 py-1 text-xs" onClick={() => {
                           if (window.confirm(`Cancel ${coupon.code}?`)) cancelMutation.mutate(coupon._id);
                         }}>Cancel</button>}
+                        {canManage && (
+                          <button
+                            type="button"
+                            className="rounded bg-red-950 px-2 py-1 text-xs text-red-200"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => {
+                              if (window.confirm(`Delete ${coupon.code} from the coupon list? Redemption and audit history will be retained. Coupons reserved for pending orders cannot be deleted.`)) {
+                                deleteMutation.mutate(coupon._id);
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -596,7 +630,7 @@ const CouponsManager = ({ canManage }) => {
         </div>
       </section>
 
-      <section className="rounded-xl border border-[#343434] bg-[#222] p-4 sm:p-5">
+      <section id="birthday-coupons" className="scroll-mt-6 rounded-xl border border-[#343434] bg-[#222] p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-lg font-semibold">Birthday Coupons</h3>
@@ -639,7 +673,24 @@ const CouponsManager = ({ canManage }) => {
             );
           })}
           {notificationsQuery.isError && <p className="text-sm text-red-300" role="alert">{notificationsQuery.error?.response?.data?.message || "Birthday notifications could not be loaded."}</p>}
-          {!notificationsQuery.isLoading && !notificationsQuery.isError && notifications.length === 0 && <p className="text-sm text-[#999]">No birthday coupons have been generated yet.</p>}
+          {!notificationsQuery.isLoading && !notificationsQuery.isError && notifications.length === 0 && (
+            <div className="rounded-lg border border-[#383838] bg-[#1a1a1a] p-4 text-sm text-[#aaa]">
+              <p>No birthday coupon notifications have been generated yet.</p>
+              <p className="mt-1">
+                Birthday automation is {settings.birthday?.enabled ? "enabled and checks customers daily" : "currently disabled"}.
+                {!settings.birthday?.enabled && " Enable it in Birthday coupons settings to start automatic notifications."}
+              </p>
+              {!settings.birthday?.enabled && (
+                <button
+                  type="button"
+                  className="mt-2 text-amber-200 underline"
+                  onClick={() => document.getElementById("birthday-campaign-settings")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                >
+                  Open birthday settings
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className="mt-4 flex items-center justify-between text-sm text-[#aaa]">
           <span>Page {birthdayPagination.page || birthdayPage} of {Math.max(1, birthdayPagination.pages || 1)}</span>

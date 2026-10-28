@@ -14,6 +14,7 @@ const {
   issueWelcomeCoupon,
   generateFridayCampaign,
   cancelCoupon,
+  archiveCoupon,
   listBirthdayNotifications,
   markBirthdayNotificationRead,
 } = require("../controllers/couponController");
@@ -40,6 +41,7 @@ router.get("/admin/notifications/birthday", isVerifiedUser, listBirthdayNotifica
 router.patch("/admin/notifications/birthday/:id/read", isVerifiedUser, markBirthdayNotificationRead);
 router.get("/admin", isVerifiedUser, listCoupons);
 router.patch("/admin/:id/cancel", isVerifiedUser, cancelCoupon);
+router.delete("/admin/:id", isVerifiedUser, archiveCoupon);
 router.get("/admin/:id/redemptions", isVerifiedUser, listCouponRedemptions);
 router.post("/admin/redemptions/:redemptionId/reverse", isVerifiedUser, reverseCouponRedemption);
 router.get("/admin/:id", isVerifiedUser, getCoupon);

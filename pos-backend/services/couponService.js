@@ -61,15 +61,16 @@ const resolveCouponItems = async (inputItems = []) => {
 };
 
 const customerIdentity = async ({ customerId, phone, email }) => {
+  const canonicalDigits = normalizePakistaniMobile(phone);
+  const phoneIdentityKey = canonicalDigits ? `phone:${pakistaniMobileKey(canonicalDigits)}` : "";
   if (customerId && mongoose.Types.ObjectId.isValid(customerId)) {
-    return { key: `customer:${String(customerId)}`, customerId };
+    return { key: `customer:${String(customerId)}`, customerId, phoneKey: phoneIdentityKey };
   }
   const normalizedEmail = String(email || "").trim().toLowerCase();
   if (normalizedEmail) {
     const customer = await Customer.findOne({ email: normalizedEmail, active: true }).select("_id");
-    if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id };
+    if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id, phoneKey: phoneIdentityKey };
   }
-  const canonicalDigits = normalizePakistaniMobile(phone);
   if (canonicalDigits) {
     const phoneKey = pakistaniMobileKey(canonicalDigits);
     const legacyPhoneKey = customerPhoneKey(canonicalDigits);
@@ -79,11 +80,15 @@ const customerIdentity = async ({ customerId, phone, email }) => {
       ],
       active: true,
     }).select("_id");
-    if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id };
-    return { key: `phone:${phoneKey}`, customerId: null };
+    if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id, phoneKey: phoneIdentityKey };
+    return { key: phoneIdentityKey, customerId: null, phoneKey: phoneIdentityKey };
   }
-  return { key: "", customerId: null };
+  return { key: "", customerId: null, phoneKey: "" };
 };
+
+const matchesCouponIdentity = (identity, eligibleCustomerKeys) =>
+  eligibleCustomerKeys.includes(identity.key) ||
+  eligibleCustomerKeys.includes(identity.phoneKey);
 
 const checkFirstOrder = async ({ customerId, phone }) => {
   if (customerId) {
@@ -145,7 +150,10 @@ const validateCoupon = async ({
   ) {
     throw createHttpError(400, "This coupon is assigned to a different customer.");
   }
-  if (eligibleCustomerKeys.length && !eligibleCustomerKeys.includes(identity.key)) {
+  if (
+    eligibleCustomerKeys.length &&
+    !matchesCouponIdentity(identity, eligibleCustomerKeys)
+  ) {
     throw createHttpError(400, "This coupon is assigned to a different customer.");
   }
   if (coupon.isFirstOrderOnly && !(await checkFirstOrder({
@@ -371,6 +379,7 @@ module.exports = {
   normalizeCouponCode,
   resolveCouponItems,
   customerIdentity,
+  matchesCouponIdentity,
   validateCoupon,
   reserveCoupon,
   releaseOrderCoupon,
