@@ -6,6 +6,7 @@ const {
   generateCouponCode,
   expiryDate,
   isCustomerBirthday,
+  birthdayCampaignCycle,
   fridayCampaignCycle,
   deduplicateCustomers,
 } = require("../utils/couponCampaignRules");
@@ -164,37 +165,54 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
 };
 
 const generateBirthdayCoupons = async ({ now = new Date(), settings, timezone }) => {
-  const currentYear = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-  }).format(now);
-  const customers = await Customer.find({
+  if (!settings.enabled) {
+    return { generated: 0, skipped: 0, errors: 0, totalCustomers: 0, eligible: 0 };
+  }
+  const currentYear = birthdayCampaignCycle(now, timezone);
+  const totalCustomers = await Customer.countDocuments({ active: true });
+  const customerCursor = Customer.find({
     active: true,
     dateOfBirth: { $type: "date" },
-  }).select("_id name email phone dateOfBirth").lean();
-  const deduplicated = deduplicateCustomers(customers);
+  }).select("_id name email phone dateOfBirth").lean().cursor({ batchSize: GENERATION_BATCH_SIZE });
   let generated = 0;
   let skipped = 0;
+  let errors = 0;
   let eligible = 0;
+  const errorSamples = [];
 
-  for (const { customerIds, members } of deduplicated.customers) {
-    const birthdayCustomer = members.find((customer) =>
-      isCustomerBirthday(customer.dateOfBirth, now, timezone)
-    );
-    if (!birthdayCustomer) continue;
+  for await (const customer of customerCursor) {
+    if (!isCustomerBirthday(customer.dateOfBirth, now, timezone)) continue;
     eligible += 1;
-    const result = await issueCoupon({
-      customer: birthdayCustomer,
-      customerIds,
-      campaignType: "birthday",
-      campaignCycle: currentYear,
-      settings,
-      now,
-    });
-    if (result.created) generated += 1;
-    else skipped += 1;
+    try {
+      const result = await issueCoupon({
+        customer,
+        campaignType: "birthday",
+        campaignCycle: currentYear,
+        settings,
+        now,
+      });
+      if (result.created) generated += 1;
+      else skipped += 1;
+    } catch (error) {
+      errors += 1;
+      console.error("Birthday coupon generation failed for a customer:", error.message || error);
+      if (errorSamples.length < 10) {
+        errorSamples.push({
+          customerId: String(customer._id),
+          message: "Coupon generation failed for this customer. The scheduler will retry.",
+        });
+      }
+    }
   }
-  return { generated, skipped, campaignCycle: currentYear, eligible };
+  return {
+    generated,
+    skipped,
+    errors,
+    errorSamples,
+    campaignCycle: currentYear,
+    totalCustomers,
+    eligible,
+  };
 };
 
 const generateWelcomeCoupon = async ({ customer, settings, now = new Date() }) => {

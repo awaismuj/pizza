@@ -85,7 +85,7 @@ const settingsSchema = new mongoose.Schema(
         discountMode: { type: String, enum: ["fixed", "random"], default: "random" },
         fixedPercentage: { type: Number, default: 5, min: 0, max: 100 },
         percentages: { type: [Number], default: [5, 6, 7] },
-        minimumSubtotal: { type: Number, default: 0, min: 0 },
+        minimumSubtotal: { type: Number, default: 1000, min: 0 },
         expiryHours: { type: Number, default: 72, min: 1, max: 8760 },
         timezone: { type: String, default: "Asia/Karachi", maxlength: 80 },
       },

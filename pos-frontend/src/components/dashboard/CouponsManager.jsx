@@ -35,7 +35,7 @@ const initialSettings = {
     discountMode: "random",
     fixedPercentage: 5,
     percentages: [5, 6, 7],
-    minimumSubtotal: 0,
+    minimumSubtotal: 1000,
     expiryHours: 72,
     timezone: "Asia/Karachi",
   },
@@ -88,6 +88,28 @@ const customerCouponMessage = (coupon, customer, currency, timezone) => {
     "🍕 Order online: https://online.sindbandsolution.com/",
     "",
     "Enjoy your delicious pizza! 🍕❤️",
+  ].join("\n");
+};
+
+const birthdayCouponMessage = (coupon, customer, currency, timezone) => {
+  const customerName = String(customer?.name || "").trim();
+  const greeting = customerName ? `🎂 Happy Birthday, ${customerName}! 🎉🍕` : "🎂 Happy Birthday! 🎉🍕";
+  return [
+    greeting,
+    "",
+    "GenZ Pizza Land has a special birthday treat just for you!",
+    "",
+    `🎁 **Enjoy ${coupon.discountValue}% OFF on your order!**`,
+    "",
+    `🎟️ Coupon code: ${coupon.code}`,
+    "",
+    `🛒 Minimum order: ${formatCurrency(coupon.minimumOrderAmount, currency)}`,
+    "",
+    `⏰ Valid until: ${formatDate(coupon.expiresAt, timezone)} (${timezone})`,
+    "",
+    "🍕 Order online: https://online.sindbandsolution.com/",
+    "",
+    "Celebrate your special day with delicious pizza! ❤️🍕",
   ].join("\n");
 };
 
@@ -279,6 +301,7 @@ const CouponsManager = ({ canManage }) => {
     queryKey: ["birthdayCouponNotifications", birthdayPage],
     queryFn: () => getBirthdayCouponNotifications({ page: birthdayPage, limit: 20 }),
     placeholderData: (previous) => previous,
+    refetchInterval: 60_000,
   });
   const couponDetailsQuery = useQuery({
     queryKey: ["couponDetails", selectedCouponId],
@@ -526,7 +549,7 @@ const CouponsManager = ({ canManage }) => {
       <section className="rounded-xl border border-[#343434] bg-[#222] p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className="text-lg font-semibold">Birthday notifications</h3>
+            <h3 className="text-lg font-semibold">Birthday Coupons</h3>
             <p className="text-xs text-[#999]">{birthdayData.unreadCount || 0} unread · history is retained</p>
           </div>
         </div>
@@ -537,12 +560,20 @@ const CouponsManager = ({ canManage }) => {
             return (
               <article key={coupon._id} className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${coupon.notificationReadAt ? "border-[#343434] bg-[#1a1a1a]" : "border-[#8b6a14] bg-[#2b271a]"}`}>
                 <div>
-                  <p className="font-semibold">{coupon.notificationReadAt ? "" : "Birthday coupon generated for "}{customer?.name || "Customer"}</p>
+                  <p className="font-semibold">🎂 Birthday coupon ready for {customer?.name || "you"}!</p>
                   <p className="text-xs text-[#b3b3b3]">{customer?.phone || "—"} · {customer?.email || "—"}</p>
-                  <p className="mt-1 text-sm"><strong>{coupon.code}</strong> · {coupon.discountValue}% · expires {formatDate(coupon.expiresAt, timezone)} ({getCouponStatus(coupon)})</p>
+                  <div className="mt-2 grid gap-x-5 gap-y-1 text-sm sm:grid-cols-2">
+                    <p>Coupon: <strong>{coupon.code}</strong></p>
+                    <p>Discount: <strong>{coupon.discountValue}%</strong></p>
+                    <p>Minimum order: <strong>{formatCurrency(coupon.minimumOrderAmount, currency)}</strong></p>
+                    <p>Status: <strong>{getCouponStatus(coupon)}</strong></p>
+                    <p>Created: {formatDate(coupon.createdAt, timezone)}</p>
+                    <p>Expires: {formatDate(coupon.expiresAt, timezone)} ({timezone})</p>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => copyCode(coupon.code)}>Copy coupon</button>
+                  <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => copyMessage(birthdayCouponMessage(coupon, customer, currency, timezone))}>Copy birthday message</button>
                   <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View customer</button>
                   <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View history</button>
                   {!coupon.notificationReadAt && canManage && <button className="rounded bg-[#f6b100] px-3 py-1.5 text-xs font-semibold text-[#171717]" onClick={() => readMutation.mutate(coupon._id)}>Mark as read</button>}
@@ -578,9 +609,37 @@ const CouponsManager = ({ canManage }) => {
                   <p><span className="text-[#999]">Mobile:</span> {detail.coupon.customerId?.phone || "—"}</p>
                   <p><span className="text-[#999]">Email:</span> {detail.coupon.customerId?.email || "—"}</p>
                   <p><span className="text-[#999]">Discount:</span> {detail.coupon.discountValue}%</p>
-                  <p><span className="text-[#999]">Minimum subtotal:</span> {detail.coupon.minimumOrderAmount}</p>
+                  <p><span className="text-[#999]">Minimum subtotal:</span> {formatCurrency(detail.coupon.minimumOrderAmount, currency)}</p>
+                  <p><span className="text-[#999]">Created:</span> {formatDate(detail.coupon.createdAt, expiryTimezone(detail.coupon, settings))}</p>
                   <p><span className="text-[#999]">Expires:</span> {formatDate(detail.coupon.expiresAt, expiryTimezone(detail.coupon, settings))}</p>
                 </div>
+                {detail.coupon.campaignType === "birthday" && (
+                  <div className="mt-4 rounded-lg border border-[#3b3b3b] bg-[#171717] p-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="font-semibold">Birthday message</h4>
+                      <button
+                        type="button"
+                        className="rounded bg-[#333] px-3 py-1.5 text-xs"
+                        onClick={() => copyMessage(birthdayCouponMessage(
+                          detail.coupon,
+                          detail.coupon.customerId,
+                          currency,
+                          expiryTimezone(detail.coupon, settings)
+                        ))}
+                      >
+                        Copy Birthday Message
+                      </button>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm text-[#ccc]">
+                      {birthdayCouponMessage(
+                        detail.coupon,
+                        detail.coupon.customerId,
+                        currency,
+                        expiryTimezone(detail.coupon, settings)
+                      )}
+                    </p>
+                  </div>
+                )}
                 <p className="mt-3 text-sm text-[#bbb]">
                   Successful redemptions: {detail.performance?.successfulRedemptions || 0}
                   {detail.performance?.redemptions?.length ? ` · Usage records: ${detail.performance.redemptions.reduce((sum, item) => sum + item.count, 0)}` : ""}

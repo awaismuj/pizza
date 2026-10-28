@@ -6,6 +6,7 @@ const {
   generateCouponCode,
   deduplicateCustomers,
   fridayCampaignCycle,
+  birthdayCampaignCycle,
   isFridayCampaignDue,
   isCustomerBirthday,
   expiryDate,
@@ -37,6 +38,12 @@ test("birthday matching uses the stored calendar date and requested timezone", (
     isCustomerBirthday(new Date("1990-10-30T00:00:00.000Z"), new Date("2026-10-31T00:00:00.000Z"), "UTC"),
     false
   );
+});
+
+test("birthday campaign cycle uses the configured timezone's current year", () => {
+  const now = new Date("2026-12-31T20:00:00.000Z");
+  assert.equal(birthdayCampaignCycle(now, "Asia/Karachi"), "2027");
+  assert.equal(birthdayCampaignCycle(now, "UTC"), "2026");
 });
 
 test("coupon expiry is fixed from issuance time", () => {

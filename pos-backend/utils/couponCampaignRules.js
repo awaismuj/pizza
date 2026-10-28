@@ -20,7 +20,7 @@ const DEFAULT_COUPON_CAMPAIGNS = {
     discountMode: "random",
     fixedPercentage: 5,
     percentages: [5, 6, 7],
-    minimumSubtotal: 0,
+    minimumSubtotal: 1000,
     expiryHours: 72,
     timezone: "Asia/Karachi",
   },
@@ -140,6 +140,8 @@ const fridayCampaignCycle = (date, timezone) => {
   return `${localDate.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 };
 
+const birthdayCampaignCycle = (date, timezone) => zonedParts(date, timezone).year;
+
 const isFridayCampaignDue = (date, timezone) => {
   const parts = zonedParts(date, timezone);
   return parts.weekday === "Fri" && Number(parts.hour) >= 18;
@@ -164,6 +166,7 @@ module.exports = {
   deduplicateCustomers,
   zonedParts,
   fridayCampaignCycle,
+  birthdayCampaignCycle,
   isFridayCampaignDue,
   isCustomerBirthday,
   expiryDate,
