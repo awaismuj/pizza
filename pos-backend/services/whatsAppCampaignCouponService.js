@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const Coupon = require("../models/couponModel");
 const CustomerCoupon = require("../models/customerCouponModel");
+const { generatePrivateCode } = require("./couponDeliveryService");
 const WhatsAppCampaignRecipient = require("../models/whatsAppCampaignRecipientModel");
 
 const chooseDiscount = (campaign) => {
@@ -28,11 +29,13 @@ const getCampaignCoupon = async (campaign, discount) => {
   let coupon = await Coupon.findOne(query);
   if (coupon) return coupon;
 
+  // Short codes (FLAT1A2B) can collide with an existing coupon, so try a few.
+  for (let attempt = 0; attempt < 8; attempt += 1) {
   try {
     coupon = await Coupon.create({
       name: `${campaign.name} (${discount}% WhatsApp offer)`.slice(0, 120),
       description: `Private WhatsApp campaign coupon for ${campaign.name}.`,
-      code: `WACMP_${crypto.randomBytes(16).toString("hex").toUpperCase()}`,
+      code: generatePrivateCode(),
       source: "whatsapp_campaign",
       campaignId: campaign._id,
       campaignDiscountPercentage: discount,
@@ -55,9 +58,11 @@ const getCampaignCoupon = async (campaign, discount) => {
   } catch (error) {
     if (error.code !== 11000) throw error;
     coupon = await Coupon.findOne(query);
-    if (!coupon) throw error;
-    return coupon;
+    if (coupon) return coupon;
+    if (!error.keyPattern?.code) throw error;
   }
+  }
+  throw new Error("Could not create a unique campaign coupon code.");
 };
 
 const getOrCreateAssignment = async (campaign, recipient, customer) => {
@@ -67,11 +72,12 @@ const getOrCreateAssignment = async (campaign, recipient, customer) => {
   if (!assignment) {
     const discount = chooseDiscount(campaign);
     const coupon = await getCampaignCoupon(campaign, discount);
+    for (let attempt = 0; attempt < 8 && !assignment; attempt += 1) {
     try {
       assignment = await CustomerCoupon.create({
         couponId: coupon._id,
         customerId: customer._id,
-        code: `WAC_${crypto.randomBytes(18).toString("hex").toUpperCase()}`,
+        code: generatePrivateCode(),
         source: "whatsapp_campaign",
         idempotencyKey,
         redemptionLimit: campaign.maxUsesPerCoupon,
@@ -85,8 +91,11 @@ const getOrCreateAssignment = async (campaign, recipient, customer) => {
     } catch (error) {
       if (error.code !== 11000) throw error;
       assignment = await CustomerCoupon.findOne({ customerId: customer._id, idempotencyKey });
-      if (!assignment) throw error;
+      if (assignment) break;
+      if (!error.keyPattern?.code) throw error;
     }
+    }
+    if (!assignment) throw new Error("Could not create a unique customer coupon code.");
   }
 
   const coupon = await Coupon.findById(assignment.couponId);

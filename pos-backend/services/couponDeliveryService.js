@@ -104,6 +104,7 @@ const generatePrivateCode = (length = 4) => {
   return `${CODE_PREFIX}${suffix}`;
 };
 
+// Same short style for campaign coupons: FLAT plus 4 characters.
 module.exports = {
   generatePrivateCode,
   buildCouponEmail,

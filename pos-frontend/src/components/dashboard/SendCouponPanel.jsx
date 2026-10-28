@@ -42,6 +42,8 @@ const copyText = async (text, doneMessage) => {
 
 const emailLine = (email) => {
   switch (email?.status) {
+    case "sending":
+      return { tone: "text-[#02ca3a]", text: `Emailing ${email.to} in the background.` };
     case "sent":
       return { tone: "text-[#02ca3a]", text: `Also emailed to ${email.to}.` };
     case "failed":

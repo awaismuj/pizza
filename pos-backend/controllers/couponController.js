@@ -579,17 +579,15 @@ const sendCoupon = async (req, res, next) => {
     // A private code only ever goes to the verified address on the account.
     const recipientEmail = mode === "private" ? customer.email : (typedEmail || customer?.email || "");
 
+    // The email goes out in the background so staff are not kept waiting on
+    // the mail server; WhatsApp is ready the moment the code exists.
     let email = { status: "none", to: "" };
     if (recipientEmail) {
       const { subject, html } = buildCouponEmail({ name, coupon, code });
-      try {
-        const result = await sendMail({ to: recipientEmail, subject, html });
-        email = { status: result?.skipped ? "not_configured" : "sent", to: maskEmail(recipientEmail) };
-      } catch (error) {
-        // Never block the WhatsApp message because the email failed.
+      email = { status: "sending", to: maskEmail(recipientEmail) };
+      sendMail({ to: recipientEmail, subject, html }).catch((error) => {
         console.error("Coupon email could not be sent.", error.code || "");
-        email = { status: "failed", to: maskEmail(recipientEmail) };
-      }
+      });
     }
 
     res.status(mode === "private" ? 201 : 200).json({
