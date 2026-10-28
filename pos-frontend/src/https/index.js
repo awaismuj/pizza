@@ -138,6 +138,7 @@ export const getBirthdayCouponNotifications = (params) =>
 export const markBirthdayCouponNotificationRead = (couponId) =>
   axiosWrapper.patch(`/api/coupon/admin/notifications/birthday/${couponId}/read`);
 export const cancelCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/admin/${couponId}/cancel`);
+export const deleteCoupon = (couponId) => axiosWrapper.delete(`/api/coupon/admin/${couponId}`);
 
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");

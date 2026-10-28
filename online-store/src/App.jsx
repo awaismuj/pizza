@@ -5736,11 +5736,18 @@ function StorefrontHome() {
                   type="submit"
                   className="gzp-btn gzp-btn-primary gzp-btn-block"
                   disabled={!canPlace}
+                  aria-label={!fulfil.ready && fulfil.blocker?.includes("is closed right now.")
+                    ? fulfil.blocker
+                    : undefined}
                 >
                   {placing
                     ? "Sending to the kitchen…"
                     : !fulfil.ready
-                    ? fulfil.quoting ? "Checking…" : fulfil.method === "delivery" ? "Complete delivery details" : "Check pickup details"
+                    ? fulfil.quoting
+                      ? "Checking…"
+                      : fulfil.blocker?.includes("is closed right now.")
+                        ? "Restaurant closed"
+                        : fulfil.method === "delivery" ? "Complete delivery details" : "Check pickup details"
                     : jazzSelected && !jazz.ready
                     ? jazz.uploading
                       ? "Uploading screenshot…"

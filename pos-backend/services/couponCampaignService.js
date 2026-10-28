@@ -6,7 +6,6 @@ const normalizePakistaniMobile = require("../utils/normalizePakistaniMobile");
 const pakistaniMobileKey = require("../utils/pakistaniMobileKey");
 const {
   generateCouponCode,
-  generateFridayCouponCode,
   expiryDate,
   isCustomerBirthday,
   birthdayCampaignCycle,
@@ -26,6 +25,54 @@ const campaignNameFor = (campaignType, settings) =>
   String(settings.campaignName || DISCOUNT_LABELS[campaignType]).trim();
 
 const randomPercentage = (percentages) => percentages[crypto.randomInt(0, percentages.length)];
+const shortCouponCode = async () => {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const code = generateCouponCode();
+    const codeExists = await Coupon.exists({
+      $or: [
+        { codeKey: code.toUpperCase() },
+        { code: { $regex: `^${code}$`, $options: "i" } },
+      ],
+    });
+    if (!codeExists) return code;
+  }
+  throw new Error("Could not generate an available short coupon code.");
+};
+
+const updateExistingRecipient = async (coupon, customer, accountCustomerIds, recipientPhoneKey) => {
+  const updates = {};
+  if (!String(coupon.recipientName || "").trim() && customer.name) updates.recipientName = customer.name;
+  if (!String(coupon.recipientPhone || "").trim() && customer.phone) updates.recipientPhone = customer.phone;
+  if (!String(coupon.recipientEmail || "").trim() && customer.email) updates.recipientEmail = customer.email;
+  if (!coupon.recipientPhoneKey && recipientPhoneKey) updates.recipientPhoneKey = recipientPhoneKey;
+  if (!coupon.customerId && customer.customerId) updates.customerId = customer.customerId;
+  if (!coupon.eligibleCustomerIds?.length && accountCustomerIds.length) {
+    updates.eligibleCustomerIds = accountCustomerIds;
+  }
+  if (recipientPhoneKey && !coupon.eligibleCustomerKeys?.length && !accountCustomerIds.length) {
+    updates.eligibleCustomerKeys = [`phone:${recipientPhoneKey}`];
+  }
+  if (
+    coupon.campaignType === "friday" &&
+    /^WACMP_[0-9A-F]{32}$/i.test(coupon.code || "") &&
+    coupon.isActive &&
+    coupon.redeemedCount === 0 &&
+    coupon.reservedCount === 0
+  ) {
+    const replacementCode = await shortCouponCode();
+    updates.code = replacementCode;
+    updates.codeKey = replacementCode.toUpperCase();
+  }
+  if (Object.keys(updates).length) {
+    await Coupon.updateOne({ _id: coupon._id }, { $set: updates });
+    Object.assign(coupon, updates);
+  }
+  return {
+    coupon,
+    updated: Object.keys(updates).length > 0,
+    codeShortened: Object.prototype.hasOwnProperty.call(updates, "code"),
+  };
+};
 
 const hasPriorSuccessfulOrder = async (customer) => {
   const suffix = String(customer.phone || "").replace(/\D/g, "").slice(-9);
@@ -64,7 +111,12 @@ const issueCoupon = async ({
   const campaignKey = `${campaignType}:${campaignCycle}:${campaignIdentity}`;
   if (campaignKey) {
     const existing = await Coupon.findOne({ campaignKey });
-    if (existing) return { coupon: existing, created: false };
+    if (existing) {
+      return {
+        ...(await updateExistingRecipient(existing, customer, accountCustomerIds, recipientPhoneKey)),
+        created: false,
+      };
+    }
   }
   if (customerIds.length) {
     const existingForCustomer = await Coupon.findOne({
@@ -72,7 +124,12 @@ const issueCoupon = async ({
       campaignCycle,
       customerId: { $in: customerIds },
     });
-    if (existingForCustomer) return { coupon: existingForCustomer, created: false };
+    if (existingForCustomer) {
+      return {
+        ...(await updateExistingRecipient(existingForCustomer, customer, accountCustomerIds, recipientPhoneKey)),
+        created: false,
+      };
+    }
   }
 
   const discountValue = campaignType === "birthday" && settings.discountMode === "fixed"
@@ -81,15 +138,7 @@ const issueCoupon = async ({
   const expiresAt = expiryDate({ now, hours: settings.expiryHours });
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const code = campaignType === "friday" ? generateFridayCouponCode() : generateCouponCode();
-    const escapedCode = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const codeExists = await Coupon.exists({
-      $or: [
-        { codeKey: code.toUpperCase() },
-        { code: { $regex: `^${escapedCode}$`, $options: "i" } },
-      ],
-    });
-    if (codeExists) continue;
+    const code = await shortCouponCode();
     try {
       const coupon = await Coupon.create({
         code,
@@ -118,7 +167,7 @@ const issueCoupon = async ({
         isActive: true,
         createdBy: { name: "Coupon campaign" },
       });
-      return { coupon, created: true };
+      return { coupon, created: true, updated: false, codeShortened: false };
     } catch (error) {
       if (error.code !== 11000) throw error;
       if (campaignKey && (error.keyPattern?.campaignKey || error.keyValue?.campaignKey)) {
@@ -197,6 +246,8 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
   const deduplicated = deduplicateCustomers(customers);
   let generated = 0;
   let alreadyIssued = 0;
+  let updatedExisting = 0;
+  let codesShortened = 0;
   let errors = 0;
   let processed = 0;
   const errorSamples = [];
@@ -231,7 +282,11 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
           now,
         });
         if (result.created) generated += 1;
-        else alreadyIssued += 1;
+        else {
+          alreadyIssued += 1;
+          if (result.updated) updatedExisting += 1;
+          if (result.codeShortened) codesShortened += 1;
+        }
       } catch (error) {
         errors += 1;
         console.error("Friday coupon generation failed for a customer:", error.message || error);
@@ -251,6 +306,8 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
     errorSamples,
     duplicateCustomers: deduplicated.duplicateCount,
     alreadyIssued,
+    updatedExisting,
+    codesShortened,
     campaignCycle,
     totalCustomers: customers.length,
     eligible: deduplicated.customers.length,

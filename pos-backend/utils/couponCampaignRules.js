@@ -41,8 +41,8 @@ const formatCouponCode = (code) => {
   return campaignMatch ? `WACMP_${campaignMatch[1].toUpperCase()}` : "";
 };
 
-const generateCouponCode = () => `Flat${crypto.randomInt(100, 100000)}`;
-const generateFridayCouponCode = () => `WACMP_${crypto.randomBytes(16).toString("hex").toUpperCase()}`;
+const generateCouponCode = () =>
+  `Flat${crypto.randomInt(0, 2) === 0 ? crypto.randomInt(100, 1000) : crypto.randomInt(1000, 10000)}`;
 
 const normalizeCustomerPhone = require("./normalizePakistaniMobile");
 
@@ -180,7 +180,6 @@ module.exports = {
   normalizeCouponCode,
   formatCouponCode,
   generateCouponCode,
-  generateFridayCouponCode,
   normalizeCustomerPhone,
   deduplicateCustomers,
   zonedParts,

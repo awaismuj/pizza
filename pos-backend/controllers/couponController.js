@@ -189,7 +189,7 @@ const listCoupons = async (req, res, next) => {
       Coupon.countDocuments({ isActive: true, expiresAt: { $lte: now }, redeemedCount: 0, archivedAt: null }),
       Coupon.countDocuments({ isActive: false, archivedAt: null }),
       Coupon.countDocuments({ createdAt: { $gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()) } }),
-      Coupon.countDocuments({ campaignType: "birthday", notificationReadAt: null }),
+      Coupon.countDocuments({ campaignType: "birthday", notificationReadAt: null, archivedAt: null }),
     ]);
     res.status(200).json({
       success: true,
@@ -587,10 +587,29 @@ const cancelCoupon = async (req, res, next) => {
   }
 };
 
+const archiveCoupon = async (req, res, next) => {
+  try {
+    const coupon = await Coupon.findOne({ _id: req.params.id, archivedAt: null });
+    if (!coupon) throw createHttpError(404, "Coupon not found.");
+    if (coupon.reservedCount > 0) {
+      throw createHttpError(409, "This coupon is reserved for a pending order and cannot be deleted yet.");
+    }
+    coupon.archivedAt = new Date();
+    await coupon.save();
+    res.status(200).json({
+      success: true,
+      message: "Coupon removed from the list. Redemption and audit history are retained.",
+      data: coupon,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const listBirthdayNotifications = async (req, res, next) => {
   try {
     const unreadOnly = req.query.unread === "true";
-    const filter = { campaignType: "birthday" };
+    const filter = { campaignType: "birthday", archivedAt: null };
     if (unreadOnly) filter.notificationReadAt = null;
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
@@ -602,7 +621,7 @@ const listBirthdayNotifications = async (req, res, next) => {
         .limit(limit)
         .lean(),
       Coupon.countDocuments(filter),
-      Coupon.countDocuments({ campaignType: "birthday", notificationReadAt: null }),
+      Coupon.countDocuments({ campaignType: "birthday", notificationReadAt: null, archivedAt: null }),
     ]);
     res.status(200).json({
       success: true,
@@ -641,6 +660,7 @@ module.exports = {
   issueWelcomeCoupon,
   generateFridayCampaign,
   cancelCoupon,
+  archiveCoupon,
   listBirthdayNotifications,
   markBirthdayNotificationRead,
 };
