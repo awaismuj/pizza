@@ -13,6 +13,7 @@ import {
   submitReview,
   getCheckoutIdempotencyKey,
   clearCheckoutIdempotencyKey,
+  validatePublicCoupon,
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
@@ -1618,6 +1619,12 @@ select {
   font-size: 0.88rem;
 }
 
+.gzp-success {
+  color: var(--basil);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
 .gzp-error-banner {
   max-width: var(--shell);
   margin: 14px auto 0;
@@ -3212,6 +3219,10 @@ function StorefrontHome() {
   const [cart, setCart] = useState({}); // { "dish:<id>" | "deal:<id>": quantity }
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponMessage, setCouponMessage] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3564,12 +3575,30 @@ function StorefrontHome() {
   // can't be ordered as-is - the customer is shown why instead of an error.
   const byoBlocked = byoUnits > 0 && (byoShort > 0 || !byoConfig.enabled);
 
-  const subtotal = Math.max(0, grossSubtotal - byoDiscount); // after discounts: what tax is charged on
-  const tax = (subtotal * taxRatePercent) / 100;
-  const cartTotal = subtotal + tax; // before any delivery fee
+  const subtotal = Math.max(0, grossSubtotal - byoDiscount);
+  const couponDiscount = Number(appliedCoupon?.discountAmount) || 0;
+  const deliveryDiscount = Number(appliedCoupon?.deliveryDiscount) || 0;
+  const payableSubtotal = Math.max(0, subtotal - couponDiscount);
+  const tax = (payableSubtotal * taxRatePercent) / 100;
+  const cartTotal = payableSubtotal + tax; // before any delivery fee
   // Delivery / pickup: the server prices and validates the choice; the fee
   // is added here so the total updates the moment the method changes.
-  const fulfil = useFulfillment(subtotal);
+  const fulfil = useFulfillment(payableSubtotal);
+  const payableDeliveryFee = Math.max(0, fulfil.fee - deliveryDiscount);
+  const couponContextSnapshot = JSON.stringify({
+    cart,
+    fulfillment: [fulfil.method, fulfil.branchId, fulfil.zoneId],
+    phone: form.phone,
+    customerId: customer?.id || "",
+  });
+  const couponContextRef = useRef(couponContextSnapshot);
+  useEffect(() => {
+    if (couponContextRef.current !== couponContextSnapshot && appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponMessage("Cart or checkout details changed. Reapply your coupon.");
+    }
+    couponContextRef.current = couponContextSnapshot;
+  }, [couponContextSnapshot, appliedCoupon]);
   const checkoutIntentSnapshot = useRef(null);
   useEffect(() => {
     const snapshot = JSON.stringify({
@@ -3578,6 +3607,7 @@ function StorefrontHome() {
       phone: form.phone,
       fulfillment: [fulfil.method, fulfil.branchId, fulfil.zoneId, fulfil.address],
       payment: [payMethod, jazz.tid, jazz.sender, jazz.proofId],
+      coupon: appliedCoupon?.code || "",
     });
     if (checkoutIntentSnapshot.current !== null && checkoutIntentSnapshot.current !== snapshot) {
       clearCheckoutIdempotencyKey();
@@ -3595,8 +3625,9 @@ function StorefrontHome() {
     jazz.tid,
     jazz.sender,
     jazz.proofId,
+    appliedCoupon?.code,
   ]);
-  const total = cartTotal + fulfil.fee;
+  const total = cartTotal + payableDeliveryFee;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
 
   const showToast = useCallback((message, duration = 2000) => {
@@ -3927,6 +3958,51 @@ function StorefrontHome() {
   const jazzSelected = payMethod === PAY_JAZZ && payments.jazzcashEnabled;
   const canPlace = !placing && fulfil.ready && (!jazzSelected || jazz.ready);
 
+  const handleApplyCoupon = async (event) => {
+    event.preventDefault();
+    if (!couponCode.trim()) {
+      setCouponMessage("Enter a coupon code.");
+      return;
+    }
+    if (!fulfil.ready) {
+      setCouponMessage(fulfil.blocker || "Choose delivery or pickup before applying a coupon.");
+      return;
+    }
+    if (!isValidPhone(form.phone)) {
+      setCouponMessage("Enter a valid mobile number before applying a coupon.");
+      return;
+    }
+
+    setApplyingCoupon(true);
+    setCouponMessage("");
+    try {
+      const response = await validatePublicCoupon({
+        code: couponCode,
+        phone: form.phone,
+        orderType: fulfil.method,
+        fulfillment: fulfil.payload(),
+        items: cartLines.map((line) =>
+          line.type === "deal"
+            ? { dealId: line.item._id, quantity: line.qty }
+            : {
+                dishId: line.item._id,
+                quantity: line.qty,
+                size: line.size || undefined,
+                crust: line.crust || undefined,
+                byo: line.type === "byo" ? true : undefined,
+              }
+        ),
+      });
+      setAppliedCoupon(response.data);
+      setCouponCode(response.data.code);
+      setCouponMessage("Coupon applied successfully.");
+    } catch (err) {
+      setCouponMessage(err.message || "Could not apply this coupon.");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (placingRef.current) return;
@@ -3965,6 +4041,7 @@ function StorefrontHome() {
         customerPhone: form.phone,
         address: fulfil.method === "delivery" ? fulfil.address : "",
         fulfillment: fulfil.payload(),
+        couponCode: appliedCoupon?.code,
         ...(jazzSelected
           ? {
               paymentMethod: "jazzcash",
@@ -3992,6 +4069,9 @@ function StorefrontHome() {
       localStorage.setItem("gzp_last_order", newOrderId);
       setOrderId(newOrderId);
       setOrder(res.data);
+      setAppliedCoupon(null);
+      setCouponCode("");
+      setCouponMessage("");
       setShowThankYou(true);
       setTrackingDismissed(false);
       jazz.reset();
@@ -4304,7 +4384,19 @@ function StorefrontHome() {
                     <span>{formatRs(order.bills.deliveryFee)}</span>
                   </div>
                 )}
-                <div className="gzp-grand">
+                  {Number(order.bills?.couponDiscount) > 0 && (
+                    <div className="is-discount">
+                      <span>Coupon {order.coupon?.code ? `(${order.coupon.code})` : "discount"}</span>
+                      <span>−{formatRs(order.bills.couponDiscount)}</span>
+                    </div>
+                  )}
+                  {Number(order.bills?.couponDeliveryDiscount) > 0 && (
+                    <div className="is-discount">
+                      <span>Free delivery coupon</span>
+                      <span>−{formatRs(order.bills.couponDeliveryDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="gzp-grand">
                   <span>
                     {isPaidFlow
                       ? order.payment?.status === "Verified"
@@ -5361,6 +5453,12 @@ function StorefrontHome() {
                         <span>−{formatRs(byoDiscount)}</span>
                       </div>
                     )}
+                    {couponDiscount > 0 && (
+                      <div className="is-discount">
+                        <span>Coupon {appliedCoupon?.code ? `(${appliedCoupon.code})` : "discount"}</span>
+                        <span>−{formatRs(couponDiscount)}</span>
+                      </div>
+                    )}
                     <div>
                       <span>Tax ({taxRatePercent}%)</span>
                       <span>{formatRs(tax)}</span>
@@ -5470,6 +5568,49 @@ function StorefrontHome() {
                     />
                   </label>
 
+                  <div style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14 }}>
+                    <label className="gzp-field" htmlFor="checkout-coupon-code">
+                      <span>Coupon code</span>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          id="checkout-coupon-code"
+                          value={couponCode}
+                          onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                          autoComplete="off"
+                          maxLength={40}
+                          placeholder="Enter coupon code"
+                          style={{ flex: 1, minWidth: 0 }}
+                        />
+                        <button
+                          type="button"
+                          className="gzp-btn gzp-btn-ghost"
+                          onClick={handleApplyCoupon}
+                          disabled={applyingCoupon || !fulfil.ready}
+                        >
+                          {applyingCoupon ? "Checking…" : appliedCoupon ? "Replace" : "Apply"}
+                        </button>
+                      </div>
+                    </label>
+                    {appliedCoupon && (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                        <small className="gzp-success">
+                          {appliedCoupon.code} applied · save {formatRs(appliedCoupon.totalDiscount)}
+                        </small>
+                        <button
+                          type="button"
+                          className="gzp-btn gzp-btn-ghost"
+                          onClick={() => {
+                            setAppliedCoupon(null);
+                            setCouponMessage("");
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                    {couponMessage && <p className={appliedCoupon ? "gzp-success" : "gzp-error"} role="status">{couponMessage}</p>}
+                  </div>
+
                   <PaymentMethodPicker
                     cfg={payments}
                     value={payMethod}
@@ -5503,10 +5644,22 @@ function StorefrontHome() {
                     <span>Subtotal + tax</span>
                     <span>{formatRs(cartTotal)}</span>
                   </div>
+                  {couponDiscount > 0 && (
+                    <div className="is-discount">
+                      <span>Coupon {appliedCoupon?.code ? `(${appliedCoupon.code})` : "discount"}</span>
+                      <span>−{formatRs(couponDiscount)}</span>
+                    </div>
+                  )}
+                  {deliveryDiscount > 0 && (
+                    <div className="is-discount">
+                      <span>Free delivery</span>
+                      <span>−{formatRs(deliveryDiscount)}</span>
+                    </div>
+                  )}
                   {fulfil.branch?.customerDisplay?.showDeliveryFees === true && (
                     <div>
                       <span>{fulfil.method === "pickup" ? "Pickup" : "Delivery fee"}</span>
-                      <span>{fulfil.quote?.ok ? (fulfil.fee > 0 ? formatRs(fulfil.fee) : "Free") : "—"}</span>
+                      <span>{fulfil.quote?.ok ? (payableDeliveryFee > 0 ? formatRs(payableDeliveryFee) : "Free") : "—"}</span>
                     </div>
                   )}
                   <div className="gzp-grand">

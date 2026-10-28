@@ -20,6 +20,9 @@ const permissions = [
   ["menu.delete", "Delete menu items"],
   ["categories.manage", "Manage categories"],
   ["deals.manage", "Manage deals"],
+  ["coupons.view", "View coupons and coupon reports"],
+  ["coupons.manage", "Create, edit, and archive coupons"],
+  ["coupons.apply", "Apply eligible coupons to orders"],
   ["hero.manage", "Manage hero slides"],
   ["inventory.view", "View inventory"],
   ["inventory.manage", "Add and edit inventory"],
@@ -73,7 +76,7 @@ const roleDefaults = {
   admin: standardAdminPermissions,
   cashier: [
     "dashboard.view", "orders.view", "orders.create", "orders.edit", "orders.update", "orders.cancel", "orders.delete",
-    "payments.process", "tables.view", "tables.manage", "menu.view",
+    "payments.process", "tables.view", "tables.manage", "menu.view", "coupons.apply",
     "inventory.view", "expenses.view", "expenses.create", "staff.view",
     "attendance.view", "attendance.manage",
   ],
@@ -131,6 +134,15 @@ const routePermission = (baseUrl, path, method, body = {}, user = {}, effectiveP
     if (verb === "PUT" && Array.isArray(body.items)) return "orders.edit";
     if (verb === "PUT" || verb === "PATCH") return "orders.update";
     if (verb === "DELETE") return "orders.delete";
+  }
+  if (baseUrl === "/api/coupon") {
+    if (route === "/public/validate") return null;
+    if (route === "/validate") return "coupons.apply";
+    if (route.startsWith("/admin/redemptions/") && route.endsWith("/reverse")) return "coupons.manage";
+    if (route === "/admin" && verb === "GET") return "coupons.view";
+    if (route === "/admin" && verb === "POST") return "coupons.manage";
+    if (route.endsWith("/redemptions") || (route.startsWith("/admin/") && verb === "GET")) return "coupons.view";
+    return "coupons.manage";
   }
   if (baseUrl === "/api/payment") return "payments.process";
   if (baseUrl === "/api/table") {

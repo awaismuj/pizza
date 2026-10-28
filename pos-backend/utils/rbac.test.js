@@ -34,10 +34,15 @@ test("API policy separates sensitive operations", () => {
   assert.equal(routePermission("/api/table", "/table-id", "DELETE"), "tables.delete");
 });
 
-test("menu reads require only menu access after coupon endpoints are removed", () => {
-  assert.deepEqual(roleDefaults.admin.includes("coupons.manage"), false);
+test("coupon endpoints distinguish public validation, staff application, and administration", () => {
   assert.equal(routePermission("/api/category", "/", "GET"), "menu.view");
   assert.equal(routePermission("/api/dish", "/", "GET"), "menu.view");
+  assert.equal(routePermission("/api/coupon", "/public/validate", "POST"), null);
+  assert.equal(routePermission("/api/coupon", "/validate", "POST"), "coupons.apply");
+  assert.equal(routePermission("/api/coupon", "/admin", "GET"), "coupons.view");
+  assert.equal(routePermission("/api/coupon", "/admin", "POST"), "coupons.manage");
+  assert.ok(roleDefaults.admin.includes("coupons.manage"));
+  assert.ok(roleDefaults.cashier.includes("coupons.apply"));
 });
 
 test("kitchen role receives preparation-only status permission", () => {

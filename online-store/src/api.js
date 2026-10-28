@@ -97,6 +97,12 @@ export const placeOrder = (payload, idempotencyKey) =>
     body: JSON.stringify(payload),
   });
 
+export const validatePublicCoupon = (payload) =>
+  request("/api/coupon/public/validate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
 export const registerCustomer = (payload) =>
   request("/api/customer/register", { method: "POST", body: JSON.stringify(payload) });
 
