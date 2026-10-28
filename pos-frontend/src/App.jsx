@@ -92,6 +92,7 @@ function AppRoutes() {
 }
 
 function Layout() {
+  const { isModern } = useUITheme();
   const isLoading = useLoadData();
   useScrollHoverFix();
   const location = useLocation();
@@ -242,6 +243,7 @@ function ProtectedRoutes({ children, permission }) {
 }
 ProtectedRoutes.propTypes = {
   children: PropTypes.node.isRequired,
+  permission: PropTypes.string,
 };
 
 function useHasPermission(permission) {
