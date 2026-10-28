@@ -15,7 +15,7 @@ import { paymentKind } from "../utils/payments";
 import Invoice from "../components/invoice/Invoice";
 import { canEditOrder, canCancelOrder, canDeleteOrder, canExtendPrep } from "../utils/orderPermissions";
 import { isPrepActive } from "../utils/prepTimer";
-import { replaceCachedOrder } from "../utils/orderQueryCache";
+import { replaceCachedOrder, updateCachedOrderStatus } from "../utils/orderQueryCache";
 import PrepBadge from "../components/prep/PrepBadge";
 import ExtendTimeModal from "../components/prep/ExtendTimeModal";
 import { I } from "../components/shared/AppIcons";
@@ -56,19 +56,24 @@ const OnlineOrders = () => {
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
+    onMutate: async ({ orderId, orderStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ["orders"] });
+      return { previousOrder: updateCachedOrderStatus(queryClient, orderId, orderStatus) };
+    },
     onSuccess: (response, { orderStatus }) => {
       replaceCachedOrder(queryClient, response?.data?.data);
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      // Accepting/cancelling moves stock in or out of inventory.
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["low-stock"] });
-      // Reaching "Completed" (or being Cancelled) changes whether this
-      // online order counts as revenue, so Profit needs to know too.
-      queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
-      queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
+      if (["Accepted", "Cancelled"].includes(orderStatus)) {
+        queryClient.invalidateQueries({ queryKey: ["inventory"] });
+        queryClient.invalidateQueries({ queryKey: ["low-stock"] });
+      }
+      if (["Completed", "Cancelled"].includes(orderStatus)) {
+        queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
+        queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
+      }
       enqueueSnackbar(`Order moved to ${orderStatus}.`, { variant: "success" });
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.previousOrder) replaceCachedOrder(queryClient, context.previousOrder);
       const message = error?.response?.data?.message || "Failed to update order.";
       enqueueSnackbar(message, { variant: "error" });
     },
