@@ -4,7 +4,6 @@ const {
   verifyCustomerEmail,
   loginCustomer,
   getCustomerProfile,
-  updateMarketingConsent,
   logoutCustomer,
 } = require("../controllers/customerController");
 const { requireCustomer } = require("../middlewares/customerAuthentication");
@@ -24,7 +23,6 @@ router.post("/login", createRateLimiter({
 }), loginCustomer);
 router.get("/verify-email/:token", verifyCustomerEmail);
 router.get("/me", requireCustomer, getCustomerProfile);
-router.patch("/me/marketing-consent", requireCustomer, updateMarketingConsent);
 router.post("/logout", requireCustomer, logoutCustomer);
 
 module.exports = router;

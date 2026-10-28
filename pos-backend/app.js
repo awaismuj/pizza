@@ -46,7 +46,6 @@ app.use(cors({
         return callback(new Error('Not allowed by CORS'));
     }
 }));
-app.use("/api/whatsapp-campaign/webhook", express.raw({ type: "application/json", limit: "1mb" }));
 app.use("/api/payment/webhook-verification", express.raw({ type: "application/json", limit: "1mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser())
@@ -72,9 +71,6 @@ app.use("/api/table", require("./routes/tableRoute"));
 app.use("/api/category", require("./routes/categoryRoute"));
 app.use("/api/dish", require("./routes/dishRoute"));
 app.use("/api/deal", require("./routes/dealRoute"));
-app.use("/api/coupon", require("./routes/couponRoute"));
-app.use("/api/whatsapp-campaign", require("./routes/whatsAppCampaignRoute"));
-app.use("/api/promotions", require("./routes/promotionRoute"));
 app.use("/api/hero-slide", require("./routes/heroSlideRoute"));
 app.use("/api/inventory", require("./routes/inventoryRoute"));
 app.use("/api/assets", require("./routes/assetRoute"));
@@ -95,9 +91,6 @@ app.use(globalErrorHandler);
 // Auto-locks each day's actual profit (revenue - expenses) at 11:59pm
 // server time — see services/dailyProfitScheduler.js.
 require("./services/dailyProfitScheduler").startDailyProfitScheduler();
-
-require("./services/whatsAppCampaignWorker").start();
-require("./services/promotionCampaignWorker").start();
 
 // Auto-marks all staff Present each day (cashier only flips absentees).
 require("./services/staffAttendanceScheduler").startStaffAttendanceScheduler();

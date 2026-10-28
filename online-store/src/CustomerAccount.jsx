@@ -4,10 +4,9 @@ import {
   loginCustomer,
   logoutCustomer,
   registerCustomer,
-  updateCustomerMarketingConsent,
 } from "./api";
 
-const emptyForm = { name: "", email: "", phone: "", password: "", dateOfBirth: "", marketingConsent: false };
+const emptyForm = { name: "", email: "", phone: "", password: "", dateOfBirth: "" };
 
 export function useCustomerAccount() {
   const [customer, setCustomer] = useState(null);
@@ -59,19 +58,6 @@ export default function CustomerAccount({ customer, setCustomer, open, setOpen }
     }
   };
 
-  const updateConsent = async (value) => {
-    setBusy(true);
-    setError("");
-    try {
-      const response = await updateCustomerMarketingConsent(value);
-      setCustomer(response.data);
-    } catch (requestError) {
-      setError(requestError.message || "Could not update your marketing preference.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const signOut = async () => {
     setBusy(true);
     try {
@@ -99,10 +85,6 @@ export default function CustomerAccount({ customer, setCustomer, open, setOpen }
               {customer ? (
                 <div className="gzp-form">
                   <p>{customer.name}<br />{customer.email}<br />{customer.phone}</p>
-                  <label className="gzp-field">
-                    <span><input type="checkbox" checked={customer.marketingConsent} disabled={busy} onChange={(event) => updateConsent(event.target.checked)} /> I agree to receive promotional messages.</span>
-                  </label>
-                  <p className="gzp-note">Leaving this unchecked does not affect account or coupon eligibility. You can change this preference at any time.</p>
                   <button type="button" className="gzp-btn gzp-btn-ghost" disabled={busy} onClick={signOut}>Sign out</button>
                 </div>
               ) : (
@@ -116,9 +98,6 @@ export default function CustomerAccount({ customer, setCustomer, open, setOpen }
                   )}
                   <label className="gzp-field"><span>Email</span><input required type="email" maxLength={254} autoComplete="email" value={form.email} onChange={(event) => update("email", event.target.value)} /></label>
                   <label className="gzp-field"><span>Password {mode === "register" && "(at least 12 characters)"}</span><input required type="password" minLength={mode === "register" ? 12 : undefined} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} value={form.password} onChange={(event) => update("password", event.target.value)} /></label>
-                  {mode === "register" && (
-                    <label className="gzp-field"><span><input type="checkbox" checked={form.marketingConsent} onChange={(event) => update("marketingConsent", event.target.checked)} /> I agree to receive promotional messages (optional).</span></label>
-                  )}
                   <button className="gzp-btn gzp-btn-primary gzp-btn-block" disabled={busy}>{busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}</button>
                   <button type="button" className="gzp-btn gzp-btn-ghost gzp-btn-block" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setMessage(""); }}>
                     {mode === "login" ? "Create an account" : "I already have an account"}
