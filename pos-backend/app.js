@@ -67,6 +67,7 @@ app.get("/", (req,res) => {
 app.use("/api/user", require("./routes/userRoute"));
 app.use("/api/customer", require("./routes/customerRoute"));
 app.use("/api/order", require("./routes/orderRoute"));
+app.use("/api/coupon", require("./routes/couponRoute"));
 app.use("/api/table", require("./routes/tableRoute"));
 app.use("/api/category", require("./routes/categoryRoute"));
 app.use("/api/dish", require("./routes/dishRoute"));
@@ -105,6 +106,9 @@ require("./services/prepAlertScheduler").startPrepAlertScheduler();
 // Posts closed-month asset depreciation. Each asset+period has a unique
 // ledger key, so multiple checks or server processes cannot double-post.
 require("./services/assetDepreciationScheduler").startAssetDepreciationScheduler();
+
+// Releases coupon capacity held by pending orders after the reservation window.
+require("./services/couponReservationScheduler").startCouponReservationScheduler();
 
 
 // Server

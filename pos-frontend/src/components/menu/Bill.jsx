@@ -16,6 +16,7 @@ import { removeCustomer } from "../../redux/slices/customerSlice";
 import useTaxRate from "../../hooks/useTaxRate";
 import PendingReceipt from "./PendingReceipt";
 import KitchenSlip from "./KitchenSlip";
+import CouponApply from "./CouponApply";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -39,8 +40,11 @@ const Bill = () => {
   const cartData = useSelector((state) => state.cart);
   const total = useSelector(getTotalPrice);
   const { taxRate } = useTaxRate();
-  const tax = (total * taxRate) / 100;
-  const totalPriceWithTax = total + tax;
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const couponDiscount = Number(appliedCoupon?.discountAmount) || 0;
+  const discountedSubtotal = Math.max(0, total - couponDiscount);
+  const tax = (discountedSubtotal * taxRate) / 100;
+  const totalPriceWithTax = discountedSubtotal + tax;
   const paymentFingerprint = JSON.stringify({
     amount: Math.round(totalPriceWithTax * 100),
     items: cartData.map((item) => [
@@ -133,11 +137,15 @@ const Bill = () => {
                 },
                 orderStatus: "In Progress",
                 bills: {
-                  total,
+                  total: discountedSubtotal,
                   tax: tax,
                   totalWithTax: totalPriceWithTax,
+                  subtotal: total,
+                  couponDiscount,
                 },
                 items: cartData,
+                couponCode: appliedCoupon?.code,
+                orderType: "dineIn",
                 table: customerData.table.tableId,
                 paymentMethod: paymentMethod,
                 paymentData: {
@@ -181,11 +189,15 @@ const Bill = () => {
         },
         orderStatus: "In Progress",
         bills: {
-          total,
+          total: discountedSubtotal,
           tax: tax,
           totalWithTax: totalPriceWithTax,
+          subtotal: total,
+          couponDiscount,
         },
         items: cartData,
+        couponCode: appliedCoupon?.code,
+        orderType: "dineIn",
         table: customerData.table.tableId,
         paymentMethod: paymentMethod,
       };
@@ -200,6 +212,7 @@ const Bill = () => {
       console.log(data);
 
       setOrderInfo(data);
+      setAppliedCoupon(null);
 
       // The order is paid for right now (Cash was just handed over, or the
       // Razorpay charge just went through) — the Payments/Profit/Home
@@ -254,6 +267,14 @@ const Bill = () => {
 
   return (
     <>
+      <CouponApply
+        items={cartData}
+        orderType="dineIn"
+        phone={customerData.customerPhone || ""}
+        appliedCoupon={appliedCoupon}
+        onApply={setAppliedCoupon}
+        onRemove={() => setAppliedCoupon(null)}
+      />
       <div className="flex items-center justify-between px-5 mt-2">
         <p className="text-xs text-[#ababab] font-medium mt-2">
           Items({cartData.length})
@@ -262,6 +283,12 @@ const Bill = () => {
           Rs {total.toFixed(2)}
         </h1>
       </div>
+      {couponDiscount > 0 && (
+        <div className="flex items-center justify-between px-5 mt-2">
+          <p className="text-xs text-green-400 font-medium">Coupon discount</p>
+          <h1 className="text-green-400 text-md font-bold">−Rs {couponDiscount.toFixed(2)}</h1>
+        </div>
+      )}
       <div className="flex items-center justify-between px-5 mt-2">
         <p className="text-xs text-[#ababab] font-medium mt-2">Tax({taxRate}%)</p>
         <h1 className="text-[#f5f5f5] text-md font-bold">Rs {tax.toFixed(2)}</h1>

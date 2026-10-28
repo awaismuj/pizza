@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaTrash } from "react-icons/fa";
@@ -14,6 +14,7 @@ import {
   verifyPaymentRazorpay,
 } from "../https";
 import useTaxRate from "../hooks/useTaxRate";
+import CouponApply from "../components/menu/CouponApply";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -39,11 +40,25 @@ const Outdoor = () => {
   const [showInvoice, setShowInvoice] = useState(false);
   const [orderInfo, setOrderInfo] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   const { taxRate } = useTaxRate();
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+  const couponDiscount = Number(appliedCoupon?.discountAmount) || 0;
+  const total = Math.max(0, subtotal - couponDiscount);
   const tax = (total * taxRate) / 100;
   const totalWithTax = total + tax;
+  const cartFingerprint = JSON.stringify(cart.map((item) => [
+    item.dishId || item.dealId,
+    item.quantity,
+    item.size,
+    item.crust,
+  ]));
+  const priorCartFingerprint = useRef(cartFingerprint);
+  useEffect(() => {
+    if (priorCartFingerprint.current !== cartFingerprint) setAppliedCoupon(null);
+    priorCartFingerprint.current = cartFingerprint;
+  }, [cartFingerprint]);
   const paymentFingerprint = JSON.stringify({
     amount: Math.round(totalWithTax * 100),
     items: cart.map((item) => [item.id, item.name, item.price]),
@@ -86,8 +101,10 @@ const Outdoor = () => {
       guests: 1,
     },
     orderStatus: "In Progress",
-    bills: { total, tax, totalWithTax },
+    bills: { total, tax, totalWithTax, subtotal, couponDiscount },
     items: cart,
+    couponCode: appliedCoupon?.code,
+    orderType: "pickup",
     paymentMethod,
     ...extra,
   });
@@ -243,11 +260,25 @@ const Outdoor = () => {
 
         <hr className="border-[#2a2a2a] border-t-2" />
 
+        <CouponApply
+          items={cart}
+          orderType="pickup"
+          appliedCoupon={appliedCoupon}
+          onApply={setAppliedCoupon}
+          onRemove={() => setAppliedCoupon(null)}
+        />
+
         <div className="px-5 pt-3">
           <div className="flex items-center justify-between mt-1">
             <p className="text-xs text-[#ababab] font-medium">Subtotal</p>
-            <h1 className="text-[#f5f5f5] text-md font-bold">Rs {total.toFixed(2)}</h1>
+            <h1 className="text-[#f5f5f5] text-md font-bold">Rs {subtotal.toFixed(2)}</h1>
           </div>
+          {couponDiscount > 0 && (
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-green-400 font-medium">Coupon discount</p>
+              <h1 className="text-green-400 text-md font-bold">−Rs {couponDiscount.toFixed(2)}</h1>
+            </div>
+          )}
           <div className="flex items-center justify-between mt-2">
             <p className="text-xs text-[#ababab] font-medium">Tax ({taxRate}%)</p>
             <h1 className="text-[#f5f5f5] text-md font-bold">Rs {tax.toFixed(2)}</h1>

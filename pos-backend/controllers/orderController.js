@@ -16,6 +16,13 @@ const PaymentProof = require("../models/paymentProofModel");
 const Branch = require("../models/branchModel");
 const { quoteFulfillment } = require("../utils/fulfillment");
 const {
+  resolveCouponItems,
+  validateCoupon,
+  reserveCoupon,
+  releaseOrderCoupon,
+  redeemOrderCoupon,
+} = require("../services/couponService");
+const {
   PREP_READY_STATUSES,
   buildPrepForNewOrder,
   planExtension,
@@ -61,8 +68,9 @@ const publicOrderResponse = (order) => {
   const orderData = order.toObject ? order.toObject() : order;
   delete orderData.idempotencyKeyHash;
   delete orderData.idempotencyRequestHash;
-  delete orderData.coupon;
-  if (orderData.bills) delete orderData.bills.couponDiscount;
+  if (orderData.coupon) {
+    delete orderData.coupon.couponId;
+  }
   return {
     success: true,
     message: isJazzcashOrder(order)
@@ -72,14 +80,25 @@ const publicOrderResponse = (order) => {
   };
 };
 
+const publicCouponSnapshot = (coupon) => coupon?.code ? {
+  code: coupon.code,
+  name: coupon.name,
+  discountType: coupon.discountType,
+  discountValue: coupon.discountValue,
+  discountAmount: coupon.discountAmount,
+  eligibleSubtotal: coupon.eligibleSubtotal,
+} : undefined;
+
 const addOrder = async (req, res, next) => {
   let deductions = [];
   let inventoryRestored = false;
+  let couponReservationCreated = false;
+  let order;
   try {
-    if (req.body && Object.hasOwn(req.body, "couponCode")) {
-      throw createHttpError(400, "Coupon codes are no longer supported.");
-    }
     const orderPayload = req.body;
+    const couponCode = orderPayload.couponCode;
+    delete orderPayload.couponCode;
+    const couponOrderItems = couponCode ? await resolveCouponItems(orderPayload.items) : null;
 
     // Dine-in / POS orders are only created once staff confirm them at the
     // register, so stock is committed immediately (unlike online orders,
@@ -93,7 +112,9 @@ const addOrder = async (req, res, next) => {
         branch: fb,
         method: f.method,
         zoneId: f.zoneId,
-        subtotal: Number(orderPayload.bills?.total) || 0,
+        subtotal: couponOrderItems
+          ? couponOrderItems.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+          : Number(orderPayload.bills?.total) || 0,
         staff: true,
       });
       if (!q.ok) return next(createHttpError(400, q.error));
@@ -114,7 +135,7 @@ const addOrder = async (req, res, next) => {
     const settings = await getOrCreateSettings();
     delete orderPayload.prep;
 
-    const order = new Order({
+    order = new Order({
       ...orderPayload,
       inventoryDeducted: true,
     });
@@ -122,6 +143,81 @@ const addOrder = async (req, res, next) => {
     if (prep) order.prep = prep;
     order.orderNumber = await generateOrderNumber(order.orderDate || new Date());
     order.costOfGoods = totalDeductionCost(deductions);
+    if (couponCode) {
+      const orderType = String(
+        orderPayload.orderType || orderPayload.fulfillment?.method || (orderPayload.table ? "dineIn" : "pickup")
+      );
+      const subtotal = couponOrderItems.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const deliveryFee = Number(orderPayload.fulfillment?.deliveryFee) || 0;
+      const validation = await validateCoupon({
+        code: couponCode,
+        items: couponOrderItems.items,
+        orderType,
+        deliveryFee,
+        customerId: orderPayload.customerId || null,
+        phone: orderPayload.customerDetails?.phone || "",
+        hasPromotion: couponOrderItems.hasPromotion,
+      });
+      const total = Math.max(0, Math.round((subtotal - validation.discountAmount) * 100) / 100);
+      const settings = await getOrCreateSettings();
+      const tax = (total * settings.taxRatePercent) / 100;
+      let quotedDeliveryFee = deliveryFee;
+      if (order.fulfillment) {
+        const branch = await Branch.findById(order.fulfillment.branchId);
+        const finalQuote = quoteFulfillment({
+          branch,
+          method: order.fulfillment.method,
+          zoneId: order.fulfillment.zoneId,
+          subtotal: total,
+          staff: true,
+        });
+        if (!finalQuote.ok) throw createHttpError(400, finalQuote.error);
+        quotedDeliveryFee = finalQuote.fee;
+      }
+      const finalDeliveryFee = Math.max(0, quotedDeliveryFee - validation.deliveryDiscount);
+      orderPayload.items = couponOrderItems.items.map((item, index) => ({
+        ...orderPayload.items[index],
+        dishId: item.dishId,
+        categoryId: item.categoryId,
+        name: item.name,
+        price: item.price * item.quantity,
+        pricePerQuantity: item.price,
+        quantity: item.quantity,
+      }));
+      order.items = orderPayload.items;
+      order.bills = {
+        ...orderPayload.bills,
+        total,
+        tax,
+        totalWithTax: total + tax + finalDeliveryFee,
+        subtotal,
+        couponDiscount: validation.discountAmount,
+        couponDeliveryDiscount: validation.deliveryDiscount,
+        deliveryFee: finalDeliveryFee,
+      };
+      if (order.fulfillment) order.fulfillment.deliveryFee = finalDeliveryFee;
+      order.coupon = {
+        couponId: validation.coupon._id,
+        code: validation.coupon.code,
+        name: validation.coupon.name,
+        discountType: validation.coupon.discountType,
+        discountValue: validation.coupon.discountValue,
+        discountAmount: validation.totalDiscount,
+        eligibleSubtotal: validation.eligibleSubtotal,
+        subtotalBeforeDiscount: subtotal,
+        totalBeforeDiscount: subtotal + (subtotal * settings.taxRatePercent) / 100 + quotedDeliveryFee,
+        totalAfterDiscount: total + tax + finalDeliveryFee,
+        orderType,
+        appliedAt: new Date(),
+      };
+      await reserveCoupon({
+        validation,
+        order,
+        subtotal,
+        finalTotal: order.bills.totalWithTax,
+      });
+      couponReservationCreated = true;
+    }
     // Seed the timeline with the status this order was created at (whatever
     // the POS sent, e.g. "In Progress") so the very first stage has a time
     // too, not just the ones after it.
@@ -131,6 +227,11 @@ const addOrder = async (req, res, next) => {
       .status(201)
       .json({ success: true, message: "Order created!", data: order });
   } catch (error) {
+    if (couponReservationCreated && order?._id) {
+      await releaseOrderCoupon(order._id, "Order creation failed.").catch((releaseError) => {
+        console.error("Failed to release coupon reservation after order creation error:", releaseError.message);
+      });
+    }
     if (deductions.length > 0 && !inventoryRestored) {
       await restoreInventoryForOrderItems(req.body.items || []).catch((restoreError) => {
         console.error("Failed to restore inventory after order creation error:", restoreError);
@@ -146,10 +247,10 @@ const addOrder = async (req, res, next) => {
 // Inventory is NOT deducted yet — that happens when staff Accept the order,
 // so a customer can't hold stock hostage by never checking out.
 const addPublicOrder = async (req, res, next) => {
+  let couponReservationCreated = false;
+  let order;
   try {
-    if (req.body && Object.hasOwn(req.body, "couponCode")) {
-      throw createHttpError(400, "Coupon codes are no longer supported.");
-    }
+    const couponCode = req.body?.couponCode;
     const idempotencyKey = req.get("Idempotency-Key");
     if (!isValidIdempotencyKey(idempotencyKey)) {
       throw createHttpError(400, "A valid Idempotency-Key header is required for checkout.");
@@ -263,6 +364,7 @@ const addPublicOrder = async (req, res, next) => {
             label: `${size ? size + " " : ""}${chosenDish.name}`,
             quantity: templateItem.quantity,
             dishId: chosenDish._id,
+            categoryId: chosenDish.category,
             size,
             crust,
           });
@@ -313,6 +415,7 @@ const addPublicOrder = async (req, res, next) => {
       const isByo = line.byo === true;
       resolvedItems.push({
         dishId: dish._id,
+        categoryId: dish.category,
         name: variantLabel ? `${dish.name} (${variantLabel})` : dish.name,
         price: unitPrice,
         quantity,
@@ -383,12 +486,34 @@ const addPublicOrder = async (req, res, next) => {
     if (fQuote.method === "delivery" && String(address || "").trim().length < 10) {
       return next(createHttpError(400, "Enter your full delivery address (house, street, landmark)."));
     }
-    const deliveryFee = fQuote.fee;
+    let deliveryFee = fQuote.fee;
+    let couponValidation = null;
+    const grossOrderSubtotal = total;
+    if (couponCode) {
+      couponValidation = await validateCoupon({
+        code: couponCode,
+        items: resolvedItems,
+        orderType: fQuote.method,
+        deliveryFee,
+        customerId: req.customer?._id || null,
+        phone: effectiveCustomerPhone,
+        hasPromotion: discount > 0 || resolvedItems.some((item) => item.dealId),
+      });
+      total = Math.max(0, Math.round((total - couponValidation.discountAmount) * 100) / 100);
+      const finalQuote = quoteFulfillment({
+        branch: fBranch,
+        method: fQuote.method,
+        zoneId: fQuote.zoneId,
+        subtotal: total,
+      });
+      if (!finalQuote.ok) return next(createHttpError(400, finalQuote.error));
+      deliveryFee = Math.max(0, finalQuote.fee - couponValidation.deliveryDiscount);
+    }
 
     const tax = (total * taxRatePercent) / 100;
     const totalWithTax = total + tax + deliveryFee;
 
-    const order = new Order({
+    order = new Order({
       customerDetails: {
         name: effectiveCustomerName,
         phone: effectiveCustomerPhone,
@@ -410,6 +535,8 @@ const addPublicOrder = async (req, res, next) => {
         discountPercent,
         discountLabel,
         deliveryFee,
+        couponDiscount: couponValidation?.discountAmount || 0,
+        couponDeliveryDiscount: couponValidation?.deliveryDiscount || 0,
       },
       fulfillment: {
         method: fQuote.method,
@@ -423,6 +550,20 @@ const addPublicOrder = async (req, res, next) => {
         estimatedAt: fQuote.readyAt,
       },
       items: resolvedItems,
+      coupon: couponValidation ? {
+        couponId: couponValidation.coupon._id,
+        code: couponValidation.coupon.code,
+        name: couponValidation.coupon.name,
+        discountType: couponValidation.coupon.discountType,
+        discountValue: couponValidation.coupon.discountValue,
+        discountAmount: couponValidation.totalDiscount,
+        eligibleSubtotal: couponValidation.eligibleSubtotal,
+        subtotalBeforeDiscount: grossOrderSubtotal,
+        totalBeforeDiscount: grossOrderSubtotal + (grossOrderSubtotal * taxRatePercent) / 100 + fQuote.fee,
+        totalAfterDiscount: totalWithTax,
+        orderType: fQuote.method,
+        appliedAt: new Date(),
+      } : undefined,
       paymentMethod: payment.method,
       paymentStatus: "Pending",
     });
@@ -431,6 +572,15 @@ const addPublicOrder = async (req, res, next) => {
     // rule as POS orders), using the admin's current default duration.
     const prep = buildPrepForNewOrder(settings.orderPrep, { source: "Online" });
     if (prep) order.prep = prep;
+    if (couponValidation) {
+      await reserveCoupon({
+        validation: couponValidation,
+        order,
+        subtotal: grossOrderSubtotal,
+        finalTotal: totalWithTax,
+      });
+      couponReservationCreated = true;
+    }
 
     let paymentProofClaimed = false;
     const saveOrder = async () => {
@@ -481,6 +631,11 @@ const addPublicOrder = async (req, res, next) => {
 
     res.status(201).json(publicOrderResponse(order));
   } catch (error) {
+    if (couponReservationCreated && order?._id) {
+      await releaseOrderCoupon(order._id, "Online checkout failed.").catch((releaseError) => {
+        console.error("Failed to release coupon reservation after checkout failure:", releaseError.message);
+      });
+    }
     if (error?.code === 11000 && error?.keyPattern?.idempotencyKeyHash) {
       try {
         const idempotencyKey = req.get("Idempotency-Key");
@@ -570,6 +725,7 @@ const lookupPublicOrderByPhone = async (req, res, next) => {
         fulfillment: order.fulfillment,
         customerDetails: { address: order.customerDetails?.address || "" },
         orderDate: order.orderDate,
+        coupon: publicCouponSnapshot(order.coupon),
         payment: publicPayment(order),
       },
     });
@@ -603,6 +759,7 @@ const getPublicOrderStatus = async (req, res, next) => {
         fulfillment: order.fulfillment,
         customerDetails: { address: order.customerDetails?.address || "" },
         orderDate: order.orderDate,
+        coupon: publicCouponSnapshot(order.coupon),
         payment: publicPayment(order),
       },
     });
@@ -653,7 +810,7 @@ const updateOrder = async (req, res, next) => {
         return next(error);
       }
       if (order.coupon?.couponId) {
-        return next(createHttpError(400, "Legacy discounted orders cannot be edited. Create a new order instead."));
+        return next(createHttpError(400, "Orders with an applied coupon cannot be edited. Cancel and create a new order instead."));
       }
 
       if (TERMINAL_STATUSES.includes(order.orderStatus)) {
@@ -824,6 +981,13 @@ const updateOrder = async (req, res, next) => {
       order.prep.readyAt = prepNow();
     }
     await order.save();
+    if (order.coupon?.couponId) {
+      if (orderStatus === "Cancelled") {
+        await releaseOrderCoupon(order._id, "Order cancelled.");
+      } else if (["Closed", "Completed"].includes(orderStatus)) {
+        await redeemOrderCoupon(order._id);
+      }
+    }
     invalidateAvailabilityCache(); // a Pending order accepted/cancelled changes what's reserved
 
     if (TABLE_RELEASE_STATUSES.includes(orderStatus) && order.table) {
@@ -906,6 +1070,7 @@ const deleteOrder = async (req, res, next) => {
     if (order.jazzcash?.proofId) {
       await PaymentProof.deleteOne({ _id: order.jazzcash.proofId }).catch(() => {});
     }
+    if (order.coupon?.couponId) await releaseOrderCoupon(order._id, "Order deleted.");
     await order.deleteOne();
     invalidateAvailabilityCache();
 
@@ -957,6 +1122,7 @@ const cancelPublicOrder = async (req, res, next) => {
     order.orderStatus = "Cancelled";
     order.statusHistory = [...(order.statusHistory || []), { status: "Cancelled", at: new Date() }];
     await order.save();
+    if (order.coupon?.couponId) await releaseOrderCoupon(order._id, "Customer cancelled the order.");
     invalidateAvailabilityCache();
 
     res.status(200).json({

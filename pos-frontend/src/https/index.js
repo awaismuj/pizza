@@ -122,6 +122,19 @@ export const toggleDeal = (dealId) => axiosWrapper.patch(`/api/deal/${dealId}/to
 export const reorderDeals = (order) => axiosWrapper.post(`/api/deal/reorder`, { order });
 export const deleteDeal = (dealId) => axiosWrapper.delete(`/api/deal/${dealId}`);
 
+// Coupon management and order validation
+export const getCoupons = (params) => axiosWrapper.get("/api/coupon/admin", { params });
+export const getCoupon = (couponId) => axiosWrapper.get(`/api/coupon/admin/${couponId}`);
+export const getCouponReport = (params) => axiosWrapper.get("/api/coupon/admin/report", { params });
+export const getCouponRedemptions = ({ couponId, ...params }) =>
+  axiosWrapper.get(`/api/coupon/admin/${couponId}/redemptions`, { params });
+export const createCoupon = (data) => axiosWrapper.post("/api/coupon/admin", data);
+export const updateCoupon = ({ couponId, ...data }) =>
+  axiosWrapper.put(`/api/coupon/admin/${couponId}`, data);
+export const toggleCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/admin/${couponId}/toggle`);
+export const deleteCoupon = (couponId) => axiosWrapper.delete(`/api/coupon/admin/${couponId}`);
+export const validateCoupon = (data) => axiosWrapper.post("/api/coupon/validate", data);
+
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");
 export const addHeroSlide = (data) => axiosWrapper.post("/api/hero-slide/", data);
