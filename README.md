@@ -441,6 +441,15 @@ debounced.
 
 ### Deployment and rollback
 
+Jenkins can package the checked-out application source directly from its
+workspace with `bash scripts/package-deployment-source.sh`. The script creates
+`deployment-source.tar.gz` at the repository root (or at an optional output
+path), verifies that each application `package.json` is present, and fails if
+the archive contains dependencies, build output, Git metadata, or environment
+files. Invoke it from the checked-out workspace before uploading the archive;
+the deployment stage should install dependencies and build the frontend apps
+from the packaged source.
+
 1. Back up MongoDB before deployment and verify `MONGODB_URI` points to a
    transaction-capable deployment.
 2. Deploy the backend and run `npm run migrate:payment-idempotency` from
