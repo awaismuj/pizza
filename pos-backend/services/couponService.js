@@ -8,7 +8,9 @@ const Order = require("../models/orderModel");
 const Customer = require("../models/customerModel");
 const customerPhoneKey = require("../utils/customerPhoneKey");
 const { calculateCoupon, roundMoney } = require("../utils/couponCalculator");
-const { normalizeCouponCode } = require("../utils/couponCampaignRules");
+const { formatCouponCode, normalizeCouponCode } = require("../utils/couponCampaignRules");
+const normalizePakistaniMobile = require("../utils/normalizePakistaniMobile");
+const pakistaniMobileKey = require("../utils/pakistaniMobileKey");
 
 const RESERVATION_HOURS = 24;
 const SUCCESS_STATUSES = ["Completed", "Closed"];
@@ -67,10 +69,16 @@ const customerIdentity = async ({ customerId, phone, email }) => {
     const customer = await Customer.findOne({ email: normalizedEmail, active: true }).select("_id");
     if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id };
   }
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (digits.length >= 10 && digits.length <= 13) {
-    const phoneKey = customerPhoneKey(digits);
-    const customer = await Customer.findOne({ phoneKey, active: true }).select("_id");
+  const canonicalDigits = normalizePakistaniMobile(phone);
+  if (canonicalDigits) {
+    const phoneKey = pakistaniMobileKey(canonicalDigits);
+    const legacyPhoneKey = customerPhoneKey(canonicalDigits);
+    const customer = await Customer.findOne({
+      $or: [
+        { phoneKey: legacyPhoneKey },
+      ],
+      active: true,
+    }).select("_id");
     if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id };
     return { key: `phone:${phoneKey}`, customerId: null };
   }
@@ -92,7 +100,7 @@ const checkFirstOrder = async ({ customerId, phone }) => {
 
 const getCouponByCode = async (code) => {
   const normalizedCode = normalizeCouponCode(code);
-  if (!/^FLAT\d+$/.test(normalizedCode) || normalizedCode.length > 40) {
+  if (!formatCouponCode(normalizedCode) || normalizedCode.length > 40) {
     throw createHttpError(400, "Enter a valid coupon code.");
   }
   const escaped = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -125,8 +133,20 @@ const validateCoupon = async ({
   }
 
   const identity = await customerIdentity({ customerId, phone, email });
-  if ((coupon.usageLimitPerCustomer || coupon.isFirstOrderOnly || coupon.eligibleCustomerIds.length) && !identity.key) {
+  const eligibleCustomerKeys = coupon.eligibleCustomerKeys || [];
+  if ((coupon.usageLimitPerCustomer || coupon.isFirstOrderOnly || coupon.eligibleCustomerIds.length || eligibleCustomerKeys.length) && !identity.key) {
     throw createHttpError(400, "Enter a valid mobile number or sign in to use this coupon.");
+  }
+  if (
+    coupon.eligibleCustomerIds.length &&
+    (!identity.customerId || !coupon.eligibleCustomerIds.some((eligibleId) =>
+      String(eligibleId) === String(identity.customerId)
+    ))
+  ) {
+    throw createHttpError(400, "This coupon is assigned to a different customer.");
+  }
+  if (eligibleCustomerKeys.length && !eligibleCustomerKeys.includes(identity.key)) {
+    throw createHttpError(400, "This coupon is assigned to a different customer.");
   }
   if (coupon.isFirstOrderOnly && !(await checkFirstOrder({
     customerId: identity.customerId,
