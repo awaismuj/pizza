@@ -583,7 +583,7 @@ const DealsManager = () => {
                 Vector Badge Icon
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {DEAL_ICON_OPTIONS.map((opt) => (
+                {EMOJI_OPTIONS.map((emoji) => (
                   <button
                     type="button"
                     key={emoji}

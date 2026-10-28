@@ -10,6 +10,7 @@ import { useUITheme } from "../../context/UIThemeContext";
 // it came in, when it went to processing, when it was ready, when it was
 // completed/delivered. A cancelled order shows a single red badge instead.
 const OrderStageTracker = ({ order, onAdvance, isAdvancing = false }) => {
+  const { isClean } = useUITheme();
   const stages = stagesFor(order);
   const status = order.orderStatus;
 

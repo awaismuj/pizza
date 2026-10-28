@@ -44,19 +44,6 @@ const RecentOrders = ({ orders = [], isLoading = false }) => {
     });
   }, [todaysFirst, query, filter]);
 
-  const allOrders = resData?.data?.data || [];
-
-  const filteredOrders = useMemo(() => {
-    if (!searchTerm.trim()) return allOrders;
-    const term = searchTerm.toLowerCase();
-    return allOrders.filter((order) => {
-      const name = (order.customerDetails?.name || "").toLowerCase();
-      const phone = (order.customerDetails?.phone || "").toLowerCase();
-      const orderNo = String(order.orderNumber || "").toLowerCase();
-      return name.includes(term) || phone.includes(term) || orderNo.includes(term);
-    });
-  }, [allOrders, searchTerm]);
-
   return (
     <section className="rounded-2xl border border-[#2b2b2b] bg-[#1a1a1a]">
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">

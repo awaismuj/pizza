@@ -21,14 +21,6 @@ const Greetings = () => {
   const seconds = String(now.getSeconds()).padStart(2, "0");
   const date = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-  const hours = dateTime.getHours();
-  const greetingText =
-    hours < 12
-      ? "Good Morning"
-      : hours < 17
-      ? "Good Afternoon"
-      : "Good Evening";
-
   return (
     <header className="relative overflow-hidden rounded-2xl border border-[#2b2b2b] bg-gradient-to-br from-[#262626] via-[#1c1c1c] to-[#171717] px-5 py-4 sm:px-8 sm:py-5">
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#f6b100]/10 blur-3xl" />
