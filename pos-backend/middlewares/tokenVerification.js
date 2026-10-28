@@ -17,6 +17,9 @@ const isVerifiedUser = async (req, res, next) => {
             return next(error);
         }
         decodeToken = jwt.verify(accessToken, config.accessTokenSecret);
+        if (decodeToken.aud) {
+            return next(createHttpError(401, "Invalid Token!"));
+        }
     } catch (error) {
         return next(createHttpError(401, "Invalid Token!"));
     }

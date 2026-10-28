@@ -109,8 +109,11 @@ export const requestWelcomeCoupon = (payload) =>
     body: JSON.stringify(payload),
   });
 
-export const registerCustomer = (payload) =>
-  request("/api/customer/register", { method: "POST", body: JSON.stringify(payload) });
+export const registerCustomer = async (payload) => {
+  const result = await request("/api/customer/register", { method: "POST", body: JSON.stringify(payload) });
+  setCustomerToken(result.data.token);
+  return result;
+};
 
 export const loginCustomer = async (payload) => {
   const result = await request("/api/customer/login", { method: "POST", body: JSON.stringify(payload) });
