@@ -43,9 +43,13 @@ const runCouponCampaigns = async (now = new Date()) => {
       const localDate = `${parts.year}-${parts.month}-${parts.day}`;
       if (localDate !== lastBirthdayDate) {
         const result = await generateBirthdayCoupons({ now, settings: birthday, timezone });
-        lastBirthdayDate = localDate;
-        if (result.generated) {
-          console.info(`Birthday coupon run ${localDate}: ${result.generated} generated, ${result.skipped} skipped.`);
+        if (!result.errors) {
+          lastBirthdayDate = localDate;
+        }
+        if (result.generated || result.errors) {
+          console.info(
+            `Birthday coupon run ${localDate}: ${result.generated} generated, ${result.skipped} skipped, ${result.errors} errors.`
+          );
         }
       }
     }

@@ -413,6 +413,15 @@ copy an individually personalized Friday coupon message; messages are not sent
 by the application. Friday coupons expire after 72 hours by default, based on
 their saved expiry timestamp.
 
+When birthday coupons are enabled, the backend scheduler checks birthdays
+every minute using the configured timezone. It issues at most one coupon per
+customer ID and birthday year, stores the notification on the coupon record,
+and retries failed customer issuances without duplicating successful ones.
+The POS birthday notification list refreshes periodically and retains generated
+coupon history. Admins can inspect customer and coupon details, copy the
+personalized birthday message, and mark notifications read; copying never
+records a message as sent.
+
 Coupon prices and eligibility are recalculated by the backend at checkout.
 Issued campaign coupons are customer-specific and single-use; capacity is
 reserved when an order is created, redeemed when the order reaches its
