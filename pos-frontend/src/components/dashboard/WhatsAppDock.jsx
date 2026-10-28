@@ -1,14 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { FaWhatsapp } from "react-icons/fa";
-import {
-  closeWhatsAppWindow,
-  focusWhatsAppWindow,
-  isWhatsAppWindowOpen,
-  openWhatsAppWindow,
-  toWhatsAppNumber,
-  whatsAppChatUrl,
-} from "../../utils/whatsapp";
+import { openWhatsAppWindow, toWhatsAppNumber, whatsAppChatUrl } from "../../utils/whatsapp";
 
 const BLOCKED_MESSAGE = "Your browser blocked the WhatsApp window. Allow pop-ups for this site and try again.";
 
@@ -24,31 +17,14 @@ const BLOCKED_MESSAGE = "Your browser blocked the WhatsApp window. Allow pop-ups
 const WhatsAppDock = ({ dockRef, embedded = false }) => {
   const ownRef = useRef(null);
   const anchor = dockRef || ownRef;
-  const [open, setOpen] = useState(isWhatsAppWindowOpen());
   const [number, setNumber] = useState("");
   const [numberError, setNumberError] = useState("");
 
-  // The window is not part of this page, so poll to notice it being closed.
-  useEffect(() => {
-    const timer = setInterval(() => setOpen(isWhatsAppWindowOpen()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const afterOpen = (handle) => {
-    setOpen(Boolean(handle));
-    setNumberError(handle ? "" : BLOCKED_MESSAGE);
-  };
+  // Once WhatsApp Web has loaded, the browser no longer lets this page see or
+  // control that window, so there is no "open/closed" state to show.
+  const afterOpen = (handle) => setNumberError(handle ? "" : BLOCKED_MESSAGE);
 
   const dock = () => afterOpen(openWhatsAppWindow(anchor.current));
-
-  const redock = () => {
-    closeWhatsAppWindow();
-    dock();
-  };
-
-  const bringToFront = () => {
-    if (!focusWhatsAppWindow()) setOpen(false);
-  };
 
   const openChat = (event) => {
     event.preventDefault();
@@ -75,14 +51,6 @@ const WhatsAppDock = ({ dockRef, embedded = false }) => {
             </div>
           </div>
         )}
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            open ? "bg-[#1f3f28] text-[#02ca3a]" : "bg-[#333] text-[#aaa]"
-          }`}
-          aria-live="polite"
-        >
-          {open ? "Window open" : "Not open"}
-        </span>
       </div>
 
       <div
@@ -91,45 +59,15 @@ const WhatsAppDock = ({ dockRef, embedded = false }) => {
       >
         <FaWhatsapp className="text-5xl text-[#25d366]/70" aria-hidden="true" />
         <p className="max-w-xs text-sm text-[#c9d8cf]">
-          {open
-            ? "WhatsApp is open over this box. If it slips behind the POS, press Bring to front."
-            : "WhatsApp opens in a window placed right here, not full screen."}
+          Already signed in to WhatsApp in another tab? Just use that tab. Sending a coupon only copies the message, so nothing new opens.
         </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {!open ? (
-            <button
-              type="button"
-              onClick={dock}
-              className="rounded-lg bg-[#25d366] px-4 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174]"
-            >
-              Open WhatsApp
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={bringToFront}
-                className="rounded-lg bg-[#25d366] px-4 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174]"
-              >
-                Bring to front
-              </button>
-              <button
-                type="button"
-                onClick={redock}
-                className="rounded-lg bg-[#353535] px-4 py-2 text-sm font-semibold text-white hover:bg-[#444]"
-              >
-                Re-dock here
-              </button>
-              <button
-                type="button"
-                onClick={() => { closeWhatsAppWindow(); setOpen(false); }}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-[#bbb] hover:bg-[#333]"
-              >
-                Close
-              </button>
-            </>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={dock}
+          className="rounded-lg bg-[#25d366] px-4 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174]"
+        >
+          Open WhatsApp window
+        </button>
       </div>
 
       <form onSubmit={openChat} className="flex flex-wrap gap-2">

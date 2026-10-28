@@ -14,6 +14,7 @@
     "migrate:customer-contacts": "node scripts/migrate-customer-contacts.js",
     "migrate:staff-hr": "node scripts/migrate-staff-hr.js",
     "migrate:asset-depreciation": "node scripts/migrate-asset-depreciation.js",
+    "migrate:shorten-coupon-codes": "node scripts/shorten-coupon-codes.js",
     "seed": "node scripts/seed.js",
     "seed:pizzaland": "node scripts/seedPizzaLandRecipes.js",
     "reset:sales": "node scripts/reset-sales.js",

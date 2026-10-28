@@ -4,15 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaWhatsapp } from "react-icons/fa";
 import { getCoupons, lookupCouponCustomer, sendCouponToCustomer } from "../../https";
-import {
-  closeWhatsAppWindow,
-  navigateWhatsAppWindow,
-  openWhatsAppWindow,
-  focusWhatsAppWindow,
-  prepareWhatsAppWindow,
-  toWhatsAppNumber,
-  whatsAppChatUrl,
-} from "../../utils/whatsapp";
+import { openWhatsAppWindow, toWhatsAppNumber, whatsAppChatUrl } from "../../utils/whatsapp";
 
 const inputClass = "w-full rounded border border-[#444] bg-[#1a1a1a] px-3 py-2 text-white placeholder:text-[#777]";
 const labelClass = "block space-y-1 text-sm text-[#ccc]";
@@ -55,9 +47,11 @@ const emailLine = (email) => {
   }
 };
 
-// Send one coupon to one customer: type or search the number, press the
-// button, and WhatsApp opens with the coupon message already typed in. If
-// the customer has an email on file the server emails them automatically.
+// Send one coupon to one customer: type or search the number and press the
+// button. Nothing is opened: the message is copied at once, so it can be
+// pasted into the WhatsApp tab that is already open (opening a chat from a
+// link reloads WhatsApp Web, and it cannot be reused once loaded). If the
+// customer has an email on file the server emails them automatically.
 const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
   const queryClient = useQueryClient();
   const [phone, setPhone] = useState("");
@@ -66,7 +60,6 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
   const [mode, setMode] = useState("campaign");
   const [result, setResult] = useState(null);
   const nameTouched = useRef(false);
-  const openedWindow = useRef(null);
 
   const couponsQuery = useQuery({
     queryKey: ["coupons", "sendable"],
@@ -105,20 +98,13 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
       const data = response.data.data;
       const chatUrl = whatsAppChatUrl(data.whatsapp.phone, data.message);
       setResult({ ...data, chatUrl });
-      // Keep an existing WhatsApp session in place; navigating it to another
-      // chat can trigger WhatsApp's "open in another window" session conflict.
-      if (openedWindow.current?.reused && focusWhatsAppWindow()) {
-        copyText(data.message, "Message copied. Search the number in WhatsApp and paste it.");
-      } else if (!navigateWhatsAppWindow(chatUrl)) {
-        enqueueSnackbar("WhatsApp window was blocked. Use “Open WhatsApp chat” below.", { variant: "warning" });
-      }
+      // Copy straight away; no window is opened or reloaded.
+      copyText(data.message, "Coupon message copied. Search the number in WhatsApp and paste.");
       queryClient.invalidateQueries({ queryKey: ["coupon-assignments"] });
       queryClient.invalidateQueries({ queryKey: ["coupons"] });
     },
     onError: (error) => {
       enqueueSnackbar(error?.response?.data?.message || "Could not prepare this coupon.", { variant: "error" });
-      // Do not leave an empty WhatsApp window behind when nothing was sent.
-      if (openedWindow.current && !openedWindow.current.reused) closeWhatsAppWindow();
     },
   });
 
@@ -132,8 +118,6 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
       enqueueSnackbar("Enter a valid mobile number, e.g. 0301 2345678.", { variant: "warning" });
       return;
     }
-    // Open the window right here, inside the click, so the browser allows it.
-    openedWindow.current = prepareWhatsAppWindow(dockRef.current);
     setResult(null);
     sendMutation.mutate({
       couponId,
@@ -164,7 +148,7 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
     <section className="space-y-4 rounded-xl bg-[#262626] p-5" aria-label="Send a coupon">
       <div>
         <h2 className="text-xl font-semibold text-white">Send a coupon</h2>
-        <p className="text-sm text-[#aaa]">Pick a coupon, enter the customer&apos;s number, and WhatsApp opens with the message ready. Press Send there.</p>
+        <p className="text-sm text-[#aaa]">Pick a coupon and enter the customer&apos;s number. The message is copied instantly: search the number in your open WhatsApp and paste.</p>
       </div>
 
       <form onSubmit={submit} className="space-y-4">
@@ -281,7 +265,7 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#25d366] px-4 py-3 font-semibold text-[#11251a] hover:bg-[#32e174] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <FaWhatsapp aria-hidden="true" />
-          {sendMutation.isPending ? "Preparing…" : "Send via WhatsApp"}
+          {sendMutation.isPending ? "Preparing…" : "Copy coupon message"}
         </button>
       </form>
 
@@ -293,12 +277,12 @@ const SendCouponPanel = ({ dockRef, couponId, onCouponChange }) => {
             </p>
             <button type="button" className="text-sm text-[#f6b100]" onClick={() => copyText(result.code, "Code copied.")}>Copy code</button>
           </div>
-          <p className="text-sm text-[#c9d8cf]">The message is typed into the chat. Press Send in WhatsApp to deliver it.</p>
+          <p className="text-sm text-[#c9d8cf]">The message is copied. Search this number in WhatsApp, paste it and press Send.</p>
           <p className={`text-sm ${status.tone}`}>{status.text}</p>
           <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-black/30 p-3 text-xs text-[#ddd]">{result.message}</pre>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={reopenChat} className="rounded bg-[#25d366] px-3 py-2 text-sm font-semibold text-[#11251a] hover:bg-[#32e174]">
-              Open WhatsApp chat
+              Open chat in WhatsApp (reloads)
             </button>
             <button type="button" onClick={() => copyText(result.message, "Message copied.")} className="rounded bg-[#353535] px-3 py-2 text-sm font-semibold text-white hover:bg-[#444]">
               Copy message
