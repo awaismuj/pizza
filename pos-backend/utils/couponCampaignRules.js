@@ -10,7 +10,7 @@ const DEFAULT_COUPON_CAMPAIGNS = {
   },
   friday: {
     automaticGeneration: false,
-    minimumSubtotal: 0,
+    minimumSubtotal: 1000,
     percentages: [4, 5, 6, 7],
     expiryHours: 72,
     timezone: "Asia/Karachi",
@@ -34,6 +34,87 @@ const formatCouponCode = (code) => {
 };
 
 const generateCouponCode = () => `Flat${crypto.randomInt(100, 100000)}`;
+
+const normalizeCustomerPhone = (phone) => {
+  const digits = String(phone || "").replace(/\D/g, "");
+  return digits.length >= 7 ? digits.slice(-9) : "";
+};
+
+const deduplicateCustomers = (customers) => {
+  const parent = new Map();
+  const rank = new Map();
+  const identityOwners = new Map();
+  const records = new Map();
+
+  const find = (id) => {
+    const currentParent = parent.get(id);
+    if (currentParent === id) return id;
+    const root = find(currentParent);
+    parent.set(id, root);
+    return root;
+  };
+
+  const union = (left, right) => {
+    let leftRoot = find(left);
+    let rightRoot = find(right);
+    if (leftRoot === rightRoot) return;
+    if ((rank.get(leftRoot) || 0) < (rank.get(rightRoot) || 0)) {
+      [leftRoot, rightRoot] = [rightRoot, leftRoot];
+    }
+    parent.set(rightRoot, leftRoot);
+    if ((rank.get(leftRoot) || 0) === (rank.get(rightRoot) || 0)) {
+      rank.set(leftRoot, (rank.get(leftRoot) || 0) + 1);
+    }
+  };
+
+  for (const customer of customers) {
+    const id = String(customer._id);
+    parent.set(id, id);
+    rank.set(id, 0);
+    records.set(id, customer);
+
+    const email = String(customer.email || "").trim().toLowerCase();
+    const phone = normalizeCustomerPhone(customer.phone);
+    const keys = [
+      ...(email ? [`email:${email}`] : []),
+      ...(phone ? [`phone:${phone}`] : []),
+    ];
+    for (const key of keys) {
+      const owner = identityOwners.get(key);
+      if (owner) union(id, owner);
+      else identityOwners.set(key, id);
+    }
+  }
+
+  const groups = new Map();
+  for (const [id, customer] of records) {
+    const root = find(id);
+    const group = groups.get(root) || [];
+    group.push(customer);
+    groups.set(root, group);
+  }
+
+  const representatives = [...groups.values()].map((group) => {
+    group.sort((left, right) => {
+      const contactScore = (customer) =>
+        Number(Boolean(String(customer.phone || "").trim())) +
+        Number(Boolean(String(customer.email || "").trim()));
+      return contactScore(right) - contactScore(left) ||
+        Number(Boolean(String(right.name || "").trim())) - Number(Boolean(String(left.name || "").trim())) ||
+        String(left._id).localeCompare(String(right._id));
+    });
+    return {
+      customer: group[0],
+      customerIds: group.map((customer) => customer._id),
+      members: group,
+    };
+  });
+
+  return {
+    customers: representatives,
+    duplicateCount: customers.length - representatives.length,
+  };
+};
 
 const zonedParts = (date, timezone) => {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -79,6 +160,8 @@ module.exports = {
   normalizeCouponCode,
   formatCouponCode,
   generateCouponCode,
+  normalizeCustomerPhone,
+  deduplicateCustomers,
   zonedParts,
   fridayCampaignCycle,
   isFridayCampaignDue,

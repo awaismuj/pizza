@@ -103,6 +103,25 @@ const listCoupons = async (req, res, next) => {
     } else if (req.query.type) {
       throw createHttpError(400, "Choose a valid coupon type filter.");
     }
+    if (req.query.contact && ["available", "missing"].includes(req.query.contact)) {
+      const hasContact = {
+        $or: [
+          { phone: { $regex: "\\S" } },
+          { email: { $regex: "\\S" } },
+        ],
+      };
+      const customerFilter = req.query.contact === "available"
+        ? hasContact
+        : {
+            $and: [
+              { $or: [{ phone: { $exists: false } }, { phone: null }, { phone: { $regex: "^\\s*$" } }] },
+              { $or: [{ email: { $exists: false } }, { email: null }, { email: { $regex: "^\\s*$" } }] },
+            ],
+          };
+      filter.customerId = { $in: await Customer.find(customerFilter).distinct("_id") };
+    } else if (req.query.contact) {
+      throw createHttpError(400, "Choose a valid contact information filter.");
+    }
     if (status === "active") andFilters.push({
       isActive: true,
       $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
@@ -338,7 +357,13 @@ const couponCampaignSettings = (settings) => {
 const getCouponCampaignSettings = async (req, res, next) => {
   try {
     const settings = await getSettingsRecord();
-    res.status(200).json({ success: true, data: couponCampaignSettings(settings) });
+    res.status(200).json({
+      success: true,
+      data: {
+        ...couponCampaignSettings(settings),
+        currency: settings.assetAccounting?.currency || "PKR",
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -497,9 +522,9 @@ const generateFridayCampaign = async (req, res, next) => {
     });
     res.status(200).json({
       success: true,
-      message: result.generated
-        ? `Coupons generated successfully. ${result.generated} generated; ${result.skipped} skipped.`
-        : "No new coupons were generated.",
+      message: result.eligible === 0
+        ? "No eligible customers were found."
+        : `Generation finished. ${result.generated} generated; ${result.skipped} skipped; ${result.errors} errors.`,
       data: result,
     });
   } catch (error) {

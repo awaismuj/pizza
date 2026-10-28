@@ -404,7 +404,14 @@ eligibility check; Friday coupons can be generated manually or automatically
 each Friday at 6:00 PM in the configured timezone; birthday coupons are
 generated daily for customer profiles that have a date of birth. Automatic
 campaign settings and discount/expiry rules are stored in the existing global
-settings document.
+settings document. The Friday **Generate coupons now** action processes active
+customer profiles in batches, merges records sharing normalized phone numbers
+or case-insensitive email addresses, and skips customers already issued a
+coupon in that campaign. The result summary reports generated, skipped, and
+failed records. Admins can search and filter the coupon list, copy a code, or
+copy an individually personalized Friday coupon message; messages are not sent
+by the application. Friday coupons expire after 72 hours by default, based on
+their saved expiry timestamp.
 
 Coupon prices and eligibility are recalculated by the backend at checkout.
 Issued campaign coupons are customer-specific and single-use; capacity is

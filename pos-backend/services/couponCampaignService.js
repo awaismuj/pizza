@@ -7,9 +7,11 @@ const {
   expiryDate,
   isCustomerBirthday,
   fridayCampaignCycle,
+  deduplicateCustomers,
 } = require("../utils/couponCampaignRules");
 
 const SUCCESS_STATUSES = ["Completed", "Closed"];
+const GENERATION_BATCH_SIZE = 100;
 const DISCOUNT_LABELS = {
   welcome: "Welcome",
   friday: "Friday",
@@ -30,12 +32,25 @@ const hasPriorSuccessfulOrder = async (customer) => {
   return Boolean(byCustomer);
 };
 
-const issueCoupon = async ({ customer, campaignType, campaignCycle, settings, now = new Date() }) => {
+const issueCoupon = async ({
+  customer,
+  customerIds = [customer._id],
+  campaignType,
+  campaignCycle,
+  settings,
+  now = new Date(),
+}) => {
   const campaignKey = `${campaignType}:${campaignCycle}:${String(customer._id)}`;
   if (campaignKey) {
     const existing = await Coupon.findOne({ campaignKey });
     if (existing) return { coupon: existing, created: false };
   }
+  const existingForCustomer = await Coupon.findOne({
+    campaignType,
+    campaignCycle,
+    customerId: { $in: customerIds },
+  });
+  if (existingForCustomer) return { coupon: existingForCustomer, created: false };
 
   const discountValue = campaignType === "birthday" && settings.discountMode === "fixed"
     ? Number(settings.fixedPercentage)
@@ -90,24 +105,62 @@ const issueCoupon = async ({ customer, campaignType, campaignCycle, settings, no
 
 const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) => {
   const campaignCycle = fridayCampaignCycle(now, timezone);
-  const customers = await Customer.find({ active: true })
-    .select("_id name email phone dateOfBirth")
-    .lean();
-  let generated = 0;
-  let skipped = 0;
+  const customerCursor = Customer.find({ active: true })
+    .select("_id name email phone")
+    .lean()
+    .cursor({ batchSize: GENERATION_BATCH_SIZE });
+  const customers = [];
+  for await (const customer of customerCursor) customers.push(customer);
 
-  for (const customer of customers) {
-    const result = await issueCoupon({
-      customer,
-      campaignType: "friday",
-      campaignCycle,
-      settings,
-      now,
-    });
-    if (result.created) generated += 1;
-    else skipped += 1;
+  const deduplicated = deduplicateCustomers(customers);
+  let generated = 0;
+  let alreadyIssued = 0;
+  let errors = 0;
+  let processed = 0;
+  const errorSamples = [];
+  const batchesTotal = Math.ceil(deduplicated.customers.length / GENERATION_BATCH_SIZE);
+
+  for (let start = 0; start < deduplicated.customers.length; start += GENERATION_BATCH_SIZE) {
+    const batch = deduplicated.customers.slice(start, start + GENERATION_BATCH_SIZE);
+    for (const { customer, customerIds } of batch) {
+      processed += 1;
+      try {
+        const result = await issueCoupon({
+          customer,
+          customerIds,
+          campaignType: "friday",
+          campaignCycle,
+          settings,
+          now,
+        });
+        if (result.created) generated += 1;
+        else alreadyIssued += 1;
+      } catch (error) {
+        errors += 1;
+        console.error("Friday coupon generation failed for a customer:", error.message || error);
+        if (errorSamples.length < 10) {
+          errorSamples.push({
+            customerId: String(customer._id),
+            message: "Coupon generation failed for this customer. Review server logs before retrying.",
+          });
+        }
+      }
+    }
   }
-  return { generated, skipped, campaignCycle, eligible: customers.length };
+  return {
+    generated,
+    skipped: deduplicated.duplicateCount + alreadyIssued,
+    errors,
+    errorSamples,
+    duplicateCustomers: deduplicated.duplicateCount,
+    alreadyIssued,
+    campaignCycle,
+    totalCustomers: customers.length,
+    eligible: deduplicated.customers.length,
+    processed,
+    batchesProcessed: batchesTotal,
+    batchesTotal,
+  };
 };
 
 const generateBirthdayCoupons = async ({ now = new Date(), settings, timezone }) => {
@@ -119,15 +172,20 @@ const generateBirthdayCoupons = async ({ now = new Date(), settings, timezone })
     active: true,
     dateOfBirth: { $type: "date" },
   }).select("_id name email phone dateOfBirth").lean();
+  const deduplicated = deduplicateCustomers(customers);
   let generated = 0;
   let skipped = 0;
   let eligible = 0;
 
-  for (const customer of customers) {
-    if (!isCustomerBirthday(customer.dateOfBirth, now, timezone)) continue;
+  for (const { customerIds, members } of deduplicated.customers) {
+    const birthdayCustomer = members.find((customer) =>
+      isCustomerBirthday(customer.dateOfBirth, now, timezone)
+    );
+    if (!birthdayCustomer) continue;
     eligible += 1;
     const result = await issueCoupon({
-      customer,
+      customer: birthdayCustomer,
+      customerIds,
       campaignType: "birthday",
       campaignCycle: currentYear,
       settings,
