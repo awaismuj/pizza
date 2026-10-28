@@ -128,12 +128,16 @@ export const getCoupon = (couponId) => axiosWrapper.get(`/api/coupon/admin/${cou
 export const getCouponReport = (params) => axiosWrapper.get("/api/coupon/admin/report", { params });
 export const getCouponRedemptions = ({ couponId, ...params }) =>
   axiosWrapper.get(`/api/coupon/admin/${couponId}/redemptions`, { params });
-export const createCoupon = (data) => axiosWrapper.post("/api/coupon/admin", data);
-export const updateCoupon = ({ couponId, ...data }) =>
-  axiosWrapper.put(`/api/coupon/admin/${couponId}`, data);
-export const toggleCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/admin/${couponId}/toggle`);
-export const deleteCoupon = (couponId) => axiosWrapper.delete(`/api/coupon/admin/${couponId}`);
 export const validateCoupon = (data) => axiosWrapper.post("/api/coupon/validate", data);
+export const getCouponCampaignSettings = () => axiosWrapper.get("/api/coupon/admin/settings");
+export const updateCouponCampaignSettings = (data) => axiosWrapper.put("/api/coupon/admin/settings", data);
+export const generateFridayCoupons = () =>
+  axiosWrapper.post("/api/coupon/admin/generate/friday", { confirm: true });
+export const getBirthdayCouponNotifications = (params) =>
+  axiosWrapper.get("/api/coupon/admin/notifications/birthday", { params });
+export const markBirthdayCouponNotificationRead = (couponId) =>
+  axiosWrapper.patch(`/api/coupon/admin/notifications/birthday/${couponId}/read`);
+export const cancelCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/admin/${couponId}/cancel`);
 
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");

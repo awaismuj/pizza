@@ -4,6 +4,9 @@ const mongoose = require("mongoose");
 const User = require("../models/userModel");
 const Order = require("../models/orderModel");
 const Customer = require("../models/customerModel");
+const Coupon = require("../models/couponModel");
+const CouponRedemption = require("../models/couponRedemptionModel");
+const CouponUsage = require("../models/couponUsageModel");
 const config = require("../config/config");
 const { getPasswordPolicy, getPasswordPolicyError } = require("../utils/passwordPolicy");
 
@@ -29,6 +32,15 @@ const bootstrap = async () => {
     } catch (error) {
       console.warn(`⚠️ Could not sync ${name} indexes: ${error.message}`);
     }
+  }
+
+  for (const [name, Model] of [
+    ["Coupon", Coupon],
+    ["Coupon redemption", CouponRedemption],
+    ["Coupon usage", CouponUsage],
+  ]) {
+    await Model.syncIndexes();
+    console.log(`✅ ${name} indexes synced`);
   }
 
   try {

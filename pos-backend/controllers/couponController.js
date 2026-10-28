@@ -2,107 +2,22 @@ const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
 const Coupon = require("../models/couponModel");
 const CouponRedemption = require("../models/couponRedemptionModel");
-const Order = require("../models/orderModel");
-const Dish = require("../models/dishModel");
+const Customer = require("../models/customerModel");
+const Settings = require("../models/settingsModel");
 const Branch = require("../models/branchModel");
+const customerPhoneKey = require("../utils/customerPhoneKey");
 const { quoteFulfillment } = require("../utils/fulfillment");
+const { DEFAULT_COUPON_CAMPAIGNS } = require("../utils/couponCampaignRules");
 const {
-  normalizeCouponCode,
+  generateFridayCoupons,
+  generateWelcomeCoupon,
+} = require("../services/couponCampaignService");
+const {
   resolveCouponItems,
   validateCoupon,
   reverseRedemption,
   roundMoney,
 } = require("../services/couponService");
-
-const OPTIONAL_NUMBER_FIELDS = [
-  "minimumOrderAmount",
-  "maximumDiscountAmount",
-  "totalUsageLimit",
-  "usageLimitPerCustomer",
-  "minimumQualifyingQuantity",
-];
-const ID_FIELDS = ["eligibleCustomerIds", "eligibleDishIds", "eligibleCategoryIds"];
-const ALLOWED_FIELDS = [
-  "code", "name", "description", "discountType", "discountValue",
-  ...OPTIONAL_NUMBER_FIELDS, "startsAt", "expiresAt", ...ID_FIELDS,
-  "eligibleOrderTypes", "isFirstOrderOnly", "isActive",
-];
-
-const normalizeArray = (value) => {
-  if (value == null || value === "") return [];
-  if (!Array.isArray(value)) throw createHttpError(400, "Expected a list of values.");
-  return value;
-};
-
-const normalizeCouponPayload = (body, { partial = false } = {}) => {
-  const data = {};
-  for (const field of ALLOWED_FIELDS) {
-    if (!Object.hasOwn(body || {}, field)) continue;
-    const value = body[field];
-    if (ID_FIELDS.includes(field)) {
-      const ids = normalizeArray(value).map(String);
-      if (ids.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
-        throw createHttpError(400, "One or more selected coupon eligibility records are invalid.");
-      }
-      data[field] = [...new Set(ids)];
-    } else if (field === "eligibleOrderTypes") {
-      const types = normalizeArray(value);
-      if (types.some((type) => !["delivery", "pickup", "dineIn"].includes(type))) {
-        throw createHttpError(400, "Choose valid order types.");
-      }
-      data[field] = [...new Set(types)];
-    } else if (OPTIONAL_NUMBER_FIELDS.includes(field) || field === "discountValue") {
-      if (value == null || value === "") {
-        if (OPTIONAL_NUMBER_FIELDS.includes(field)) data[field] = null;
-        else throw createHttpError(400, "Discount value is required.");
-      } else {
-        const number = Number(value);
-        if (!Number.isFinite(number) || number < 0) {
-          throw createHttpError(400, "Coupon amounts and limits must be valid non-negative numbers.");
-        }
-        data[field] = number;
-      }
-    } else if (field === "startsAt" || field === "expiresAt") {
-      if (value == null || value === "") data[field] = null;
-      else {
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) throw createHttpError(400, "Enter valid coupon dates.");
-        data[field] = date;
-      }
-    } else if (field === "isActive" || field === "isFirstOrderOnly") {
-      if (typeof value !== "boolean") throw createHttpError(400, `${field} must be true or false.`);
-      data[field] = value;
-    } else if (field === "code") {
-      const code = normalizeCouponCode(value);
-      if (!/^[A-Z0-9_-]{3,40}$/.test(code)) {
-        throw createHttpError(400, "Coupon codes must be 3–40 letters, numbers, underscores, or hyphens.");
-      }
-      data.code = code;
-    } else if (field === "name" || field === "description") {
-      data[field] = String(value || "").trim();
-      if (field === "name" && !data[field]) throw createHttpError(400, "Coupon name is required.");
-    }
-  }
-
-  if (!partial && (!data.code || !data.name || !data.discountType || data.discountValue == null)) {
-    throw createHttpError(400, "Coupon code, name, discount type, and discount value are required.");
-  }
-  const discountType = data.discountType;
-  if (discountType && !["percentage", "fixed", "freeDelivery"].includes(discountType)) {
-    throw createHttpError(400, "Choose a valid discount type.");
-  }
-  if (data.discountValue != null && discountType === "percentage" && data.discountValue > 100) {
-    throw createHttpError(400, "Percentage discounts cannot exceed 100%.");
-  }
-  if (data.discountValue != null && discountType === "freeDelivery") data.discountValue = 0;
-  if (data.maximumDiscountAmount != null && discountType && discountType !== "percentage") {
-    throw createHttpError(400, "Maximum discount amount is only used for percentage coupons.");
-  }
-  if (data.startsAt && data.expiresAt && data.expiresAt <= data.startsAt) {
-    throw createHttpError(400, "Expiry must be later than the start date.");
-  }
-  return data;
-};
 
 const validateCouponForOrder = async (req, res, next) => {
   try {
@@ -131,8 +46,9 @@ const validateCouponForOrder = async (req, res, next) => {
       items: resolvedItems,
       orderType,
       deliveryFee,
-      customerId: req.customer?._id || req.body.customerId || null,
+      customerId: req.customer?._id || null,
       phone: req.customer?.phone || req.body.phone || "",
+      email: req.customer?.email || req.body.email || "",
       hasPromotion,
     });
     const subtotal = resolvedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -165,27 +81,85 @@ const listCoupons = async (req, res, next) => {
     const search = String(req.query.search || "").trim().slice(0, 80);
     const status = String(req.query.status || "all");
     const filter = { archivedAt: null };
+    const now = new Date();
+    const andFilters = [];
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.$or = [
+      const customerIds = await Customer.find({
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { phone: { $regex: escaped, $options: "i" } },
+          { email: { $regex: escaped, $options: "i" } },
+        ],
+      }).distinct("_id");
+      andFilters.push({ $or: [
         { code: { $regex: escaped, $options: "i" } },
         { name: { $regex: escaped, $options: "i" } },
-      ];
+        ...(customerIds.length ? [{ customerId: { $in: customerIds } }] : []),
+      ] });
     }
-    if (status === "active") filter.isActive = true;
-    else if (status === "inactive") filter.isActive = false;
-    else if (status === "expired") filter.expiresAt = { $lte: new Date() };
-    else if (!["all", "active", "inactive", "expired"].includes(status)) {
-      throw createHttpError(400, "Choose a valid coupon status filter.");
+    if (req.query.type && ["manual", "welcome", "friday", "birthday"].includes(req.query.type)) {
+      filter.campaignType = req.query.type;
+    } else if (req.query.type) {
+      throw createHttpError(400, "Choose a valid coupon type filter.");
     }
+    if (status === "active") andFilters.push({
+      isActive: true,
+      $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+      redeemedCount: 0,
+    });
+    else if (status === "redeemed") filter.redeemedCount = { $gt: 0 };
+    else if (status === "expired") andFilters.push({
+      isActive: true,
+      expiresAt: { $lte: now },
+      redeemedCount: 0,
+    });
+    else if (status === "cancelled") filter.isActive = false;
+    else if (status !== "all") throw createHttpError(400, "Choose a valid coupon status filter.");
+
+    if (req.query.from || req.query.to) {
+      const createdAt = {};
+      if (req.query.from) {
+        const from = new Date(req.query.from);
+        if (Number.isNaN(from.getTime())) throw createHttpError(400, "Enter a valid start date.");
+        createdAt.$gte = from;
+      }
+      if (req.query.to) {
+        const to = new Date(req.query.to);
+        if (Number.isNaN(to.getTime())) throw createHttpError(400, "Enter a valid end date.");
+        to.setHours(23, 59, 59, 999);
+        createdAt.$lte = to;
+      }
+      filter.createdAt = createdAt;
+    }
+    if (andFilters.length) filter.$and = andFilters;
     const [coupons, total] = await Promise.all([
-      Coupon.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      Coupon.find(filter)
+        .populate("customerId", "name phone email")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
       Coupon.countDocuments(filter),
+    ]);
+    const [active, redeemed, expired, cancelled, generatedToday, birthdayUnread] = await Promise.all([
+      Coupon.countDocuments({
+        isActive: true,
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+        redeemedCount: 0,
+        archivedAt: null,
+      }),
+      Coupon.countDocuments({ redeemedCount: { $gt: 0 }, archivedAt: null }),
+      Coupon.countDocuments({ isActive: true, expiresAt: { $lte: now }, redeemedCount: 0, archivedAt: null }),
+      Coupon.countDocuments({ isActive: false, archivedAt: null }),
+      Coupon.countDocuments({ createdAt: { $gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()) } }),
+      Coupon.countDocuments({ campaignType: "birthday", notificationReadAt: null }),
     ]);
     res.status(200).json({
       success: true,
       data: coupons,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      summary: { active, redeemed, expired, cancelled, generatedToday, birthdayUnread },
     });
   } catch (error) {
     next(error);
@@ -194,7 +168,9 @@ const listCoupons = async (req, res, next) => {
 
 const getCoupon = async (req, res, next) => {
   try {
-    const coupon = await Coupon.findById(req.params.id).lean();
+    const coupon = await Coupon.findById(req.params.id)
+      .populate("customerId", "name phone email dateOfBirth")
+      .lean();
     if (!coupon) throw createHttpError(404, "Coupon not found.");
     const [redemptionTotals, recentRedemptions] = await Promise.all([
       CouponRedemption.aggregate([
@@ -225,59 +201,6 @@ const getCoupon = async (req, res, next) => {
         recentRedemptions,
       },
     });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const createCoupon = async (req, res, next) => {
-  try {
-    const data = normalizeCouponPayload(req.body);
-    const coupon = await Coupon.create({
-      ...data,
-      createdBy: { userId: req.user?._id || null, name: req.user?.name || "" },
-    });
-    res.status(201).json({ success: true, message: "Coupon created.", data: coupon });
-  } catch (error) {
-    if (error.code === 11000) return next(createHttpError(409, "A coupon with this code already exists."));
-    next(error);
-  }
-};
-
-const updateCoupon = async (req, res, next) => {
-  try {
-    const data = normalizeCouponPayload(req.body, { partial: true });
-    if (!Object.keys(data).length) throw createHttpError(400, "No coupon fields were provided.");
-    const coupon = await Coupon.findByIdAndUpdate(req.params.id, { $set: data }, { new: true, runValidators: true });
-    if (!coupon) throw createHttpError(404, "Coupon not found.");
-    res.status(200).json({ success: true, message: "Coupon updated.", data: coupon });
-  } catch (error) {
-    if (error.code === 11000) return next(createHttpError(409, "A coupon with this code already exists."));
-    next(error);
-  }
-};
-
-const toggleCoupon = async (req, res, next) => {
-  try {
-    const coupon = await Coupon.findById(req.params.id);
-    if (!coupon || coupon.archivedAt) throw createHttpError(404, "Coupon not found.");
-    coupon.isActive = !coupon.isActive;
-    await coupon.save();
-    res.status(200).json({ success: true, message: `Coupon ${coupon.isActive ? "activated" : "deactivated"}.`, data: coupon });
-  } catch (error) {
-    next(error);
-  }
-};
-
-const archiveCoupon = async (req, res, next) => {
-  try {
-    const coupon = await Coupon.findByIdAndUpdate(
-      req.params.id,
-      { $set: { isActive: false, archivedAt: new Date() } },
-      { new: true }
-    );
-    if (!coupon) throw createHttpError(404, "Coupon not found.");
-    res.status(200).json({ success: true, message: "Coupon archived. Historical orders and usage records remain intact." });
   } catch (error) {
     next(error);
   }
@@ -399,15 +322,265 @@ const reverseCouponRedemption = async (req, res, next) => {
   }
 };
 
+const getSettingsRecord = async () => {
+  let settings = await Settings.findOne({ key: "global" });
+  if (!settings) settings = await Settings.create({ key: "global" });
+  return settings;
+};
+
+const couponCampaignSettings = (settings) => {
+  const stored = settings.couponCampaigns?.toObject
+    ? settings.couponCampaigns.toObject()
+    : settings.couponCampaigns;
+  return stored || structuredClone(DEFAULT_COUPON_CAMPAIGNS);
+};
+
+const getCouponCampaignSettings = async (req, res, next) => {
+  try {
+    const settings = await getSettingsRecord();
+    res.status(200).json({ success: true, data: couponCampaignSettings(settings) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const normalizeCampaignSettings = (currentSettings, input) => {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw createHttpError(400, "Provide valid coupon campaign settings.");
+  }
+  const result = structuredClone(currentSettings);
+  const validatePercentages = (percentages) => {
+    if (!Array.isArray(percentages) || percentages.length === 0 || percentages.length > 20) {
+      throw createHttpError(400, "Provide at least one discount percentage.");
+    }
+    const values = percentages.map(Number);
+    if (values.some((value) => !Number.isFinite(value) || value <= 0 || value > 100)) {
+      throw createHttpError(400, "Discount percentages must be greater than 0 and no more than 100.");
+    }
+    return [...new Set(values)];
+  };
+  const normalizeGroup = (type, group) => {
+    if (!group || typeof group !== "object" || Array.isArray(group)) {
+      throw createHttpError(400, `Provide valid ${type} coupon settings.`);
+    }
+    const allowed = type === "welcome"
+      ? ["enabled", "minimumSubtotal", "percentages", "expiryHours", "maxOnePerCustomer"]
+      : type === "friday"
+        ? ["automaticGeneration", "minimumSubtotal", "percentages", "expiryHours", "timezone"]
+        : ["enabled", "discountMode", "fixedPercentage", "percentages", "minimumSubtotal", "expiryHours", "timezone"];
+    if (Object.keys(group).some((key) => !allowed.includes(key))) {
+      throw createHttpError(400, `Unsupported ${type} coupon setting.`);
+    }
+    const next = { ...result[type], ...group };
+    if (type !== "friday" && typeof next.enabled !== "boolean") {
+      throw createHttpError(400, `${type} coupon enabled setting must be true or false.`);
+    }
+    next.minimumSubtotal = Number(next.minimumSubtotal);
+    next.expiryHours = Number(next.expiryHours);
+    if (!Number.isFinite(next.minimumSubtotal) || next.minimumSubtotal < 0 ||
+        !Number.isInteger(next.expiryHours) || next.expiryHours < 1 || next.expiryHours > 8760) {
+      throw createHttpError(400, `${type} coupon minimum subtotal or expiry is invalid.`);
+    }
+    next.percentages = validatePercentages(next.percentages);
+    if (type === "welcome") {
+      if (typeof next.maxOnePerCustomer !== "boolean") {
+        throw createHttpError(400, "Choose whether a customer can receive only one welcome coupon.");
+      }
+    } else {
+      if (typeof next.timezone !== "string" || next.timezone.length > 80) {
+        throw createHttpError(400, "Enter a valid campaign timezone.");
+      }
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: next.timezone });
+      } catch {
+        throw createHttpError(400, "Enter a valid campaign timezone.");
+      }
+    }
+    if (type === "friday" && typeof next.automaticGeneration !== "boolean") {
+      throw createHttpError(400, "Automatic Friday generation must be enabled or disabled.");
+    }
+    if (type === "birthday") {
+      if (!["fixed", "random"].includes(next.discountMode)) {
+        throw createHttpError(400, "Choose a fixed or random birthday discount.");
+      }
+      next.fixedPercentage = Number(next.fixedPercentage);
+      if (!Number.isFinite(next.fixedPercentage) || next.fixedPercentage <= 0 || next.fixedPercentage > 100) {
+        throw createHttpError(400, "The birthday discount must be greater than 0 and no more than 100.");
+      }
+    }
+    return next;
+  };
+
+  for (const type of ["welcome", "friday", "birthday"]) {
+    if (Object.hasOwn(input, type)) result[type] = normalizeGroup(type, input[type]);
+  }
+  if (!["welcome", "friday", "birthday"].some((type) => Object.hasOwn(input, type))) {
+    throw createHttpError(400, "Provide at least one coupon settings group.");
+  }
+  return result;
+};
+
+const updateCouponCampaignSettings = async (req, res, next) => {
+  try {
+    const settings = await getSettingsRecord();
+    const previousValue = couponCampaignSettings(settings);
+    const nextValue = normalizeCampaignSettings(previousValue, req.body);
+    settings.couponCampaigns = nextValue;
+    settings.couponSettingsAudit.push({
+      changedAt: new Date(),
+      changedBy: req.user?._id || null,
+      changedByName: req.user?.name || "",
+      area: "couponCampaigns",
+      previousValue,
+      newValue: nextValue,
+    });
+    settings.couponSettingsAudit = settings.couponSettingsAudit.slice(-100);
+    await settings.save();
+    res.status(200).json({
+      success: true,
+      message: "Coupon campaign settings saved.",
+      data: couponCampaignSettings(settings),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const issueWelcomeCoupon = async (req, res, next) => {
+  try {
+    const settingsDoc = await getSettingsRecord();
+    const settings = couponCampaignSettings(settingsDoc).welcome;
+    if (!settings.enabled) throw createHttpError(400, "Welcome coupons are not available right now.");
+
+    let customer = req.customer || null;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const digits = String(req.body.phone || "").replace(/\D/g, "");
+    if (!customer && email && /^\S+@\S+\.\S+$/.test(email)) {
+      customer = await Customer.findOne({ email, active: true });
+    }
+    if (!customer && digits.length >= 10 && digits.length <= 15) {
+      customer = await Customer.findOne({ phoneKey: customerPhoneKey(digits), active: true });
+    }
+    if (!customer || customer.contactOnly && !email && !digits) {
+      throw createHttpError(400, "A welcome coupon is not available for this account.");
+    }
+
+    const result = await generateWelcomeCoupon({ customer, settings });
+    if (!result.eligible || !result.coupon) {
+      throw createHttpError(400, "A welcome coupon is not available for this account.");
+    }
+    res.status(200).json({
+      success: true,
+      message: "Your coupon is ready!",
+      data: {
+        code: result.coupon.code,
+        discountPercentage: result.coupon.discountValue,
+        minimumSubtotal: result.coupon.minimumOrderAmount,
+        expiresAt: result.coupon.expiresAt,
+        timezone: "UTC",
+        existing: Boolean(result.existing),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const generateFridayCampaign = async (req, res, next) => {
+  try {
+    if (req.body.confirm !== true) throw createHttpError(400, "Confirm generation before issuing customer coupons.");
+    const settingsDoc = await getSettingsRecord();
+    const config = couponCampaignSettings(settingsDoc).friday;
+    const result = await generateFridayCoupons({
+      settings: config,
+      timezone: config.timezone,
+    });
+    res.status(200).json({
+      success: true,
+      message: result.generated
+        ? `Coupons generated successfully. ${result.generated} generated; ${result.skipped} skipped.`
+        : "No new coupons were generated.",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const cancelCoupon = async (req, res, next) => {
+  try {
+    const existing = await Coupon.findById(req.params.id);
+    if (!existing) throw createHttpError(404, "Coupon not found.");
+    if (existing.redeemedCount > 0) throw createHttpError(409, "A redeemed coupon cannot be cancelled.");
+    if (existing.reservedCount > 0) {
+      throw createHttpError(409, "This coupon is reserved for a pending order and cannot be cancelled yet.");
+    }
+    const coupon = await Coupon.findOneAndUpdate(
+      { _id: req.params.id, isActive: true, redeemedCount: 0, reservedCount: 0 },
+      { $set: { isActive: false, cancelledAt: new Date() } },
+      { new: true }
+    );
+    if (!coupon) throw createHttpError(409, "This coupon is no longer active.");
+    res.status(200).json({ success: true, message: "Coupon cancelled.", data: coupon });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const listBirthdayNotifications = async (req, res, next) => {
+  try {
+    const unreadOnly = req.query.unread === "true";
+    const filter = { campaignType: "birthday" };
+    if (unreadOnly) filter.notificationReadAt = null;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
+    const [coupons, total, unreadCount] = await Promise.all([
+      Coupon.find(filter)
+        .populate("customerId", "name phone email dateOfBirth")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Coupon.countDocuments(filter),
+      Coupon.countDocuments({ campaignType: "birthday", notificationReadAt: null }),
+    ]);
+    res.status(200).json({
+      success: true,
+      data: coupons,
+      unreadCount,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const markBirthdayNotificationRead = async (req, res, next) => {
+  try {
+    const coupon = await Coupon.findOneAndUpdate(
+      { _id: req.params.id, campaignType: "birthday" },
+      { $set: { notificationReadAt: new Date() } },
+      { new: true }
+    );
+    if (!coupon) throw createHttpError(404, "Birthday notification not found.");
+    res.status(200).json({ success: true, message: "Notification marked as read.", data: coupon });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   validateCouponForOrder,
   listCoupons,
   getCoupon,
-  createCoupon,
-  updateCoupon,
-  toggleCoupon,
-  archiveCoupon,
   listCouponRedemptions,
   getCouponReport,
   reverseCouponRedemption,
+  getCouponCampaignSettings,
+  updateCouponCampaignSettings,
+  issueWelcomeCoupon,
+  generateFridayCampaign,
+  cancelCoupon,
+  listBirthdayNotifications,
+  markBirthdayNotificationRead,
 };

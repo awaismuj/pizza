@@ -6,13 +6,16 @@ const {
   validateCouponForOrder,
   listCoupons,
   getCoupon,
-  createCoupon,
-  updateCoupon,
-  toggleCoupon,
-  archiveCoupon,
   listCouponRedemptions,
   getCouponReport,
   reverseCouponRedemption,
+  getCouponCampaignSettings,
+  updateCouponCampaignSettings,
+  issueWelcomeCoupon,
+  generateFridayCampaign,
+  cancelCoupon,
+  listBirthdayNotifications,
+  markBirthdayNotificationRead,
 } = require("../controllers/couponController");
 
 const router = express.Router();
@@ -23,15 +26,22 @@ const couponRateLimit = createRateLimiter({
 });
 
 router.post("/public/validate", couponRateLimit, attachOptionalCustomer, validateCouponForOrder);
+router.post("/public/welcome", createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: "Too many welcome coupon checks. Please try again later.",
+}), attachOptionalCustomer, issueWelcomeCoupon);
 router.post("/validate", isVerifiedUser, couponRateLimit, validateCouponForOrder);
 router.get("/admin/report", isVerifiedUser, getCouponReport);
+router.get("/admin/settings", isVerifiedUser, getCouponCampaignSettings);
+router.put("/admin/settings", isVerifiedUser, updateCouponCampaignSettings);
+router.post("/admin/generate/friday", isVerifiedUser, generateFridayCampaign);
+router.get("/admin/notifications/birthday", isVerifiedUser, listBirthdayNotifications);
+router.patch("/admin/notifications/birthday/:id/read", isVerifiedUser, markBirthdayNotificationRead);
 router.get("/admin", isVerifiedUser, listCoupons);
-router.post("/admin", isVerifiedUser, createCoupon);
+router.patch("/admin/:id/cancel", isVerifiedUser, cancelCoupon);
 router.get("/admin/:id/redemptions", isVerifiedUser, listCouponRedemptions);
 router.post("/admin/redemptions/:redemptionId/reverse", isVerifiedUser, reverseCouponRedemption);
 router.get("/admin/:id", isVerifiedUser, getCoupon);
-router.patch("/admin/:id/toggle", isVerifiedUser, toggleCoupon);
-router.put("/admin/:id", isVerifiedUser, updateCoupon);
-router.delete("/admin/:id", isVerifiedUser, archiveCoupon);
 
 module.exports = router;

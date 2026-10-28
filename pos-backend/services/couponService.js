@@ -5,13 +5,13 @@ const CouponRedemption = require("../models/couponRedemptionModel");
 const CouponUsage = require("../models/couponUsageModel");
 const Dish = require("../models/dishModel");
 const Order = require("../models/orderModel");
+const Customer = require("../models/customerModel");
 const customerPhoneKey = require("../utils/customerPhoneKey");
 const { calculateCoupon, roundMoney } = require("../utils/couponCalculator");
+const { normalizeCouponCode } = require("../utils/couponCampaignRules");
 
 const RESERVATION_HOURS = 24;
 const SUCCESS_STATUSES = ["Completed", "Closed"];
-
-const normalizeCouponCode = (code) => String(code || "").trim().toUpperCase();
 
 const resolveCouponItems = async (inputItems = []) => {
   if (!Array.isArray(inputItems) || inputItems.length === 0) {
@@ -58,11 +58,21 @@ const resolveCouponItems = async (inputItems = []) => {
   return { items: resolved, hasPromotion };
 };
 
-const customerIdentity = ({ customerId, phone }) => {
-  if (customerId) return { key: `customer:${String(customerId)}`, customerId };
+const customerIdentity = async ({ customerId, phone, email }) => {
+  if (customerId && mongoose.Types.ObjectId.isValid(customerId)) {
+    return { key: `customer:${String(customerId)}`, customerId };
+  }
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (normalizedEmail) {
+    const customer = await Customer.findOne({ email: normalizedEmail, active: true }).select("_id");
+    if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id };
+  }
   const digits = String(phone || "").replace(/\D/g, "");
   if (digits.length >= 10 && digits.length <= 13) {
-    return { key: `phone:${customerPhoneKey(digits)}`, customerId: null };
+    const phoneKey = customerPhoneKey(digits);
+    const customer = await Customer.findOne({ phoneKey, active: true }).select("_id");
+    if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id };
+    return { key: `phone:${phoneKey}`, customerId: null };
   }
   return { key: "", customerId: null };
 };
@@ -82,10 +92,14 @@ const checkFirstOrder = async ({ customerId, phone }) => {
 
 const getCouponByCode = async (code) => {
   const normalizedCode = normalizeCouponCode(code);
-  if (!normalizedCode || normalizedCode.length > 40) {
+  if (!/^FLAT\d+$/.test(normalizedCode) || normalizedCode.length > 40) {
     throw createHttpError(400, "Enter a valid coupon code.");
   }
-  const coupon = await Coupon.findOne({ code: normalizedCode, archivedAt: null });
+  const escaped = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const coupon = await Coupon.findOne({
+    $or: [{ codeKey: normalizedCode }, { code: { $regex: `^${escaped}$`, $options: "i" } }],
+    archivedAt: null,
+  });
   if (!coupon) throw createHttpError(400, "Invalid coupon code.");
   return coupon;
 };
@@ -97,6 +111,7 @@ const validateCoupon = async ({
   deliveryFee = 0,
   customerId = null,
   phone = "",
+  email = "",
   hasPromotion = false,
   now = new Date(),
 }) => {
@@ -105,15 +120,18 @@ const validateCoupon = async ({
   if (coupon.startsAt && now < coupon.startsAt) {
     throw createHttpError(400, "This coupon is not active yet.");
   }
-  if (coupon.expiresAt && now > coupon.expiresAt) {
+  if (coupon.expiresAt && now >= coupon.expiresAt) {
     throw createHttpError(400, "This coupon has expired.");
   }
 
-  const identity = customerIdentity({ customerId, phone });
+  const identity = await customerIdentity({ customerId, phone, email });
   if ((coupon.usageLimitPerCustomer || coupon.isFirstOrderOnly || coupon.eligibleCustomerIds.length) && !identity.key) {
     throw createHttpError(400, "Enter a valid mobile number or sign in to use this coupon.");
   }
-  if (coupon.isFirstOrderOnly && !(await checkFirstOrder({ customerId, phone }))) {
+  if (coupon.isFirstOrderOnly && !(await checkFirstOrder({
+    customerId: identity.customerId,
+    phone,
+  }))) {
     throw createHttpError(400, "This coupon is valid for first-time customers only.");
   }
 
@@ -137,7 +155,7 @@ const validateCoupon = async ({
   const result = calculateCoupon(coupon, items, {
     orderType,
     deliveryFee,
-    customerId,
+    customerId: identity.customerId,
     hasPromotion,
   });
   if (result.error) throw createHttpError(400, result.error);

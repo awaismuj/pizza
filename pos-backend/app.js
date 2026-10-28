@@ -110,6 +110,9 @@ require("./services/assetDepreciationScheduler").startAssetDepreciationScheduler
 // Releases coupon capacity held by pending orders after the reservation window.
 require("./services/couponReservationScheduler").startCouponReservationScheduler();
 
+// Generates scheduled Friday and birthday customer coupons independently of
+// the admin and storefront browsers.
+require("./services/couponCampaignScheduler").startCouponCampaignScheduler();
 
 // Server
 app.listen(PORT, () => {

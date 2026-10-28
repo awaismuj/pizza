@@ -98,6 +98,9 @@ const addOrder = async (req, res, next) => {
     const orderPayload = req.body;
     const couponCode = orderPayload.couponCode;
     delete orderPayload.couponCode;
+    if (couponCode && !req.permissions?.includes("coupons.apply")) {
+      throw createHttpError(403, "You do not have permission to apply coupons.");
+    }
     const couponOrderItems = couponCode ? await resolveCouponItems(orderPayload.items) : null;
 
     // Dine-in / POS orders are only created once staff confirm them at the
@@ -154,8 +157,9 @@ const addOrder = async (req, res, next) => {
         items: couponOrderItems.items,
         orderType,
         deliveryFee,
-        customerId: orderPayload.customerId || null,
+        customerId: null,
         phone: orderPayload.customerDetails?.phone || "",
+        email: orderPayload.customerEmail || "",
         hasPromotion: couponOrderItems.hasPromotion,
       });
       const total = Math.max(0, Math.round((subtotal - validation.discountAmount) * 100) / 100);
@@ -271,6 +275,7 @@ const addPublicOrder = async (req, res, next) => {
     const {
       customerName,
       customerPhone,
+      customerEmail,
       address,
       items,
       fulfillment: fulfillmentInput,
@@ -497,6 +502,7 @@ const addPublicOrder = async (req, res, next) => {
         deliveryFee,
         customerId: req.customer?._id || null,
         phone: effectiveCustomerPhone,
+        email: req.customer?.email || customerEmail || "",
         hasPromotion: discount > 0 || resolvedItems.some((item) => item.dealId),
       });
       total = Math.max(0, Math.round((total - couponValidation.discountAmount) * 100) / 100);

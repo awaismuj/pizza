@@ -5,6 +5,7 @@ const PaymentProof = require("../models/paymentProofModel");
 const { deductInventoryForOrderItems, restoreInventoryForOrderItems, totalDeductionCost } = require("./inventoryController");
 const { invalidateAvailabilityCache } = require("../utils/stockAvailability");
 const { sniffImageType, cleanText, isJazzcashOrder, WAITING_STATUS } = require("../utils/paymentUtils");
+const { releaseOrderCoupon } = require("../services/couponService");
 
 // ---- public: screenshot upload --------------------------------------
 
@@ -153,6 +154,9 @@ const rejectPayment = async (req, res, next) => {
     order.orderStatus = "Cancelled";
     order.statusHistory = [...(order.statusHistory || []), { status: "Cancelled", at: new Date() }];
     await order.save();
+    if (order.coupon?.couponId) {
+      await releaseOrderCoupon(order._id, "Online payment was rejected.");
+    }
     invalidateAvailabilityCache();
 
     res.status(200).json({ success: true, message: "Payment rejected. Order cancelled and stock released.", data: order });
