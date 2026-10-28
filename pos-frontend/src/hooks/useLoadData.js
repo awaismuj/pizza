@@ -2,12 +2,9 @@ import { useDispatch } from "react-redux";
 import { getUserData } from "../https";
 import { useEffect, useState } from "react";
 import { removeUser, setUser } from "../redux/slices/userSlice";
-import { useLocation, useNavigate } from "react-router-dom";
 
 const useLoadData = () => {
   const dispatch = useDispatch();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const demoPreview = import.meta.env.DEV && import.meta.env.VITE_POS_DEMO === "true";
 
@@ -46,7 +43,6 @@ const useLoadData = () => {
         dispatch(setUser({ _id, name, email, phone, role, permissions, forcePasswordChange }));
       } catch (error) {
         dispatch(removeUser());
-        navigate("/auth");
         console.log(error);
       } finally {
         setIsLoading(false);
@@ -54,7 +50,7 @@ const useLoadData = () => {
     };
 
     fetchUser();
-  }, [demoPreview, dispatch, location.pathname, navigate]);
+  }, [demoPreview, dispatch]);
 
   return isLoading;
 };
