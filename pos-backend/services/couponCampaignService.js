@@ -19,6 +19,9 @@ const DISCOUNT_LABELS = {
   birthday: "Birthday",
 };
 
+const campaignNameFor = (campaignType, settings) =>
+  String(settings.campaignName || DISCOUNT_LABELS[campaignType]).trim();
+
 const randomPercentage = (percentages) => percentages[crypto.randomInt(0, percentages.length)];
 
 const hasPriorSuccessfulOrder = async (customer) => {
@@ -72,8 +75,8 @@ const issueCoupon = async ({
       const coupon = await Coupon.create({
         code,
         codeKey: code.toUpperCase(),
-        name: `${DISCOUNT_LABELS[campaignType]} coupon`,
-        description: `${discountValue}% off for ${customer.name}.`,
+        name: campaignNameFor(campaignType, settings),
+        description: `${discountValue}% off for ${customer.name || "customer"}.`,
         campaignType,
         campaignCycle,
         ...(campaignKey ? { campaignKey } : {}),

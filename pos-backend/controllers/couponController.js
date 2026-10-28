@@ -391,12 +391,18 @@ const normalizeCampaignSettings = (currentSettings, input) => {
     const allowed = type === "welcome"
       ? ["enabled", "minimumSubtotal", "percentages", "expiryHours", "maxOnePerCustomer"]
       : type === "friday"
-        ? ["automaticGeneration", "minimumSubtotal", "percentages", "expiryHours", "timezone"]
-        : ["enabled", "discountMode", "fixedPercentage", "percentages", "minimumSubtotal", "expiryHours", "timezone"];
+        ? ["campaignName", "automaticGeneration", "campaignDay", "generationTime", "minimumSubtotal", "percentages", "expiryHours", "timezone"]
+        : ["campaignName", "enabled", "discountMode", "fixedPercentage", "percentages", "minimumSubtotal", "expiryHours", "checkTime", "timezone"];
     if (Object.keys(group).some((key) => !allowed.includes(key))) {
       throw createHttpError(400, `Unsupported ${type} coupon setting.`);
     }
     const next = { ...result[type], ...group };
+    if (type !== "welcome") {
+      next.campaignName = String(next.campaignName || "").trim();
+      if (!next.campaignName || next.campaignName.length > 100) {
+        throw createHttpError(400, `${type} campaign name must contain 1 to 100 characters.`);
+      }
+    }
     if (type !== "friday" && typeof next.enabled !== "boolean") {
       throw createHttpError(400, `${type} coupon enabled setting must be true or false.`);
     }
@@ -424,7 +430,19 @@ const normalizeCampaignSettings = (currentSettings, input) => {
     if (type === "friday" && typeof next.automaticGeneration !== "boolean") {
       throw createHttpError(400, "Automatic Friday generation must be enabled or disabled.");
     }
+    if (type === "friday") {
+      next.campaignDay = Number(next.campaignDay);
+      if (!Number.isInteger(next.campaignDay) || next.campaignDay < 0 || next.campaignDay > 6) {
+        throw createHttpError(400, "Choose a valid campaign day.");
+      }
+      if (typeof next.generationTime !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(next.generationTime)) {
+        throw createHttpError(400, "Enter a valid campaign generation time.");
+      }
+    }
     if (type === "birthday") {
+      if (typeof next.checkTime !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(next.checkTime)) {
+        throw createHttpError(400, "Enter a valid daily birthday check time.");
+      }
       if (!["fixed", "random"].includes(next.discountMode)) {
         throw createHttpError(400, "Choose a fixed or random birthday discount.");
       }

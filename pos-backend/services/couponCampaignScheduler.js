@@ -7,6 +7,7 @@ const {
   DEFAULT_COUPON_CAMPAIGNS,
   fridayCampaignCycle,
   isFridayCampaignDue,
+  isDailyCampaignDue,
   zonedParts,
 } = require("../utils/couponCampaignRules");
 
@@ -23,7 +24,12 @@ const runCouponCampaigns = async (now = new Date()) => {
     const campaigns = settings?.couponCampaigns || DEFAULT_COUPON_CAMPAIGNS;
     const friday = campaigns.friday || {};
     if (friday.automaticGeneration &&
-        isFridayCampaignDue(now, friday.timezone || "Asia/Karachi")) {
+        isFridayCampaignDue(
+          now,
+          friday.timezone || "Asia/Karachi",
+          friday.campaignDay ?? 5,
+          friday.generationTime || "18:00"
+        )) {
       const cycle = fridayCampaignCycle(now, friday.timezone || "Asia/Karachi");
       if (cycle !== lastFridayCycle) {
         const result = await generateFridayCoupons({
@@ -31,7 +37,7 @@ const runCouponCampaigns = async (now = new Date()) => {
           settings: friday,
           timezone: friday.timezone || "Asia/Karachi",
         });
-        lastFridayCycle = cycle;
+        if (!result.errors) lastFridayCycle = cycle;
         console.info(`Friday coupon campaign ${cycle}: ${result.generated} generated, ${result.skipped} skipped.`);
       }
     }
@@ -41,7 +47,7 @@ const runCouponCampaigns = async (now = new Date()) => {
       const timezone = birthday.timezone || "Asia/Karachi";
       const parts = zonedParts(now, timezone);
       const localDate = `${parts.year}-${parts.month}-${parts.day}`;
-      if (localDate !== lastBirthdayDate) {
+      if (localDate !== lastBirthdayDate && isDailyCampaignDue(now, timezone, birthday.checkTime || "00:00")) {
         const result = await generateBirthdayCoupons({ now, settings: birthday, timezone });
         if (!result.errors) {
           lastBirthdayDate = localDate;

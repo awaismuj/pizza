@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
@@ -24,19 +24,24 @@ const initialSettings = {
     maxOnePerCustomer: true,
   },
   friday: {
+    campaignName: "Friday Campaign",
     automaticGeneration: false,
+    campaignDay: 5,
+    generationTime: "18:00",
     minimumSubtotal: 1000,
     percentages: [4, 5, 6, 7],
     expiryHours: 72,
     timezone: "Asia/Karachi",
   },
   birthday: {
+    campaignName: "Birthday Coupon",
     enabled: false,
     discountMode: "random",
     fixedPercentage: 5,
     percentages: [5, 6, 7],
     minimumSubtotal: 1000,
     expiryHours: 72,
+    checkTime: "00:00",
     timezone: "Asia/Karachi",
   },
 };
@@ -145,10 +150,16 @@ Field.propTypes = {
 const inputClass = "w-full rounded-lg border border-[#3b3b3b] bg-[#171717] px-3 py-2.5 text-sm text-white outline-none focus:border-[#f6b100]";
 
 const CampaignSettingsPanel = ({ type, title, initial, canManage, onSave, saving }) => {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     ...initial,
     percentages: (initial.percentages || []).join(", "),
-  });
+  }));
+  useEffect(() => {
+    setForm({
+      ...initial,
+      percentages: (initial.percentages || []).join(", "),
+    });
+  }, [initial]);
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const submit = (event) => {
     event.preventDefault();
@@ -162,6 +173,7 @@ const CampaignSettingsPanel = ({ type, title, initial, canManage, onSave, saving
       expiryHours: Number(form.expiryHours),
       percentages,
     };
+    if (type === "friday") payload.campaignDay = Number(form.campaignDay);
     if (type === "birthday") payload.fixedPercentage = Number(form.fixedPercentage);
     onSave(type, payload);
   };
@@ -170,7 +182,7 @@ const CampaignSettingsPanel = ({ type, title, initial, canManage, onSave, saving
     <form onSubmit={submit} className="rounded-xl border border-[#343434] bg-[#222] p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <h3 className="text-lg font-semibold text-white">{type === "welcome" ? title : form.campaignName || title}</h3>
           <p className="mt-1 text-xs text-[#969696]">Expiry is stored at issuance and shown in the configured timezone.</p>
         </div>
         {type !== "friday" && (
@@ -188,15 +200,35 @@ const CampaignSettingsPanel = ({ type, title, initial, canManage, onSave, saving
 
       <div className="grid gap-4 sm:grid-cols-2">
         {type === "friday" && (
-          <label className="flex items-center gap-2 text-sm text-[#e2e2e2] sm:col-span-2">
-            <input
-              type="checkbox"
-              checked={Boolean(form.automaticGeneration)}
-              onChange={(event) => update("automaticGeneration", event.target.checked)}
-              disabled={!canManage}
-            />
-            Enable automatic Friday generation at 6:00 PM
-          </label>
+          <>
+            <label className="flex items-center gap-2 text-sm text-[#e2e2e2] sm:col-span-2">
+              <input
+                type="checkbox"
+                checked={Boolean(form.automaticGeneration)}
+                onChange={(event) => update("automaticGeneration", event.target.checked)}
+                disabled={!canManage}
+              />
+              Enable automatic campaign generation
+            </label>
+            <Field label="Campaign / deal name">
+              <input className={inputClass} maxLength={100} value={form.campaignName} onChange={(event) => update("campaignName", event.target.value)} disabled={!canManage} />
+            </Field>
+            <Field label="Generate every">
+              <select className={inputClass} value={form.campaignDay} onChange={(event) => update("campaignDay", event.target.value)} disabled={!canManage}>
+                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, value) => (
+                  <option key={day} value={value}>{day}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Generation time">
+              <input className={inputClass} type="time" value={form.generationTime} onChange={(event) => update("generationTime", event.target.value)} disabled={!canManage} />
+            </Field>
+          </>
+        )}
+        {type === "birthday" && (
+          <Field label="Birthday campaign name">
+            <input className={inputClass} maxLength={100} value={form.campaignName} onChange={(event) => update("campaignName", event.target.value)} disabled={!canManage} />
+          </Field>
         )}
         {type === "birthday" && (
           <>
@@ -229,9 +261,16 @@ const CampaignSettingsPanel = ({ type, title, initial, canManage, onSave, saving
           </label>
         )}
         {type !== "welcome" && (
-          <Field label="Timezone">
-            <input className={inputClass} value={form.timezone} onChange={(event) => update("timezone", event.target.value)} disabled={!canManage} placeholder="Asia/Karachi" />
-          </Field>
+          <>
+            {type === "birthday" && (
+              <Field label="Daily birthday check time">
+                <input className={inputClass} type="time" value={form.checkTime} onChange={(event) => update("checkTime", event.target.value)} disabled={!canManage} />
+              </Field>
+            )}
+            <Field label="Timezone">
+              <input className={inputClass} value={form.timezone} onChange={(event) => update("timezone", event.target.value)} disabled={!canManage} placeholder="Asia/Karachi" />
+            </Field>
+          </>
         )}
       </div>
 
@@ -506,7 +545,7 @@ const CouponsManager = ({ canManage }) => {
                       {customer?.phone || "—"}<br />{customer?.email || ""}
                       {!customer?.phone && !customer?.email && <span className="text-amber-300">No contact information</span>}
                     </td>
-                    <td className="p-3"><strong>{coupon.code}</strong><br /><span className="text-xs text-[#aaa]">{coupon.discountValue}% off</span></td>
+                    <td className="p-3"><strong>{coupon.code}</strong><br /><span className="text-xs text-[#aaa]">{coupon.name} · {coupon.discountValue}% off</span></td>
                     <td className="p-3 capitalize">{coupon.campaignType}</td>
                     <td className="p-3">{formatDate(coupon.createdAt, timezone)}</td>
                     <td className="p-3">{formatDate(coupon.expiresAt, timezone)}<br /><span className="text-[11px] text-[#888]">{timezone}</span></td>
@@ -560,9 +599,16 @@ const CouponsManager = ({ canManage }) => {
             return (
               <article key={coupon._id} className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${coupon.notificationReadAt ? "border-[#343434] bg-[#1a1a1a]" : "border-[#8b6a14] bg-[#2b271a]"}`}>
                 <div>
-                  <p className="font-semibold">🎂 Birthday coupon ready for {customer?.name || "you"}!</p>
+                  <button
+                    type="button"
+                    className="text-left font-semibold hover:text-[#f6b100]"
+                    onClick={() => setSelectedCouponId(coupon._id)}
+                  >
+                    🎂 Birthday coupon ready for {customer?.name || "you"}!
+                  </button>
                   <p className="text-xs text-[#b3b3b3]">{customer?.phone || "—"} · {customer?.email || "—"}</p>
                   <div className="mt-2 grid gap-x-5 gap-y-1 text-sm sm:grid-cols-2">
+                    <p>Campaign: <strong>{coupon.name}</strong></p>
                     <p>Coupon: <strong>{coupon.code}</strong></p>
                     <p>Discount: <strong>{coupon.discountValue}%</strong></p>
                     <p>Minimum order: <strong>{formatCurrency(coupon.minimumOrderAmount, currency)}</strong></p>
