@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux";
 import { getUserData } from "../https";
 import { useEffect, useState } from "react";
-import { removeUser, setUser } from "../redux/slices/userSlice";
+import { setUser } from "../redux/slices/userSlice";
 
 const useLoadData = () => {
   const dispatch = useDispatch();
@@ -9,6 +9,8 @@ const useLoadData = () => {
   const demoPreview = import.meta.env.DEV && import.meta.env.VITE_POS_DEMO === "true";
 
   useEffect(() => {
+    let active = true;
+
     if (demoPreview) {
       dispatch(setUser({
         _id: "local-demo-admin",
@@ -32,24 +34,29 @@ const useLoadData = () => {
         ],
       }));
       setIsLoading(false);
-      return;
+      return () => {
+        active = false;
+      };
     }
 
     const fetchUser = async () => {
       try {
         const { data } = await getUserData();
-        console.log(data);
+        if (!active) return;
         const { _id, name, email, phone, role, permissions, forcePasswordChange } = data.data;
         dispatch(setUser({ _id, name, email, phone, role, permissions, forcePasswordChange }));
       } catch (error) {
-        dispatch(removeUser());
-        console.log(error);
+        if (active) console.error("Could not restore POS session:", error);
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
 
     fetchUser();
+
+    return () => {
+      active = false;
+    };
   }, [demoPreview, dispatch]);
 
   return isLoading;
