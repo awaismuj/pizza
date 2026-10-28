@@ -39,7 +39,9 @@ const calculateCoupon = (coupon, items, options = {}) => {
     coupon.minimumOrderAmount != null &&
     eligibleSubtotal < Number(coupon.minimumOrderAmount)
   ) {
-    return { error: "Minimum order amount has not been reached." };
+    return {
+      error: `Minimum order subtotal is Rs ${Number(coupon.minimumOrderAmount).toFixed(2)}; eligible subtotal is Rs ${eligibleSubtotal.toFixed(2)}.`,
+    };
   }
   if (
     coupon.minimumQualifyingQuantity != null &&
