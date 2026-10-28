@@ -6,11 +6,11 @@ const CouponUsage = require("../models/couponUsageModel");
 const Dish = require("../models/dishModel");
 const Order = require("../models/orderModel");
 const Customer = require("../models/customerModel");
-const customerPhoneKey = require("../utils/customerPhoneKey");
 const { calculateCoupon, roundMoney } = require("../utils/couponCalculator");
 const { formatCouponCode, normalizeCouponCode } = require("../utils/couponCampaignRules");
 const normalizePakistaniMobile = require("../utils/normalizePakistaniMobile");
 const pakistaniMobileKey = require("../utils/pakistaniMobileKey");
+const customerPhoneKeyCandidates = require("../utils/customerPhoneKeyCandidates");
 
 const RESERVATION_HOURS = 24;
 const SUCCESS_STATUSES = ["Completed", "Closed"];
@@ -73,11 +73,9 @@ const customerIdentity = async ({ customerId, phone, email }) => {
   }
   if (canonicalDigits) {
     const phoneKey = pakistaniMobileKey(canonicalDigits);
-    const legacyPhoneKey = customerPhoneKey(canonicalDigits);
+    const legacyPhoneKeys = customerPhoneKeyCandidates(canonicalDigits);
     const customer = await Customer.findOne({
-      $or: [
-        { phoneKey: legacyPhoneKey },
-      ],
+      phoneKey: { $in: legacyPhoneKeys },
       active: true,
     }).select("_id");
     if (customer) return { key: `customer:${String(customer._id)}`, customerId: customer._id, phoneKey: phoneIdentityKey };
@@ -379,6 +377,7 @@ module.exports = {
   normalizeCouponCode,
   resolveCouponItems,
   customerIdentity,
+  customerPhoneKeyCandidates,
   matchesCouponIdentity,
   validateCoupon,
   reserveCoupon,

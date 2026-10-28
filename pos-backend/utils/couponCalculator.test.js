@@ -40,7 +40,10 @@ test("minimums and qualifying quantity use eligible products only", () => {
     minimumQualifyingQuantity: 2,
     eligibleCategoryIds: ["cat-sides"],
   };
-  assert.match(calculateCoupon(coupon, items, { orderType: "pickup" }).error, /Minimum order/);
+  assert.match(
+    calculateCoupon(coupon, items, { orderType: "pickup" }).error,
+    /Minimum order subtotal is Rs 300\.00; eligible subtotal is Rs 200\.00/
+  );
   assert.match(
     calculateCoupon({ ...coupon, minimumOrderAmount: 100 }, items, { orderType: "pickup" }).error,
     /eligible item\(s\)/
