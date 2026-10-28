@@ -2,8 +2,11 @@ const crypto = require("crypto");
 const Customer = require("../models/customerModel");
 const Coupon = require("../models/couponModel");
 const Order = require("../models/orderModel");
+const normalizePakistaniMobile = require("../utils/normalizePakistaniMobile");
+const pakistaniMobileKey = require("../utils/pakistaniMobileKey");
 const {
   generateCouponCode,
+  generateFridayCouponCode,
   expiryDate,
   isCustomerBirthday,
   birthdayCampaignCycle,
@@ -44,17 +47,33 @@ const issueCoupon = async ({
   settings,
   now = new Date(),
 }) => {
-  const campaignKey = `${campaignType}:${campaignCycle}:${String(customer._id)}`;
+  const accountCustomerId = customer.customerId ||
+    (customer.accountCustomer === false ? null : customer._id);
+  const accountCustomerIds = [...new Set(
+    (customer.customerIds || (accountCustomerId ? [accountCustomerId] : []))
+      .filter(Boolean)
+      .map(String)
+  )];
+  const recipientPhoneKey = customer.recipientPhoneKey ||
+    (customer.phone ? pakistaniMobileKey(customer.phone) : "");
+  const campaignIdentity = accountCustomerId
+    ? String(accountCustomerId)
+    : recipientPhoneKey
+      ? `phone:${recipientPhoneKey}`
+      : String(customer._id);
+  const campaignKey = `${campaignType}:${campaignCycle}:${campaignIdentity}`;
   if (campaignKey) {
     const existing = await Coupon.findOne({ campaignKey });
     if (existing) return { coupon: existing, created: false };
   }
-  const existingForCustomer = await Coupon.findOne({
-    campaignType,
-    campaignCycle,
-    customerId: { $in: customerIds },
-  });
-  if (existingForCustomer) return { coupon: existingForCustomer, created: false };
+  if (customerIds.length) {
+    const existingForCustomer = await Coupon.findOne({
+      campaignType,
+      campaignCycle,
+      customerId: { $in: customerIds },
+    });
+    if (existingForCustomer) return { coupon: existingForCustomer, created: false };
+  }
 
   const discountValue = campaignType === "birthday" && settings.discountMode === "fixed"
     ? Number(settings.fixedPercentage)
@@ -62,7 +81,7 @@ const issueCoupon = async ({
   const expiresAt = expiryDate({ now, hours: settings.expiryHours });
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const code = generateCouponCode();
+    const code = campaignType === "friday" ? generateFridayCouponCode() : generateCouponCode();
     const escapedCode = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const codeExists = await Coupon.exists({
       $or: [
@@ -80,8 +99,15 @@ const issueCoupon = async ({
         campaignType,
         campaignCycle,
         ...(campaignKey ? { campaignKey } : {}),
-        customerId: customer._id,
-        eligibleCustomerIds: [customer._id],
+        customerId: accountCustomerId,
+        recipientName: customer.name || "",
+        recipientPhone: customer.phone || "",
+        recipientPhoneKey,
+        recipientEmail: customer.email || "",
+        eligibleCustomerIds: accountCustomerIds,
+        eligibleCustomerKeys: accountCustomerId || !recipientPhoneKey
+          ? []
+          : [`phone:${recipientPhoneKey}`],
         discountType: "percentage",
         discountValue,
         minimumOrderAmount: Number(settings.minimumSubtotal) || 0,
@@ -114,7 +140,59 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
     .lean()
     .cursor({ batchSize: GENERATION_BATCH_SIZE });
   const customers = [];
-  for await (const customer of customerCursor) customers.push(customer);
+  const customerById = new Map();
+  for await (const customer of customerCursor) {
+    const record = { ...customer, accountCustomer: true, customerId: customer._id };
+    customers.push(record);
+    customerById.set(String(customer._id), record);
+  }
+  const phoneAccount = new Map();
+  for (const customer of customers) {
+    const mobile = normalizePakistaniMobile(customer.phone);
+    if (mobile && !phoneAccount.has(mobile)) phoneAccount.set(mobile, customer);
+  }
+
+  let ordersWithoutMobile = 0;
+  const orderCursor = Order.find({})
+    .select("_id customerId customerDetails.name customerDetails.phone")
+    .lean()
+    .cursor({ batchSize: GENERATION_BATCH_SIZE });
+  for await (const order of orderCursor) {
+    const linkedById = customerById.get(String(order.customerId));
+    const mobile = normalizePakistaniMobile(order.customerDetails?.phone);
+    if (linkedById) {
+      if (!String(linkedById.name || "").trim()) {
+        linkedById.name = String(order.customerDetails?.name || "").trim();
+      }
+      if (!String(linkedById.phone || "").trim()) {
+        linkedById.phone = String(order.customerDetails?.phone || "").trim();
+      }
+      continue;
+    }
+    if (!mobile) {
+      ordersWithoutMobile += 1;
+      continue;
+    }
+    const linkedCustomer = phoneAccount.get(mobile);
+    if (linkedCustomer) {
+      if (!String(linkedCustomer.name || "").trim()) {
+        linkedCustomer.name = String(order.customerDetails?.name || "").trim();
+      }
+      if (!String(linkedCustomer.phone || "").trim()) {
+        linkedCustomer.phone = String(order.customerDetails?.phone || "").trim();
+      }
+      continue;
+    }
+    customers.push({
+      _id: `order:${String(order._id)}`,
+      name: order.customerDetails?.name || "",
+      phone: order.customerDetails?.phone || "",
+      email: "",
+      customerId: null,
+      accountCustomer: false,
+      recipientPhoneKey: pakistaniMobileKey(mobile),
+    });
+  }
 
   const deduplicated = deduplicateCustomers(customers);
   let generated = 0;
@@ -126,12 +204,27 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
 
   for (let start = 0; start < deduplicated.customers.length; start += GENERATION_BATCH_SIZE) {
     const batch = deduplicated.customers.slice(start, start + GENERATION_BATCH_SIZE);
-    for (const { customer, customerIds } of batch) {
+    for (const { customer, members } of batch) {
       processed += 1;
       try {
+        const accountIds = [...new Set(
+          members
+            .map((member) => member.customerId || (member.accountCustomer ? member._id : null))
+            .filter(Boolean)
+            .map(String)
+        )];
+        const primaryAccountId = accountIds[0] || null;
         const result = await issueCoupon({
-          customer,
-          customerIds,
+          customer: {
+            ...customer,
+            customerId: primaryAccountId,
+            accountCustomer: Boolean(primaryAccountId),
+            customerIds: accountIds,
+            recipientPhoneKey: customer.phone
+              ? pakistaniMobileKey(customer.phone)
+              : "",
+          },
+          customerIds: accountIds,
           campaignType: "friday",
           campaignCycle,
           settings,
@@ -161,6 +254,7 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
     campaignCycle,
     totalCustomers: customers.length,
     eligible: deduplicated.customers.length,
+    skippedNoContact: ordersWithoutMobile,
     processed,
     batchesProcessed: batchesTotal,
     batchesTotal,

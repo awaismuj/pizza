@@ -6,6 +6,8 @@ const Customer = require("../models/customerModel");
 const Settings = require("../models/settingsModel");
 const Branch = require("../models/branchModel");
 const customerPhoneKey = require("../utils/customerPhoneKey");
+const normalizePakistaniMobile = require("../utils/normalizePakistaniMobile");
+const pakistaniMobileKey = require("../utils/pakistaniMobileKey");
 const { quoteFulfillment } = require("../utils/fulfillment");
 const { DEFAULT_COUPON_CAMPAIGNS } = require("../utils/couponCampaignRules");
 const {
@@ -85,17 +87,26 @@ const listCoupons = async (req, res, next) => {
     const andFilters = [];
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const normalizedPhone = normalizePakistaniMobile(search);
+      const phoneKey = pakistaniMobileKey(normalizedPhone);
+      const legacyPhoneKey = normalizedPhone ? customerPhoneKey(normalizedPhone) : "";
       const customerIds = await Customer.find({
         $or: [
           { name: { $regex: escaped, $options: "i" } },
           { phone: { $regex: escaped, $options: "i" } },
           { email: { $regex: escaped, $options: "i" } },
+          ...(legacyPhoneKey ? [{ phoneKey: legacyPhoneKey }] : []),
         ],
       }).distinct("_id");
       andFilters.push({ $or: [
         { code: { $regex: escaped, $options: "i" } },
         { name: { $regex: escaped, $options: "i" } },
+        { recipientName: { $regex: escaped, $options: "i" } },
+        { recipientPhone: { $regex: escaped, $options: "i" } },
+        { recipientEmail: { $regex: escaped, $options: "i" } },
         ...(customerIds.length ? [{ customerId: { $in: customerIds } }] : []),
+        ...(normalizedPhone ? [{ recipientPhone: { $regex: `${normalizedPhone}$` } }] : []),
+        ...(phoneKey ? [{ recipientPhoneKey: phoneKey }] : []),
       ] });
     }
     if (req.query.type && ["manual", "welcome", "friday", "birthday"].includes(req.query.type)) {
@@ -110,15 +121,21 @@ const listCoupons = async (req, res, next) => {
           { email: { $regex: "\\S" } },
         ],
       };
-      const customerFilter = req.query.contact === "available"
-        ? hasContact
-        : {
-            $and: [
-              { $or: [{ phone: { $exists: false } }, { phone: null }, { phone: { $regex: "^\\s*$" } }] },
-              { $or: [{ email: { $exists: false } }, { email: null }, { email: { $regex: "^\\s*$" } }] },
-            ],
-          };
-      filter.customerId = { $in: await Customer.find(customerFilter).distinct("_id") };
+      const customerIds = await Customer.find(hasContact).distinct("_id");
+      filter.$and = [
+        ...(filter.$and || []),
+        req.query.contact === "available"
+          ? { $or: [
+              { customerId: { $in: customerIds } },
+              { recipientPhone: { $regex: "\\S" } },
+              { recipientEmail: { $regex: "\\S" } },
+            ] }
+          : { $and: [
+              { customerId: { $nin: customerIds } },
+              { $or: [{ recipientPhone: "" }, { recipientPhone: { $exists: false } }] },
+              { $or: [{ recipientEmail: "" }, { recipientEmail: { $exists: false } }] },
+            ] },
+      ];
     } else if (req.query.contact) {
       throw createHttpError(400, "Choose a valid contact information filter.");
     }
@@ -151,7 +168,7 @@ const listCoupons = async (req, res, next) => {
       }
       filter.createdAt = createdAt;
     }
-    if (andFilters.length) filter.$and = andFilters;
+    if (andFilters.length) filter.$and = [...(filter.$and || []), ...andFilters];
     const [coupons, total] = await Promise.all([
       Coupon.find(filter)
         .populate("customerId", "name phone email")

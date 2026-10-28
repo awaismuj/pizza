@@ -34,16 +34,17 @@ const DEFAULT_COUPON_CAMPAIGNS = {
 const normalizeCouponCode = (code) => String(code || "").trim().toUpperCase();
 
 const formatCouponCode = (code) => {
-  const match = /^FLAT(\d+)$/i.exec(String(code || "").trim());
-  return match ? `Flat${match[1]}` : "";
+  const value = String(code || "").trim();
+  const flatMatch = /^FLAT(\d+)$/i.exec(value);
+  if (flatMatch) return `Flat${flatMatch[1]}`;
+  const campaignMatch = /^WACMP_([0-9A-F]{32})$/i.exec(value);
+  return campaignMatch ? `WACMP_${campaignMatch[1].toUpperCase()}` : "";
 };
 
 const generateCouponCode = () => `Flat${crypto.randomInt(100, 100000)}`;
+const generateFridayCouponCode = () => `WACMP_${crypto.randomBytes(16).toString("hex").toUpperCase()}`;
 
-const normalizeCustomerPhone = (phone) => {
-  const digits = String(phone || "").replace(/\D/g, "");
-  return digits.length >= 7 ? digits.slice(-9) : "";
-};
+const normalizeCustomerPhone = require("./normalizePakistaniMobile");
 
 const deduplicateCustomers = (customers) => {
   const parent = new Map();
@@ -101,6 +102,9 @@ const deduplicateCustomers = (customers) => {
 
   const representatives = [...groups.values()].map((group) => {
     group.sort((left, right) => {
+      if (Boolean(left.accountCustomer) !== Boolean(right.accountCustomer)) {
+        return left.accountCustomer ? -1 : 1;
+      }
       const contactScore = (customer) =>
         Number(Boolean(String(customer.phone || "").trim())) +
         Number(Boolean(String(customer.email || "").trim()));
@@ -176,6 +180,7 @@ module.exports = {
   normalizeCouponCode,
   formatCouponCode,
   generateCouponCode,
+  generateFridayCouponCode,
   normalizeCustomerPhone,
   deduplicateCustomers,
   zonedParts,

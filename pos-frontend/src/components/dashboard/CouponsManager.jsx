@@ -75,6 +75,17 @@ const formatCurrency = (value, currency) => new Intl.NumberFormat("en-PK", {
   currency: currency || "PKR",
 }).format(Number(value) || 0);
 
+const couponRecipient = (coupon) => {
+  const linkedCustomer = coupon?.customerId && typeof coupon.customerId === "object"
+    ? coupon.customerId
+    : null;
+  return {
+    name: linkedCustomer?.name || coupon?.recipientName || "",
+    phone: linkedCustomer?.phone || coupon?.recipientPhone || "",
+    email: linkedCustomer?.email || coupon?.recipientEmail || "",
+  };
+};
+
 const customerCouponMessage = (coupon, customer, currency, timezone) => {
   const greetingName = String(customer?.name || "").trim() || "there";
   const expiresAt = formatDate(coupon.expiresAt, timezone);
@@ -90,7 +101,7 @@ const customerCouponMessage = (coupon, customer, currency, timezone) => {
     "",
     `⏰ Valid until: ${expiresAt} (${timezone})`,
     "",
-    "🍕 Order online: https://online.sindbandsolution.com/",
+    "🍕 Order online: https://online.sindbadsolutions.com/",
     "",
     "Enjoy your delicious pizza! 🍕❤️",
   ].join("\n");
@@ -112,7 +123,7 @@ const birthdayCouponMessage = (coupon, customer, currency, timezone) => {
     "",
     `⏰ Valid until: ${formatDate(coupon.expiresAt, timezone)} (${timezone})`,
     "",
-    "🍕 Order online: https://online.sindbandsolution.com/",
+    "🍕 Order online: https://online.sindbadsolutions.com/",
     "",
     "Celebrate your special day with delicious pizza! ❤️🍕",
   ].join("\n");
@@ -535,7 +546,7 @@ const CouponsManager = ({ canManage }) => {
             </thead>
             <tbody className="divide-y divide-[#333]">
               {listQuery.isError ? <tr><td className="p-5 text-center text-red-300" colSpan="8" role="alert">{listQuery.error?.response?.data?.message || "Coupons could not be loaded."}</td></tr> : coupons.map((coupon) => {
-                const customer = coupon.customerId && typeof coupon.customerId === "object" ? coupon.customerId : null;
+                const customer = couponRecipient(coupon);
                 const timezone = expiryTimezone(coupon, settings);
                 const couponStatus = getCouponStatus(coupon);
                 return (
@@ -553,7 +564,7 @@ const CouponsManager = ({ canManage }) => {
                     <td className="p-3">
                       <div className="flex flex-wrap gap-2">
                         <button className="rounded bg-[#333] px-2 py-1 text-xs" onClick={() => copyCode(coupon.code)}>Copy coupon</button>
-                        {coupon.campaignType === "friday" && (
+                        {["friday", "welcome"].includes(coupon.campaignType) && (
                           <button
                             className="rounded bg-[#333] px-2 py-1 text-xs"
                             onClick={() => copyMessage(customerCouponMessage(coupon, customer, currency, timezone))}
@@ -594,7 +605,7 @@ const CouponsManager = ({ canManage }) => {
         </div>
         <div className="space-y-3">
           {notifications.map((coupon) => {
-            const customer = coupon.customerId && typeof coupon.customerId === "object" ? coupon.customerId : null;
+            const customer = couponRecipient(coupon);
             const timezone = settings.birthday?.timezone || "Asia/Karachi";
             return (
               <article key={coupon._id} className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${coupon.notificationReadAt ? "border-[#343434] bg-[#1a1a1a]" : "border-[#8b6a14] bg-[#2b271a]"}`}>
@@ -651,9 +662,9 @@ const CouponsManager = ({ canManage }) => {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <p><span className="text-[#999]">Code:</span> {detail.coupon.code}</p>
                   <p><span className="text-[#999]">Status:</span> {getCouponStatus(detail.coupon)}</p>
-                  <p><span className="text-[#999]">Customer:</span> {detail.coupon.customerId?.name || "—"}</p>
-                  <p><span className="text-[#999]">Mobile:</span> {detail.coupon.customerId?.phone || "—"}</p>
-                  <p><span className="text-[#999]">Email:</span> {detail.coupon.customerId?.email || "—"}</p>
+                  <p><span className="text-[#999]">Customer:</span> {couponRecipient(detail.coupon).name || "—"}</p>
+                  <p><span className="text-[#999]">Mobile:</span> {couponRecipient(detail.coupon).phone || "—"}</p>
+                  <p><span className="text-[#999]">Email:</span> {couponRecipient(detail.coupon).email || "—"}</p>
                   <p><span className="text-[#999]">Discount:</span> {detail.coupon.discountValue}%</p>
                   <p><span className="text-[#999]">Minimum subtotal:</span> {formatCurrency(detail.coupon.minimumOrderAmount, currency)}</p>
                   <p><span className="text-[#999]">Created:</span> {formatDate(detail.coupon.createdAt, expiryTimezone(detail.coupon, settings))}</p>
@@ -668,7 +679,7 @@ const CouponsManager = ({ canManage }) => {
                         className="rounded bg-[#333] px-3 py-1.5 text-xs"
                         onClick={() => copyMessage(birthdayCouponMessage(
                           detail.coupon,
-                          detail.coupon.customerId,
+                          couponRecipient(detail.coupon),
                           currency,
                           expiryTimezone(detail.coupon, settings)
                         ))}
@@ -679,7 +690,7 @@ const CouponsManager = ({ canManage }) => {
                     <p className="whitespace-pre-wrap text-sm text-[#ccc]">
                       {birthdayCouponMessage(
                         detail.coupon,
-                        detail.coupon.customerId,
+                        couponRecipient(detail.coupon),
                         currency,
                         expiryTimezone(detail.coupon, settings)
                       )}

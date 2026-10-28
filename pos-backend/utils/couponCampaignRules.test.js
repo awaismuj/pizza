@@ -4,6 +4,7 @@ const {
   normalizeCouponCode,
   formatCouponCode,
   generateCouponCode,
+  generateFridayCouponCode,
   deduplicateCustomers,
   fridayCampaignCycle,
   birthdayCampaignCycle,
@@ -13,13 +14,33 @@ const {
   expiryDate,
 } = require("./couponCampaignRules");
 
-test("coupon codes normalize case-insensitively and use the Flat plus digits format", () => {
+test("coupon codes normalize case-insensitively and accept campaign and Flat formats", () => {
   assert.equal(normalizeCouponCode(" fLaT345 "), "FLAT345");
   assert.equal(formatCouponCode("flat345"), "Flat345");
   assert.equal(formatCouponCode("SAVE345"), "");
+  assert.equal(
+    formatCouponCode("wacmp_1795c7023560fed71ce5f9c7ae6dc988"),
+    "WACMP_1795C7023560FED71CE5F9C7AE6DC988"
+  );
   for (let index = 0; index < 100; index += 1) {
     assert.match(generateCouponCode(), /^Flat\d{3,5}$/);
+    assert.match(generateFridayCouponCode(), /^WACMP_[0-9A-F]{32}$/);
   }
+});
+
+test("Pakistani mobile formats normalize to one canonical mobile", () => {
+  const normalizePakistaniMobile = require("./normalizePakistaniMobile");
+  const pakistaniMobileKey = require("./pakistaniMobileKey");
+  const phones = [
+    "03013310954",
+    "+923013310954",
+    "0092 301 3310954",
+    "+92 (0) 301-3310954",
+  ];
+  for (const phone of phones) {
+    assert.equal(normalizePakistaniMobile(phone), "3013310954");
+  }
+  assert.equal(new Set(phones.map(pakistaniMobileKey)).size, 1);
 });
 
 test("Friday campaign timing and cycle use the configured timezone", () => {
