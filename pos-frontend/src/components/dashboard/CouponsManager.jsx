@@ -25,7 +25,7 @@ const initialSettings = {
   },
   friday: {
     automaticGeneration: false,
-    minimumSubtotal: 0,
+    minimumSubtotal: 1000,
     percentages: [4, 5, 6, 7],
     expiryHours: 72,
     timezone: "Asia/Karachi",
@@ -65,12 +65,47 @@ const formatDate = (value, timezone = "UTC") => {
   }).format(date);
 };
 
+const formatCurrency = (value, currency) => new Intl.NumberFormat("en-PK", {
+  style: "currency",
+  currency: currency || "PKR",
+}).format(Number(value) || 0);
+
+const customerCouponMessage = (coupon, customer, currency, timezone) => {
+  const greetingName = String(customer?.name || "").trim() || "there";
+  const expiresAt = formatDate(coupon.expiresAt, timezone);
+  const minimumOrder = formatCurrency(coupon.minimumOrderAmount, currency);
+  return [
+    `Hi ${greetingName}! 🍕 A special offer from GenZ Pizza Land.`,
+    "",
+    `🎉 **${coupon.discountValue}% OFF on your order!**`,
+    "",
+    `🎟️ Coupon code: ${coupon.code}`,
+    "",
+    `🛒 Minimum order: ${minimumOrder}`,
+    "",
+    `⏰ Valid until: ${expiresAt} (${timezone})`,
+    "",
+    "🍕 Order online: https://online.sindbandsolution.com/",
+    "",
+    "Enjoy your delicious pizza! 🍕❤️",
+  ].join("\n");
+};
+
 const copyCode = async (code) => {
   try {
     await navigator.clipboard.writeText(code);
     enqueueSnackbar("Coupon code copied.", { variant: "success" });
   } catch {
     enqueueSnackbar("Could not copy the coupon code. Please copy it manually.", { variant: "error" });
+  }
+};
+
+const copyMessage = async (message) => {
+  try {
+    await navigator.clipboard.writeText(message);
+    enqueueSnackbar("Personalized coupon message copied. It has not been sent.", { variant: "success" });
+  } catch {
+    enqueueSnackbar("Could not copy the message. Please try again.", { variant: "error" });
   }
 };
 
@@ -211,17 +246,20 @@ const CouponsManager = ({ canManage }) => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [type, setType] = useState("all");
+  const [contact, setContact] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
   const [birthdayPage, setBirthdayPage] = useState(1);
   const [selectedCouponId, setSelectedCouponId] = useState("");
+  const [generationSummary, setGenerationSummary] = useState(null);
   const listQuery = useQuery({
-    queryKey: ["coupons", search, status, type, from, to, page],
+    queryKey: ["coupons", search, status, type, contact, from, to, page],
     queryFn: () => getCoupons({
       search,
       status,
       ...(type !== "all" ? { type } : {}),
+      ...(contact !== "all" ? { contact } : {}),
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
       page,
@@ -269,11 +307,14 @@ const CouponsManager = ({ canManage }) => {
     mutationFn: generateFridayCoupons,
     onSuccess: (response) => {
       const result = response?.data?.data || {};
+      setGenerationSummary(result);
       enqueueSnackbar(
-        result.eligible === 0
-          ? "No eligible customers were found."
-          : `Friday coupons: ${result.generated || 0} generated, ${result.skipped || 0} skipped.`,
-        { variant: "success" }
+        result.errors
+          ? `Generation completed with errors: ${result.generated || 0} generated, ${result.skipped || 0} skipped, ${result.errors} errors.`
+          : result.totalCustomers === 0
+            ? "No eligible customers were found."
+            : `Coupons: ${result.generated || 0} generated, ${result.skipped || 0} skipped, 0 errors.`,
+        { variant: result.errors ? "warning" : "success" }
       );
       invalidateCouponViews();
     },
@@ -300,6 +341,7 @@ const CouponsManager = ({ canManage }) => {
   const coupons = listData.data || [];
   const summary = listData.summary || {};
   const settings = settingsQuery.data?.data?.data || initialSettings;
+  const currency = settings.currency || "PKR";
   const report = reportQuery.data?.data?.data || {};
   const birthdayData = notificationsQuery.data?.data || {};
   const notifications = birthdayData.data || [];
@@ -309,7 +351,7 @@ const CouponsManager = ({ canManage }) => {
   const pagination = listData.pagination || { page: 1, pages: 1 };
 
   const openFridayGeneration = () => {
-    if (!window.confirm("Generate a Friday coupon for every eligible customer? Existing coupons for this campaign will be skipped.")) return;
+    if (!window.confirm("Generate a Friday coupon for each eligible customer? Duplicate customer records and customers already issued a coupon this campaign will be skipped.")) return;
     generateMutation.mutate();
   };
 
@@ -322,10 +364,36 @@ const CouponsManager = ({ canManage }) => {
         </div>
         {canManage && (
           <button type="button" onClick={openFridayGeneration} disabled={generateMutation.isPending} className="rounded-lg bg-[#f6b100] px-4 py-2.5 text-sm font-bold text-[#171717] disabled:opacity-50">
-            {generateMutation.isPending ? "Generating…" : "Generate Friday coupons now"}
+            {generateMutation.isPending ? "Generating coupons…" : "Generate coupons now"}
           </button>
         )}
       </header>
+
+      {generationSummary && (
+        <section className="rounded-xl border border-[#49402a] bg-[#242117] p-4" aria-live="polite">
+          <h3 className="font-semibold text-white">Last generation summary</h3>
+          <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <p>Total customer records: <strong>{generationSummary.totalCustomers ?? 0}</strong></p>
+            <p>Unique eligible customers: <strong>{generationSummary.eligible ?? 0}</strong></p>
+            <p>Coupons created: <strong>{generationSummary.generated ?? 0}</strong></p>
+            <p>Skipped customers: <strong>{generationSummary.skipped ?? 0}</strong></p>
+            <p>Duplicate customer records: <strong>{generationSummary.duplicateCustomers ?? 0}</strong></p>
+            <p>Already issued this campaign: <strong>{generationSummary.alreadyIssued ?? 0}</strong></p>
+            <p>Errors: <strong className={generationSummary.errors ? "text-red-300" : ""}>{generationSummary.errors ?? 0}</strong></p>
+            <p>Batches processed: <strong>{generationSummary.batchesProcessed ?? 0}/{generationSummary.batchesTotal ?? 0}</strong></p>
+          </div>
+          {generationSummary.errorSamples?.length > 0 && (
+            <ul className="mt-3 list-inside list-disc text-xs text-red-200">
+              {generationSummary.errorSamples.map((entry) => <li key={entry.customerId}>{entry.message} (Customer ID: {entry.customerId})</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+      {generateMutation.isPending && (
+        <p className="rounded-lg border border-[#49402a] bg-[#242117] p-3 text-sm text-amber-100" role="status" aria-live="polite">
+          Generating coupons in batches. This may take a while for a large customer database; keep this page open until the summary appears.
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
@@ -372,8 +440,8 @@ const CouponsManager = ({ canManage }) => {
             <p className="text-xs text-[#999]">Codes are displayed as Flat plus random digits. Expiry times use the campaign timezone shown in settings; welcome coupons use UTC.</p>
           </div>
         </div>
-        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          <input className={inputClass} value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search customer or code" />
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+          <input className={inputClass} value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search name, phone, email or code" />
           <select className={inputClass} value={type} onChange={(event) => { setType(event.target.value); setPage(1); }}>
             <option value="all">All coupon types</option>
             <option value="welcome">Welcome</option>
@@ -387,6 +455,11 @@ const CouponsManager = ({ canManage }) => {
             <option value="redeemed">Redeemed</option>
             <option value="expired">Expired</option>
             <option value="cancelled">Cancelled</option>
+          </select>
+          <select className={inputClass} value={contact} onChange={(event) => { setContact(event.target.value); setPage(1); }} aria-label="Filter by customer contact information">
+            <option value="all">All contact states</option>
+            <option value="available">Contact available</option>
+            <option value="missing">No contact information</option>
           </select>
           <input className={inputClass} type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} aria-label="Created from" />
           <input className={inputClass} type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} aria-label="Created through" />
@@ -406,7 +479,10 @@ const CouponsManager = ({ canManage }) => {
                 return (
                   <tr key={coupon._id}>
                     <td className="p-3">{customer?.name || "—"}</td>
-                    <td className="p-3 text-xs text-[#bbb]">{customer?.phone || "—"}<br />{customer?.email || ""}</td>
+                    <td className="p-3 text-xs text-[#bbb]">
+                      {customer?.phone || "—"}<br />{customer?.email || ""}
+                      {!customer?.phone && !customer?.email && <span className="text-amber-300">No contact information</span>}
+                    </td>
                     <td className="p-3"><strong>{coupon.code}</strong><br /><span className="text-xs text-[#aaa]">{coupon.discountValue}% off</span></td>
                     <td className="p-3 capitalize">{coupon.campaignType}</td>
                     <td className="p-3">{formatDate(coupon.createdAt, timezone)}</td>
@@ -414,7 +490,15 @@ const CouponsManager = ({ canManage }) => {
                     <td className="p-3">{couponStatus}</td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-2">
-                        <button className="rounded bg-[#333] px-2 py-1 text-xs" onClick={() => copyCode(coupon.code)}>Copy</button>
+                        <button className="rounded bg-[#333] px-2 py-1 text-xs" onClick={() => copyCode(coupon.code)}>Copy coupon</button>
+                        {coupon.campaignType === "friday" && (
+                          <button
+                            className="rounded bg-[#333] px-2 py-1 text-xs"
+                            onClick={() => copyMessage(customerCouponMessage(coupon, customer, currency, timezone))}
+                          >
+                            Copy message
+                          </button>
+                        )}
                         <button className="rounded bg-[#333] px-2 py-1 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View details</button>
                         <button className="rounded bg-[#333] px-2 py-1 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View history</button>
                         {canManage && couponStatus === "Active" && <button className="rounded bg-red-900/70 px-2 py-1 text-xs" onClick={() => {
