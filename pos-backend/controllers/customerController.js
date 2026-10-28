@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const createHttpError = require("http-errors");
 const config = require("../config/config");
 const Customer = require("../models/customerModel");
-const { sendMail } = require("../utils/mailer");
 const customerPhoneKey = require("../utils/customerPhoneKey");
 
 const normalizePhoneKey = (phone) => {
@@ -59,7 +58,6 @@ const registerCustomer = async (req, res, next) => {
       }
     }
 
-    const verificationToken = crypto.randomBytes(32).toString("base64url");
     const customer = await Customer.create({
       name,
       email,
@@ -67,27 +65,10 @@ const registerCustomer = async (req, res, next) => {
       phoneKey,
       password,
       dateOfBirth,
-      verificationTokenHash: hashToken(verificationToken),
-      verificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
-    const verifyUrl = `${config.backendUrl}/api/customer/verify-email/${encodeURIComponent(verificationToken)}`;
-    const mailResult = await sendMail({
-      to: customer.email,
-      subject: "Verify your GenZ Pizza Land account",
-      html: `<div style="font-family:Arial,sans-serif;max-width:480px"><h2>Verify your email</h2><p>Confirm your email address to activate your customer account.</p><p><a href="${verifyUrl}">Verify email</a></p><p>This link expires in 24 hours. If you did not create this account, ignore this email.</p></div>`,
-    });
-    if (mailResult?.skipped) {
-      console.error("Customer account created without email delivery because SMTP is not configured.", { customerId: String(customer._id) });
-      return res.status(201).json({
-        success: true,
-        message: "Account created, but verification email could not be sent. Please contact the store.",
-      });
-    }
-    res.status(201).json({
-      success: true,
-      message: "Account created. Check your email to verify it before signing in.",
-    });
+    res.status(201);
+    setCustomerSession(res, customer);
   } catch (error) {
     if (error.code === 11000) return next(createHttpError(409, "An account already uses this email address or mobile number."));
     next(error);
@@ -127,7 +108,6 @@ const loginCustomer = async (req, res, next) => {
       throw createHttpError(401, "Invalid email or password.");
     }
     if (!customer.active) throw createHttpError(403, "This customer account is inactive.");
-    if (!customer.emailVerifiedAt) throw createHttpError(403, "Verify your email before signing in.");
     customer.lastLoginAt = new Date();
     await customer.save();
     setCustomerSession(res, customer);

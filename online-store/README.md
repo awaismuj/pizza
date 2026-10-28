@@ -32,6 +32,12 @@ at `/robots.txt`. Configure the static host to serve `404.html` with an HTTP
 are updated per route. The POS dashboard is a separate, private app and is
 marked `noindex`.
 
+Customer accounts created from the storefront are activated immediately and
+signed in without email approval or verification. Their customer session is
+limited to storefront account and ordering endpoints; it does not grant access
+to POS or admin APIs. Customers may also continue to place orders without
+creating an account.
+
 To enable Google Analytics 4, set `VITE_GA_MEASUREMENT_ID` to the site's
 measurement ID (format `G-...`) in the storefront environment before building.
 The app sends a page view on the initial load and client-side route changes.

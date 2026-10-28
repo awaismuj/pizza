@@ -44,8 +44,8 @@ export default function CustomerAccount({ customer, setCustomer, open, setOpen }
     try {
       if (mode === "register") {
         const response = await registerCustomer(form);
-        setMessage(response.message);
-        setMode("login");
+        setCustomer(response.data.customer);
+        setMessage(`Your account is active. Welcome, ${response.data.customer.name}.`);
       } else {
         const response = await loginCustomer({ email: form.email, password: form.password });
         setCustomer(response.data.customer);
