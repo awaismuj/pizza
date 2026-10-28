@@ -5,9 +5,6 @@ import {
   getPublicDeals,
   getPublicHeroSlides,
   placeOrder,
-  validatePublicCoupon,
-  checkWelcomeOffer,
-  getMyCoupons,
   getOrderStatus,
   cancelOrder,
   lookupOrderByPhone,
@@ -3206,8 +3203,6 @@ function StorefrontHome() {
   // Live tax rate (admin-editable, POS Dashboard > Tax). Starts at the
   // fallback so the estimate never flashes 0% while this loads.
   const [taxRatePercent, setTaxRatePercent] = useState(FALLBACK_TAX_RATE_PERCENT);
-  const [welcomeOfferConfig, setWelcomeOfferConfig] = useState(null);
-  const [couponEntryEnabled, setCouponEntryEnabled] = useState(true);
   // Build Your Own Deal: admin-set discounts (Dashboard > Build Your Own).
   const [byoConfig, setByoConfig] = useState(() => normalizeByo(null));
   const [byoOpen, setByoOpen] = useState(false);
@@ -3217,11 +3212,6 @@ function StorefrontHome() {
   const [cart, setCart] = useState({}); // { "dish:<id>" | "deal:<id>": quantity }
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [couponInput, setCouponInput] = useState("");
-  const [assignedCoupons, setAssignedCoupons] = useState([]);
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
-  const [welcomeOffer, setWelcomeOffer] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3255,25 +3245,11 @@ function StorefrontHome() {
   // the header lets them jump back into full tracking any time.
   const [trackingDismissed, setTrackingDismissed] = useState(false);
   const orderStillActive = order && !["Completed", "Closed", "Cancelled"].includes(order.orderStatus);
-  const orderCouponDiscount = Number(order?.bills?.couponDiscount) || 0;
-  const orderOtherDiscount = Math.max(0, (Number(order?.bills?.discount) || 0) - orderCouponDiscount);
   const [form, setForm] = useState({ name: "", phone: "", address: "" });
   useEffect(() => {
     if (!customer) return;
     setForm((current) => ({ ...current, name: customer.name, phone: customer.phone }));
   }, [customer]);
-  useEffect(() => {
-    let active = true;
-    if (!customer) {
-      setAssignedCoupons([]);
-      return () => { active = false; };
-    }
-    getMyCoupons()
-      .then((response) => { if (active) setAssignedCoupons(response.data || []); })
-      .catch((requestError) => { if (active) setError(requestError.message || "Could not load your assigned coupons."); });
-    return () => { active = false; };
-  }, [customer]);
-
   const [activeSection, setActiveSection] = useState(DEALS_SECTION_ID);
 
   // Trackpad-scroll hover fix. On laptop trackpads, scrolling doesn't move
@@ -3388,8 +3364,6 @@ function StorefrontHome() {
         setAdminHeroSlides(heroRes.data || []);
         const liveTaxRate = settingsRes?.data?.taxRatePercent;
         if (typeof liveTaxRate === "number") setTaxRatePercent(liveTaxRate);
-        if (settingsRes?.data?.firstTimeCustomerOffer) setWelcomeOfferConfig(settingsRes.data.firstTimeCustomerOffer);
-        if (typeof settingsRes?.data?.couponEntryEnabled === "boolean") setCouponEntryEnabled(settingsRes.data.couponEntryEnabled);
         if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
         if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
       } catch (err) {
@@ -3577,18 +3551,6 @@ function StorefrontHome() {
       .filter(Boolean);
   }, [cart, dishes, deals]);
 
-  const couponItems = useMemo(() => cartLines.map((line) =>
-    line.type === "deal"
-      ? { dealId: line.item._id, quantity: line.qty }
-      : {
-          dishId: line.item._id,
-          quantity: line.qty,
-          size: line.size || undefined,
-          crust: line.crust || undefined,
-          byo: line.type === "byo" || undefined,
-        }
-  ), [cartLines]);
-
   const grossSubtotal = cartLines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0);
 
   // Build Your Own Deal preview (the server recalculates the real amount).
@@ -3602,8 +3564,7 @@ function StorefrontHome() {
   // can't be ordered as-is - the customer is shown why instead of an error.
   const byoBlocked = byoUnits > 0 && (byoShort > 0 || !byoConfig.enabled);
 
-  const couponDiscount = appliedCoupon?.discountAmount || 0;
-  const subtotal = Math.max(0, grossSubtotal - byoDiscount - couponDiscount); // after discounts: what tax is charged on
+  const subtotal = Math.max(0, grossSubtotal - byoDiscount); // after discounts: what tax is charged on
   const tax = (subtotal * taxRatePercent) / 100;
   const cartTotal = subtotal + tax; // before any delivery fee
   // Delivery / pickup: the server prices and validates the choice; the fee
@@ -3617,7 +3578,6 @@ function StorefrontHome() {
       phone: form.phone,
       fulfillment: [fulfil.method, fulfil.branchId, fulfil.zoneId, fulfil.address],
       payment: [payMethod, jazz.tid, jazz.sender, jazz.proofId],
-      coupon: appliedCoupon?.code || "",
     });
     if (checkoutIntentSnapshot.current !== null && checkoutIntentSnapshot.current !== snapshot) {
       clearCheckoutIdempotencyKey();
@@ -3635,7 +3595,6 @@ function StorefrontHome() {
     jazz.tid,
     jazz.sender,
     jazz.proofId,
-    appliedCoupon?.code,
   ]);
   const total = cartTotal + fulfil.fee;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
@@ -3652,14 +3611,6 @@ function StorefrontHome() {
   cartRef.current = cart;
   const menuRef = useRef({ dishes, deals });
   menuRef.current = { dishes, deals };
-
-  useEffect(() => {
-    setAppliedCoupon(null);
-  }, [cart, form.phone]);
-
-  useEffect(() => {
-    setWelcomeOffer(null);
-  }, [cart, customer?.id, appliedCoupon, couponInput]);
 
   // How many of a dish/deal are already in the cart, across all its
   // size/crust lines (they all draw from the same stock).
@@ -3729,22 +3680,12 @@ function StorefrontHome() {
       // Keep discount percentages / tax live too, so a change made in the
       // admin panel reaches customers who already have the page open.
       if (settingsRes?.data?.buildYourOwnDeal) setByoConfig(normalizeByo(settingsRes.data.buildYourOwnDeal));
-      if (settingsRes?.data?.firstTimeCustomerOffer) setWelcomeOfferConfig(settingsRes.data.firstTimeCustomerOffer);
-      if (typeof settingsRes?.data?.couponEntryEnabled === "boolean") setCouponEntryEnabled(settingsRes.data.couponEntryEnabled);
       if (typeof settingsRes?.data?.taxRatePercent === "number") setTaxRatePercent(settingsRes.data.taxRatePercent);
       if (settingsRes?.data?.payments) setPayments({ ...DEFAULT_PAYMENTS, ...settingsRes.data.payments });
     } catch (err) {
       // Transient network hiccup - keep showing the last known menu.
     }
   }, []);
-
-  useEffect(() => {
-    if (couponEntryEnabled) return;
-    setCouponInput("");
-    setAssignedCoupons([]);
-    setAppliedCoupon(null);
-    setWelcomeOffer(null);
-  }, [couponEntryEnabled]);
 
   useEffect(() => {
     if (loading) return undefined;
@@ -4032,7 +3973,6 @@ function StorefrontHome() {
               proofId: jazz.proofId,
             }
           : { paymentMethod: "cod" }),
-        couponCode: appliedCoupon?.code || undefined,
         items: cartLines.map((l) =>
           l.type === "deal"
             ? { dealId: l.item._id, quantity: l.qty, dealSelections: l.dealSelections || undefined }
@@ -4069,82 +4009,6 @@ function StorefrontHome() {
       placingRef.current = false;
       setPlacing(false);
     }
-  };
-
-  const handleApplyCoupon = async () => {
-    if (!couponInput.trim()) {
-      setError("Enter a coupon code.");
-      return;
-    }
-    if (!isValidPhone(form.phone)) {
-      setError("Enter your mobile number before applying a coupon.");
-      return;
-    }
-    setValidatingCoupon(true);
-    setError("");
-    try {
-      const result = await validatePublicCoupon({
-        code: couponInput,
-        phone: form.phone,
-        items: couponItems,
-      });
-      setAppliedCoupon({ code: result.data.code, discountAmount: result.data.discountAmount });
-      setError("");
-    } catch (err) {
-      setAppliedCoupon(null);
-      setError(err.message);
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
-  const applyWelcomeOffer = async () => {
-    if (!welcomeOffer?.code || validatingCoupon) return;
-    setValidatingCoupon(true);
-    setError("");
-    try {
-      const result = await validatePublicCoupon({ code: welcomeOffer.code, phone: form.phone, items: couponItems });
-      setCouponInput(result.data.code);
-      setAppliedCoupon({ code: result.data.code, discountAmount: result.data.discountAmount });
-      setWelcomeOffer(null);
-    } catch (err) {
-      setError(err.message);
-      setWelcomeOffer(null);
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
-  const checkWelcomeCoupon = async () => {
-    if (!customer?.id) {
-      setCustomerAccountOpen(true);
-      setError("Sign in to your verified customer account to check welcome coupons.");
-      return;
-    }
-    if (!welcomeOfferConfig?.enabled) {
-      setError("Welcome coupons are currently unavailable.");
-      return;
-    }
-    if (!couponItems.length || validatingCoupon) return;
-    setValidatingCoupon(true);
-    setError("");
-    try {
-      const response = await checkWelcomeOffer({ items: couponItems });
-      if (response.data?.eligible) {
-        setWelcomeOffer(response.data);
-      } else {
-        setWelcomeOffer(null);
-        setError("No welcome coupon is available for this account and basket.");
-      }
-    } catch (requestError) {
-      setError(requestError.message || "Could not check coupon eligibility.");
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
-  const declineWelcomeOffer = () => {
-    setWelcomeOffer(null);
   };
 
   const refreshStatus = async () => {
@@ -4434,22 +4298,6 @@ function StorefrontHome() {
               ))}
 
               <div className="gzp-totals" style={{ marginTop: 14 }}>
-                {Number(order.bills?.discount) > 0 && (
-                  <>
-                    {orderOtherDiscount > 0 && (
-                      <div className="is-discount">
-                        <span>Build Your Own Deal discount</span>
-                        <span>−{formatRs(orderOtherDiscount)}</span>
-                      </div>
-                    )}
-                    {orderCouponDiscount > 0 && (
-                      <div className="is-discount">
-                        <span>Coupon ({order.coupon?.code || "discount"})</span>
-                        <span>−{formatRs(orderCouponDiscount)}</span>
-                      </div>
-                    )}
-                  </>
-                )}
                 {Number(order.bills?.deliveryFee) > 0 && (
                   <div>
                     <span>Delivery fee</span>
@@ -5622,74 +5470,6 @@ function StorefrontHome() {
                     />
                   </label>
 
-                  {couponEntryEnabled && <div className="gzp-field">
-                    <span>Coupon code</span>
-                    {welcomeOfferConfig?.enabled && (
-                      <button
-                        type="button"
-                        className="gzp-btn gzp-btn-ghost"
-                        onClick={checkWelcomeCoupon}
-                        disabled={validatingCoupon}
-                      >
-                        {validatingCoupon ? "Checking…" : customer?.id ? "Check Coupon" : "Sign in to check coupons"}
-                      </button>
-                    )}
-                    {assignedCoupons.length > 0 && (
-                      <select
-                        value=""
-                        aria-label="Choose an assigned coupon"
-                        disabled={Boolean(appliedCoupon)}
-                        onChange={(event) => {
-                          const assignment = assignedCoupons.find((item) => item.code === event.target.value);
-                          if (!assignment) return;
-                          setCouponInput(assignment.code);
-                          setAppliedCoupon(null);
-                        }}
-                      >
-                        <option value="">Choose an assigned coupon</option>
-                        {assignedCoupons.map((assignment) => (
-                          <option key={assignment._id} value={assignment.code}>
-                            {assignment.couponId?.name || "Assigned coupon"} — {assignment.couponId?.discountType === "percentage"
-                              ? `${assignment.couponId.discountValue}%`
-                              : `Rs ${assignment.couponId?.discountValue}`}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input
-                        value={couponInput}
-                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                        placeholder="Enter code"
-                        aria-label="Coupon code"
-                        disabled={Boolean(appliedCoupon)}
-                      />
-                      {appliedCoupon ? (
-                        <button
-                          type="button"
-                          className="gzp-btn gzp-btn-ghost"
-                          onClick={() => setAppliedCoupon(null)}
-                        >
-                          Remove
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="gzp-btn gzp-btn-ghost"
-                          onClick={handleApplyCoupon}
-                          disabled={validatingCoupon}
-                        >
-                          {validatingCoupon ? "Checking…" : "Apply"}
-                        </button>
-                      )}
-                    </div>
-                    {appliedCoupon && (
-                      <small style={{ color: "#78d38b" }}>
-                        {appliedCoupon.code} applied — save {formatRs(couponDiscount)}
-                      </small>
-                    )}
-                  </div>}
-
                   <PaymentMethodPicker
                     cfg={payments}
                     value={payMethod}
@@ -5719,12 +5499,6 @@ function StorefrontHome() {
 
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
-                  {couponDiscount > 0 && (
-                    <div className="is-discount">
-                      <span>Coupon discount ({appliedCoupon.code})</span>
-                      <span>−{formatRs(couponDiscount)}</span>
-                    </div>
-                  )}
                   <div>
                     <span>Subtotal + tax</span>
                     <span>{formatRs(cartTotal)}</span>
@@ -5760,26 +5534,6 @@ function StorefrontHome() {
           </div>
         </div>
       )}
-      {welcomeOffer && (
-        <div className="gzp-overlay" style={{ zIndex: 110 }} onClick={declineWelcomeOffer}>
-          <div className="gzp-modal" role="dialog" aria-modal="true" aria-label={welcomeOffer.popupTitle || "First-order welcome offer"} onClick={(event) => event.stopPropagation()}>
-            <div className="gzp-modal-body">
-              <h2>{welcomeOffer.popupTitle || "Welcome to our Pizza Store!"}</h2>
-              <p>{welcomeOffer.popupDescription || "You're eligible for a special first-order reward."}</p>
-              <p><strong>{welcomeOffer.discountType === "fixed" ? `${formatRs(welcomeOffer.discountValue)} off` : `${welcomeOffer.discountPercentage}% off`}</strong> your first order. Save {formatRs(welcomeOffer.discountAmount)} on this basket.</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                <button type="button" className="gzp-btn gzp-btn-primary" onClick={applyWelcomeOffer} disabled={validatingCoupon}>
-                  {validatingCoupon ? "Checking…" : welcomeOffer.applyButtonLabel || "Apply Discount"}
-                </button>
-                <button type="button" className="gzp-btn gzp-btn-ghost" onClick={declineWelcomeOffer}>
-                  {welcomeOffer.declineButtonLabel || "No Thanks"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ---- Track ---- */}
       {trackOpen && (
         <div className="gzp-sheet-overlay" onClick={() => setTrackOpen(false)}>

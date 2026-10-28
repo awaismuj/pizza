@@ -30,23 +30,18 @@ const buildDaily = async (dayKey) => {
   if (!isToday) {
     const locked = await DailyProfit.findOne({ dayKey });
     if (locked) {
-      let { revenue, couponDiscount } = locked;
+      let { revenue } = locked;
       if (locked.revenueBasis !== "net-sales-v1") {
         const { start, end } = dayRange(dayKey);
-        ({ revenue, couponDiscount } = await revenueForRange(start, end));
+        ({ revenue } = await revenueForRange(start, end));
         locked.profit = revenue - locked.cost - locked.expenses;
         locked.revenue = revenue;
-        locked.couponDiscount = couponDiscount;
         locked.revenueBasis = "net-sales-v1";
         await locked.save();
-      } else if (couponDiscount == null) {
-        const { start, end } = dayRange(dayKey);
-        ({ couponDiscount } = await revenueForRange(start, end));
       }
       return {
         dayKey,
         revenue,
-        couponDiscount,
         cost: locked.cost,
         expenses: locked.expenses,
         profit: locked.profit,
@@ -95,14 +90,12 @@ const buildMonthly = async (monthKey) => {
     // Group orders + expenses by calendar day so every day's figures can be
     // built from a single pass instead of one query per day.
     const revenueByDay = {};
-    const couponDiscountByDay = {};
     const costByDay = {};
     const itemsByDay = {};
     const ordersCountByDay = {};
     orders.forEach((o) => {
       const dayKey = dayKeyFor(new Date(o.orderDate));
       revenueByDay[dayKey] = (revenueByDay[dayKey] || 0) + orderRevenue(o);
-      couponDiscountByDay[dayKey] = (couponDiscountByDay[dayKey] || 0) + (Number(o?.bills?.couponDiscount) || 0);
       costByDay[dayKey] = (costByDay[dayKey] || 0) + (Number(o?.costOfGoods) || 0);
       itemsByDay[dayKey] = (itemsByDay[dayKey] || 0) + orderItemCount(o);
       ordersCountByDay[dayKey] = (ordersCountByDay[dayKey] || 0) + 1;
@@ -135,7 +128,6 @@ const buildMonthly = async (monthKey) => {
 
       if (locked) {
         const revenue = locked.revenueBasis === "net-sales-v1" ? locked.revenue : revenueByDay[dayKey] || 0;
-        const couponDiscount = couponDiscountByDay[dayKey] || 0;
         const profit = locked.revenueBasis === "net-sales-v1"
           ? locked.profit
           : revenue - locked.cost - locked.expenses;
@@ -143,14 +135,13 @@ const buildMonthly = async (monthKey) => {
           migratedLocks.push({
             updateOne: {
               filter: { _id: locked._id, revenueBasis: { $ne: "net-sales-v1" } },
-              update: { $set: { revenue, couponDiscount, profit, revenueBasis: "net-sales-v1" } },
+              update: { $set: { revenue, profit, revenueBasis: "net-sales-v1" } },
             },
           });
         }
         days.push({
           dayKey,
           revenue,
-          couponDiscount,
           cost: locked.cost,
           expenses: locked.expenses,
           profit,
@@ -165,7 +156,6 @@ const buildMonthly = async (monthKey) => {
         days.push({
           dayKey,
           revenue,
-          couponDiscount: couponDiscountByDay[dayKey] || 0,
           cost,
           expenses,
           profit: revenue - cost - expenses,
@@ -178,7 +168,6 @@ const buildMonthly = async (monthKey) => {
     if (migratedLocks.length) await DailyProfit.bulkWrite(migratedLocks);
 
     const revenue = days.reduce((sum, d) => sum + d.revenue, 0);
-    const couponDiscount = days.reduce((sum, d) => sum + d.couponDiscount, 0);
     const cost = days.reduce((sum, d) => sum + d.cost, 0);
     const expenses = days.reduce((sum, d) => sum + d.expenses, 0);
     const itemsSold = days.reduce((sum, d) => sum + d.itemsSold, 0);
@@ -187,7 +176,6 @@ const buildMonthly = async (monthKey) => {
     return {
         monthKey,
         revenue,
-        couponDiscount,
         cost,
         expenses,
         // Profit = Sales - Purchases/Cost - Expenses.
@@ -233,7 +221,6 @@ const buildDayOrders = async (dayKey) => {
       const isEarned =
         paymentOk && (o.orderSource !== "Online" ? o.orderStatus !== "Cancelled" : o.orderStatus === "Completed");
       const revenue = isEarned ? orderRevenue(o) : 0;
-      const couponDiscount = isEarned ? Number(o?.bills?.couponDiscount) || 0 : 0;
       const cost = isEarned ? Number(o?.costOfGoods) || 0 : 0;
 
       return {
@@ -249,7 +236,6 @@ const buildDayOrders = async (dayKey) => {
         itemsCount: orderItemCount(o),
         orderDate: o.orderDate,
         revenue,
-        couponDiscount,
         cost,
         profit: revenue - cost,
         countedTowardsProfit: isEarned,
@@ -292,7 +278,7 @@ const exportProfit = async (req, res, next) => {
     if (scope === "month") {
       const monthKey = req.query.month && MONTH_KEY_RE.test(req.query.month) ? req.query.month : currentMonthKey();
       const monthly = await buildMonthly(monthKey);
-      const totals = { dayKey: "Total", ordersCount: monthly.ordersCount, itemsSold: monthly.itemsSold, revenue: monthly.revenue, couponDiscount: monthly.couponDiscount, cost: monthly.cost, expenses: monthly.expenses, profit: monthly.profit };
+      const totals = { dayKey: "Total", ordersCount: monthly.ordersCount, itemsSold: monthly.itemsSold, revenue: monthly.revenue, cost: monthly.cost, expenses: monthly.expenses, profit: monthly.profit };
       return await sendReport(res, {
         title: `Monthly Profit Report — ${prettyMonth(monthKey)}`,
         filename: `profit-month-${monthKey}`,
@@ -300,7 +286,6 @@ const exportProfit = async (req, res, next) => {
         footer: "GenZ Pizza Land · Profit & Expenses",
         summary: [
           { label: "Revenue (excl. tax)", value: monthly.revenue, type: "money" },
-          { label: "Coupon discounts", value: monthly.couponDiscount, type: "money" },
           { label: "Purchases / Cost", value: monthly.cost, type: "money" },
           { label: "Expenses", value: monthly.expenses, type: "money" },
           { label: "Actual Profit", value: monthly.profit, type: "money" },
@@ -314,7 +299,7 @@ const exportProfit = async (req, res, next) => {
             { key: "dayKey", label: "Date", type: "text", width: 80 },
             { key: "ordersCount", label: "Orders", type: "number", width: 50 },
             { key: "itemsSold", label: "Items sold", type: "number", width: 60 },
-            ...MONEY_COLUMNS([["revenue", "Revenue (excl. tax)"], ["couponDiscount", "Coupon discounts"], ["cost", "Purchases / Cost"], ["expenses", "Expenses"], ["profit", "Profit"]]),
+            ...MONEY_COLUMNS([["revenue", "Revenue (excl. tax)"], ["cost", "Purchases / Cost"], ["expenses", "Expenses"], ["profit", "Profit"]]),
             { key: "status", label: "Day status", type: "text", width: 70 },
           ],
           rows: monthly.days.map((day) => ({ ...day, status: day.locked ? "Locked (final)" : "Live" })),
@@ -339,7 +324,6 @@ const exportProfit = async (req, res, next) => {
       status: o.countedTowardsProfit ? o.orderStatus : `${o.orderStatus} (not counted)`,
       payment: o.paymentMethod || "",
       revenue: o.revenue,
-      couponDiscount: o.couponDiscount,
       cost: o.cost,
       profit: o.profit,
     }));
@@ -350,7 +334,6 @@ const exportProfit = async (req, res, next) => {
       footer: "GenZ Pizza Land · Profit & Expenses",
       summary: [
         { label: "Revenue (excl. tax)", value: daily.revenue, type: "money" },
-        { label: "Coupon discounts", value: daily.couponDiscount, type: "money" },
         { label: "Purchases / Cost", value: daily.cost, type: "money" },
         { label: "Expenses", value: daily.expenses, type: "money" },
         { label: "Actual Profit", value: daily.profit, type: "money" },
@@ -369,13 +352,12 @@ const exportProfit = async (req, res, next) => {
             { key: "items", label: "Items", type: "number", width: 40 },
             { key: "status", label: "Status", type: "text", width: 110 },
             { key: "payment", label: "Payment", type: "text", width: 80 },
-            ...MONEY_COLUMNS([["revenue", "Revenue (excl. tax)"], ["couponDiscount", "Coupon discount"], ["cost", "Cost"], ["profit", "Profit"]]),
+            ...MONEY_COLUMNS([["revenue", "Revenue (excl. tax)"], ["cost", "Cost"], ["profit", "Profit"]]),
           ],
           rows: orderRows,
           totals: orderRows.length ? {
             orderNumber: "Total",
             revenue: orderRows.reduce((sum, row) => sum + row.revenue, 0),
-            couponDiscount: orderRows.reduce((sum, row) => sum + row.couponDiscount, 0),
             cost: orderRows.reduce((sum, row) => sum + row.cost, 0),
             profit: orderRows.reduce((sum, row) => sum + row.profit, 0),
           } : undefined,

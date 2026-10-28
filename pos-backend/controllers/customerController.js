@@ -23,7 +23,6 @@ const safeCustomer = (customer) => ({
   email: customer.email,
   phone: customer.phone,
   dateOfBirth: customer.dateOfBirth || null,
-  marketingConsent: customer.marketingConsent,
 });
 
 const setCustomerSession = (res, customer) => {
@@ -52,9 +51,6 @@ const registerCustomer = async (req, res, next) => {
     if (name.length < 2 || name.length > 120) throw createHttpError(400, "Name must be between 2 and 120 characters.");
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) throw createHttpError(400, "Enter a valid email address.");
     if (password.length < 12 || password.length > 128) throw createHttpError(400, "Password must be at least 12 characters.");
-    if (req.body.marketingConsent !== undefined && typeof req.body.marketingConsent !== "boolean") {
-      throw createHttpError(400, "Marketing consent must be true or false.");
-    }
     let dateOfBirth = null;
     if (req.body.dateOfBirth) {
       dateOfBirth = new Date(req.body.dateOfBirth);
@@ -71,9 +67,6 @@ const registerCustomer = async (req, res, next) => {
       phoneKey,
       password,
       dateOfBirth,
-      marketingConsent: req.body.marketingConsent === true,
-      marketingConsentAt: req.body.marketingConsent === true ? new Date() : null,
-      marketingConsentSource: req.body.marketingConsent === true ? "storefront-registration" : "",
       verificationTokenHash: hashToken(verificationToken),
       verificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
@@ -147,19 +140,6 @@ const getCustomerProfile = (req, res) => {
   res.json({ success: true, data: safeCustomer(req.customer) });
 };
 
-const updateMarketingConsent = async (req, res, next) => {
-  try {
-    if (typeof req.body.marketingConsent !== "boolean") throw createHttpError(400, "Marketing consent must be true or false.");
-    req.customer.marketingConsent = req.body.marketingConsent;
-    req.customer.marketingConsentAt = new Date();
-    req.customer.marketingConsentSource = req.body.marketingConsent ? "storefront-settings" : "customer-withdrawal";
-    await req.customer.save();
-    res.json({ success: true, data: safeCustomer(req.customer) });
-  } catch (error) {
-    next(error);
-  }
-};
-
 const logoutCustomer = async (req, res, next) => {
   try {
     req.customer.authVersion += 1;
@@ -175,6 +155,5 @@ module.exports = {
   verifyCustomerEmail,
   loginCustomer,
   getCustomerProfile,
-  updateMarketingConsent,
   logoutCustomer,
 };

@@ -46,24 +46,6 @@ const config = Object.freeze({
         pass: process.env.SMTP_PASS,
         from: process.env.SMTP_FROM,
     },
-    whatsappCampaign: {
-        provider: ["cloud", "mock"].includes(String(process.env.WHATSAPP_CAMPAIGN_PROVIDER || "cloud").toLowerCase())
-            ? String(process.env.WHATSAPP_CAMPAIGN_PROVIDER || "cloud").toLowerCase()
-            : "cloud",
-        cloudApiVersion: process.env.WHATSAPP_CLOUD_API_VERSION || "v22.0",
-        phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || "",
-        accessToken: process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || "",
-        appSecret: process.env.WHATSAPP_CLOUD_APP_SECRET || "",
-        verifyToken: process.env.WHATSAPP_CLOUD_VERIFY_TOKEN || "",
-        templateName: process.env.WHATSAPP_CAMPAIGN_TEMPLATE_NAME || "",
-        templateLanguage: process.env.WHATSAPP_CAMPAIGN_TEMPLATE_LANGUAGE || "en",
-        templatePreviewText: process.env.WHATSAPP_CAMPAIGN_TEMPLATE_PREVIEW || "",
-        testNumber: process.env.WHATSAPP_CAMPAIGN_TEST_NUMBER || "",
-        defaultCountryCode: String(process.env.WHATSAPP_CAMPAIGN_DEFAULT_COUNTRY_CODE || "92").replace(/\D/g, ""),
-        messagesPerSecond: Number.isFinite(Number(process.env.WHATSAPP_CAMPAIGN_MESSAGES_PER_SECOND || 1))
-            ? Math.max(1, Number(process.env.WHATSAPP_CAMPAIGN_MESSAGES_PER_SECOND || 1))
-            : 1,
-    },
     defaultAdmin: {
         name: process.env.ADMIN_NAME || "System Admin",
         email: process.env.ADMIN_EMAIL || "devops.awais@gmail.com",

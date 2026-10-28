@@ -387,168 +387,27 @@ Before/after running it, read the console output carefully:
 
 ---
 
-## Coupons and promotions
+## Checkout and customer accounts
 
-The POS dashboard includes **Coupons & Customer Marketing** and shared
-percentage and fixed-amount codes for POS and online orders, with status and
-date windows, campaign/per-phone limits, minimum eligible subtotal, optional
-discount caps, product/category allowlists and exclusions, first-order checks,
-and a stacking toggle. The storefront and POS validate codes through the
-backend, and the backend recalculates item prices before persisting the order
-and discount snapshot. A valid mobile number is required in both channels so
-per-customer redemption limits do not collapse into a shared anonymous POS
-identity. Existing Deals and Build Your Own behavior remain separate.
+The POS and online storefront support menu orders, deals, and Build Your Own
+offers. Order prices and totals are validated by the backend. Online checkout
+and POS Razorpay setup use idempotency keys so retries do not create duplicate
+orders or payments. Configure a unique, stable `IDEMPOTENCY_SECRET` (or use
+the `JWT_SECRET` fallback) across deployments.
 
-The optional first-time customer offer is configured in POS Dashboard >
-Coupons. Online checkout checks the phone and server-priced cart, offers a
-phone-bound code to eligible first-time customers, and revalidates that code
-through the normal coupon path before applying it. Campaign limits are reserved
-transactionally with order redemption. Before enabling this offer in
-production, run `npm run migrate:welcome-offer-index` from `pos-backend` to
-create the unique phone-key index that prevents duplicate offers under
-concurrent requests.
+Coupon checkout, coupon management, welcome offers, customer coupon assignment,
+and coupon campaign messaging have been removed. Existing order totals,
+discount snapshots, and coupon-related database records are retained for
+historical reference; no database cleanup or data migration is part of this
+change. New orders cannot apply coupon codes.
 
-Coupons & Customer Marketing adds database-backed welcome, Friday, birthday,
-and manual campaign settings, execution history, customer coupon history, and
-email/WhatsApp delivery logs. Welcome checks require a signed-in customer with
-a verified email. Friday and birthday automation use the configured timezone
-(initially `Asia/Karachi`); automatic Friday generation defaults off and can be
-enabled from the POS. Campaign runs target active, verified customer accounts
-with qualifying completed/closed order history. Administrators can select
-customers from the customer database or preview and generate for all eligible
-customers. Discount and expiry values are snapshotted when each coupon is
-issued, and campaign executions are idempotent across backend instances.
-
-Before deploying this module, back up the database and run
-`npm run migrate:promotions` from `pos-backend`. The migration creates the
-execution, issue, coupon-tier, generated-discount-key, and customer-assignment
-idempotency indexes; it does not rewrite customer or order data. Use the existing SMTP configuration
-for email. WhatsApp delivery requires the production Cloud API configuration
-and approved template; mock mode does not send real messages. Both channels
-require current recorded marketing consent, and provider acceptance is logged
-as `sent` rather than confirmed delivery.
-
-New customer-specific codes use the configured prefix and random suffix
-(default example: `FLAT7K3M`). Administrators can configure the prefix,
-suffix length, and unique allowed alphabet subject to backend collision-safety
-validation. In
-campaign results, use **Copy code** to copy just the code or **Copy message**
-to copy a ready-to-send message with the customer's discount, minimum order,
-expiry, and store link. Copy message is available only when marketing consent
-is recorded. Use **Send email** or **Send WhatsApp** to queue delivery through
-the configured provider; those actions also require consent.
-
-The **Send Coupons** campaign tool is under POS Dashboard > Coupons. Customer
-phone contacts can be added from the recipient list or are captured from new
-POS/online orders, then matched to completed/closed orders by phone. Contacts
-created from orders start opted out. Coupon assignment can include an active
-contact with a valid number and qualifying order; WhatsApp delivery also
-requires explicit marketing consent, and all-eligible sends cannot include
-opt-outs or invalid phone numbers.
-Customer status is derived from account activity and linked/guest order
-history; VIP filtering is not offered because the current customer model has
-no VIP classification. Campaigns save recipient records and standard coupon
-assignments before dispatch, use idempotency keys, and can be paused, cancelled,
-or safely retried for provider-confirmed failures.
-
-For a new campaign, scan/preview the recipients, save the campaign draft, use
-**Generate & Assign Tokens**, then review the current eligible count and confirm
-**Send to All Eligible** or **Send to Selected**. Token generation is
-idempotent; a repeated scan does not create coupons, and dispatch is blocked
-until each queued eligible recipient has a persisted, currently valid token.
-The worker rechecks current order eligibility, marketing consent, number
-validity, campaign state, and coupon validity immediately before sending.
-Generated coupon codes appear in the POS with a per-customer copy action.
-Coupon email delivery can be enabled during generation; only customers with a
-saved email and recorded promotional consent are queued. Email delivery uses
-the existing SMTP configuration and the campaign worker rechecks consent and
-coupon validity before sending. The campaign results tab shows WhatsApp
-delivery records; the separate campaign-activity button is not shown.
-
-Campaign delivery uses the official WhatsApp Cloud API (`cloud`) or a
-development-only no-delivery provider (`mock`). Linked-device/WhatsApp Web
-automation is disabled and cannot send reports or campaign messages. Cloud API
-use requires an approved template with five body parameters (`{{1}}` through
-`{{5}}`) and production credentials. Configure `WHATSAPP_CAMPAIGN_PROVIDER=cloud`
-in the backend environment. In POS → Coupons, the campaign results tab shows
-provider readiness and per-recipient campaign records, including queued,
-sending, sent, delivered, failed, and skipped counts with paginated recipient
-details that refresh while a campaign is running. The configured test number is
-the only destination for test sends. Cloud delivery callbacks are
-signature-verified; accepted Cloud messages are recorded as sent, not delivered,
-until WhatsApp confirms delivery. Profit reports remain available as PDF
-downloads and email. Before launching campaigns, run
-`npm run migrate:whatsapp-campaigns` from `pos-backend`. This creates
-campaign/coupon idempotency and query indexes and adds the campaign permission
-to persisted Admin/Super Admin roles; it does not rewrite customer or order
-data.
-
-For multiple backend instances, use `WHATSAPP_CAMPAIGN_PROVIDER=cloud` on every
-instance and configure the same approved template and Cloud API credentials on
-each one. All instances must use the same MongoDB database. The campaign worker
-claims each recipient atomically in MongoDB and shares its send-rate slot there,
-so replicas coordinate instead of each sending the same queued recipient. Run
-the WhatsApp campaign migration before enabling sends. Do not configure a
-separate local database per instance.
-
-Cloud API delivery does not need Chromium or a linked-device session. Legacy
-`WHATSAPP_ENABLED`, `WHATSAPP_SESSION_DIR`, and `REPORT_AUTO_SEND` variables are
-ignored by the backend. Keep Cloud API credentials in the deployment secret
-manager and rotate any credentials that were previously exposed or stored in
-unsecured files.
-
-To enable the customer phonebook, back up MongoDB, deploy the updated backend
-files, and run `npm run migrate:customer-contacts` from `pos-backend` before
-restarting the backend. The migration safely imports valid phone numbers from
-historical orders into contact-only customer records and replaces the customer
-email index with a partial unique index that applies only to real email strings,
-so phone-only contacts do not need fake email addresses. Existing registered
-customer records are retained. Imported and automatically captured contacts
-are opted out of marketing by default; staff may record opt-in only after the
-customer has explicitly agreed. New POS and online orders capture a phone
-contact automatically after the order is saved. Phone-only contacts are
-internal records and cannot sign in to the storefront. The migration is safe
-to rerun and does not modify or delete orders.
-
-### Price and redemption policy
-
-The existing order calculation sequence is preserved: resolve current menu
-prices → apply the existing Build Your Own discount (online only) → apply an
-eligible coupon discount → calculate tax using the live Settings tax rate.
-Coupons never reduce the eligible subtotal below zero. Order bills store the
-discount, coupon code, and applied amount at order time, so later coupon edits
-do not rewrite old receipt values. Online orders reserve a redemption while
-Pending; cancellation or deletion reverses it. Completed/closed orders cannot
-be cancelled through the existing workflow.
-
-Coupon counters and the order/redemption records are written in a MongoDB
-transaction. Production MongoDB must therefore support transactions (for
-example, MongoDB Atlas or a replica set); standalone MongoDB instances are not
-suitable for coupon checkout. Validation by itself does not consume a use.
-The public validation endpoint uses a process-local IP limit; deployments
-running multiple backend instances should put a shared/distributed rate
-limiter at the gateway or replace the middleware with a shared store.
-
-Public online checkout and POS Razorpay payment setup require an
-`Idempotency-Key`. The storefront reuses its key for unchanged checkout
-retries, and the POS reuses its key for the same payment amount. The backend
-returns the original order/payment setup instead of creating duplicates.
-Razorpay captured-payment webhooks are also persisted once per gateway
-payment ID. Before enabling these changes, run
-`npm run migrate:payment-idempotency` from `pos-backend` to add the required
-unique and expiry indexes. The migration stops if prior webhook deliveries
-left duplicate payment IDs; reconcile those records before retrying it.
-Configure a unique `IDEMPOTENCY_SECRET` of at least 32 characters and keep it
-stable across deployments. If omitted, the backend falls back to
-`JWT_SECRET`; changing the idempotency secret invalidates hashes for active
-retry keys.
-
-The backend rejects MongoDB operator/dotted keys in JSON and query input,
-limits JSON request bodies, adds baseline security headers, and rate-limits
-sign-in, registration, checkout, payment setup/verification, and payment-proof uploads.
-These in-memory rate limits are per backend process; use a shared
-gateway/store for multi-instance production deployments. Production startup
-also requires a unique `JWT_SECRET` of at least 32 characters.
+Customer accounts use a separate `Customer` collection, email verification,
+hashed passwords, and short-lived customer JWTs. Configure `SMTP_HOST`,
+`SMTP_USER`, `SMTP_PASS`, and optionally `SMTP_PORT`/`SMTP_FROM` in
+`pos-backend/.env` before enabling registration. If email delivery is not
+configured, registration remains unverified and the customer cannot sign in.
+Customer phone numbers are not verified by SMS and must not be treated as
+proof of identity.
 
 The public storefront exposes its home, help, terms, and privacy policy pages
 through `online-store/public/sitemap.xml` and `robots.txt`; the POS app is
@@ -561,96 +420,22 @@ debounced.
 
 ### Deployment and rollback
 
-1. Back up MongoDB before deployment.
-2. Verify the configured `MONGODB_URI` points to a transaction-capable
-   deployment.
-3. Deploy the backend, then from `pos-backend` run
-   `npm run migrate:payment-idempotency` to add the checkout/payment
-   retry-protection indexes. Reconcile any duplicate legacy webhook payment
-   IDs reported by the migration before retrying.
-4. Before enabling the updated storefront, build and deploy `online-store`.
-5. From `pos-backend`, run `npm run migrate` to apply the bootstrap index
-   setup. This existing bootstrap command may also create the configured
-   default admin if it does not exist; review its output.
-6. Build/deploy `pos-frontend`. For customer registration,
-   configure SMTP as described below; no scheduled job is required for the
-   current manual assignment flow.
-7. Create a draft coupon, verify its dates/rules, then activate it and test
-   both POS and online checkouts with a small campaign limit before publishing.
+1. Back up MongoDB before deployment and verify `MONGODB_URI` points to a
+   transaction-capable deployment.
+2. Deploy the backend and run `npm run migrate:payment-idempotency` from
+   `pos-backend` to add checkout/payment retry-protection indexes. Reconcile
+   duplicate legacy webhook payment IDs before retrying a failed migration.
+3. Build and deploy `online-store` and `pos-frontend` with the backend.
+4. From `pos-backend`, run `npm run migrate` to apply the bootstrap index
+   setup. This may also create the configured default admin; review its output.
+5. For customer registration, configure SMTP and a public `BACKEND_URL` so
+   verification links reach the deployed backend. Test registration,
+   verification, sign-in, checkout, and payment retries in a non-production
+   environment before rollout.
 
 Rollback consists of redeploying the prior application versions. No existing
-orders are rewritten and no collection is dropped; coupon definitions and
-redemption records are retained for audit. Do not manually delete coupon
-records that have redemptions.
-
-Customer accounts now use a separate `Customer` collection, email verification,
-hashed passwords, and short-lived customer JWTs. Configure `SMTP_HOST`,
-`SMTP_USER`, `SMTP_PASS`, and optionally `SMTP_PORT`/`SMTP_FROM` in
-`pos-backend/.env` before enabling registration. If email delivery is not
-configured, registration remains unverified and the customer cannot sign in;
-configure SMTP before inviting customers. A customer can explicitly opt in or
-withdraw marketing consent, but the application does not send promotional
-messages.
-
-Admins can assign private random codes to verified customer accounts. The
-assignment is stored separately from its shared campaign, and the raw code is
-shown only once after creation; assignment lists mask it. Customers can see
-their currently available assignments after signing in and can use them in
-online checkout. Private codes intentionally require an authenticated customer
-account and are not redeemable through POS until POS has a secure customer
-authentication flow. Shared coupons remain usable in both channels. Assignment
-dates inherit the campaign window unless explicitly narrowed, and redemption
-limits are checked again in the checkout transaction.
-
-Customer phone numbers are unique identifiers in this initial account flow but
-are not verified by SMS. They must not be treated as proof of identity; private
-codes therefore require the verified-email account session. Phone-based order
-history is used to retain first-order and per-customer coupon checks when a
-guest customer later creates an account.
-
-Coupon campaign settings are managed in POS Dashboard > Coupons. Administrators
-can enable or pause the built-in welcome, Friday, birthday, and manual campaign
-types; edit their names/descriptions, schedules where supported, timezones,
-discount values, minimum orders, caps, expiry rules, order channels, stacking,
-marketing-consent requirements, per-run generation limits, and per-customer
-redemption limits (with usage caps applied per generated discount code); and
-configure generated code format and online coupon entry.
-Changes are validated server-side, saved with an audit record, and apply to
-future issues/runs. Existing issued coupons retain their stored values and
-expiry, and completed orders are not recalculated. Friday and birthday
-automation can be enabled and uses the saved schedule. Manual campaigns are
-started by an administrator rather than scheduled. Individual coupon edits and
-archives keep a bounded administrator audit history visible from the coupon
-manager; editing an active or scheduled coupon requires confirmation because
-future redemptions by existing assignments will use the new terms.
-
-Supported technical boundaries are intentional: coupon discounts are percentage
-or fixed-amount only; checkout accepts one coupon per order; coupon channels are
-Online or POS and do not distinguish delivery from pickup; free delivery,
-free products, BOGO, and custom user-defined campaign types are not implemented.
-Product/category inclusion and exclusion rules are configurable on individual
-coupons in the coupon manager, but are not campaign-wide generation settings.
-Welcome coupons require a verified customer account; guest welcome-coupon
-issuance is unsupported. Automated WhatsApp uses the existing approved
-percentage-only template, so fixed-amount campaigns cannot send through it.
-Campaign logs report coupon generation and delivery states; they are not
-incremental revenue attribution or a financial export.
-
-### Deploying customer accounts and private assignments
-
-1. Configure SMTP and a public `BACKEND_URL` so verification links reach the
-   deployed backend. Keep marketing consent opt-in; campaign sends require
-   recorded consent and working provider configuration.
-2. Back up MongoDB, deploy backend changes, and run `npm run migrate` from
-   `pos-backend` to sync the additive customer and assignment indexes.
-3. Deploy both frontend applications with the backend. Customer accounts and
-   assigned-coupon lookups use the storefront's existing `VITE_BACKEND_URL`.
-4. Test registration, verification, sign-in, consent withdrawal, coupon
-   assignment, assignment ownership, coupon checkout, and cancellation in a
-   transaction-capable non-production database before production rollout.
-
-Rollback is an application rollback; keep customer, assignment, and redemption
-collections intact for audit. No existing order records are rewritten.
+orders or customer records are rewritten, and coupon-related records remain in
+the database for historical reference.
 
 ---
 

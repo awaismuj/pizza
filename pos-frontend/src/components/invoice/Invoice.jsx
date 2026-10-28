@@ -19,8 +19,7 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
   };
 
   const isWalkIn = orderInfo.customerDetails?.name === "Walk-in Customer";
-  const couponDiscount = Number(orderInfo.bills?.couponDiscount) || 0;
-  const otherDiscount = Math.max(0, (Number(orderInfo.bills?.discount) || 0) - couponDiscount);
+  const discount = Number(orderInfo.bills?.discount) || 0;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center px-4">
@@ -117,18 +116,9 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
                   <strong>Subtotal:</strong> Rs{" "}
                   {Number(orderInfo.bills.subtotal ?? orderInfo.bills.total + orderInfo.bills.discount).toFixed(2)}
                 </p>
-                {otherDiscount > 0 && (
+                {discount > 0 && (
                   <p>
-                    <strong>
-                      Build Your Own Deal ({orderInfo.bills.discountPercent}% off):
-                    </strong>{" "}
-                    -Rs {otherDiscount.toFixed(2)}
-                  </p>
-                )}
-                {couponDiscount > 0 && (
-                  <p>
-                    <strong>Coupon ({orderInfo.coupon?.code || "discount"}):</strong>{" "}
-                    -Rs {couponDiscount.toFixed(2)}
+                    <strong>Discount:</strong> -Rs {discount.toFixed(2)}
                   </p>
                 )}
                 <p>
@@ -238,13 +228,10 @@ Invoice.propTypes = {
     bills: PropTypes.shape({
       subtotal: PropTypes.number,
       discount: PropTypes.number,
-      discountPercent: PropTypes.number,
-      couponDiscount: PropTypes.number,
       total: PropTypes.number,
       tax: PropTypes.number,
       totalWithTax: PropTypes.number,
     }),
-    coupon: PropTypes.shape({ code: PropTypes.string }),
     paymentMethod: PropTypes.string,
     paymentData: PropTypes.shape({
       razorpay_order_id: PropTypes.string,

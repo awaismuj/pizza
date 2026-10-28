@@ -157,32 +157,6 @@ const verifyPayment = async (req, res, next) => {
   }
 };
 
-const validateRazorpayPaymentAmount = async ({ paymentData, expectedAmount }) => {
-  const orderId = paymentData?.razorpay_order_id;
-  const paymentId = paymentData?.razorpay_payment_id;
-  if (!orderId || !paymentId || !Number.isFinite(expectedAmount)) {
-    throw createHttpError(400, "Verified payment details are required for a coupon order paid online.");
-  }
-  const razorpay = new Razorpay({
-    key_id: config.razorpayKeyId,
-    key_secret: config.razorpaySecretKey,
-  });
-  let payment;
-  try {
-    payment = await razorpay.payments.fetch(paymentId);
-  } catch (error) {
-    throw createHttpError(502, "Could not confirm the online payment amount. Please verify the payment before retrying.");
-  }
-  if (
-    payment.order_id !== orderId
-    || payment.currency !== "PKR"
-    || Number(payment.amount) !== Math.round(expectedAmount * 100)
-    || !["authorized", "captured"].includes(payment.status)
-  ) {
-    throw createHttpError(400, "The verified payment amount does not match the recalculated coupon order total.");
-  }
-};
-
 const webHookVerification = async (req, res, next) => {
   try {
     const secret = config.razorpyWebhookSecret;
@@ -244,4 +218,4 @@ const webHookVerification = async (req, res, next) => {
   }
 };
 
-module.exports = { createOrder, verifyPayment, validateRazorpayPaymentAmount, webHookVerification };
+module.exports = { createOrder, verifyPayment, webHookVerification };

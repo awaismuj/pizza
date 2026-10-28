@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getTotalPrice } from "../../redux/slices/cartSlice";
 import {
@@ -8,7 +8,6 @@ import {
   getPaymentIdempotencyKey,
   updateTable,
   verifyPaymentRazorpay,
-  validatePosCoupon,
 } from "../../https/index";
 import { enqueueSnackbar } from "notistack";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,13 +39,8 @@ const Bill = () => {
   const cartData = useSelector((state) => state.cart);
   const total = useSelector(getTotalPrice);
   const { taxRate } = useTaxRate();
-  const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
-  const couponDiscount = appliedCoupon?.discountAmount || 0;
-  const discountedSubtotal = Math.max(0, total - couponDiscount);
-  const tax = (discountedSubtotal * taxRate) / 100;
-  const totalPriceWithTax = discountedSubtotal + tax;
+  const tax = (total * taxRate) / 100;
+  const totalPriceWithTax = total + tax;
   const paymentFingerprint = JSON.stringify({
     amount: Math.round(totalPriceWithTax * 100),
     items: cartData.map((item) => [
@@ -55,7 +49,6 @@ const Bill = () => {
       item.size,
       item.crust,
     ]),
-    coupon: appliedCoupon?.code || "",
   });
 
   const [paymentMethod, setPaymentMethod] = useState();
@@ -69,45 +62,6 @@ const Bill = () => {
   // Prints the bill as it stands right now (before the order is placed) —
   // a kitchen/customer copy of what's currently in the cart.
   const [showPendingReceipt, setShowPendingReceipt] = useState(false);
-
-  useEffect(() => {
-    setAppliedCoupon(null);
-  }, [cartData, customerData.customerPhone]);
-
-  const handleApplyCoupon = async () => {
-    if (!couponInput.trim()) {
-      enqueueSnackbar("Enter a coupon code.", { variant: "warning" });
-      return;
-    }
-    if (String(customerData.customerPhone || "").replace(/\D/g, "").length < 7) {
-      enqueueSnackbar("Enter a valid mobile number to use a coupon.", { variant: "warning" });
-      return;
-    }
-    setValidatingCoupon(true);
-    try {
-      const response = await validatePosCoupon({
-        code: couponInput,
-        phone: customerData.customerPhone || "",
-        items: cartData.map((item) => ({
-          dishId: item.dishId,
-          dealId: item.dealId,
-          quantity: item.quantity,
-          size: item.size,
-          crust: item.crust,
-        })),
-      });
-      setAppliedCoupon({
-        code: response.data.data.code,
-        discountAmount: response.data.data.discountAmount,
-      });
-      enqueueSnackbar("Coupon applied.", { variant: "success" });
-    } catch (error) {
-      setAppliedCoupon(null);
-      enqueueSnackbar(error?.response?.data?.message || "Coupon could not be applied.", { variant: "error" });
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
 
   const handlePlaceOrder = async () => {
     if (!paymentMethod) {
@@ -179,12 +133,11 @@ const Bill = () => {
                 },
                 orderStatus: "In Progress",
                 bills: {
-                  total: discountedSubtotal,
+                  total,
                   tax: tax,
                   totalWithTax: totalPriceWithTax,
                 },
                 items: cartData,
-                couponCode: appliedCoupon?.code,
                 table: customerData.table.tableId,
                 paymentMethod: paymentMethod,
                 paymentData: {
@@ -228,12 +181,11 @@ const Bill = () => {
         },
         orderStatus: "In Progress",
         bills: {
-          total: discountedSubtotal,
+          total,
           tax: tax,
           totalWithTax: totalPriceWithTax,
         },
         items: cartData,
-        couponCode: appliedCoupon?.code,
         table: customerData.table.tableId,
         paymentMethod: paymentMethod,
       };
@@ -310,33 +262,6 @@ const Bill = () => {
           Rs {total.toFixed(2)}
         </h1>
       </div>
-      <div className="flex items-center gap-2 px-5 mt-3">
-        <input
-          aria-label="Coupon code"
-          placeholder="Coupon code"
-          value={couponInput}
-          onChange={(event) => setCouponInput(event.target.value.toUpperCase())}
-          disabled={Boolean(appliedCoupon)}
-          className="min-w-0 flex-1 rounded bg-[#1f1f1f] px-3 py-2 text-sm text-white outline-none"
-        />
-        {appliedCoupon ? (
-          <button className="text-sm text-red-300" onClick={() => setAppliedCoupon(null)}>Remove</button>
-        ) : (
-          <button
-            disabled={validatingCoupon || cartData.length === 0}
-            onClick={handleApplyCoupon}
-            className="rounded bg-[#383737] px-3 py-2 text-sm text-white disabled:opacity-50"
-          >
-            {validatingCoupon ? "Checking…" : "Apply"}
-          </button>
-        )}
-      </div>
-      {appliedCoupon && (
-        <div className="flex items-center justify-between px-5 mt-2 text-sm text-green-300">
-          <span>{appliedCoupon.code} discount</span>
-          <span>−Rs {couponDiscount.toFixed(2)}</span>
-        </div>
-      )}
       <div className="flex items-center justify-between px-5 mt-2">
         <p className="text-xs text-[#ababab] font-medium mt-2">Tax({taxRate}%)</p>
         <h1 className="text-[#f5f5f5] text-md font-bold">Rs {tax.toFixed(2)}</h1>
@@ -394,9 +319,6 @@ const Bill = () => {
           customerData={customerData}
           cartData={cartData}
           total={total}
-          discountedSubtotal={discountedSubtotal}
-          couponDiscount={couponDiscount}
-          couponCode={appliedCoupon?.code}
           tax={tax}
           taxRate={taxRate}
           totalPriceWithTax={totalPriceWithTax}

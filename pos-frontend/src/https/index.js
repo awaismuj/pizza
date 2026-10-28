@@ -122,37 +122,6 @@ export const toggleDeal = (dealId) => axiosWrapper.patch(`/api/deal/${dealId}/to
 export const reorderDeals = (order) => axiosWrapper.post(`/api/deal/reorder`, { order });
 export const deleteDeal = (dealId) => axiosWrapper.delete(`/api/deal/${dealId}`);
 
-// Coupon management and redemption reporting
-export const getCoupons = (params) => axiosWrapper.get("/api/coupon", { params });
-export const searchCouponCustomerByPhone = (phone) =>
-  axiosWrapper.get("/api/coupon/customers/search", { params: { phone } });
-export const addCoupon = (data) => axiosWrapper.post("/api/coupon", data);
-export const updateCoupon = ({ couponId, ...data }) => axiosWrapper.put(`/api/coupon/${couponId}`, data);
-export const archiveCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/${couponId}/archive`);
-export const duplicateCoupon = (couponId) => axiosWrapper.post(`/api/coupon/${couponId}/duplicate`);
-export const getCouponRedemptions = (params) => axiosWrapper.get("/api/coupon/redemptions", { params });
-export const getCouponAssignments = (params) => axiosWrapper.get("/api/coupon/assignments", { params });
-export const assignCouponToCustomer = ({ couponId, ...data }) => axiosWrapper.post(`/api/coupon/${couponId}/assign`, data);
-export const revokeCustomerCoupon = (assignmentId) => axiosWrapper.patch(`/api/coupon/assignments/${assignmentId}/revoke`);
-export const validatePosCoupon = (data) => axiosWrapper.post("/api/coupon/validate-pos", data);
-export const checkWelcomeOffer = (data) => axiosWrapper.post("/api/coupon/welcome-offer/check", data);
-export const getPromotionSettings = () => axiosWrapper.get("/api/promotions/settings");
-export const updatePromotionSettings = (data) => axiosWrapper.put("/api/promotions/settings", data);
-export const getPromotionCustomers = (params) => axiosWrapper.get("/api/promotions/customers", { params });
-export const getPromotionPreview = (kind, customerIds = []) => axiosWrapper.get("/api/promotions/preview", {
-  params: { kind, ...(customerIds.length ? { customerIds: customerIds.join(",") } : {}) },
-});
-export const getPromotionExecutions = (params) => axiosWrapper.get("/api/promotions/executions", { params });
-export const runPromotionCampaign = (data) => axiosWrapper.post("/api/promotions/executions", data);
-export const getPromotionExecutionIssues = ({ executionId, ...params }) =>
-  axiosWrapper.get(`/api/promotions/executions/${executionId}/issues`, { params });
-export const queuePromotionIssueDelivery = ({ issueId, channel }) =>
-  axiosWrapper.post(`/api/promotions/issues/${issueId}/send`, { channel });
-export const retryPromotionIssueDelivery = ({ issueId, channel }) =>
-  axiosWrapper.post(`/api/promotions/issues/${issueId}/retry`, { channel });
-export const revokePromotionCoupon = (assignmentId) =>
-  axiosWrapper.patch(`/api/promotions/assignments/${assignmentId}/revoke`);
-
 // Hero Slider (homepage banner) Endpoints
 export const getHeroSlides = () => axiosWrapper.get("/api/hero-slide");
 export const addHeroSlide = (data) => axiosWrapper.post("/api/hero-slide/", data);
@@ -254,32 +223,6 @@ export const getDailyOrders = (date) => axiosWrapper.get("/api/profit/day/orders
 export const downloadReportPdf = (params) =>
   axiosWrapper.get("/api/report/download", { params, responseType: "blob" });
 export const sendReportToEmail = (params) => axiosWrapper.post("/api/report/send-email", params);
-
-// Admin WhatsApp coupon campaigns (approved WhatsApp template provider only).
-export const getCampaignWhatsAppProvider = () => axiosWrapper.get("/api/whatsapp-campaign/provider");
-export const getRecentWhatsAppCampaignMessages = (params) => axiosWrapper.get("/api/whatsapp-campaign/messages/recent", { params });
-export const getCampaignWhatsAppCustomers = (params) => axiosWrapper.get("/api/whatsapp-campaign/customers", { params });
-export const createCampaignWhatsAppContact = (data) => axiosWrapper.post("/api/whatsapp-campaign/customers", data);
-export const updateCampaignWhatsAppContact = ({ customerId, ...data }) =>
-  axiosWrapper.patch(`/api/whatsapp-campaign/customers/${customerId}`, data);
-export const previewWhatsAppCampaign = (data) => axiosWrapper.post("/api/whatsapp-campaign/preview", data);
-export const sendWhatsAppCampaignTest = (data) => axiosWrapper.post("/api/whatsapp-campaign/send-test", data);
-export const sendWhatsAppIndividualCoupon = (data) => axiosWrapper.post("/api/whatsapp-campaign/send-individual-coupon", data);
-export const createWhatsAppCampaign = ({ requestKey, ...data }) =>
-  axiosWrapper.post("/api/whatsapp-campaign/campaigns", data, { headers: { "Idempotency-Key": requestKey } });
-export const getWhatsAppCampaigns = (params) => axiosWrapper.get("/api/whatsapp-campaign/campaigns", { params });
-export const getWhatsAppCampaign = (campaignId) => axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}`);
-export const scanWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/scan`);
-export const generateWhatsAppCampaignTokens = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/generate-tokens`);
-export const queueWhatsAppCampaignCouponEmails = (campaignId) =>
-  axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/queue-coupon-emails`);
-export const getWhatsAppCampaignRecipients = ({ campaignId, ...params }) =>
-  axiosWrapper.get(`/api/whatsapp-campaign/campaigns/${campaignId}/recipients`, { params });
-export const launchWhatsAppCampaign = ({ campaignId, confirmedEligibleCount }) =>
-  axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/launch`, { confirmedEligibleCount });
-export const pauseWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/pause`);
-export const cancelWhatsAppCampaign = (campaignId) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/cancel`);
-export const retryWhatsAppCampaignFailures = ({ campaignId, reason }) => axiosWrapper.post(`/api/whatsapp-campaign/campaigns/${campaignId}/retry-failed`, { reason });
 
 // Order Endpoints
 export const addOrder = (data) => axiosWrapper.post("/api/order/", data);

@@ -97,18 +97,6 @@ export const placeOrder = (payload, idempotencyKey) =>
     body: JSON.stringify(payload),
   });
 
-export const validatePublicCoupon = (payload) =>
-  request("/api/coupon/validate", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-
-export const checkWelcomeOffer = (payload) =>
-  request("/api/coupon/welcome-offer/check", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-
 export const registerCustomer = (payload) =>
   request("/api/customer/register", { method: "POST", body: JSON.stringify(payload) });
 
@@ -119,14 +107,6 @@ export const loginCustomer = async (payload) => {
 };
 
 export const getCustomerProfile = () => request("/api/customer/me");
-
-export const updateCustomerMarketingConsent = (marketingConsent) =>
-  request("/api/customer/me/marketing-consent", {
-    method: "PATCH",
-    body: JSON.stringify({ marketingConsent }),
-  });
-
-export const getMyCoupons = () => request("/api/coupon/mine");
 
 export const logoutCustomer = async () => {
   try {

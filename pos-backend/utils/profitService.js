@@ -85,21 +85,20 @@ const revenueForRange = async (start, end) => {
   }).select("bills items orderDate costOfGoods");
 
   const revenue = orders.reduce((sum, order) => sum + orderRevenue(order), 0);
-  const couponDiscount = orders.reduce((sum, o) => sum + (Number(o?.bills?.couponDiscount) || 0), 0);
   const itemsSold = orders.reduce((sum, o) => sum + orderItemCount(o), 0);
   // "Purchases/Cost" - cost of the ingredients/stock actually consumed for
   // these orders (cost of goods sold), captured per-order at the moment
   // inventory was taken out for it. See models/orderModel.js costOfGoods.
   const cost = orders.reduce((sum, o) => sum + (Number(o?.costOfGoods) || 0), 0);
 
-  return { revenue, couponDiscount, cost, itemsSold, ordersCount: orders.length };
+  return { revenue, cost, itemsSold, ordersCount: orders.length };
 };
 
 // Revenue/cost/expenses/profit for a single calendar day (does NOT look at
 // any locked DailyProfit record — callers decide whether to prefer a lock).
 const computeDayFigures = async (dayKey) => {
   const { start, end } = dayRange(dayKey);
-  const [{ revenue, couponDiscount, cost, itemsSold, ordersCount }, expenseDocs] = await Promise.all([
+  const [{ revenue, cost, itemsSold, ordersCount }, expenseDocs] = await Promise.all([
     revenueForRange(start, end),
     Expense.find({ dayKey }).select("amount"),
   ]);
@@ -110,7 +109,6 @@ const computeDayFigures = async (dayKey) => {
     dayKey,
     revenue,
     revenueBasis: "net-sales-v1",
-    couponDiscount,
     cost,
     expenses,
     // Profit = Sales - Purchases/Cost - Expenses.

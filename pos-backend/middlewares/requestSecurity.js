@@ -13,10 +13,7 @@ const containsUnsafeMongoKey = (value, depth = 0) => {
 };
 
 const rejectMongoOperators = (req, res, next) => {
-  const isMetaWebhookVerification = req.method === "GET"
-    && req.path === "/api/whatsapp-campaign/webhook"
-    && Object.keys(req.query || {}).every((key) => ["hub.mode", "hub.verify_token", "hub.challenge"].includes(key));
-  if (containsUnsafeMongoKey(req.body) || (!isMetaWebhookVerification && containsUnsafeMongoKey(req.query))) {
+  if (containsUnsafeMongoKey(req.body) || containsUnsafeMongoKey(req.query)) {
     return next(createHttpError(400, "Request contains unsupported field names."));
   }
   next();
