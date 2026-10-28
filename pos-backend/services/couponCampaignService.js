@@ -202,6 +202,7 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
   }
 
   let ordersWithoutMobile = 0;
+  const noContactNames = new Set();
   const orderCursor = Order.find({})
     .select("_id customerId customerDetails.name customerDetails.phone")
     .lean()
@@ -219,7 +220,21 @@ const generateFridayCoupons = async ({ now = new Date(), settings, timezone }) =
       continue;
     }
     if (!mobile) {
-      ordersWithoutMobile += 1;
+      const name = String(order.customerDetails?.name || "").trim();
+      const nameKey = name.toLowerCase().replace(/\s+/g, " ");
+      if (nameKey && nameKey !== "walk-in customer" && !noContactNames.has(nameKey)) {
+        noContactNames.add(nameKey);
+        customers.push({
+          _id: `order-name:${nameKey}`,
+          name,
+          phone: "",
+          email: "",
+          customerId: null,
+          accountCustomer: false,
+        });
+      } else {
+        ordersWithoutMobile += 1;
+      }
       continue;
     }
     const linkedCustomer = phoneAccount.get(mobile);

@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import {
-  cancelCoupon,
   deleteCoupon,
   generateFridayCoupons,
   getBirthdayCouponNotifications,
@@ -13,6 +12,7 @@ import {
   getCouponReport,
   getCoupons,
   markBirthdayCouponNotificationRead,
+  setCouponActive,
   updateCouponCampaignSettings,
 } from "../../https";
 
@@ -48,9 +48,9 @@ const initialSettings = {
 };
 
 const getCouponStatus = (coupon) => {
-  if (!coupon.isActive || coupon.cancelledAt) return "Cancelled";
   if (Number(coupon.redeemedCount) > 0) return "Redeemed";
   if (coupon.expiresAt && new Date(coupon.expiresAt) <= new Date()) return "Expired";
+  if (!coupon.isActive) return coupon.cancelledAt ? "Cancelled" : "Inactive";
   return "Active";
 };
 
@@ -80,8 +80,9 @@ const couponRecipient = (coupon) => {
   const linkedCustomer = coupon?.customerId && typeof coupon.customerId === "object"
     ? coupon.customerId
     : null;
+  const name = linkedCustomer?.name || coupon?.recipientName || "";
   return {
-    name: linkedCustomer?.name || coupon?.recipientName || "",
+    name: name === "Outdoor Customer" ? "" : name,
     phone: linkedCustomer?.phone || coupon?.recipientPhone || "",
     email: linkedCustomer?.email || coupon?.recipientEmail || "",
   };
@@ -398,13 +399,15 @@ const CouponsManager = ({ canManage }) => {
     },
     onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not generate Friday coupons.", { variant: "error" }),
   });
-  const cancelMutation = useMutation({
-    mutationFn: cancelCoupon,
-    onSuccess: () => {
-      enqueueSnackbar("Coupon cancelled.", { variant: "success" });
+  const activeMutation = useMutation({
+    mutationFn: setCouponActive,
+    onSuccess: (response) => {
+      enqueueSnackbar(response?.data?.message || "Coupon status updated.", { variant: "success" });
       invalidateCouponViews();
+      queryClient.invalidateQueries({ queryKey: ["couponDetails"] });
+      queryClient.invalidateQueries({ queryKey: ["couponReport"] });
     },
-    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not cancel coupon.", { variant: "error" }),
+    onError: (error) => enqueueSnackbar(error?.response?.data?.message || "Could not update coupon status.", { variant: "error" }),
   });
   const deleteMutation = useMutation({
     mutationFn: deleteCoupon,
@@ -547,7 +550,7 @@ const CouponsManager = ({ canManage }) => {
             <option value="active">Active</option>
             <option value="redeemed">Redeemed</option>
             <option value="expired">Expired</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="cancelled">Inactive / cancelled</option>
           </select>
           <select className={inputClass} value={contact} onChange={(event) => { setContact(event.target.value); setPage(1); }} aria-label="Filter by customer contact information">
             <option value="all">All contact states</option>
@@ -594,9 +597,22 @@ const CouponsManager = ({ canManage }) => {
                         )}
                         <button className="rounded bg-[#333] px-2 py-1 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View details</button>
                         <button className="rounded bg-[#333] px-2 py-1 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View history</button>
-                        {canManage && couponStatus === "Active" && <button className="rounded bg-red-900/70 px-2 py-1 text-xs" onClick={() => {
-                          if (window.confirm(`Cancel ${coupon.code}?`)) cancelMutation.mutate(coupon._id);
-                        }}>Cancel</button>}
+                        {canManage && ["Active", "Inactive", "Cancelled"].includes(couponStatus) && (
+                          <button
+                            type="button"
+                            className={`rounded px-2 py-1 text-xs ${coupon.isActive ? "bg-red-900/70 text-red-100" : "bg-green-900/70 text-green-100"}`}
+                            disabled={activeMutation.isPending || coupon.reservedCount > 0}
+                            title={coupon.reservedCount > 0 ? "A pending order is using this coupon." : undefined}
+                            onClick={() => {
+                              const active = !coupon.isActive;
+                              if (window.confirm(`${active ? "Activate" : "Deactivate"} ${coupon.code}? ${active ? "It will be usable again if it has not expired." : "It will no longer be accepted on any checkout."}`)) {
+                                activeMutation.mutate({ couponId: coupon._id, active });
+                              }
+                            }}
+                          >
+                            {coupon.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                        )}
                         {canManage && (
                           <button
                             type="button"

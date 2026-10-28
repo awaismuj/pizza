@@ -26,16 +26,14 @@ function loadScript(src) {
   });
 }
 
-// A separate, table-free order window for walk-in / takeaway customers —
-// no name, phone, or table needed. Staff pick items and submit in one tap;
-// the real customer's details are never asked for or stored, the order is
-// just tagged "Walk-in Customer" under the hood (the schema requires some
-// value there). Payment defaults to Cash and can be switched to Online
-// right before submitting. The bill prints automatically the moment the
-// order is created — no extra click needed.
+// A separate, table-free order window for walk-in / takeaway customers.
+// Customer details are optional so anonymous orders stay one-tap.
 const Outdoor = () => {
   const queryClient = useQueryClient();
   const [cart, setCart] = useState([]);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerDateOfBirth, setCustomerDateOfBirth] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [showInvoice, setShowInvoice] = useState(false);
   const [orderInfo, setOrderInfo] = useState(null);
@@ -62,6 +60,9 @@ const Outdoor = () => {
   const paymentFingerprint = JSON.stringify({
     amount: Math.round(totalWithTax * 100),
     items: cart.map((item) => [item.id, item.name, item.price]),
+    customerName: customerName.trim(),
+    customerPhone: customerPhone.trim(),
+    customerDateOfBirth,
   });
 
   const handleAddToCart = (item) => {
@@ -79,6 +80,9 @@ const Outdoor = () => {
       setOrderInfo(data);
       setShowInvoice(true);
       setCart([]);
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerDateOfBirth("");
       setIsProcessing(false);
       clearPaymentIdempotencyKey();
       queryClient.invalidateQueries(["orders"]);
@@ -96,10 +100,12 @@ const Outdoor = () => {
 
   const buildOrderData = (extra = {}) => ({
     customerDetails: {
-      name: "Walk-in Customer",
-      phone: "N/A",
+      name: customerName.trim() || "Walk-in Customer",
+      phone: customerPhone.trim() || "N/A",
       guests: 1,
+      dateOfBirth: customerPhone.trim() ? customerDateOfBirth || undefined : undefined,
     },
+    outdoorCustomer: true,
     orderStatus: "In Progress",
     bills: { total, tax, totalWithTax, subtotal, couponDiscount },
     items: cart,
@@ -201,7 +207,7 @@ const Outdoor = () => {
                 Outdoor / Takeaway
               </h1>
               <p className="text-xs text-[#ababab] font-medium">
-                No name or table needed — pick items and submit
+                Customer name and mobile are optional
               </p>
             </div>
           </div>
@@ -226,6 +232,48 @@ const Outdoor = () => {
           <p className="text-xs text-[#ababab] font-medium">
             {cart.length} item{cart.length === 1 ? "" : "s"}
           </p>
+        </div>
+        <div className="px-5 py-3 space-y-3">
+          <label className="block text-xs text-[#ababab]">
+            Customer name (optional)
+            <input
+              type="text"
+              value={customerName}
+              onChange={(event) => setCustomerName(event.target.value)}
+              maxLength={120}
+              autoComplete="name"
+              className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5]"
+              placeholder="Name"
+            />
+          </label>
+          <label className="block text-xs text-[#ababab]">
+            Mobile number (optional)
+            <input
+              type="tel"
+              value={customerPhone}
+              onChange={(event) => setCustomerPhone(event.target.value)}
+              maxLength={30}
+              autoComplete="tel"
+              className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5]"
+              placeholder="e.g. 0301 333 0954 or +92 301 3330954"
+            />
+          </label>
+          <label className="block text-xs text-[#ababab]">
+            Date of birth (optional, for birthday coupons)
+            <input
+              type="date"
+              value={customerDateOfBirth}
+              onChange={(event) => setCustomerDateOfBirth(event.target.value)}
+              disabled={!customerPhone.trim()}
+              max={new Date().toISOString().slice(0, 10)}
+              className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5] disabled:opacity-50"
+            />
+            {!customerPhone.trim() && (
+              <span className="mt-1 block text-[10px] text-[#777]">
+                Enter a mobile number to save a birthday to the customer record.
+              </span>
+            )}
+          </label>
         </div>
         <hr className="border-[#2a2a2a] border-t-2" />
 
