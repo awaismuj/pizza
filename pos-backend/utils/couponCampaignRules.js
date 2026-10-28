@@ -9,19 +9,24 @@ const DEFAULT_COUPON_CAMPAIGNS = {
     maxOnePerCustomer: true,
   },
   friday: {
+    campaignName: "Friday Campaign",
     automaticGeneration: false,
+    campaignDay: 5,
+    generationTime: "18:00",
     minimumSubtotal: 1000,
     percentages: [4, 5, 6, 7],
     expiryHours: 72,
     timezone: "Asia/Karachi",
   },
   birthday: {
+    campaignName: "Birthday Coupon",
     enabled: false,
     discountMode: "random",
     fixedPercentage: 5,
     percentages: [5, 6, 7],
     minimumSubtotal: 1000,
     expiryHours: 72,
+    checkTime: "00:00",
     timezone: "Asia/Karachi",
   },
 };
@@ -142,9 +147,18 @@ const fridayCampaignCycle = (date, timezone) => {
 
 const birthdayCampaignCycle = (date, timezone) => zonedParts(date, timezone).year;
 
-const isFridayCampaignDue = (date, timezone) => {
+const isFridayCampaignDue = (date, timezone, campaignDay = 5, generationTime = "18:00") => {
   const parts = zonedParts(date, timezone);
-  return parts.weekday === "Fri" && Number(parts.hour) >= 18;
+  const weekdays = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const [hour, minute] = String(generationTime).split(":").map(Number);
+  return weekdays[parts.weekday] === Number(campaignDay) &&
+    Number(parts.hour) * 60 + Number(parts.minute) >= hour * 60 + minute;
+};
+
+const isDailyCampaignDue = (date, timezone, checkTime = "00:00") => {
+  const parts = zonedParts(date, timezone);
+  const [hour, minute] = String(checkTime).split(":").map(Number);
+  return Number(parts.hour) * 60 + Number(parts.minute) >= hour * 60 + minute;
 };
 
 const isCustomerBirthday = (dateOfBirth, date, timezone) => {
@@ -168,6 +182,7 @@ module.exports = {
   fridayCampaignCycle,
   birthdayCampaignCycle,
   isFridayCampaignDue,
+  isDailyCampaignDue,
   isCustomerBirthday,
   expiryDate,
 };

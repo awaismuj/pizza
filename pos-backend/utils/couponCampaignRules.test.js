@@ -8,6 +8,7 @@ const {
   fridayCampaignCycle,
   birthdayCampaignCycle,
   isFridayCampaignDue,
+  isDailyCampaignDue,
   isCustomerBirthday,
   expiryDate,
 } = require("./couponCampaignRules");
@@ -27,6 +28,16 @@ test("Friday campaign timing and cycle use the configured timezone", () => {
   assert.equal(isFridayCampaignDue(before, "Asia/Karachi"), false);
   assert.equal(isFridayCampaignDue(due, "Asia/Karachi"), true);
   assert.equal(fridayCampaignCycle(due, "Asia/Karachi"), "2026-W44");
+});
+
+test("campaign schedules honor the configured weekday, time, and timezone", () => {
+  const before = new Date("2026-10-30T13:59:00.000Z");
+  const due = new Date("2026-10-30T14:00:00.000Z");
+  assert.equal(isFridayCampaignDue(before, "Asia/Karachi", 5, "19:00"), false);
+  assert.equal(isFridayCampaignDue(due, "Asia/Karachi", 5, "19:00"), true);
+  assert.equal(isFridayCampaignDue(due, "Asia/Karachi", 4, "18:00"), false);
+  assert.equal(isDailyCampaignDue(before, "Asia/Karachi", "19:00"), false);
+  assert.equal(isDailyCampaignDue(due, "Asia/Karachi", "19:00"), true);
 });
 
 test("birthday matching uses the stored calendar date and requested timezone", () => {
