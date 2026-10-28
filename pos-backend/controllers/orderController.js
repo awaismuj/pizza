@@ -1,6 +1,7 @@
 const createHttpError = require("http-errors");
 const config = require("../config/config");
 const Order = require("../models/orderModel");
+const Customer = require("../models/customerModel");
 const Table = require("../models/tableModel");
 const DeletedOrderLog = require("../models/deletedOrderLogModel");
 const Dish = require("../models/dishModel");
@@ -35,6 +36,9 @@ const {
   digestIdempotencyKey,
   fingerprintRequest,
 } = require("../services/idempotency");
+const normalizePakistaniMobile = require("../utils/normalizePakistaniMobile");
+const customerPhoneKey = require("../utils/customerPhoneKey");
+const customerPhoneKeyCandidates = require("../utils/customerPhoneKeyCandidates");
 const {
   WAITING_STATUS,
   resolvePublicPayment,
@@ -96,6 +100,35 @@ const addOrder = async (req, res, next) => {
   let order;
   try {
     const orderPayload = req.body;
+    const outdoorCustomer = Boolean(orderPayload.outdoorCustomer);
+    delete orderPayload.outdoorCustomer;
+    const outdoorPhone = String(orderPayload.customerDetails?.phone || "").trim();
+    const outdoorName = String(orderPayload.customerDetails?.name || "").trim();
+    const outdoorDateOfBirth = String(orderPayload.customerDetails?.dateOfBirth || "").trim();
+    if (orderPayload.customerDetails) delete orderPayload.customerDetails.dateOfBirth;
+    let normalizedOutdoorMobile = "";
+    let outdoorBirthDate = null;
+    if (outdoorCustomer) {
+      if (outdoorPhone && outdoorPhone.toLowerCase() !== "n/a") {
+        normalizedOutdoorMobile = normalizePakistaniMobile(outdoorPhone);
+        if (!normalizedOutdoorMobile) {
+          throw createHttpError(400, "Enter a valid Pakistani mobile number.");
+        }
+      }
+      if (outdoorDateOfBirth) {
+        outdoorBirthDate = new Date(outdoorDateOfBirth);
+        if (
+          !normalizedOutdoorMobile ||
+          Number.isNaN(outdoorBirthDate.getTime()) ||
+          outdoorBirthDate > new Date()
+        ) {
+          throw createHttpError(400, "Enter a valid date of birth and mobile number.");
+        }
+      }
+      if (outdoorName.length > 120) {
+        throw createHttpError(400, "Customer name must be 120 characters or fewer.");
+      }
+    }
     const couponCode = orderPayload.couponCode;
     delete orderPayload.couponCode;
     if (couponCode && !req.permissions?.includes("coupons.apply")) {
@@ -221,6 +254,42 @@ const addOrder = async (req, res, next) => {
         finalTotal: order.bills.totalWithTax,
       });
       couponReservationCreated = true;
+    }
+    if (outdoorCustomer && normalizedOutdoorMobile) {
+      const customerPhoneKeys = customerPhoneKeyCandidates(normalizedOutdoorMobile);
+      let customer = await Customer.findOne({ phoneKey: { $in: customerPhoneKeys } });
+      if (!customer) {
+        try {
+          customer = await Customer.create({
+            name: outdoorName || "Outdoor Customer",
+            phone: outdoorPhone,
+            phoneKey: customerPhoneKey(normalizedOutdoorMobile),
+            contactOnly: true,
+            dateOfBirth: outdoorBirthDate,
+          });
+        } catch (error) {
+          if (error.code !== 11000) throw error;
+          customer = await Customer.findOne({ phoneKey: { $in: customerPhoneKeys } });
+          if (!customer) throw error;
+        }
+      }
+      if (customer.active) {
+        let customerChanged = false;
+        if (customer.contactOnly && outdoorName && customer.name !== outdoorName) {
+          customer.name = outdoorName;
+          customerChanged = true;
+        }
+        if (!customer.name && outdoorName) {
+          customer.name = outdoorName;
+          customerChanged = true;
+        }
+        if (!customer.dateOfBirth && outdoorBirthDate) {
+          customer.dateOfBirth = outdoorBirthDate;
+          customerChanged = true;
+        }
+        if (customerChanged) await customer.save();
+      }
+      order.customerId = customer._id;
     }
     // Seed the timeline with the status this order was created at (whatever
     // the POS sent, e.g. "In Progress") so the very first stage has a time

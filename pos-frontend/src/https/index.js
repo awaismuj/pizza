@@ -137,6 +137,8 @@ export const getBirthdayCouponNotifications = (params) =>
   axiosWrapper.get("/api/coupon/admin/notifications/birthday", { params });
 export const markBirthdayCouponNotificationRead = (couponId) =>
   axiosWrapper.patch(`/api/coupon/admin/notifications/birthday/${couponId}/read`);
+export const setCouponActive = ({ couponId, active }) =>
+  axiosWrapper.patch(`/api/coupon/admin/${couponId}/status`, { active });
 export const cancelCoupon = (couponId) => axiosWrapper.patch(`/api/coupon/admin/${couponId}/cancel`);
 export const deleteCoupon = (couponId) => axiosWrapper.delete(`/api/coupon/admin/${couponId}`);
 

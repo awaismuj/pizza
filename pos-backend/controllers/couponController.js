@@ -587,6 +587,42 @@ const cancelCoupon = async (req, res, next) => {
   }
 };
 
+const setCouponActive = async (req, res, next) => {
+  try {
+    if (typeof req.body.active !== "boolean") {
+      throw createHttpError(400, "Choose whether the coupon should be active.");
+    }
+    const coupon = await Coupon.findOne({ _id: req.params.id, archivedAt: null });
+    if (!coupon) throw createHttpError(404, "Coupon not found.");
+    if (coupon.isActive === req.body.active) {
+      return res.status(200).json({
+        success: true,
+        message: req.body.active ? "Coupon is already active." : "Coupon is already inactive.",
+        data: coupon,
+      });
+    }
+    if (coupon.redeemedCount > 0) {
+      throw createHttpError(409, "A redeemed coupon cannot be activated or deactivated.");
+    }
+    if (coupon.reservedCount > 0) {
+      throw createHttpError(409, "This coupon is reserved for a pending order and cannot be changed.");
+    }
+    if (req.body.active && coupon.expiresAt && coupon.expiresAt <= new Date()) {
+      throw createHttpError(409, "An expired coupon cannot be reactivated.");
+    }
+    coupon.isActive = req.body.active;
+    if (req.body.active) coupon.cancelledAt = null;
+    await coupon.save();
+    res.status(200).json({
+      success: true,
+      message: coupon.isActive ? "Coupon activated." : "Coupon deactivated.",
+      data: coupon,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const archiveCoupon = async (req, res, next) => {
   try {
     const coupon = await Coupon.findOne({ _id: req.params.id, archivedAt: null });
@@ -660,6 +696,7 @@ module.exports = {
   issueWelcomeCoupon,
   generateFridayCampaign,
   cancelCoupon,
+  setCouponActive,
   archiveCoupon,
   listBirthdayNotifications,
   markBirthdayNotificationRead,
