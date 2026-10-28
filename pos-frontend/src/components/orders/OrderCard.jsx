@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { enqueueSnackbar } from "notistack";
 import { formatDateAndTime, getAvatarName, getOrderNumber } from "../../utils/index";
 import { updateOrderStatus, deleteOrder as deleteOrderApi } from "../../https";
+import { replaceCachedOrder, updateCachedOrderStatus } from "../../utils/orderQueryCache";
 import { STAGE_LABELS, TERMINAL_STATUSES, statusPillClass } from "../../utils/orderStages";
 import { canEditOrder, canCancelOrder, canDeleteOrder, canExtendPrep } from "../../utils/orderPermissions";
 import { isPrepActive } from "../../utils/prepTimer";
@@ -30,17 +31,25 @@ const OrderCard = ({ order }) => {
 
   const statusMutation = useMutation({
     mutationFn: updateOrderStatus,
-    onSuccess: (_res, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["tables"] });
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["low-stock"] });
-      queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
-      queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
-      enqueueSnackbar(`Order is now ${STAGE_LABELS[vars.orderStatus] || vars.orderStatus}`, { variant: "success" });
-
+    onMutate: async ({ orderId, orderStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ["orders"] });
+      return { previousOrder: updateCachedOrderStatus(queryClient, orderId, orderStatus) };
     },
-    onError: (error) => {
+    onSuccess: (response, vars) => {
+      replaceCachedOrder(queryClient, response?.data?.data);
+      if (["Accepted", "Cancelled"].includes(vars.orderStatus)) {
+        queryClient.invalidateQueries({ queryKey: ["inventory"] });
+        queryClient.invalidateQueries({ queryKey: ["low-stock"] });
+      }
+      if (TERMINAL_STATUSES.includes(vars.orderStatus)) {
+        queryClient.invalidateQueries({ queryKey: ["tables"] });
+        queryClient.invalidateQueries({ queryKey: ["dailyProfit"] });
+        queryClient.invalidateQueries({ queryKey: ["monthlyProfit"] });
+      }
+      enqueueSnackbar(`Order is now ${STAGE_LABELS[vars.orderStatus] || vars.orderStatus}`, { variant: "success" });
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previousOrder) replaceCachedOrder(queryClient, context.previousOrder);
       enqueueSnackbar(error?.response?.data?.message || "Failed to update order.", { variant: "error" });
     },
   });

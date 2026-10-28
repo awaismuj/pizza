@@ -1,14 +1,12 @@
-import React, { useEffect, useRef } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { I } from "./AppIcons.jsx";
+import { useEffect, useRef } from "react";
 
 /* ---------------------------------------------------------------------------
    Animated storefront background.
 
    - A constellation of soft glowing nodes.
-   - Tiny, soft fast-food icons (pizza, burger, fries...) drifting and
+   - Tiny, soft food emojis drifting and
      slowly spinning behind the content.
-   - Interactive: clicks and taps burst food emojis and sparkles from
+   - Interactive: clicks and taps burst food emojis from
      the touch point.
 
    It is a single fixed <canvas> behind the page (pointer-events: none), so
@@ -17,28 +15,9 @@ import { I } from "./AppIcons.jsx";
    motion.
    --------------------------------------------------------------------------- */
 
-const ICONS = [I.Pizza, I.Burger, I.Hotdog, I.Chicken, I.IceCream, I.Cookie, I.Drink, I.Bread, I.Cheese, I.Cake];
-const CLICK_FOODS = [I.Burger, I.Pizza, I.Chicken, I.Hotdog, I.Bread, I.Cookie, I.Cheese, I.IceCream];
-const CLICK_SPARKLES = [I.Sparkles, I.Star];
-const PALETTE = ["#E6392F", "#F59E0B", "#D97706", "#C2410C", "#B45309"];
+const FOOD_EMOJIS = ["🍔", "🍟", "🍕", "🌮", "🌯", "🥪", "🥤", "🧋", "🍗"];
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
-
-// A react-icons component -> standalone SVG markup in a fixed colour.
-function svgMarkup(Cmp, color, size) {
-  let markup = renderToStaticMarkup(React.createElement(Cmp, { size }));
-  markup = markup.replace(/currentColor/g, color);
-  if (!/xmlns=/.test(markup)) markup = markup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
-  return markup;
-}
-
-function makeSprite(Cmp, size) {
-  const px = Math.ceil(size * 1.6);
-  const img = new Image(px, px);
-  const markup = svgMarkup(Cmp, pick(PALETTE), size);
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
-  return img;
-}
 
 export default function BgFx() {
   const ref = useRef(null);
@@ -54,7 +33,6 @@ export default function BgFx() {
     let dpr = 1;
     let nodes = [];
     let icons = [];
-    let sprites = [];
     let raf = 0;
     let running = false;
     const pointer = { x: -9999, y: -9999, active: false };
@@ -95,9 +73,8 @@ export default function BgFx() {
         temp: false,
       }));
 
-      sprites = ICONS.map((Cmp) => makeSprite(Cmp, 28));
       icons = Array.from({ length: iconCount }, (_, i) => ({
-        s: sprites[i % sprites.length],
+        emoji: FOOD_EMOJIS[i % FOOD_EMOJIS.length],
         x: rand(0, W),
         y: rand(0, H),
         vx: rand(-0.35, 0.35) || 0.2,
@@ -126,27 +103,18 @@ export default function BgFx() {
       }
 
       const count = 2 + Math.floor(Math.random() * 3);
-      const sparkleCount = count > 2 && Math.random() < 0.35 ? 2 : 1;
-      const burst = Array.from({ length: count - sparkleCount }, () => ({
-        Icon: pick(CLICK_FOODS),
-        color: pick(PALETTE),
+      const burst = Array.from({ length: count }, () => ({
+        emoji: pick(FOOD_EMOJIS),
         size: rand(22, 34),
       }));
-      for (let i = 0; i < sparkleCount; i++) {
-        burst.push({
-          Icon: pick(CLICK_SPARKLES),
-          color: "#F5A524",
-          size: rand(15, 23),
-        });
-      }
 
-      burst.forEach(({ Icon, color, size }, index) => {
+      burst.forEach(({ emoji, size }, index) => {
         const angle = (index / burst.length) * Math.PI * 2 + rand(-0.35, 0.35);
         const distance = rand(55, 115);
         const driftX = Math.cos(angle) * distance;
         const driftY = Math.sin(angle) * distance - rand(18, 48);
         const item = document.createElement("span");
-        item.innerHTML = svgMarkup(Icon, color, size);
+        item.textContent = emoji;
         Object.assign(item.style, {
           position: "absolute",
           left: `${x}px`,
@@ -270,8 +238,11 @@ export default function BgFx() {
         ctx.translate(ic.x, ic.y);
         ctx.rotate(ic.rot);
         ctx.globalAlpha = ic.alpha;
-        const w = ic.s.width * ic.scale;
-        ctx.drawImage(ic.s, -w / 2, -w / 2, w, w);
+        const fontSize = 28 * ic.scale;
+        ctx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(ic.emoji, 0, 0);
         ctx.restore();
       }
       ctx.globalAlpha = 1;
