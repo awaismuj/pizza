@@ -14,6 +14,7 @@ import {
   getCheckoutIdempotencyKey,
   clearCheckoutIdempotencyKey,
   validatePublicCoupon,
+  requestWelcomeCoupon,
 } from "./api";
 import { resolveImageUrl } from "./utils";
 import genzLogo from "./assets/genz-pizza-land-logo.jpg";
@@ -3223,6 +3224,10 @@ function StorefrontHome() {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponMessage, setCouponMessage] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [welcomeIdentifier, setWelcomeIdentifier] = useState("");
+  const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [checkingWelcomeCoupon, setCheckingWelcomeCoupon] = useState(false);
+  const [couponCustomerEmail, setCouponCustomerEmail] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3589,6 +3594,7 @@ function StorefrontHome() {
     cart,
     fulfillment: [fulfil.method, fulfil.branchId, fulfil.zoneId],
     phone: form.phone,
+    email: couponCustomerEmail,
     customerId: customer?.id || "",
   });
   const couponContextRef = useRef(couponContextSnapshot);
@@ -3608,6 +3614,7 @@ function StorefrontHome() {
       fulfillment: [fulfil.method, fulfil.branchId, fulfil.zoneId, fulfil.address],
       payment: [payMethod, jazz.tid, jazz.sender, jazz.proofId],
       coupon: appliedCoupon?.code || "",
+      couponCustomerEmail,
     });
     if (checkoutIntentSnapshot.current !== null && checkoutIntentSnapshot.current !== snapshot) {
       clearCheckoutIdempotencyKey();
@@ -3626,6 +3633,7 @@ function StorefrontHome() {
     jazz.sender,
     jazz.proofId,
     appliedCoupon?.code,
+    couponCustomerEmail,
   ]);
   const total = cartTotal + payableDeliveryFee;
   const cartCount = cartLines.reduce((sum, l) => sum + l.qty, 0);
@@ -3979,6 +3987,7 @@ function StorefrontHome() {
       const response = await validatePublicCoupon({
         code: couponCode,
         phone: form.phone,
+        email: customer?.email || couponCustomerEmail || "",
         orderType: fulfil.method,
         fulfillment: fulfil.payload(),
         items: cartLines.map((line) =>
@@ -4000,6 +4009,37 @@ function StorefrontHome() {
       setCouponMessage(err.message || "Could not apply this coupon.");
     } finally {
       setApplyingCoupon(false);
+    }
+  };
+
+  const handleWelcomeCoupon = async () => {
+    const identity = welcomeIdentifier.trim();
+    if (!identity) {
+      setWelcomeMessage("Enter your mobile number or email address.");
+      return;
+    }
+    const isEmail = identity.includes("@");
+    setCheckingWelcomeCoupon(true);
+    setWelcomeMessage("");
+    try {
+      const response = await requestWelcomeCoupon(
+        isEmail ? { email: identity.toLowerCase() } : { phone: identity }
+      );
+      const offer = response.data;
+      setCouponCode(offer.code);
+      if (isEmail) setCouponCustomerEmail(identity.toLowerCase());
+      else setForm((current) => ({ ...current, phone: identity }));
+      const expiry = new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "UTC",
+        timeZoneName: "short",
+      }).format(new Date(offer.expiresAt));
+      setWelcomeMessage(`Your coupon is ready: ${offer.code} (${offer.discountPercentage}% off). Expires ${expiry}. Enter your cart details and apply it below.`);
+    } catch (requestError) {
+      setWelcomeMessage(requestError.message || "A welcome coupon is not available for this account.");
+    } finally {
+      setCheckingWelcomeCoupon(false);
     }
   };
 
@@ -4039,6 +4079,7 @@ function StorefrontHome() {
       const payload = {
         customerName: form.name,
         customerPhone: form.phone,
+        ...(couponCustomerEmail ? { customerEmail: couponCustomerEmail } : {}),
         address: fulfil.method === "delivery" ? fulfil.address : "",
         fulfillment: fulfil.payload(),
         couponCode: appliedCoupon?.code,
@@ -5569,6 +5610,30 @@ function StorefrontHome() {
                   </label>
 
                   <div style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14 }}>
+                    <div className="gzp-form" style={{ marginBottom: 14 }}>
+                      <label className="gzp-field" htmlFor="welcome-coupon-identity">
+                        <span>New customer? Check for a welcome coupon</span>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            id="welcome-coupon-identity"
+                            value={welcomeIdentifier}
+                            onChange={(event) => setWelcomeIdentifier(event.target.value)}
+                            autoComplete="email tel"
+                            placeholder="Mobile number or email"
+                            style={{ flex: 1, minWidth: 0 }}
+                          />
+                          <button
+                            type="button"
+                            className="gzp-btn gzp-btn-ghost"
+                            onClick={handleWelcomeCoupon}
+                            disabled={checkingWelcomeCoupon}
+                          >
+                            {checkingWelcomeCoupon ? "Checking…" : "Check coupon"}
+                          </button>
+                        </div>
+                      </label>
+                      {welcomeMessage && <p role="status">{welcomeMessage}</p>}
+                    </div>
                     <label className="gzp-field" htmlFor="checkout-coupon-code">
                       <span>Coupon code</span>
                       <div style={{ display: "flex", gap: 8 }}>

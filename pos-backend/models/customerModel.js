@@ -19,7 +19,7 @@ const customerSchema = new mongoose.Schema(
     verificationTokenHash: { type: String, default: null, select: false },
     verificationExpiresAt: { type: Date, default: null, select: false },
     authVersion: { type: Number, default: 0, select: false },
-    dateOfBirth: { type: Date, default: null },
+    dateOfBirth: { type: Date, default: null, index: true },
     marketingConsent: { type: Boolean, default: false },
     marketingConsentAt: { type: Date, default: null },
     marketingConsentSource: { type: String, default: "" },

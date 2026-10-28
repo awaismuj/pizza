@@ -8,7 +8,6 @@ const settingsSchema = new mongoose.Schema(
     // Applied to every order - dine-in, outdoor/takeaway and online - from
     // wherever it's read. Admin-editable from Dashboard > Tax.
     taxRatePercent: { type: Number, required: true, default: 16, min: 0 },
-    welcomeOfferRedemptionCount: { type: Number, default: 0, min: 0 },
     // "Build Your Own Deal" (online store): the customer picks any items from
     // the menu - at least `minItems` of them - and gets a discount that grows
     // with how many they pick. Every number here is admin-editable from
@@ -66,28 +65,30 @@ const settingsSchema = new mongoose.Schema(
       requireNumber: { type: Boolean, default: false },
       requireSymbol: { type: Boolean, default: false },
     },
-    firstTimeCustomerOffer: {
-      enabled: { type: Boolean, default: false },
-      minimumSubtotal: { type: Number, default: 1000, min: 0 },
-      percentages: { type: [Number], default: [5, 7, 10], validate: (value) => Array.isArray(value) && value.length > 0 },
-      selectionMethod: { type: String, enum: ["random"], default: "random" },
-      maxDiscountAmount: { type: Number, default: null, min: 0 },
-      startsAt: { type: Date, default: null },
-      expiresAt: { type: Date, default: null },
-      maxCampaignRedemptions: { type: Number, default: null, min: 1 },
-      maxOnePerCustomer: { type: Boolean, default: true },
-      eligibleChannels: {
-        type: [{ type: String, enum: ["Online", "POS", "Pickup", "Delivery"] }],
-        default: ["Online", "POS", "Pickup", "Delivery"],
+    couponCampaigns: {
+      welcome: {
+        enabled: { type: Boolean, default: false },
+        minimumSubtotal: { type: Number, default: 1000, min: 0 },
+        percentages: { type: [Number], default: [2, 3, 4] },
+        expiryHours: { type: Number, default: 72, min: 1, max: 8760 },
+        maxOnePerCustomer: { type: Boolean, default: true },
       },
-      popupTitle: { type: String, default: "Welcome to our Pizza Store!", maxlength: 120 },
-      popupDescription: {
-        type: String,
-        default: "You're eligible for a special first-order reward.",
-        maxlength: 300,
+      friday: {
+        automaticGeneration: { type: Boolean, default: false },
+        minimumSubtotal: { type: Number, default: 0, min: 0 },
+        percentages: { type: [Number], default: [4, 5, 6, 7] },
+        expiryHours: { type: Number, default: 72, min: 1, max: 8760 },
+        timezone: { type: String, default: "Asia/Karachi", maxlength: 80 },
       },
-      applyButtonLabel: { type: String, default: "Apply Discount", maxlength: 40 },
-      declineButtonLabel: { type: String, default: "No Thanks", maxlength: 40 },
+      birthday: {
+        enabled: { type: Boolean, default: false },
+        discountMode: { type: String, enum: ["fixed", "random"], default: "random" },
+        fixedPercentage: { type: Number, default: 5, min: 0, max: 100 },
+        percentages: { type: [Number], default: [5, 6, 7] },
+        minimumSubtotal: { type: Number, default: 0, min: 0 },
+        expiryHours: { type: Number, default: 72, min: 1, max: 8760 },
+        timezone: { type: String, default: "Asia/Karachi", maxlength: 80 },
+      },
     },
     promotionSettings: { type: mongoose.Schema.Types.Mixed, default: undefined },
     couponSettingsAudit: [{

@@ -395,11 +395,32 @@ and POS Razorpay setup use idempotency keys so retries do not create duplicate
 orders or payments. Configure a unique, stable `IDEMPOTENCY_SECRET` (or use
 the `JWT_SECRET` fallback) across deployments.
 
-Coupon checkout, coupon management, welcome offers, customer coupon assignment,
-and coupon campaign messaging have been removed. Existing order totals,
-discount snapshots, and coupon-related database records are retained for
-historical reference; no database cleanup or data migration is part of this
-change. New orders cannot apply coupon codes.
+### Coupon campaigns
+
+The POS dashboard's **Coupons** section manages welcome, Friday, and birthday
+campaigns. Coupon codes are generated as `Flat` followed by random digits and
+are matched case-insensitively. Welcome coupons are issued after a rate-limited
+eligibility check; Friday coupons can be generated manually or automatically
+each Friday at 6:00 PM in the configured timezone; birthday coupons are
+generated daily for customer profiles that have a date of birth. Automatic
+campaign settings and discount/expiry rules are stored in the existing global
+settings document.
+
+Coupon prices and eligibility are recalculated by the backend at checkout.
+Issued campaign coupons are customer-specific and single-use; capacity is
+reserved when an order is created, redeemed when the order reaches its
+successful completion status, and released when the order is cancelled,
+payment is rejected, or the reservation expires. Order snapshots and
+redemption history are retained when coupons are cancelled.
+
+Before deploying coupon campaigns to an existing database, back up MongoDB and
+run `npm run migrate` from `pos-backend`. This synchronizes the coupon,
+redemption, usage, customer date-of-birth, and order indexes; it does not
+rewrite customer or order records. No new environment variables or messaging
+providers are required. The birthday notification and Friday campaign jobs
+run in the backend without an admin browser; the admin can copy codes for
+manual sharing. Expiry timestamps are stored absolutely and displayed using
+the campaign timezone (UTC for welcome coupons).
 
 Customer accounts use a separate `Customer` collection, email verification,
 hashed passwords, and short-lived customer JWTs. Configure `SMTP_HOST`,

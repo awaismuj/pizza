@@ -2,9 +2,21 @@ const mongoose = require("mongoose");
 
 const couponSchema = new mongoose.Schema(
   {
-    code: { type: String, required: true, trim: true, uppercase: true, maxlength: 40 },
+    code: { type: String, required: true, trim: true, maxlength: 40 },
+    codeKey: { type: String, trim: true, uppercase: true, maxlength: 40 },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     description: { type: String, default: "", trim: true, maxlength: 500 },
+    campaignType: {
+      type: String,
+      enum: ["manual", "welcome", "friday", "birthday"],
+      default: "manual",
+      index: true,
+    },
+    campaignCycle: { type: String, default: "", maxlength: 32 },
+    campaignKey: { type: String, default: undefined, maxlength: 180 },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", default: null, index: true },
+    notificationReadAt: { type: Date, default: null },
+    cancelledAt: { type: Date, default: null },
     discountType: { type: String, required: true, enum: ["percentage", "fixed", "freeDelivery"] },
     discountValue: { type: Number, required: true, min: 0 },
     minimumOrderAmount: { type: Number, default: null, min: 0 },
@@ -35,6 +47,9 @@ const couponSchema = new mongoose.Schema(
 );
 
 couponSchema.index({ code: 1 }, { unique: true });
+couponSchema.index({ codeKey: 1 }, { unique: true, sparse: true });
+couponSchema.index({ campaignKey: 1 }, { unique: true, sparse: true });
+couponSchema.index({ campaignType: 1, customerId: 1, createdAt: -1 });
 couponSchema.index({ isActive: 1, startsAt: 1, expiresAt: 1 });
 
 module.exports = mongoose.model("Coupon", couponSchema);

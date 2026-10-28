@@ -21,7 +21,7 @@ const permissions = [
   ["categories.manage", "Manage categories"],
   ["deals.manage", "Manage deals"],
   ["coupons.view", "View coupons and coupon reports"],
-  ["coupons.manage", "Create, edit, and archive coupons"],
+  ["coupons.manage", "Manage coupon campaigns and customer coupons"],
   ["coupons.apply", "Apply eligible coupons to orders"],
   ["hero.manage", "Manage hero slides"],
   ["inventory.view", "View inventory"],
@@ -136,7 +136,7 @@ const routePermission = (baseUrl, path, method, body = {}, user = {}, effectiveP
     if (verb === "DELETE") return "orders.delete";
   }
   if (baseUrl === "/api/coupon") {
-    if (route === "/public/validate") return null;
+    if (route === "/public/validate" || route === "/public/welcome") return null;
     if (route === "/validate") return "coupons.apply";
     if (route.startsWith("/admin/redemptions/") && route.endsWith("/reverse")) return "coupons.manage";
     if (route === "/admin" && verb === "GET") return "coupons.view";

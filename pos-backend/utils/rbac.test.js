@@ -38,9 +38,15 @@ test("coupon endpoints distinguish public validation, staff application, and adm
   assert.equal(routePermission("/api/category", "/", "GET"), "menu.view");
   assert.equal(routePermission("/api/dish", "/", "GET"), "menu.view");
   assert.equal(routePermission("/api/coupon", "/public/validate", "POST"), null);
+  assert.equal(routePermission("/api/coupon", "/public/welcome", "POST"), null);
   assert.equal(routePermission("/api/coupon", "/validate", "POST"), "coupons.apply");
   assert.equal(routePermission("/api/coupon", "/admin", "GET"), "coupons.view");
   assert.equal(routePermission("/api/coupon", "/admin", "POST"), "coupons.manage");
+  assert.equal(routePermission("/api/coupon", "/admin/settings", "GET"), "coupons.view");
+  assert.equal(routePermission("/api/coupon", "/admin/settings", "PUT"), "coupons.manage");
+  assert.equal(routePermission("/api/coupon", "/admin/generate/friday", "POST"), "coupons.manage");
+  assert.equal(routePermission("/api/coupon", "/admin/notifications/birthday", "GET"), "coupons.view");
+  assert.equal(routePermission("/api/coupon", "/admin/notifications/birthday/id/read", "PATCH"), "coupons.manage");
   assert.ok(roleDefaults.admin.includes("coupons.manage"));
   assert.ok(roleDefaults.cashier.includes("coupons.apply"));
 });
