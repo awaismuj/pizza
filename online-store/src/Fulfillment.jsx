@@ -108,7 +108,11 @@ export function useFulfillment(subtotal) {
 
   const isClosedNotice = Boolean(quote?.branchName && quote.error?.startsWith(`${quote.branchName} is closed right now.`));
   const quoteBlocker = quote && !quote.ok
-    ? isClosedNotice && branch?.customerDisplay?.showClosedNotice === false ? "" : quote.error
+    ? isClosedNotice && branch?.customerDisplay?.showClosedNotice === false
+      ? ""
+      : isClosedNotice
+        ? `Closed now.${quote.nextOpen ? ` Opens ${quote.nextOpen}.` : ""}`
+        : quote.error
     : "";
   const blocker = quoteError || quoteBlocker ||
     (method === "delivery" && quote?.ok && !addressOk ? "Enter a delivery address." : "");
@@ -163,18 +167,19 @@ export const FulfillmentPicker = ({ f }) => {
   const delivery = branch.delivery;
   const pickup = branch.pickup;
   const customerDisplay = branch.customerDisplay || {};
+  const showDeliveryAreaDetails = customerDisplay.showDeliveryAreaDetails === true;
   const deliveryOff = !delivery.enabled || !!delivery.blockedReason;
   const pickupOff = !pickup.enabled || !!pickup.blockedReason;
   const zone = dZones.find((z) => z._id === f.zoneId);
 
   const zoneFee = (z) => (delivery.freeWithinKm > 0 && z.distanceKm != null && z.distanceKm <= delivery.freeWithinKm ? 0 : z.fee);
   const feeText = (z) => (zoneFee(z) > 0 ? rs(zoneFee(z)) : "Free");
-  const deliveryMeta = zone
+  const deliveryMeta = showDeliveryAreaDetails && zone
     ? [
         customerDisplay.showDeliveryFees !== false ? feeText(zone) : "",
         customerDisplay.showEstimatedTimes !== false ? `${zone.travelMinutes + delivery.prepMinutes}+ min` : "",
       ].filter(Boolean).join(" · ")
-    : dZones.length && customerDisplay.showDeliveryFees !== false
+    : showDeliveryAreaDetails && dZones.length && customerDisplay.showDeliveryFees !== false
       ? `From ${feeText({ fee: Math.min(...dZones.map(zoneFee)) })}`
       : "";
   const pickupMeta = [
@@ -237,33 +242,35 @@ export const FulfillmentPicker = ({ f }) => {
 
       {method === "delivery" ? (
         <div className="fx-block">
-          <span className="fx-label">Delivery area</span>
           {dZones.length === 0 ? (
             <div className="fx-alert is-bad"><I.Warning aria-hidden="true" /><span>No delivery areas are set up for this branch yet. Please choose Pickup.</span></div>
-          ) : (
-            <div className="fx-zones" role="radiogroup" aria-label="Delivery area">
-              {dZones.map((z) => (
-                <button
-                  key={z._id}
-                  type="button"
-                  role="radio"
-                  aria-checked={z._id === f.zoneId}
-                  className={`fx-zone${z._id === f.zoneId ? " is-on" : ""}`}
-                  onClick={() => f.setZoneId(z._id)}
-                >
-                  <span className="fx-zone-main">
-                    <b>{z.name}</b>
-                    {z.areas && customerDisplay.showDeliveryAreaText !== false && <small>{z.areas}</small>}
-                  </span>
-                  {(customerDisplay.showDeliveryFees !== false || customerDisplay.showEstimatedTimes !== false) && (
-                    <span className="fx-zone-fee">
-                      {customerDisplay.showDeliveryFees !== false && feeText(z)}
-                      {customerDisplay.showEstimatedTimes !== false && <small>{z.travelMinutes + delivery.prepMinutes}–{z.travelMinutes + delivery.prepMinutes + 10} min</small>}
+          ) : (showDeliveryAreaDetails || dZones.length > 1) && (
+            <>
+              <span className="fx-label">{showDeliveryAreaDetails ? "Delivery area" : "Choose delivery area"}</span>
+              <div className="fx-zones" role="radiogroup" aria-label="Delivery area">
+                {dZones.map((z) => (
+                  <button
+                    key={z._id}
+                    type="button"
+                    role="radio"
+                    aria-checked={z._id === f.zoneId}
+                    className={`fx-zone${z._id === f.zoneId ? " is-on" : ""}`}
+                    onClick={() => f.setZoneId(z._id)}
+                  >
+                    <span className="fx-zone-main">
+                      <b>{z.name}</b>
+                      {showDeliveryAreaDetails && z.areas && customerDisplay.showDeliveryAreaText === true && <small>{z.areas}</small>}
                     </span>
-                  )}
-                </button>
-              ))}
-            </div>
+                    {showDeliveryAreaDetails && (customerDisplay.showDeliveryFees === true || customerDisplay.showEstimatedTimes === true) && (
+                      <span className="fx-zone-fee">
+                        {customerDisplay.showDeliveryFees === true && feeText(z)}
+                        {customerDisplay.showEstimatedTimes === true && <small>{z.travelMinutes + delivery.prepMinutes}–{z.travelMinutes + delivery.prepMinutes + 10} min</small>}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           <label className="gzp-field fx-address">
@@ -277,7 +284,7 @@ export const FulfillmentPicker = ({ f }) => {
             />
           </label>
 
-          {customerDisplay.showFreeDeliveryNote !== false && (delivery.freeAbove > 0 || delivery.freeWithinKm > 0) && (
+          {showDeliveryAreaDetails && customerDisplay.showFreeDeliveryNote === true && (delivery.freeAbove > 0 || delivery.freeWithinKm > 0) && (
             <p className="fx-hint">
               <I.Bolt aria-hidden="true" />
               Free delivery
@@ -303,13 +310,13 @@ export const FulfillmentPicker = ({ f }) => {
         <div className="fx-summary" aria-live="polite">
           {customerDisplay.showEstimatedTimes !== false && (
             <div>
-              <small>Estimated {method === "delivery" ? "delivery" : "ready in"}</small>
+              <small>{method === "delivery" ? "ETA" : "Ready"}</small>
               <b>{quote ? etaText(quote) || "—" : f.quoting ? "…" : "—"}</b>
             </div>
           )}
           {customerDisplay.showDeliveryFees !== false && (
             <div>
-              <small>{method === "delivery" ? "Delivery fee" : "Pickup fee"}</small>
+              <small>Fee</small>
               <b>{quote?.ok ? (quote.fee > 0 ? rs(quote.fee) : "Free") : "—"}</b>
             </div>
           )}
@@ -370,9 +377,9 @@ export const FULFILLMENT_STYLES = `
 .fx-pickup-row b { color: var(--flour); }
 .fx-hint { margin: 0; display: flex; gap: 8px; align-items: center; font-size: .82rem; color: #15753f; font-weight: 600; }
 .fx-summary { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
-.fx-summary > div { background: #fff; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
-.fx-summary small { font-size: .72rem; color: var(--flour-faint); }
-.fx-summary b { font-size: .95rem; }
+.fx-summary > div { background: #fff; padding: 7px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.fx-summary small { font-size: .7rem; color: var(--flour-faint); }
+.fx-summary b { font-size: .84rem; white-space: nowrap; }
 .fx-alert { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; border-radius: var(--r-md); font-size: .86rem; line-height: 1.4; }
 .fx-alert.is-bad { background: #fdeaea; color: #8f1d14; border: 1px solid #f6c7c3; }
 .fx-alert svg { flex: none; margin-top: 2px; }

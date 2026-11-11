@@ -80,6 +80,7 @@ const cleanBranch = (b = {}) => {
 
   const display = b.customerDisplay || {};
   out.customerDisplay = {
+    showDeliveryAreaDetails: display.showDeliveryAreaDetails === true,
     showFreeDeliveryNote: display.showFreeDeliveryNote === true,
     showEstimatedTimes: display.showEstimatedTimes === true,
     showDeliveryFees: display.showDeliveryFees === true,

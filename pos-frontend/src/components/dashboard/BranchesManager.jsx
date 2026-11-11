@@ -16,6 +16,7 @@ const blankBranch = () => ({
   pickup: { enabled: true, prepMinutes: 20, minOrder: 0, instructions: "Show your order number at the counter." },
   delivery: { enabled: true, prepMinutes: 25, minOrder: 0, freeAbove: 1000, freeWithinKm: 4, zones: [] },
   customerDisplay: {
+    showDeliveryAreaDetails: false,
     showFreeDeliveryNote: false,
     showEstimatedTimes: false,
     showDeliveryFees: false,
@@ -288,8 +289,9 @@ const BranchesManager = () => {
             </div>
           </Card>
 
-          <Card title="Customer-facing details" subtitle="Hide optional delivery and payment messages without changing fees, availability, or opening-hour rules.">
+          <Card title="Customer-facing details" subtitle="Control optional delivery details and payment messages. The address and any required delivery-area choices stay available for checkout.">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <Toggle checked={form.customerDisplay.showDeliveryAreaDetails} onChange={(value) => patch("customerDisplay.showDeliveryAreaDetails", value)} label="Show delivery-area details" />
               <Toggle checked={form.customerDisplay.showFreeDeliveryNote} onChange={(value) => patch("customerDisplay.showFreeDeliveryNote", value)} label="Show free-delivery note" />
               <Toggle checked={form.customerDisplay.showEstimatedTimes} onChange={(value) => patch("customerDisplay.showEstimatedTimes", value)} label="Show estimated times" />
               <Toggle checked={form.customerDisplay.showDeliveryFees} onChange={(value) => patch("customerDisplay.showDeliveryFees", value)} label="Show delivery and pickup fees" />

@@ -49,6 +49,7 @@ const branchSchema = new mongoose.Schema(
       zones: { type: [zoneSchema], default: [] },
     },
     customerDisplay: {
+      showDeliveryAreaDetails: { type: Boolean, default: false },
       showFreeDeliveryNote: { type: Boolean, default: false },
       showEstimatedTimes: { type: Boolean, default: false },
       showDeliveryFees: { type: Boolean, default: false },

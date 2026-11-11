@@ -183,6 +183,7 @@ const publicBranch = (branch, now = new Date()) => {
     address: b.address,
     phone: b.phone,
     customerDisplay: {
+      showDeliveryAreaDetails: b.customerDisplay?.showDeliveryAreaDetails === true,
       showFreeDeliveryNote: b.customerDisplay?.showFreeDeliveryNote === true,
       showEstimatedTimes: b.customerDisplay?.showEstimatedTimes === true,
       showDeliveryFees: b.customerDisplay?.showDeliveryFees === true,

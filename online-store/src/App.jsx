@@ -5745,7 +5745,7 @@ function StorefrontHome() {
                         {fulfil.method === "pickup" ? (
                           <><b>Pay at pickup.</b> Pay at the counter.</>
                         ) : (
-                          <><b>Cash on delivery.</b> Pay when your order arrives.</>
+                          <b>Cash on delivery.</b>
                         )}
                       </span>
                     </p>
