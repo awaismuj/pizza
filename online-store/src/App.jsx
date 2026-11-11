@@ -338,19 +338,19 @@ select {
   overflow: hidden;
   background: var(--ink-800);
   width: 100%;
-  aspect-ratio: 8 / 3;
+  aspect-ratio: 16 / 7;
   cursor: pointer;
 }
 
 @media (min-width: 640px) {
   .gzp-slider {
-    aspect-ratio: 16 / 3.5;
+    aspect-ratio: 16 / 6;
   }
 }
 
 @media (min-width: 900px) {
   .gzp-slider {
-    aspect-ratio: 21 / 3.5;
+    aspect-ratio: 21 / 5.6;
   }
 }
 
@@ -360,6 +360,7 @@ select {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   opacity: 0;
   transition: opacity 0.7s ease;
 }

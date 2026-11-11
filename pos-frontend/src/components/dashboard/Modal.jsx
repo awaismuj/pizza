@@ -899,12 +899,12 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               <div>
                 <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Photo (optional)</label>
                 <div className="flex items-center gap-3">
-                  <div className="w-20 aspect-[4/3] rounded-lg bg-[#1f1f1f] border border-[#3a3a3a] overflow-hidden shrink-0 flex items-center justify-center">
+                  <div className="w-20 aspect-[1/0.82] rounded-lg bg-[#1f1f1f] border border-[#3a3a3a] overflow-hidden shrink-0 flex items-center justify-center">
                     {formData.image ? (
                       <img
                         src={resolveImageUrl(formData.image)}
                         alt="Dish preview"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover object-center"
                       />
                     ) : (
                       <span className="text-[#767676] text-[10px]">Preview</span>
