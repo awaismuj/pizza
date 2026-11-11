@@ -699,8 +699,8 @@ const addPublicOrder = async (req, res, next) => {
     const fBranch = mongoose.Types.ObjectId.isValid(fInput.branchId) ? await Branch.findById(fInput.branchId) : null;
     const fQuote = quoteFulfillment({ branch: fBranch, method: fInput.method, zoneId: fInput.zoneId, subtotal: total });
     if (!fQuote.ok) return next(createHttpError(400, fQuote.error));
-    if (fQuote.method === "delivery" && String(address || "").trim().length < 10) {
-      return next(createHttpError(400, "Enter your full delivery address (house, street, landmark)."));
+    if (fQuote.method === "delivery" && !String(address || "").trim()) {
+      return next(createHttpError(400, "Enter a delivery address."));
     }
     let deliveryFee = fQuote.fee;
     let couponValidation = null;

@@ -102,7 +102,7 @@ export function useFulfillment(subtotal) {
     };
   }, [branchId, method, zoneId, subtotal]);
 
-  const addressOk = method !== "delivery" || address.trim().length >= 10;
+  const addressOk = method !== "delivery" || address.trim().length > 0;
   const ready = !!quote && quote.ok && !quoting && addressOk;
   const fee = quote?.ok ? quote.fee : 0;
 
@@ -111,7 +111,7 @@ export function useFulfillment(subtotal) {
     ? isClosedNotice && branch?.customerDisplay?.showClosedNotice === false ? "" : quote.error
     : "";
   const blocker = quoteError || quoteBlocker ||
-    (method === "delivery" && quote?.ok && !addressOk ? "Enter your full delivery address (house, street, landmark)." : "");
+    (method === "delivery" && quote?.ok && !addressOk ? "Enter a delivery address." : "");
 
   const payload = () => ({
     method,
@@ -184,7 +184,7 @@ export const FulfillmentPicker = ({ f }) => {
 
   return (
     <section className="fx" aria-label="Delivery or pickup">
-      <h3 className="fx-h">How do you want your order?</h3>
+      <h3 className="fx-h">Delivery or pickup</h3>
 
       <div className="fx-opts" role="group" aria-label="Fulfillment method">
         <OptionCard
@@ -267,22 +267,23 @@ export const FulfillmentPicker = ({ f }) => {
           )}
 
           <label className="gzp-field fx-address">
-            <span>Full delivery address</span>
+            <span>Delivery address</span>
             <textarea
               rows={3}
               value={f.address}
               onChange={(e) => f.setAddress(e.target.value)}
-              placeholder="House or flat number, street, nearest landmark"
-              aria-invalid={f.address.trim().length > 0 && f.address.trim().length < 10}
+              placeholder="Enter your address for delivery"
+              aria-invalid={f.address.length > 0 && !addressOk}
             />
           </label>
 
           {customerDisplay.showFreeDeliveryNote !== false && (delivery.freeAbove > 0 || delivery.freeWithinKm > 0) && (
             <p className="fx-hint">
-              <I.Bolt aria-hidden="true" /> Free delivery
-              {delivery.freeAbove > 0 ? ` on orders of ${rs(delivery.freeAbove)} or more` : ""}
+              <I.Bolt aria-hidden="true" />
+              Free delivery
+              {delivery.freeAbove > 0 ? ` on orders ${rs(delivery.freeAbove)}+` : ""}
               {delivery.freeAbove > 0 && delivery.freeWithinKm > 0 ? " or" : ""}
-              {delivery.freeWithinKm > 0 ? ` within ${delivery.freeWithinKm} km` : ""}.
+              {delivery.freeWithinKm > 0 ? ` within ${delivery.freeWithinKm} km` : ""}
             </p>
           )}
         </div>
