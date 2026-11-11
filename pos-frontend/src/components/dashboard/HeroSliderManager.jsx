@@ -115,7 +115,7 @@ const HeroSliderManager = () => {
     if (!file) return;
     try {
       setUploadingImage(true);
-      const res = await uploadImage(file, undefined, { aspectRatio: 21 / 5.6 });
+      const res = await uploadImage(file);
       const url = res?.data?.data?.url;
       if (url) setForm((prev) => ({ ...prev, image: url }));
     } catch (error) {
@@ -176,7 +176,7 @@ const HeroSliderManager = () => {
                   <img
                     src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
                     alt={form.altText || "Promotional slide image preview"}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <span className="text-[#7a7a7a] text-sm">Banner preview · fitted to storefront</span>
@@ -188,7 +188,7 @@ const HeroSliderManager = () => {
               </label>
             </div>
             <p className="text-[#7a7a7a] text-xs mt-1">
-              The image is automatically cropped to the storefront banner ratio; edges may be trimmed, never stretched.
+              The full image is fitted inside the storefront banner without stretching or cropping.
             </p>
           </div>
 
@@ -262,7 +262,7 @@ const HeroSliderManager = () => {
                     <img
                       src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
                       alt={slide.altText || `Promotional slide ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div className="min-w-0">
