@@ -208,8 +208,8 @@ Before deploying, configure these backend environment secrets:
 - `OWNER_PASSWORD_HASH`: bcrypt hash generated with `npm run owner:hash-password`
   from `pos-backend` (password input is hidden; use at least 12 characters).
 - `OWNER_TOTP_SECRET`: Base32 key generated with `npm run owner:totp-secret`.
-  Add this key to Google Authenticator using manual setup and keep the key in
-  the secret manager. Do not commit the generated secret.
+  Scan the generated terminal QR code once with Google Authenticator, then
+  keep the key in the secret manager. Do not commit the generated secret.
 - `OWNER_SESSION_SECRET`: a separate random secret of at least 32 characters.
 - `OWNER_ADMIN_ORIGINS`: optional comma-separated POS origins if the POS origin
   is not already set in `FRONTEND_URL`.
@@ -217,7 +217,11 @@ Before deploying, configure these backend environment secrets:
 The owner session is an HTTP-only, secure-in-production, SameSite=Strict cookie
 scoped to the owner API, expires after one hour, and is rate-limited after
 failed attempts. Use HTTPS in production and keep all owner secrets outside
-the repository and frontend environment variables.
+the repository and frontend environment variables. Run `npm run owner:check-config`
+from `pos-backend` to verify that all required settings are loaded; this command
+reports status only and never prints secret values. Restart the backend after
+changing its environment. Google Authenticator enrollment is a one-time scan;
+each sign-in still requires entering its current six-digit code.
 
 #### Provisioning the first Super Admin
 

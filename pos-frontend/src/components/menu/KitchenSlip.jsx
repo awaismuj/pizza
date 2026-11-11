@@ -39,7 +39,12 @@ const KitchenSlip = ({ orderInfo, onClose }) => {
       <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-[400px] max-h-[90vh] overflow-y-auto">
         <div ref={slipRef} className="p-4">
           <div className="mb-1 flex justify-center">
-            <img src={brandLogo} alt={`${brandName} logo`} className="h-10 max-w-32 object-contain" />
+            <img
+              src={brandLogo}
+              alt={`${brandName} logo`}
+              className="h-10 max-w-32 object-contain"
+              style={{ width: 128, height: 40, objectFit: "contain", display: "block", margin: "0 auto" }}
+            />
           </div>
           <p className="text-center text-sm font-semibold text-gray-500 tracking-wide uppercase mb-1">{brandName}</p>
           <h2 className="text-xl font-bold text-center mb-1">Kitchen Order Slip</h2>

@@ -19,7 +19,8 @@
     "migrate:rbac": "node scripts/migrate-rbac.js",
     "rbac:promote-owner": "node scripts/promote-owner.js",
     "owner:totp-secret": "node scripts/generate-owner-totp.js",
-    "owner:hash-password": "node scripts/hash-owner-password.js"
+    "owner:hash-password": "node scripts/hash-owner-password.js",
+    "owner:check-config": "node scripts/check-owner-config.js"
   },
   "keywords": [],
   "author": "",
