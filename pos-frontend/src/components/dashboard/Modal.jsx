@@ -666,7 +666,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-14 h-14 rounded-lg bg-[#1f1f1f] flex items-center justify-center overflow-hidden shrink-0">
                     {isUploadedImage(formData.icon) ? (
-                      <img src={resolveImageUrl(formData.icon)} alt="Category icon" className="w-full h-full object-contain" />
+                      <img src={resolveImageUrl(formData.icon)} alt="Category icon" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-3xl text-[#f6b100]"><FoodIcon icon={formData.icon} /></span>
                     )}
@@ -899,12 +899,12 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               <div>
                 <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Photo (optional)</label>
                 <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-lg bg-[#1f1f1f] border border-[#3a3a3a] overflow-hidden shrink-0 flex items-center justify-center">
+                  <div className="w-20 aspect-[4/3] rounded-lg bg-[#1f1f1f] border border-[#3a3a3a] overflow-hidden shrink-0 flex items-center justify-center">
                     {formData.image ? (
                       <img
                         src={resolveImageUrl(formData.image)}
                         alt="Dish preview"
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <span className="text-[#767676] text-[10px]">Preview</span>
@@ -922,7 +922,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                     />
                   </label>
                 </div>
-                <p className="text-[#767676] text-xs mt-1">The full photo stays visible in a square frame.</p>
+                <p className="text-[#767676] text-xs mt-1">Image fills the menu photo frame; edges may be trimmed to fit.</p>
               </div>
 
               <div className="rounded-lg bg-[#1f1f1f] p-4 space-y-3">

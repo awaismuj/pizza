@@ -563,15 +563,15 @@ const DealsManager = () => {
             <div>
               <label className="text-[#ababab] text-sm mb-1 block">Deal image</label>
               <div className="flex items-end gap-3">
-                <div className="w-24 aspect-square rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
+                <div className="w-32 aspect-[16/10] rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
                   {form.image ? (
                     <img
                       src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
                       alt={form.name ? `${form.name} deal preview` : "Deal image preview"}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-[#7a7a7a] text-xs text-center">Square preview</span>
+                    <span className="text-[#7a7a7a] text-xs text-center">Storefront preview</span>
                   )}
                 </div>
                 <label className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded cursor-pointer text-sm">
@@ -579,7 +579,7 @@ const DealsManager = () => {
                   <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
-              <p className="text-[#7a7a7a] text-xs mt-1">The full photo stays visible in a square frame.</p>
+              <p className="text-[#7a7a7a] text-xs mt-1">Image fills the deal frame; edges may be trimmed to fit.</p>
             </div>
             <div>
               <label className="text-[#ababab] text-sm mb-1 block">Fallback icon (shown if no image)</label>
@@ -644,7 +644,7 @@ const DealsManager = () => {
                       <img
                         src={isUploadedImage(deal.image) ? resolveImageUrl(deal.image) : deal.image}
                         alt={deal.name}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   ) : (

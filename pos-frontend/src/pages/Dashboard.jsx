@@ -694,7 +694,7 @@ const Dashboard = () => {
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
                             {isUploadedImage(category.icon) ? (
-                              <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-contain" />
+                              <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
                             )}
@@ -737,7 +737,7 @@ const Dashboard = () => {
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                   <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
                                     {isUploadedImage(category.icon) ? (
-                                      <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-contain" />
+                                      <img src={resolveImageUrl(category.icon)} alt="" className="w-full h-full object-cover" />
                                     ) : (
                                       <span className="text-xl text-[#f6b100]"><FoodIcon icon={category.icon} /></span>
                                     )}
@@ -798,7 +798,7 @@ const Dashboard = () => {
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
                             {isUploadedImage(dish.image) ? (
-                              <img src={resolveImageUrl(dish.image)} alt={dish.name || "Menu item"} className="w-full h-full object-contain" />
+                              <img src={resolveImageUrl(dish.image)} alt={dish.name || "Menu item"} className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
                             )}
@@ -846,7 +846,7 @@ const Dashboard = () => {
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                   <div className="w-10 h-10 rounded-lg bg-[#262626] flex items-center justify-center overflow-hidden shrink-0">
                                     {isUploadedImage(dish.image) ? (
-                                      <img src={resolveImageUrl(dish.image)} alt={dish.name || "Menu item"} className="w-full h-full object-contain" />
+                                      <img src={resolveImageUrl(dish.image)} alt={dish.name || "Menu item"} className="w-full h-full object-cover" />
                                     ) : (
                                       <span className="text-xl text-[#f6b100]"><FoodIcon icon={dish.icon} /></span>
                                     )}

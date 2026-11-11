@@ -171,15 +171,15 @@ const HeroSliderManager = () => {
           <div>
             <label className="text-[#ababab] text-sm mb-1 block">Slide image</label>
             <div className="space-y-2">
-              <div className="w-full max-w-xl aspect-[16/7] rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
+              <div className="w-full max-w-xl aspect-[8/3] sm:aspect-[32/7] lg:aspect-[6/1] rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
                 {form.image ? (
                   <img
                     src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
                     alt={form.altText || "Promotional slide image preview"}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-[#7a7a7a] text-sm">Banner preview · 16:7 frame</span>
+                  <span className="text-[#7a7a7a] text-sm">Banner preview · fitted to storefront</span>
                 )}
               </div>
               <label className="inline-flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded cursor-pointer text-sm">
@@ -188,7 +188,7 @@ const HeroSliderManager = () => {
               </label>
             </div>
             <p className="text-[#7a7a7a] text-xs mt-1">
-              The full image stays visible in the 16:7 banner frame without cropping.
+              The image fills the storefront banner. Edges may be trimmed to fit.
             </p>
           </div>
 
@@ -258,11 +258,11 @@ const HeroSliderManager = () => {
             <div key={slide._id} className="rounded-lg bg-[#1a1a1a] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-3 min-w-0">
-                  <div className="w-32 aspect-[16/7] rounded bg-[#1a1a1a] border border-[#3a3a3a] overflow-hidden shrink-0">
+                  <div className="w-32 aspect-[6/1] rounded bg-[#1a1a1a] border border-[#3a3a3a] overflow-hidden shrink-0">
                     <img
                       src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
                       alt={slide.altText || `Promotional slide ${index + 1}`}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="min-w-0">

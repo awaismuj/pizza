@@ -19,7 +19,7 @@ const MenuIcon = ({ icon }) =>
     <img
       src={resolveImageUrl(icon)}
       alt=""
-      className="mr-1 inline-block h-7 w-7 rounded-md object-contain align-middle"
+      className="mr-1 inline-block h-7 w-7 rounded-md object-cover align-middle"
       onError={(e) => {
         e.currentTarget.style.display = "none";
       }}

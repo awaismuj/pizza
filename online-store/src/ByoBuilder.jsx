@@ -443,7 +443,7 @@ export const BYO_STYLES = `
 
 .gzp-byo-tile-media {
   position: relative;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 3;
   background: var(--ink-900);
   display: grid;
   place-items: center;
@@ -455,7 +455,7 @@ export const BYO_STYLES = `
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .gzp-byo-badge {
