@@ -115,11 +115,11 @@ const HeroSliderManager = () => {
     if (!file) return;
     try {
       setUploadingImage(true);
-      const res = await uploadImage(file);
+      const res = await uploadImage(file, undefined, { aspectRatio: 21 / 5.6 });
       const url = res?.data?.data?.url;
       if (url) setForm((prev) => ({ ...prev, image: url }));
     } catch (error) {
-      enqueueSnackbar(error?.response?.data?.message || "Image upload failed.", { variant: "error" });
+      enqueueSnackbar(error?.response?.data?.message || error?.message || "Image upload failed.", { variant: "error" });
     } finally {
       setUploadingImage(false);
       e.target.value = "";
@@ -171,12 +171,12 @@ const HeroSliderManager = () => {
           <div>
             <label className="text-[#ababab] text-sm mb-1 block">Slide image</label>
             <div className="space-y-2">
-              <div className="w-full max-w-xl aspect-[16/7] min-[640px]:aspect-[16/6] min-[900px]:aspect-[21/5.6] rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
+              <div className="w-full max-w-xl aspect-[8/3] sm:aspect-[32/7] lg:aspect-[6/1] rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
                 {form.image ? (
                   <img
                     src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
                     alt={form.altText || "Promotional slide image preview"}
-                    className="w-full h-full object-cover object-center"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <span className="text-[#7a7a7a] text-sm">Banner preview · fitted to storefront</span>
@@ -188,7 +188,7 @@ const HeroSliderManager = () => {
               </label>
             </div>
             <p className="text-[#7a7a7a] text-xs mt-1">
-              Preview uses the storefront frame at each screen size. The image fills the frame without stretching; edges may be trimmed.
+              The image is automatically cropped to the storefront banner ratio; edges may be trimmed, never stretched.
             </p>
           </div>
 
@@ -258,11 +258,11 @@ const HeroSliderManager = () => {
             <div key={slide._id} className="rounded-lg bg-[#1a1a1a] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-3 min-w-0">
-                  <div className="w-32 aspect-[21/5.6] rounded bg-[#1a1a1a] border border-[#3a3a3a] overflow-hidden shrink-0">
+                  <div className="w-32 aspect-[6/1] rounded bg-[#1a1a1a] border border-[#3a3a3a] overflow-hidden shrink-0">
                     <img
                       src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
                       alt={slide.altText || `Promotional slide ${index + 1}`}
-                      className="w-full h-full object-cover object-center"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="min-w-0">

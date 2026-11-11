@@ -188,11 +188,11 @@ const DealsManager = () => {
     if (!file) return;
     try {
       setUploadingImage(true);
-      const res = await uploadImage(file);
+      const res = await uploadImage(file, undefined, { aspectRatio: 16 / 10 });
       const url = res?.data?.data?.url;
       if (url) setForm((prev) => ({ ...prev, image: url }));
     } catch (error) {
-      enqueueSnackbar(error?.response?.data?.message || "Image upload failed.", { variant: "error" });
+      enqueueSnackbar(error?.response?.data?.message || error?.message || "Image upload failed.", { variant: "error" });
     } finally {
       setUploadingImage(false);
       e.target.value = "";
@@ -579,7 +579,7 @@ const DealsManager = () => {
                   <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
-              <p className="text-[#7a7a7a] text-xs mt-1">Image fills the deal frame; edges may be trimmed to fit.</p>
+              <p className="text-[#7a7a7a] text-xs mt-1">Image is fitted to the deal frame without stretching; edges may be trimmed.</p>
             </div>
             <div>
               <label className="text-[#ababab] text-sm mb-1 block">Fallback icon (shown if no image)</label>

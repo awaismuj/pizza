@@ -159,46 +159,72 @@ export const deleteHeroSlide = (slideId) => axiosWrapper.delete(`/api/hero-slide
 const MAX_IMAGE_SIDE = 1600;
 const SKIP_COMPRESS_BELOW = 300 * 1024;
 
-const prepareImageForUpload = async (file) => {
+const prepareImageForUpload = async (file, aspectRatio) => {
+  const fitToFrame = Number.isFinite(aspectRatio) && aspectRatio > 0;
   try {
     if (!file || !file.type.startsWith("image/")) return file;
     if (file.type === "image/svg+xml" || file.type === "image/gif") return file;
-    if (file.size < SKIP_COMPRESS_BELOW) return file;
+    if (!fitToFrame && file.size < SKIP_COMPRESS_BELOW) return file;
 
     const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const sourceRatio = bitmap.width / bitmap.height;
+    const crop = fitToFrame && Math.abs(sourceRatio - aspectRatio) > 0.005;
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = bitmap.width;
+    let sourceHeight = bitmap.height;
+
+    if (crop && sourceRatio > aspectRatio) {
+      sourceWidth = bitmap.height * aspectRatio;
+      sourceX = (bitmap.width - sourceWidth) / 2;
+    } else if (crop) {
+      sourceHeight = bitmap.width / aspectRatio;
+      sourceY = (bitmap.height - sourceHeight) / 2;
+    }
+
+    const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(sourceWidth, sourceHeight));
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close?.();
+      if (fitToFrame) throw new Error("Image processing is unavailable.");
+      return file;
+    }
     const keepAlpha = file.type === "image/png" || file.type === "image/webp";
     if (!keepAlpha) {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
     }
-    ctx.drawImage(bitmap, 0, 0, width, height);
-    if (bitmap.close) bitmap.close();
+    ctx.drawImage(bitmap, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+    bitmap.close?.();
 
     const outType = keepAlpha ? "image/webp" : "image/jpeg";
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, outType, 0.85));
     // Some browsers can't encode webp and hand back a PNG - only use the
     // result if it's the type we asked for and actually smaller.
-    if (!blob || blob.type !== outType || blob.size >= file.size) return file;
+    if (!blob || blob.type !== outType || (crop && blob.size > 5 * 1024 * 1024)) {
+      if (fitToFrame) throw new Error("The image could not be fitted to this frame.");
+      return file;
+    }
+    if (!crop && blob.size >= file.size) return file;
 
     const ext = outType === "image/webp" ? "webp" : "jpg";
     const base = (file.name || "image").replace(/\.[^.]+$/, "");
     return new File([blob], `${base}.${ext}`, { type: outType });
-  } catch {
-    // Anything unexpected (old browser, odd file) - just upload the original.
+  } catch (error) {
+    // Keep the existing best-effort compression behavior unless frame fitting was requested.
+    if (fitToFrame) throw error;
     return file;
   }
 };
 
-export const uploadImage = async (file, onProgress) => {
-  const prepared = await prepareImageForUpload(file);
+export const uploadImage = async (file, onProgress, { aspectRatio } = {}) => {
+  const prepared = await prepareImageForUpload(file, aspectRatio);
   const formData = new FormData();
   formData.append("image", prepared);
   return axiosWrapper.post("/api/upload", formData, {

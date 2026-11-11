@@ -133,8 +133,8 @@ body::before { opacity: 0.025; }
   max-width: 2400px; margin-inline: auto;
 }
 @media (min-width: 640px) { .gzp-slider { aspect-ratio: 16 / 6; } }
-@media (min-width: 900px) { .gzp-slider { aspect-ratio: 21 / 5.6; } }
-.gzp-slider-img { object-position: center; }
+@media (min-width: 900px) { .gzp-slider { aspect-ratio: 21 / 6.4; } }
+@media (min-width: 1500px) { .gzp-slider { aspect-ratio: 21 / 5.6; } }
 .gzp-slider-dots { background: rgba(31,27,24,.55); }
 
 /* ---------- Category nav ---------- */

@@ -212,7 +212,8 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
     try {
       setUploading(true);
       setUploadPercent(0);
-      const res = await uploadImage(file, setUploadPercent);
+      const aspectRatio = field === "image" ? 1 / 0.82 : field === "icon" ? 1 : undefined;
+      const res = await uploadImage(file, setUploadPercent, { aspectRatio });
       const url = res?.data?.data?.url;
       if (url) {
         setFormData((prev) => ({ ...prev, [field]: url }));
@@ -226,7 +227,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
           : error?.response?.data?.message ||
             (error?.request && !error?.response
               ? "Could not reach the server. Check your connection and try again."
-              : "Image upload failed.");
+              : error?.message || "Image upload failed.");
       enqueueSnackbar(message, { variant: "error" });
     } finally {
       setUploading(false);
@@ -899,12 +900,12 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               <div>
                 <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Photo (optional)</label>
                 <div className="flex items-center gap-3">
-                  <div className="w-20 aspect-[1/0.82] rounded-lg bg-[#1f1f1f] border border-[#3a3a3a] overflow-hidden shrink-0 flex items-center justify-center">
+                  <div className="w-20 aspect-[4/3] rounded-lg bg-[#1f1f1f] border border-[#3a3a3a] overflow-hidden shrink-0 flex items-center justify-center">
                     {formData.image ? (
                       <img
                         src={resolveImageUrl(formData.image)}
                         alt="Dish preview"
-                        className="w-full h-full object-cover object-center"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <span className="text-[#767676] text-[10px]">Preview</span>
@@ -922,7 +923,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                     />
                   </label>
                 </div>
-                <p className="text-[#767676] text-xs mt-1">Image fills the menu photo frame; edges may be trimmed to fit.</p>
+                <p className="text-[#767676] text-xs mt-1">Image is fitted to the menu photo frame without stretching; edges may be trimmed.</p>
               </div>
 
               <div className="rounded-lg bg-[#1f1f1f] p-4 space-y-3">
