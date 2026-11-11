@@ -8,6 +8,7 @@ const StaffHrDocument = require("../models/staffHrDocumentModel");
 const StaffHrReportAudit = require("../models/staffHrReportAuditModel");
 const StaffHrNotification = require("../models/staffHrNotificationModel");
 const { StaffAdjustment, SalaryPayment } = require("../models/staffPayrollModels");
+const normalizeEmploymentType = require("../utils/normalizeEmploymentType");
 const {
   StaffShift,
   StaffShiftAssignment,
@@ -37,13 +38,23 @@ const migrate = async () => {
         { salaryEffectiveFrom: { $exists: false } },
         { salaryEffectiveFrom: null },
         { salaryEffectiveFrom: "" },
+        { employmentType: { $nin: Staff.schema.path("employmentType").enumValues } },
       ],
     }).sort({ joinDate: 1, createdAt: 1 });
     const migrationDate = new Date().toISOString().slice(0, 10);
     let generatedIds = 0;
     let backfilledSalaries = 0;
     let backfilledJoinDates = 0;
+    let normalizedEmploymentTypes = 0;
     for (const staff of needsBackfill) {
+      const employmentType = normalizeEmploymentType(
+        staff.employmentType,
+        Staff.schema.path("employmentType").enumValues
+      );
+      if (staff.employmentType !== employmentType) {
+        staff.employmentType = employmentType;
+        normalizedEmploymentTypes += 1;
+      }
       if (!staff.joinDate) {
         const createdAt = staff.createdAt ? new Date(staff.createdAt) : null;
         staff.joinDate =
@@ -72,7 +83,7 @@ const migrate = async () => {
       await staff.save();
     }
     console.log(
-      `Generated ${generatedIds} employee IDs, backfilled ${backfilledJoinDates} join dates, and recorded ${backfilledSalaries} salary effective dates.`
+      `Generated ${generatedIds} employee IDs, backfilled ${backfilledJoinDates} join dates, normalized ${normalizedEmploymentTypes} employment types, and recorded ${backfilledSalaries} salary effective dates.`
     );
 
     const models = [
