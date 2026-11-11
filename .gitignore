@@ -1,3 +1,33 @@
 .env
 .env.*
 !.env.example
+
+# Node.js dependencies
+node_modules/
+**/node_modules/
+
+# MongoDB database and runtime data
+.mongo-data/
+**/.mongo-data/
+mongodb-data/
+**/mongodb-data/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Build and cache files
+.next/
+**/.next/
+dist/
+**/dist/
+build/
+**/build/
+.cache/
+**/.cache/
+
+# Logs
+*.log
+npm-debug.log*
