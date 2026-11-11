@@ -338,20 +338,8 @@ select {
   overflow: hidden;
   background: var(--ink-800);
   width: 100%;
-  aspect-ratio: 8 / 3;
+  aspect-ratio: 16 / 7;
   cursor: pointer;
-}
-
-@media (min-width: 640px) {
-  .gzp-slider {
-    aspect-ratio: 16 / 3.5;
-  }
-}
-
-@media (min-width: 900px) {
-  .gzp-slider {
-    aspect-ratio: 21 / 3.5;
-  }
 }
 
 .gzp-slider-img {
@@ -359,7 +347,7 @@ select {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   opacity: 0;
   transition: opacity 0.7s ease;
 }
@@ -647,7 +635,7 @@ select {
 
 .gzp-deal-media {
   position: relative;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 1;
   overflow: hidden;
   background: var(--ink-700);
 }
@@ -655,12 +643,7 @@ select {
 .gzp-deal-media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s ease;
-}
-
-.gzp-deal:hover .gzp-deal-media img {
-  transform: scale(1.04);
+  object-fit: contain;
 }
 
 .gzp-stock {
@@ -891,7 +874,7 @@ select {
 
 .gzp-card-media {
   position: relative;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1;
   overflow: hidden;
   background: var(--ink-700);
 }
@@ -899,12 +882,7 @@ select {
 .gzp-card-media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s ease;
-}
-
-.gzp-card:hover .gzp-card-media img {
-  transform: scale(1.05);
+  object-fit: contain;
 }
 
 .gzp-card-body {
@@ -1192,7 +1170,7 @@ select {
   width: 46px;
   height: 46px;
   border-radius: 10px;
-  object-fit: cover;
+  object-fit: contain;
   flex: none;
   display: grid;
   place-items: center;
@@ -1262,14 +1240,14 @@ select {
 
 .gzp-modal-media {
   position: relative;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 1;
   background: var(--ink-700);
 }
 
 .gzp-modal-media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .gzp-modal-close {
@@ -1505,7 +1483,7 @@ select {
   width: 52px;
   height: 52px;
   border-radius: 10px;
-  object-fit: cover;
+  object-fit: contain;
   flex: none;
   display: grid;
   place-items: center;

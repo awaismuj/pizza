@@ -666,7 +666,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-14 h-14 rounded-lg bg-[#1f1f1f] flex items-center justify-center overflow-hidden shrink-0">
                     {isUploadedImage(formData.icon) ? (
-                      <img src={resolveImageUrl(formData.icon)} alt="Category icon" className="w-full h-full object-cover" />
+                      <img src={resolveImageUrl(formData.icon)} alt="Category icon" className="w-full h-full object-contain" />
                     ) : (
                       <span className="text-3xl text-[#f6b100]"><FoodIcon icon={formData.icon} /></span>
                     )}
@@ -899,13 +899,17 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
               <div>
                 <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Photo (optional)</label>
                 <div className="flex items-center gap-3">
-                  {formData.image && (
-                    <img
-                      src={resolveImageUrl(formData.image)}
-                      alt="Dish"
-                      className="w-14 h-14 rounded-lg object-cover shrink-0"
-                    />
-                  )}
+                  <div className="w-16 h-16 rounded-lg bg-[#1f1f1f] border border-[#3a3a3a] overflow-hidden shrink-0 flex items-center justify-center">
+                    {formData.image ? (
+                      <img
+                        src={resolveImageUrl(formData.image)}
+                        alt="Dish preview"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-[#767676] text-[10px]">Preview</span>
+                    )}
+                  </div>
                   <label className="flex items-center gap-2 bg-[#1f1f1f] hover:bg-[#2a2a2a] cursor-pointer text-[#f5f5f5] px-4 py-3 rounded-lg text-sm font-medium flex-1 justify-center">
                     <FaUpload />
                     {uploadingImage ? `Uploading${uploadPercent ? ` ${uploadPercent}%` : "..."}` : formData.image ? "Change photo" : "Upload photo"}
@@ -918,6 +922,7 @@ const Modal = ({ action, setIsModalOpen, initialData = null }) => {
                     />
                   </label>
                 </div>
+                <p className="text-[#767676] text-xs mt-1">The full photo stays visible in a square frame.</p>
               </div>
 
               <div className="rounded-lg bg-[#1f1f1f] p-4 space-y-3">

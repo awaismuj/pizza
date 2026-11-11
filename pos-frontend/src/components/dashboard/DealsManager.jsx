@@ -562,19 +562,24 @@ const DealsManager = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <div>
               <label className="text-[#ababab] text-sm mb-1 block">Deal image</label>
-              <div className="flex items-center gap-3">
-                {form.image && (
-                  <img
-                    src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
-                    alt={form.name ? `${form.name} deal preview` : "Deal image preview"}
-                    className="w-14 h-14 rounded object-cover border border-[#3a3a3a]"
-                  />
-                )}
+              <div className="flex items-end gap-3">
+                <div className="w-24 aspect-square rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
+                  {form.image ? (
+                    <img
+                      src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
+                      alt={form.name ? `${form.name} deal preview` : "Deal image preview"}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-[#7a7a7a] text-xs text-center">Square preview</span>
+                  )}
+                </div>
                 <label className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded cursor-pointer text-sm">
-                  <FaUpload /> {uploadingImage ? "Uploading…" : "Upload"}
+                  <FaUpload /> {uploadingImage ? "Uploading…" : form.image ? "Change image" : "Upload"}
                   <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
+              <p className="text-[#7a7a7a] text-xs mt-1">The full photo stays visible in a square frame.</p>
             </div>
             <div>
               <label className="text-[#ababab] text-sm mb-1 block">Fallback icon (shown if no image)</label>
@@ -635,11 +640,13 @@ const DealsManager = () => {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-3 min-w-0">
                   {deal.image ? (
-                    <img
-                      src={isUploadedImage(deal.image) ? resolveImageUrl(deal.image) : deal.image}
-                      alt={deal.name}
-                      className="w-12 h-12 rounded object-cover border border-[#3a3a3a] shrink-0"
-                    />
+                    <div className="w-12 h-12 rounded bg-[#1a1a1a] border border-[#3a3a3a] overflow-hidden shrink-0">
+                      <img
+                        src={isUploadedImage(deal.image) ? resolveImageUrl(deal.image) : deal.image}
+                        alt={deal.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
                   ) : (
                     <div className="w-12 h-12 rounded bg-[#262626] flex items-center justify-center text-xl shrink-0">
                       <FoodIcon icon={deal.icon || "flame"} />

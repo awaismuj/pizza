@@ -170,21 +170,25 @@ const HeroSliderManager = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-[#ababab] text-sm mb-1 block">Slide image</label>
-            <div className="flex items-center gap-3">
-              {form.image && (
-                <img
-                  src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
-                  alt={form.altText || "Promotional slide image preview"}
-                  className="w-24 h-16 rounded object-cover border border-[#3a3a3a]"
-                />
-              )}
-              <label className="flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded cursor-pointer text-sm">
-                <FaUpload /> {uploadingImage ? "Uploading…" : "Upload"}
+            <div className="space-y-2">
+              <div className="w-full max-w-xl aspect-[16/7] rounded border border-[#3a3a3a] bg-[#1a1a1a] overflow-hidden flex items-center justify-center">
+                {form.image ? (
+                  <img
+                    src={isUploadedImage(form.image) ? resolveImageUrl(form.image) : form.image}
+                    alt={form.altText || "Promotional slide image preview"}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-[#7a7a7a] text-sm">Banner preview · 16:7 frame</span>
+                )}
+              </div>
+              <label className="inline-flex items-center gap-2 bg-[#1a1a1a] hover:bg-[#333] text-white px-3 py-2 rounded cursor-pointer text-sm">
+                <FaUpload /> {uploadingImage ? "Uploading…" : form.image ? "Change image" : "Upload"}
                 <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" className="hidden" onChange={handleImageUpload} />
               </label>
             </div>
             <p className="text-[#7a7a7a] text-xs mt-1">
-              Wide photos work best (roughly 16:7) — they'll be cropped to fill the banner.
+              The full image stays visible in the 16:7 banner frame without cropping.
             </p>
           </div>
 
@@ -254,11 +258,13 @@ const HeroSliderManager = () => {
             <div key={slide._id} className="rounded-lg bg-[#1a1a1a] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex gap-3 min-w-0">
-                  <img
-                    src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
-                    alt={slide.altText || `Promotional slide ${index + 1}`}
-                    className="w-16 h-12 rounded object-cover border border-[#3a3a3a] shrink-0"
-                  />
+                  <div className="w-32 aspect-[16/7] rounded bg-[#1a1a1a] border border-[#3a3a3a] overflow-hidden shrink-0">
+                    <img
+                      src={isUploadedImage(slide.image) ? resolveImageUrl(slide.image) : slide.image}
+                      alt={slide.altText || `Promotional slide ${index + 1}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
                   <div className="min-w-0">
                     <p className="text-[#f5f5f5] font-medium truncate">
                       {slide.altText || `Slide ${index + 1}`}
