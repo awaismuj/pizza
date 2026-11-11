@@ -280,7 +280,7 @@ export const FulfillmentPicker = ({ f }) => {
               value={f.address}
               onChange={(e) => f.setAddress(e.target.value)}
               placeholder="Enter your address for delivery"
-              aria-invalid={f.address.length > 0 && !addressOk}
+              aria-invalid={f.address.length > 0 && !f.addressOk}
             />
           </label>
 
