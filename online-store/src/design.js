@@ -162,7 +162,7 @@ body::before { opacity: 0.025; }
 
 /* ---------- Cards ---------- */
 
-.gzp-grid { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: clamp(12px, 1.4vw, 24px); }
+.gzp-grid { grid-template-columns: 1fr; gap: clamp(12px, 1.4vw, 24px); }
 @media (min-width: 640px)  { .gzp-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); } }
 @media (min-width: 1400px) { .gzp-grid { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); } }
 
