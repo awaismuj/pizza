@@ -6,6 +6,7 @@ const InventoryItem = require("../models/inventoryItemModel");
 const { getStockStatus, getDefaultLowStockThreshold } = require("../utils/stockUtils");
 const { invalidateAvailabilityCache } = require("../utils/stockAvailability");
 const { sendReport, normalizeFormat } = require("../utils/reportExport");
+const { getBrandName } = require("../utils/branding");
 
 const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -151,13 +152,14 @@ const exportInventoryReport = async (req, res, next) => {
     const count = (label) => rows.filter((row) => row.status === label).length;
     const totalValue = rows.reduce((sum, row) => sum + row.stockValue, 0);
     const now = new Date();
+    const brandName = await getBrandName();
     const filterText = [statusFilter ? `Status: ${STATUS_LABELS[statusFilter]}` : "", search ? `Search: ${req.query.search}` : ""].filter(Boolean).join(" · ");
 
     await sendReport(res, {
       title: "Current Stock Report",
       filename: `stock-report-${now.toISOString().slice(0, 10)}`,
       subtitle: `Live balances as of ${now.toISOString().slice(0, 16).replace("T", " ")} UTC · ${filterText || "All items"} · Value is an estimate (quantity x saved cost price)`,
-      footer: "GenZ Pizza Land · Kitchen Stock",
+      footer: `${brandName} · Kitchen Stock`,
       summary: [
         { label: "Items", value: rows.length, type: "number" },
         { label: "Estimated stock value (Rs)", value: totalValue, type: "money" },

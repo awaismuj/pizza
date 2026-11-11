@@ -19,27 +19,29 @@ import { useSelector } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import useScrollHoverFix from "./hooks/useScrollHoverFix";
 import FullScreenLoader from "./components/shared/FullScreenLoader"
+import useBrand from "./hooks/useBrand";
 
 function Layout() {
   const isLoading = useLoadData();
+  const { brandName } = useBrand();
   useScrollHoverFix();
   const location = useLocation();
   useEffect(() => {
     const pageMetadata = {
-      "/": ["GenZ Pizza Land POS | Orders", "Internal restaurant order-management workspace."],
-      "/auth": ["GenZ Pizza Land POS | Sign in", "Secure sign-in for authorized GenZ Pizza Land staff."],
-      "/change-password": ["GenZ Pizza Land POS | Change password", "Update your password for the staff point-of-sale account."],
-      "/employee": ["GenZ Pizza Land POS | Employee portal", "Private employee self-service portal for attendance and staff requests."],
-      "/orders": ["GenZ Pizza Land POS | Orders", "Private staff workspace for managing restaurant orders."],
-      "/tables": ["GenZ Pizza Land POS | Tables", "Private staff workspace for restaurant table management."],
-      "/menu": ["GenZ Pizza Land POS | Menu", "Private point-of-sale menu and order-entry workspace."],
-      "/outdoor": ["GenZ Pizza Land POS | New order", "Private staff workspace for creating restaurant orders."],
-      "/dashboard": ["GenZ Pizza Land POS | Dashboard", "Private restaurant management dashboard."],
-      "/online-orders": ["GenZ Pizza Land POS | Online orders", "Private staff workspace for managing customer online orders."],
+      "/": [`${brandName} POS | Orders`, "Internal restaurant order-management workspace."],
+      "/auth": [`${brandName} POS | Sign in`, `Secure sign-in for authorized ${brandName} staff.`],
+      "/change-password": [`${brandName} POS | Change password`, "Update your password for the staff point-of-sale account."],
+      "/employee": [`${brandName} POS | Employee portal`, "Private employee self-service portal for attendance and staff requests."],
+      "/orders": [`${brandName} POS | Orders`, "Private staff workspace for managing restaurant orders."],
+      "/tables": [`${brandName} POS | Tables`, "Private staff workspace for restaurant table management."],
+      "/menu": [`${brandName} POS | Menu`, "Private point-of-sale menu and order-entry workspace."],
+      "/outdoor": [`${brandName} POS | New order`, "Private staff workspace for creating restaurant orders."],
+      "/dashboard": [`${brandName} POS | Dashboard`, "Private restaurant management dashboard."],
+      "/online-orders": [`${brandName} POS | Online orders`, "Private staff workspace for managing customer online orders."],
     };
     const [title, description] = pageMetadata[location.pathname] || [
-      "GenZ Pizza Land POS | Page not found",
-      "The requested page is not available in the GenZ Pizza Land POS.",
+      `${brandName} POS | Page not found`,
+      `The requested page is not available in the ${brandName} POS.`,
     ];
     document.title = title;
     let meta = document.head.querySelector('meta[name="description"]');
@@ -56,7 +58,7 @@ function Layout() {
       document.head.appendChild(robots);
     }
     robots.content = "noindex,nofollow,noarchive";
-  }, [location.pathname]);
+  }, [location.pathname, brandName]);
   const hideHeaderRoutes = ["/auth"];
   // The floating WhatsApp button is fixed near the bottom-right of every
   // page - but on /menu that's exactly where the Cash/Online/Print

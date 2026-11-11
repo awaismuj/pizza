@@ -60,7 +60,7 @@ body::before { opacity: 0.025; }
   box-shadow: none;
 }
 .gzp-header-inner { gap: 10px; }
-.gzp-brand-mark { width: 42px; height: 42px; border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 4px 14px -4px rgba(230,57,47,.5); }
+.gzp-brand-mark { width: 42px; height: 42px; border-radius: 50%; object-fit: contain; background: #fff; padding: 2px; box-shadow: 0 0 0 2px #fff, 0 4px 14px -4px rgba(230,57,47,.5); }
 .gzp-brand-name { color: var(--flour); font-size: 1.12rem; }
 .gzp-brand-sub { color: var(--flour-faint); }
 
@@ -373,7 +373,7 @@ body::before { opacity: 0.025; }
 @media (min-width: 800px) { .v2-footer-grid { grid-template-columns: 1.6fr 1fr 1fr; } }
 .v2-footer h4 { margin: 0 0 14px; color: #fff; font-family: "Archivo", sans-serif; font-weight: 800; font-size: 1rem; }
 .v2-footer .brand { display: flex; align-items: center; gap: 12px; color: #fff; font-family: "Archivo", sans-serif; font-weight: 850; font-size: 1.3rem; }
-.v2-footer .brand img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.v2-footer .brand img { width: 48px; height: 48px; border-radius: 50%; object-fit: contain; background: #fff; padding: 2px; }
 .v2-footer p { margin: 12px 0 0; max-width: 46ch; font-size: .92rem; line-height: 1.6; color: rgba(255,255,255,.62); }
 .v2-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
 .v2-footer li button { background: none; border: 0; padding: 0; cursor: pointer; color: rgba(255,255,255,.72); font-weight: 550; }

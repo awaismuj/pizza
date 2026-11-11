@@ -192,6 +192,33 @@ roles, and audit records in place. Do not drop the RBAC collections or indexes
 as part of rollback: they may contain employee permissions and security history
 needed if the feature is redeployed.
 
+#### Owner-only restaurant branding
+
+The **Dashboard → Settings → Owner Branding** panel changes the restaurant
+name and logo across the POS, printed receipts, and online store. It is a
+separate owner login, restricted to `OWNER_EMAIL` (defaults to
+`awais.mj@gmail.com`) and protected by a bcrypt password hash and Google
+Authenticator TOTP. The public settings endpoint includes only the brand name
+and logo as branding data; authentication secrets are never returned, and
+branding changes require the owner session.
+
+Before deploying, configure these backend environment secrets:
+
+- `OWNER_EMAIL`: owner sign-in email.
+- `OWNER_PASSWORD_HASH`: bcrypt hash generated with `npm run owner:hash-password`
+  from `pos-backend` (password input is hidden; use at least 12 characters).
+- `OWNER_TOTP_SECRET`: Base32 key generated with `npm run owner:totp-secret`.
+  Add this key to Google Authenticator using manual setup and keep the key in
+  the secret manager. Do not commit the generated secret.
+- `OWNER_SESSION_SECRET`: a separate random secret of at least 32 characters.
+- `OWNER_ADMIN_ORIGINS`: optional comma-separated POS origins if the POS origin
+  is not already set in `FRONTEND_URL`.
+
+The owner session is an HTTP-only, secure-in-production, SameSite=Strict cookie
+scoped to the owner API, expires after one hour, and is rate-limited after
+failed attempts. Use HTTPS in production and keep all owner secrets outside
+the repository and frontend environment variables.
+
 #### Provisioning the first Super Admin
 
 The application does not create a default-password owner account. Use an

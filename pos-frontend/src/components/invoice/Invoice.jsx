@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { FaCheck } from "react-icons/fa6";
-import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
+import useBrand from "../../hooks/useBrand";
 import ReceiptFooter from "../shared/ReceiptFooter";
 import { printReceipt } from "../../utils/printReceipt";
 import { getOrderNumber } from "../../utils";
@@ -13,6 +13,7 @@ import { paymentReceiptLine } from "../../utils/payments";
 // SECOND of the two prints an order gets — the first being the Kitchen
 // Order Slip printed when the order was placed (see KitchenSlip.jsx / Bill.jsx).
 const Invoice = ({ orderInfo, setShowInvoice }) => {
+  const { brandName, brandLogo } = useBrand();
   const invoiceRef = useRef(null);
   const handlePrint = () => {
     printReceipt(invoiceRef.current.innerHTML, "Order Receipt");
@@ -33,14 +34,14 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           {/* Receipt Header */}
           <div className="flex justify-center mb-2">
             <img
-              src={genzLogo}
-              alt="GenZ Pizza Land"
-              className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-              style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid #e5e7eb" }}
+              src={brandLogo}
+              alt={`${brandName} logo`}
+              className="w-14 h-14 rounded-full bg-white object-contain border-2 border-gray-200"
+              style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "contain", border: "2px solid #e5e7eb" }}
             />
           </div>
           <p className="text-center text-sm font-semibold text-gray-500 tracking-wide uppercase mb-3">
-            GenZ Pizza Land
+            {brandName}
           </p>
 
           <div className="flex justify-center mb-4 no-print">

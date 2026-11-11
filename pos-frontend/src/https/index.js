@@ -35,6 +35,20 @@ export const deleteTable = (tableId) =>
 export const getSettings = () => axiosWrapper.get("/api/settings");
 export const updateSettings = (data) => axiosWrapper.put("/api/settings", data);
 
+const ownerRequestConfig = { headers: { "X-Owner-Request": "1" } };
+export const ownerBrandLogin = (data) =>
+  axiosWrapper.post("/api/owner-branding/login", data, ownerRequestConfig);
+export const ownerBrandVerify = (code) =>
+  axiosWrapper.post("/api/owner-branding/verify", { code }, ownerRequestConfig);
+export const getOwnerSession = () =>
+  axiosWrapper.get("/api/owner-branding/session", ownerRequestConfig);
+export const getOwnerBranding = () =>
+  axiosWrapper.get("/api/owner-branding/branding", ownerRequestConfig);
+export const updateOwnerBranding = (data) =>
+  axiosWrapper.put("/api/owner-branding/branding", data, ownerRequestConfig);
+export const logoutOwner = () =>
+  axiosWrapper.post("/api/owner-branding/logout", {}, ownerRequestConfig);
+
 // Payment Endpoints
 const inMemoryPaymentAttempts = new Map();
 const paymentAttemptStorageKey = () =>
@@ -238,6 +252,43 @@ export const uploadImage = async (file, onProgress, { aspectRatio } = {}) => {
       if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total));
     },
   });
+};
+
+export const uploadOwnerBrandingLogo = async (file) => {
+  if (!file || !["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    throw new Error("Choose a PNG, JPG, or WebP logo image.");
+  }
+  const bitmap = await createImageBitmap(file);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Image processing is unavailable.");
+
+    const scale = Math.min(512 / bitmap.width, 512 / bitmap.height);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const x = Math.floor((512 - width) / 2);
+    const y = Math.floor((512 - height) / 2);
+    ctx.drawImage(bitmap, x, y, width, height);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", 0.9));
+    if (!blob || blob.type !== "image/webp") {
+      throw new Error("This browser could not prepare the logo image. Try PNG, JPG, or WebP in a current browser.");
+    }
+    const base = (file.name || "brand-logo").replace(/\.[^.]+$/, "");
+    const prepared = new File([blob], `${base}-512.webp`, { type: "image/webp" });
+    const formData = new FormData();
+    formData.append("image", prepared);
+    return await axiosWrapper.post("/api/owner-branding/branding/logo", formData, {
+      ...ownerRequestConfig,
+      headers: { ...ownerRequestConfig.headers, "Content-Type": "multipart/form-data" },
+      timeout: 60000,
+    });
+  } finally {
+    bitmap.close?.();
+  }
 };
 
 // Inventory Endpoints

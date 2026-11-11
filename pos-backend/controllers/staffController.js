@@ -1,10 +1,12 @@
 const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
 const Staff = require("../models/staffModel");
+const Settings = require("../models/settingsModel");
 const StaffAttendance = require("../models/staffAttendanceModel");
 const { StaffAdjustment, SalaryPayment } = require("../models/staffPayrollModels");
 const { StaffPayrollRun } = require("../models/staffHrModels");
 const { sendMail } = require("../utils/mailer");
+const { getBrandName } = require("../utils/branding");
 const {
   ensureAttendance,
   computeMonthlySummary,
@@ -21,6 +23,13 @@ const canEditPayroll = (req) => req.permissions?.includes("payroll.compensation"
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  "\"": "&quot;",
+  "'": "&#39;",
+}[char]));
 const validDay = (value) => {
   if (!DAY_RE.test(value || "")) return false;
   const date = new Date(`${value}T00:00:00Z`);
@@ -579,15 +588,19 @@ const deleteAdjustment = async (req, res, next) => {
 
 const emailSlip = async (row, actor) => {
   if (!row.email) return { skipped: true, reason: "No email on file" };
-  const pdf = await buildSalarySlipPdf(row);
+  const brandName = await getBrandName();
+  const safeBrandName = escapeHtml(brandName);
+  const safeStaffName = escapeHtml(row.name);
+  const safeStatus = escapeHtml(row.status);
+  const pdf = await buildSalarySlipPdf(row, brandName);
   const result = await sendMail({
     to: row.email,
-    subject: `Your salary slip — ${prettyMonth(row.monthKey)} — GenZ Pizza Land`,
+    subject: `Your salary slip — ${prettyMonth(row.monthKey)} — ${brandName}`,
     html: `<div style="font-family:Arial,sans-serif;max-width:480px">
       <h2>Salary slip — ${prettyMonth(row.monthKey)}</h2>
-      <p>Hi ${row.name}, your salary slip is attached.</p>
-      <p><strong>Net salary payable:</strong> ${money(row.payable)} (${row.status})</p>
-      <p style="color:#888;font-size:12px">GenZ Pizza Land</p></div>`,
+      <p>Hi ${safeStaffName}, your salary slip is attached.</p>
+      <p><strong>Net salary payable:</strong> ${money(row.payable)} (${safeStatus})</p>
+      <p style="color:#888;font-size:12px">${safeBrandName}</p></div>`,
     attachments: [{ filename: `salary-slip-${row.name.replace(/\s+/g, "_")}-${row.monthKey}.pdf`, content: pdf, contentType: "application/pdf" }],
   });
   if (result?.skipped) return { skipped: true, reason: "Email (SMTP) is not configured on the server" };
@@ -682,7 +695,8 @@ const downloadSlip = async (req, res, next) => {
     const rows = await payrollRowsForPeriod(MONTH_RE.test(month || "") ? month : currentMonth());
     const row = rows.find((r) => String(r.staffId) === String(staffId));
     if (!row) return next(createHttpError(404, "Staff not found!"));
-    const pdf = await buildSalarySlipPdf(row);
+    const brandName = await getBrandName();
+    const pdf = await buildSalarySlipPdf(row, brandName);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="salary-slip-${row.name.replace(/\s+/g, "_")}-${row.monthKey}.pdf"`);
     res.send(pdf);

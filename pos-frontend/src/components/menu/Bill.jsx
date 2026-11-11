@@ -18,6 +18,7 @@ import PendingReceipt from "./PendingReceipt";
 import KitchenSlip from "./KitchenSlip";
 import CouponApply from "./CouponApply";
 import SpecialDiscountInput from "./SpecialDiscountInput";
+import useBrand from "../../hooks/useBrand";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -39,6 +40,7 @@ const Bill = () => {
 
   const customerData = useSelector((state) => state.customer);
   const user = useSelector((state) => state.user);
+  const { brandName } = useBrand();
   const cartData = useSelector((state) => state.cart);
   const total = useSelector(getTotalPrice);
   const { taxRate, specialDiscountEnabled } = useTaxRate();
@@ -125,7 +127,7 @@ const Bill = () => {
           key: `${import.meta.env.VITE_RAZORPAY_KEY_ID}`,
           amount: data.order.amount,
           currency: data.order.currency,
-          name: "GenZ Pizza Land",
+          name: brandName,
           description: "Secure Payment for Your Order",
           order_id: data.order.id,
           handler: async function (response) {

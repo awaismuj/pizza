@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { formatDateAndTime, getOrderNumber } from "../../utils";
 import ReceiptFooter from "../shared/ReceiptFooter";
 import { printReceipt } from "../../utils/printReceipt";
+import useBrand from "../../hooks/useBrand";
 
 // The kitchen order ticket (KOT) — printed the moment a table order is
 // actually placed, exactly like the moment an online order gets rung in and
@@ -16,6 +17,7 @@ import { printReceipt } from "../../utils/printReceipt";
 // the kitchen printer. It stays open afterwards with Print/Close so it can
 // be reprinted or dismissed.
 const KitchenSlip = ({ orderInfo, onClose }) => {
+  const { brandName, brandLogo } = useBrand();
   const slipRef = useRef(null);
 
   const handlePrint = () => {
@@ -36,9 +38,10 @@ const KitchenSlip = ({ orderInfo, onClose }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center px-4 z-50">
       <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-[400px] max-h-[90vh] overflow-y-auto">
         <div ref={slipRef} className="p-4">
-          <p className="text-center text-sm font-semibold text-gray-500 tracking-wide uppercase mb-1">
-            GenZ Pizza Land
-          </p>
+          <div className="mb-1 flex justify-center">
+            <img src={brandLogo} alt={`${brandName} logo`} className="h-10 max-w-32 object-contain" />
+          </div>
+          <p className="text-center text-sm font-semibold text-gray-500 tracking-wide uppercase mb-1">{brandName}</p>
           <h2 className="text-xl font-bold text-center mb-1">Kitchen Order Slip</h2>
           <p className="text-gray-600 text-center text-xs mb-2">Sent to kitchen for preparation</p>
 

@@ -2,11 +2,13 @@ const createHttpError = require("http-errors");
 const mongoose = require("mongoose");
 const Branch = require("../models/branchModel");
 const { quoteFulfillment, publicBranch, defaultHours } = require("../utils/fulfillment");
+const { getBrandName } = require("../utils/branding");
 
 const ensureDefaultBranch = async () => {
   if ((await Branch.estimatedDocumentCount()) > 0) return;
+  const brandName = await getBrandName();
   await Branch.create({
-    name: "GenZ Pizza Land - Gojra",
+    name: `${brandName} - Gojra`,
     address: "Gojra",
     hours: defaultHours(),
     delivery: { zones: [{ name: "Gojra city", areas: "Within city limits", fee: 100, distanceKm: 3, travelMinutes: 25 }] },

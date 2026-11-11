@@ -933,7 +933,7 @@ const getDashboard = async (req, res, next) => {
       endDate.setUTCMonth(endDate.getUTCMonth() + Math.ceil(asset.usefulLifeYears * 12));
       return endDate <= new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 12, 1));
     });
-    const settings = await Settings.findOne({ key: "global" }).select("assetAccounting");
+    const settings = await Settings.findOne({ key: "global" }).select("assetAccounting branding.name");
     const result = {
       totalAssets: assets.length,
       originalPurchaseCost: money(owned.reduce((sum, asset) => sum + asset.acquisitionCost, 0)),
@@ -1239,7 +1239,7 @@ const exportAssets = async (req, res, next) => {
       filename: `asset-${type}-${new Date().toISOString().slice(0, 10)}`,
       sheetName: "Summary",
       subtitle: `Amounts in ${currency} · ${filterText || "No filters applied"}`,
-      footer: "GenZPizza POS · Business Assets",
+      footer: `${settings?.branding?.name || "GenZ Pizza Land"} · Business Assets`,
       summary: [
         { label: "Records", value: reports.length, type: "number" },
         { label: "Currency", value: currency },

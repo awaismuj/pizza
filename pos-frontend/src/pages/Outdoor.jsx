@@ -17,6 +17,7 @@ import {
 import useTaxRate from "../hooks/useTaxRate";
 import CouponApply from "../components/menu/CouponApply";
 import SpecialDiscountInput from "../components/menu/SpecialDiscountInput";
+import useBrand from "../hooks/useBrand";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -31,6 +32,7 @@ function loadScript(src) {
 // A separate, table-free order window for walk-in / takeaway customers.
 // Customer details are optional so anonymous orders stay one-tap.
 const Outdoor = () => {
+  const { brandName } = useBrand();
   const queryClient = useQueryClient();
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState("");
@@ -163,7 +165,7 @@ const Outdoor = () => {
           key: `${import.meta.env.VITE_RAZORPAY_KEY_ID}`,
           amount: data.order.amount,
           currency: data.order.currency,
-          name: "GenZ Pizza Land",
+          name: brandName,
           description: "Outdoor / Takeaway order",
           order_id: data.order.id,
           handler: async function (response) {

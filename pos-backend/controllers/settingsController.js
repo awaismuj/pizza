@@ -9,6 +9,10 @@ const { normalizePasswordPolicy } = require("../utils/passwordPolicy");
 const SETTINGS_KEY = "global";
 
 const publicShape = (settings) => ({
+  branding: {
+    name: settings.branding?.name || "GenZ Pizza Land",
+    logo: settings.branding?.logo || "",
+  },
   taxRatePercent: settings.taxRatePercent,
   specialDiscountEnabled: settings.specialDiscountEnabled,
   buildYourOwnDeal: normalizeByoConfig(settings.buildYourOwnDeal),

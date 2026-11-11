@@ -241,7 +241,9 @@ select {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #fff;
+  padding: 2px;
   flex: none;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
@@ -379,7 +381,8 @@ select {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #fff;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
 }
 
@@ -2093,7 +2096,8 @@ select {
 .gzp-thankyou-badge img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #fff;
   display: block;
 }
 
@@ -2655,9 +2659,6 @@ const DEALS_SECTION_ID = "deals";
 
 // Shop WhatsApp number used by the floating "Inquiry" button.
 const WHATSAPP_NUMBER = "923259061006"; // +92 325 9061006
-const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-  "Hello GenZ Pizza Land, I have an inquiry."
-)}`;
 
 // How often the menu re-reads live stock from the inventory.
 const STOCK_REFRESH_MS = 10000;
@@ -2806,7 +2807,7 @@ const stockLabel = (qty) => {
 // Auto-advancing hero slider. Crossfades between whatever full-width photos
 // staff have uploaded (Dashboard > Hero Slider) — this is the entire hero
 // section now, so it fills the whole banner edge-to-edge.
-const HeroSlider = ({ slides, onSlideClick }) => {
+const HeroSlider = ({ slides, onSlideClick, brandName, brandLogo }) => {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useRef(
@@ -2830,7 +2831,7 @@ const HeroSlider = ({ slides, onSlideClick }) => {
     return (
       <div className="gzp-slider" aria-hidden="true">
         <div className="gzp-slider-fallback">
-          <img src={genzLogo} alt="" />
+          <img src={brandLogo} alt="" />
         </div>
       </div>
     );
@@ -2861,7 +2862,7 @@ const HeroSlider = ({ slides, onSlideClick }) => {
         <img
           key={slide.url + i}
           src={slide.url}
-          alt={slide.alt || "GenZ Pizza Land menu and food promotion"}
+          alt={slide.alt || `${brandName} menu and food promotion`}
           aria-hidden={i !== index || undefined}
           className={`gzp-slider-img${i === index ? " is-active" : ""}`}
         />
@@ -2919,7 +2920,7 @@ const PizzaMascot = () => (
 // The confirmation card shown right after a NEW order is placed (see
 // showThankYou in App() below) — deliberately separate from the full
 // tracking view: this is a moment to celebrate, tracking is the next step.
-const ThankYouScreen = ({ order, onTrack, onContinue }) => {
+const ThankYouScreen = ({ order, onTrack, onContinue, brandName, brandLogo }) => {
   const orderNumber = String(order?._id || "").slice(-6).toUpperCase();
 
   return (
@@ -2931,7 +2932,7 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
         <span className="gzp-thankyou-sticker br" aria-hidden="true"><I.Star /></span>
 
         <div className="gzp-thankyou-badge">
-          <img src={genzLogo} alt="GenZ Pizza Land" />
+          <img src={brandLogo} alt={`${brandName} logo`} />
         </div>
 
         <PizzaMascot />
@@ -2957,7 +2958,7 @@ const ThankYouScreen = ({ order, onTrack, onContinue }) => {
   );
 };
 
-const DeliveredThankYouScreen = ({ order, onComplete }) => {
+const DeliveredThankYouScreen = ({ order, onComplete, brandName, brandLogo }) => {
   const [secondsLeft, setSecondsLeft] = useState(8);
   const orderNumber = String(order?._id || "").slice(-6).toUpperCase();
 
@@ -2986,7 +2987,7 @@ const DeliveredThankYouScreen = ({ order, onComplete }) => {
     <div className="gzp-thankyou-overlay" role="status" aria-live="polite">
       <section className="gzp-thankyou-card" aria-labelledby="gzp-delivered-title">
         <div className="gzp-thankyou-badge">
-          <img src={genzLogo} alt="GenZ Pizza Land" />
+          <img src={brandLogo} alt={`${brandName} logo`} />
         </div>
         <div className="gzp-delivered-mascot">
           <PizzaMascot />
@@ -3162,22 +3163,25 @@ const SkeletonCard = () => (
   </div>
 );
 
-const WhatsAppButton = () => (
-  <a
-    className="gzp-whatsapp"
-    href={WHATSAPP_LINK}
-    target="_blank"
-    rel="noopener noreferrer"
-    aria-label="Chat with us on WhatsApp for any inquiry"
-    title="WhatsApp inquiry: +92 325 9061006"
-  >
-    <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" fill="#fff">
-      <path d="M16.03 3C9.4 3 4 8.38 4 15c0 2.12.56 4.19 1.62 6.01L4 29l8.2-1.58A12.02 12.02 0 0 0 16.03 27C22.66 27 28 21.62 28 15S22.66 3 16.03 3zm0 21.9c-1.8 0-3.56-.48-5.1-1.4l-.37-.22-4.86.94.98-4.73-.24-.39A9.86 9.86 0 0 1 6.1 15c0-5.46 4.45-9.9 9.93-9.9S26 9.54 26 15s-4.5 9.9-9.97 9.9zm5.44-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.03-1.05 2.5s1.08 2.9 1.23 3.1c.15.2 2.12 3.23 5.13 4.53.72.31 1.28.5 1.71.63.72.23 1.37.2 1.89.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35z" />
-    </svg>
-  </a>
-);
+const WhatsAppButton = ({ brandName }) => {
+  const link = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hello ${brandName}, I have an inquiry.`)}`;
+  return (
+    <a
+      className="gzp-whatsapp"
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Chat with us on WhatsApp for any inquiry"
+      title="WhatsApp inquiry: +92 325 9061006"
+    >
+      <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" fill="#fff">
+        <path d="M16.03 3C9.4 3 4 8.38 4 15c0 2.12.56 4.19 1.62 6.01L4 29l8.2-1.58A12.02 12.02 0 0 0 16.03 27C22.66 27 28 21.62 28 15S22.66 3 16.03 3zm0 21.9c-1.8 0-3.56-.48-5.1-1.4l-.37-.22-4.86.94.98-4.73-.24-.39A9.86 9.86 0 0 1 6.1 15c0-5.46 4.45-9.9 9.93-9.9S26 9.54 26 15s-4.5 9.9-9.97 9.9zm5.44-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.03-1.05 2.5s1.08 2.9 1.23 3.1c.15.2 2.12 3.23 5.13 4.53.72.31 1.28.5 1.71.63.72.23 1.37.2 1.89.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35z" />
+      </svg>
+    </a>
+  );
+};
 
-const Header = ({ minimal, cartCount, customer, onSearch, onCart, onNavigate, onTrack, onAccount }) => (
+const Header = ({ minimal, cartCount, customer, onSearch, onCart, onNavigate, onTrack, onAccount, brandName, brandLogo }) => (
   <header className="gzp-header">
     <div className="gzp-header-inner">
       <button
@@ -3185,9 +3189,9 @@ const Header = ({ minimal, cartCount, customer, onSearch, onCart, onNavigate, on
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         type="button"
       >
-        <img src={genzLogo} alt="" className="gzp-brand-mark" />
+        <img src={brandLogo} alt="" className="gzp-brand-mark" />
         <span className="gzp-brand-name">
-          GenZ Pizza Land
+          {brandName}
           <span className="gzp-brand-sub">Delivered hot across Gojra</span>
         </span>
       </button>
@@ -3231,7 +3235,7 @@ const Header = ({ minimal, cartCount, customer, onSearch, onCart, onNavigate, on
 
 /* ================================ App ================================ */
 
-function StorefrontHome() {
+function StorefrontHome({ brandName, brandLogo }) {
   const [customer, setCustomer] = useCustomerAccount();
   const [customerAccountOpen, setCustomerAccountOpen] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -4321,9 +4325,9 @@ function StorefrontHome() {
   if (orderId && !order) {
     return (
       <div className="gzp-app">
-        <Header minimal />
+        <Header minimal brandName={brandName} brandLogo={brandLogo} />
         <div className="gzp-boot">
-          <img src={genzLogo} alt="" />
+          <img src={brandLogo} alt="" />
           Pulling up your order…
         </div>
       </div>
@@ -4331,7 +4335,7 @@ function StorefrontHome() {
   }
 
   if (orderId && order?.orderStatus === "Completed") {
-    return <DeliveredThankYouScreen order={order} onComplete={returnHomeAfterDelivery} />;
+    return <DeliveredThankYouScreen order={order} onComplete={returnHomeAfterDelivery} brandName={brandName} brandLogo={brandLogo} />;
   }
 
   // Right after a NEW order is placed — the polished confirmation card.
@@ -4348,6 +4352,8 @@ function StorefrontHome() {
           setShowThankYou(false);
           setTrackingDismissed(true);
         }}
+        brandName={brandName}
+        brandLogo={brandLogo}
       />
     );
   }
@@ -4362,12 +4368,12 @@ function StorefrontHome() {
     const deliveryFee = Number(bills.deliveryFee) || 0;
     const deliveryDiscount = Number(bills.couponDeliveryDiscount) || 0;
     const helpHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      `Hello GenZ Pizza Land, I need help with order #${orderRef}.`
+      `Hello ${brandName}, I need help with order #${orderRef}.`
     )}`;
 
     return (
       <div className="gzp-app">
-        <Header minimal />
+        <Header minimal brandName={brandName} brandLogo={brandLogo} />
 
         <div className="gzp-shell">
           <section className="gzp-track">
@@ -4797,6 +4803,8 @@ function StorefrontHome() {
   return (
     <div className="gzp-app">
       <Header
+        brandName={brandName}
+        brandLogo={brandLogo}
         cartCount={cartCount}
         customer={customer}
         onAccount={() => setCustomerAccountOpen(true)}
@@ -4842,6 +4850,8 @@ function StorefrontHome() {
       <section className="gzp-hero">
         <HeroSlider
           slides={heroSlides}
+          brandName={brandName}
+          brandLogo={brandLogo}
           onSlideClick={(slide) => {
             if (slide?.link) {
               window.open(slide.link, "_blank", "noopener,noreferrer");
@@ -5064,7 +5074,7 @@ function StorefrontHome() {
             {sections.length === 0 && deals.length === 0 && (
               <section className="gzp-section">
                 <div className="gzp-empty">
-                  <img src={genzLogo} alt="" className="gzp-empty-logo" />
+                  <img src={brandLogo} alt="" className="gzp-empty-logo" />
                   The menu is being set up right now. Check back in a little while.
                 </div>
               </section>
@@ -5077,6 +5087,8 @@ function StorefrontHome() {
 
       <SiteFooter
         taxRatePercent={taxRatePercent}
+        brandName={brandName}
+        brandLogo={brandLogo}
         onNavigate={navigateTo}
         onTrack={() => setTrackOpen(true)}
       />
@@ -5094,7 +5106,7 @@ function StorefrontHome() {
         </button>
       )}
 
-      <WhatsAppButton />
+      <WhatsAppButton brandName={brandName} />
 
       {toast && (
         <div className="gzp-toast" role="status">
@@ -5885,6 +5897,9 @@ function StorefrontHome() {
 
 function App() {
   const [pathname, setPathname] = useState(window.location.pathname.replace(/\/+$/, "") || "/");
+  const [branding, setBranding] = useState({ name: "GenZ Pizza Land", logo: "" });
+  const brandName = branding.name || "GenZ Pizza Land";
+  const brandLogo = branding.logo ? resolveImageUrl(branding.logo) : genzLogo;
 
   useEffect(() => {
     const updatePath = () => setPathname(window.location.pathname.replace(/\/+$/, "") || "/");
@@ -5893,29 +5908,50 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    const refreshBranding = () => {
+      getPublicSettings().then((result) => {
+        const nextBranding = result?.data?.branding;
+        if (active && nextBranding && typeof nextBranding.name === "string") {
+          setBranding({
+            name: nextBranding.name,
+            logo: typeof nextBranding.logo === "string" ? nextBranding.logo : "",
+          });
+        }
+      }).catch(() => null);
+    };
+    refreshBranding();
+    const interval = window.setInterval(refreshBranding, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
     const pages = {
       "/": {
-        title: "Pizza, Burgers & Deals in Gojra | GenZ Pizza Land",
-        description: "Order fresh pizza, burgers and deals online from GenZ Pizza Land in Gojra. Choose delivery or pickup, pay at the door or by JazzCash/Raast.",
+        title: `Pizza, Burgers & Deals in Gojra | ${brandName}`,
+        description: `Order fresh pizza, burgers and deals online from ${brandName} in Gojra. Choose delivery or pickup, pay at the door or by JazzCash/Raast.`,
         canonical: "https://genzpizza.muscatfood.com/",
         robots: "index,follow",
       },
       "/privacy": {
-        title: "Privacy Policy | GenZ Pizza Land",
-        description: "Learn how GenZ Pizza Land uses and protects information for online orders, customer accounts, payment verification and reviews.",
+        title: `Privacy Policy | ${brandName}`,
+        description: `Learn how ${brandName} uses and protects information for online orders, customer accounts, payment verification and reviews.`,
         canonical: "https://genzpizza.muscatfood.com/privacy",
         robots: "index,follow",
         label: "Privacy Policy",
       },
       "/terms": {
-        title: "Terms and Conditions | GenZ Pizza Land",
-        description: "Read the terms for ordering online from GenZ Pizza Land, including order availability, delivery, pickup, payments and cancellations.",
+        title: `Terms and Conditions | ${brandName}`,
+        description: `Read the terms for ordering online from ${brandName}, including order availability, delivery, pickup, payments and cancellations.`,
         canonical: "https://genzpizza.muscatfood.com/terms",
         robots: "index,follow",
         label: "Terms and Conditions",
       },
       "/help": {
-        title: "Customer Help | GenZ Pizza Land",
+        title: `Customer Help | ${brandName}`,
         description: "Get help with placing an order, delivery and pickup, payments, order tracking, changes and order issues.",
         canonical: "https://genzpizza.muscatfood.com/help",
         robots: "index,follow",
@@ -5923,8 +5959,8 @@ function App() {
       },
     };
     const page = pages[pathname] || {
-      title: "Page Not Found | GenZ Pizza Land",
-      description: "The page you requested could not be found. Return to the GenZ Pizza Land online store.",
+      title: `Page Not Found | ${brandName}`,
+      description: `The page you requested could not be found. Return to the ${brandName} online store.`,
       canonical: "",
       robots: "noindex,nofollow",
     };
@@ -5942,7 +5978,15 @@ function App() {
     setMeta('meta[name="robots"]', { name: "robots" }, page.robots);
     setMeta('meta[property="og:title"]', { property: "og:title" }, page.title);
     setMeta('meta[property="og:description"]', { property: "og:description" }, page.description);
+    setMeta('meta[property="og:image"]', { property: "og:image" }, brandLogo);
     setMeta('meta[property="og:url"]', { property: "og:url" }, page.canonical || `https://genzpizza.muscatfood.com${pathname}`);
+    let icon = document.head.querySelector('link[rel="icon"]');
+    if (!icon) {
+      icon = document.createElement("link");
+      icon.rel = "icon";
+      document.head.appendChild(icon);
+    }
+    icon.href = brandLogo;
     let canonical = document.head.querySelector('link[rel="canonical"]');
     if (page.canonical) {
       if (!canonical) {
@@ -5967,7 +6011,7 @@ function App() {
         ? {
             "@context": "https://schema.org",
             "@type": "Restaurant",
-            name: "GenZ Pizza Land",
+            name: brandName,
             url: page.canonical,
             servesCuisine: ["Pizza", "Burgers", "Fast Food"],
             address: { "@type": "PostalAddress", addressLocality: "Gojra", addressCountry: "PK" },
@@ -5983,7 +6027,7 @@ function App() {
     } else {
       structuredData?.remove();
     }
-  }, [pathname]);
+  }, [pathname, brandName, brandLogo]);
 
   useEffect(() => {
     const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim();
@@ -6016,10 +6060,10 @@ function App() {
     });
   }, [pathname]);
 
-  if (pathname === "/") return <StorefrontHome />;
-  if (pathname === "/privacy") return <PrivacyPolicy />;
-  if (pathname === "/terms") return <TermsAndConditions />;
-  if (pathname === "/help") return <HelpPage />;
+  if (pathname === "/") return <StorefrontHome brandName={brandName} brandLogo={brandLogo} />;
+  if (pathname === "/privacy") return <PrivacyPolicy brandName={brandName} />;
+  if (pathname === "/terms") return <TermsAndConditions brandName={brandName} />;
+  if (pathname === "/help") return <HelpPage brandName={brandName} />;
   return <StoreNotFound />;
 }
 

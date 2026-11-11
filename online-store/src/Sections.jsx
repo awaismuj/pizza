@@ -537,13 +537,13 @@ export const ContactSection = ({ whatsappLink, onTrack }) => (
   </section>
 );
 
-export const SiteFooter = ({ taxRatePercent, onNavigate, onTrack }) => (
+export const SiteFooter = ({ taxRatePercent, onNavigate, onTrack, brandName = "GenZ Pizza Land", brandLogo = genzLogo }) => (
   <footer className="v2-footer">
     <div className="v2-wrap">
       <div className="v2-footer-grid">
         <div>
           <div className="brand">
-            <img src={genzLogo} alt="" /> GenZ Pizza Land
+            <img src={brandLogo} alt="" /> {brandName}
           </div>
           <p>
             Fresh pizzas, burgers and sides, delivered hot across Gojra. Prices are in rupees;
@@ -569,7 +569,7 @@ export const SiteFooter = ({ taxRatePercent, onNavigate, onTrack }) => (
         </div>
       </div>
       <div className="v2-footer-bottom">
-        <span>© {new Date().getFullYear()} GenZ Pizza Land. All rights reserved.</span>
+        <span>© {new Date().getFullYear()} {brandName}. All rights reserved.</span>
         <span className="credit">
           Developed by <img src={sindbadLogo} alt="" /> <strong>Sindbad Solution</strong>
         </span>

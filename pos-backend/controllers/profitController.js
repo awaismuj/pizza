@@ -1,4 +1,5 @@
 const { sendReport, normalizeFormat } = require("../utils/reportExport");
+const { getBrandName } = require("../utils/branding");
 const DailyProfit = require("../models/dailyProfitModel");
 const Expense = require("../models/expenseModel");
 const Order = require("../models/orderModel");
@@ -274,6 +275,7 @@ const exportProfit = async (req, res, next) => {
   try {
     const format = normalizeFormat(req.query.format);
     const scope = req.query.scope === "month" ? "month" : "day";
+    const brandName = await getBrandName();
 
     if (scope === "month") {
       const monthKey = req.query.month && MONTH_KEY_RE.test(req.query.month) ? req.query.month : currentMonthKey();
@@ -283,7 +285,7 @@ const exportProfit = async (req, res, next) => {
         title: `Monthly Profit Report — ${prettyMonth(monthKey)}`,
         filename: `profit-month-${monthKey}`,
         subtitle: "Revenue = discounted sales before tax + delivery fees · Profit = Revenue − Purchases/Cost − Expenses · Amounts in Rs",
-        footer: "GenZ Pizza Land · Profit & Expenses",
+        footer: `${brandName} · Profit & Expenses`,
         summary: [
           { label: "Revenue (excl. tax)", value: monthly.revenue, type: "money" },
           { label: "Purchases / Cost", value: monthly.cost, type: "money" },
@@ -331,7 +333,7 @@ const exportProfit = async (req, res, next) => {
       title: `Daily Profit Report — ${prettyDay(dayKey)}`,
       filename: `profit-day-${dayKey}`,
       subtitle: `${daily.locked ? "Locked end-of-day figures" : "Live figures"} · Revenue = discounted sales before tax + delivery fees · Profit = Revenue − Purchases/Cost − Expenses · Amounts in Rs`,
-      footer: "GenZ Pizza Land · Profit & Expenses",
+      footer: `${brandName} · Profit & Expenses`,
       summary: [
         { label: "Revenue (excl. tax)", value: daily.revenue, type: "money" },
         { label: "Purchases / Cost", value: daily.cost, type: "money" },

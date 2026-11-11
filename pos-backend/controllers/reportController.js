@@ -3,6 +3,7 @@ const ReportLog = require("../models/reportLogModel");
 const { todayKey } = require("../utils/profitService");
 const { collectReportData, buildReportPdfBuffer } = require("../utils/reportPdf");
 const { sendMail } = require("../utils/mailer");
+const { getBrandName } = require("../utils/branding");
 
 const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_KEY_RE = /^\d{4}-\d{2}$/;
@@ -42,8 +43,9 @@ const resolveRange = (query) => {
 const generatePdfBuffer = async (query) => {
   const { fromKey, toKey, rangeLabel } = resolveRange(query);
   const { days, totals, deletedOrders } = await collectReportData(fromKey, toKey);
-  const buffer = await buildReportPdfBuffer({ rangeLabel, days, totals, deletedOrders });
-  return { buffer, fromKey, toKey, rangeLabel };
+  const businessName = await getBrandName();
+  const buffer = await buildReportPdfBuffer({ rangeLabel, days, totals, deletedOrders, businessName });
+  return { buffer, fromKey, toKey, rangeLabel, businessName };
 };
 
 // GET /api/report/download?scope=today|range|month&from=&to=&month=
@@ -80,12 +82,12 @@ const sendReportToEmail = async (req, res, next) => {
       return next(createHttpError(400, "Provide a valid email address."));
     }
 
-    const { buffer, fromKey, toKey, rangeLabel } = await generatePdfBuffer(req.body);
+    const { buffer, fromKey, toKey, rangeLabel, businessName } = await generatePdfBuffer(req.body);
     const filename = fromKey === toKey ? `report-${fromKey}.pdf` : `report-${fromKey}_to_${toKey}.pdf`;
 
     const result = await sendMail({
       to: email,
-      subject: `GenZ Pizza Land — Profit & Expense Report (${rangeLabel})`,
+      subject: `${businessName} — Profit & Expense Report (${rangeLabel})`,
       html: `<p>Attached: the profit & expense report for <strong>${rangeLabel}</strong>.</p>`,
       attachments: [{ filename, content: buffer, contentType: "application/pdf" }],
     });

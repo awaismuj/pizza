@@ -50,6 +50,7 @@ import ReviewsManager from "../components/dashboard/ReviewsManager";
 import PaymentSettingsManager from "../components/dashboard/PaymentSettingsManager";
 import BranchesManager from "../components/dashboard/BranchesManager";
 import CouponsManager from "../components/dashboard/CouponsManager";
+import OwnerBrandingManager from "../components/dashboard/OwnerBrandingManager";
 import MusicPlayer from "../components/shared/MusicPlayer";
 import {
   getCategories,
@@ -69,6 +70,7 @@ import { resolveImageUrl } from "../utils";
 import { MdSearch } from "react-icons/md";
 import ExportButtons from "../components/dashboard/ExportButtons";
 import { I, FoodIcon } from "../components/shared/AppIcons";
+import useBrand from "../hooks/useBrand";
 
 const isUploadedImage = (value = "") => value.startsWith("http") || value.startsWith("/uploads/");
 
@@ -84,7 +86,7 @@ const tabGroups = [
   { label: "Storefront", tabs: ["Menu", "Deals", "Coupons", "Hero Slider", "Build Your Own", "Reviews"] },
   { label: "Delivery & Pickup", tabs: ["Branches"] },
   { label: "Operations", tabs: ["Inventory", "Staff", "Assets", "User & Employees"] },
-  { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Special Discount", "Music"] },
+  { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Special Discount", "Music", "Owner Branding"] },
 ];
 
 // Icon per tab, so the bar can be scanned at a glance.
@@ -109,6 +111,7 @@ const tabIcons = {
   Music: <MdMusicNote />,
   Assets: <MdDevices />,
   Branches: <MdStorefront />,
+  "Owner Branding": <MdStorefront />,
 };
 // Accent colour per section: drives the sidebar chips, the active pill and the page backdrop glow.
 const tabTheme = {
@@ -132,6 +135,7 @@ const tabTheme = {
   Tax: "#f59e0b",
   "Special Discount": "#22c55e",
   Music: "#f43f5e",
+  "Owner Branding": "#eab308",
 };
 const groupTheme = {
   Overview: "#3b82f6",
@@ -141,8 +145,9 @@ const groupTheme = {
   Settings: "#f59e0b",
 };
 const Dashboard = () => {
+  const { brandName } = useBrand();
   const queryClient = useQueryClient();
-  const { role, permissions = [] } = useSelector((state) => state.user);
+  const { role, email = "", permissions = [] } = useSelector((state) => state.user);
   const can = (permission) => permissions.includes(permission);
   const tabPermissions = {
     Metrics: "dashboard.view",
@@ -166,7 +171,9 @@ const Dashboard = () => {
     Branches: "settings.manage",
     "User & Employees": "users.view",
   };
-  const canSeeTab = (tab) => can(tabPermissions[tab]) &&
+  const canSeeTab = (tab) => tab === "Owner Branding"
+    ? email.trim().toLowerCase() === "awais.mj@gmail.com"
+    : can(tabPermissions[tab]) &&
     (tab !== "Metrics" || (can("orders.view") && can("menu.view") && can("tables.view"))) &&
     (tab !== "Profit" || can("expenses.view"));
   const visibleGroups = tabGroups
@@ -179,8 +186,8 @@ const Dashboard = () => {
   const [sideCollapsed, setSideCollapsed] = useState(false); // desktop icon-only
 
   useEffect(() => {
-    document.title = "POS | Admin Dashboard";
-  }, []);
+    document.title = `${brandName} POS | Admin Dashboard`;
+  }, [brandName]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState(null);
@@ -662,6 +669,7 @@ const Dashboard = () => {
       {activeTab === "Payment Settings" && <PaymentSettingsManager />}
       {activeTab === "Tax" && <TaxManager />}
       {activeTab === "Special Discount" && <SpecialDiscountManager />}
+      {activeTab === "Owner Branding" && <OwnerBrandingManager />}
       {activeTab === "Order Prep" && <PrepSettingsManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}

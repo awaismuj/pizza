@@ -52,7 +52,17 @@ const config = Object.freeze({
         phone: Number(process.env.ADMIN_PHONE || 9999999999),
         password: process.env.ADMIN_PASSWORD,
         role: "Admin"
-    }
+    },
+    ownerEmail: (process.env.OWNER_EMAIL || "awais.mj@gmail.com").trim().toLowerCase(),
+    ownerPasswordHash: process.env.OWNER_PASSWORD_HASH,
+    ownerTotpSecret: process.env.OWNER_TOTP_SECRET,
+    ownerSessionSecret: process.env.OWNER_SESSION_SECRET,
+    ownerAdminOrigins: (process.env.OWNER_ADMIN_ORIGINS || "")
+        .split(",")
+        .map((origin) => {
+            try { return new URL(origin.trim()).origin; } catch { return ""; }
+        })
+        .filter(Boolean),
 });
 
 module.exports = config;

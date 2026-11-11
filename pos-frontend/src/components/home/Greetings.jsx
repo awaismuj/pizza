@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import useBrand from "../../hooks/useBrand";
 
 const greetingFor = (hour) => {
   if (hour < 12) return "Good morning";
@@ -9,6 +10,7 @@ const greetingFor = (hour) => {
 
 const Greetings = () => {
   const userName = useSelector((state) => state.user.name);
+  const { brandName } = useBrand();
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -25,7 +27,7 @@ const Greetings = () => {
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#f6b100]/10 blur-3xl" />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f6b100]">GenZ Pizza Land</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f6b100]">{brandName}</p>
           <h1 className="mt-2 break-words text-2xl font-bold text-[#f5f5f5] sm:text-3xl">
             {greetingFor(now.getHours())}, {userName || "there"}
           </h1>

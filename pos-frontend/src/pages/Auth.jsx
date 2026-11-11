@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
 import restaurant from "../assets/images/restaurant-img.jpg";
-import genzLogo from "../assets/images/genz-pizza-land-logo.jpg";
 import Login from "../components/auth/Login";
+import useBrand from "../hooks/useBrand";
 
 const Auth = () => {
+  const { brandName, brandLogo } = useBrand();
   useEffect(() => {
     document.title = "POS | Auth";
   }, []);
@@ -35,12 +36,12 @@ const Auth = () => {
         <div className="w-full max-w-sm">
           <div className="mb-6 flex items-center justify-center gap-3">
             <img
-              src={genzLogo}
-              alt="GenZ Pizza Land"
-              className="h-14 w-14 rounded-full border-2 border-yellow-400 object-cover"
+              src={brandLogo}
+              alt={`${brandName} logo`}
+              className="h-14 w-14 rounded-full border-2 border-yellow-400 bg-white p-1 object-contain"
             />
             <div className="text-left text-[#f5f5f5]">
-              <div className="text-xl font-bold leading-none">GenZ Pizza Land</div>
+              <div className="text-xl font-bold leading-none">{brandName}</div>
               <div className="mt-1 text-xs text-[#b7bec9]">Point of Sale Terminal</div>
             </div>
           </div>

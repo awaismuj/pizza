@@ -16,6 +16,7 @@ connectDB();
 
 const allowedOrigins = [
     config.frontendUrl,
+    ...config.ownerAdminOrigins,
     'http://localhost:4175',
     'http://127.0.0.1:4175',
     config.storeUrl,
@@ -81,6 +82,7 @@ app.use("/api/payment", require("./routes/paymentRoute"));
 app.use("/api/upload", require("./routes/uploadRoute"));
 app.use("/api/report", require("./routes/reportRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
+app.use("/api/owner-branding", require("./routes/ownerBrandingRoute"));
 app.use("/api/staff", require("./routes/staffRoute"));
 app.use("/api/music", require("./routes/musicRoute"));
 app.use("/api/review", require("./routes/reviewRoute"));

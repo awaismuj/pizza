@@ -9,13 +9,14 @@ import { LOW_STOCK_QUERY_KEY, OPEN_LOW_STOCK_EVENT } from "./LowStockAlert";
 import { removeUser } from "../../redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
 import { MdDashboard, MdDeliveryDining, MdReceiptLong } from "react-icons/md";
-import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
+import useBrand from "../../hooks/useBrand";
 import ExpenseQuickAdd from "./ExpenseQuickAdd";
 import OrderSearch from "../menu/OrderSearch";
 import MusicPlayer from "./MusicPlayer";
 
 const Header = () => {
   const userData = useSelector((state) => state.user);
+  const { brandName, brandLogo } = useBrand();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [expenseOpen, setExpenseOpen] = useState(false);
@@ -69,12 +70,12 @@ const Header = () => {
           className="flex min-w-0 items-center gap-2 text-left"
         >
           <img
-            src={genzLogo}
-            alt="GenZ Pizza Land"
-            className="h-8 w-8 shrink-0 rounded-full object-cover shadow-sm lg:h-9 lg:w-9"
+            src={brandLogo}
+            alt={`${brandName} logo`}
+            className="h-8 w-8 shrink-0 rounded-full bg-white p-0.5 object-contain shadow-sm lg:h-9 lg:w-9"
           />
           <h1 className="truncate text-base font-semibold text-[#f5f5f5] tracking-wide lg:text-lg">
-            GenZ Pizza Land
+            {brandName}
           </h1>
         </button>
         <MusicPlayer variant="compact" canManage={String(userData.role || "").toLowerCase() === "admin"} />

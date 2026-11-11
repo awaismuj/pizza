@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import { useEffect, useRef } from "react";
-import genzLogo from "../../assets/images/genz-pizza-land-logo.jpg";
+import useBrand from "../../hooks/useBrand";
 import { formatDate } from "../../utils";
 import ReceiptFooter from "../shared/ReceiptFooter";
 import { printReceipt } from "../../utils/printReceipt";
@@ -22,6 +22,7 @@ const PendingReceipt = ({
   specialDiscountGivenBy,
   onClose,
 }) => {
+  const { brandName, brandLogo } = useBrand();
   const receiptRef = useRef(null);
 
   const handlePrint = () => {
@@ -41,14 +42,14 @@ const PendingReceipt = ({
         <div ref={receiptRef} className="p-4">
           <div className="flex justify-center mb-2">
             <img
-              src={genzLogo}
-              alt="GenZ Pizza Land"
-              className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-              style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid #e5e7eb" }}
+              src={brandLogo}
+              alt={`${brandName} logo`}
+              className="w-14 h-14 rounded-full bg-white object-contain border-2 border-gray-200"
+              style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "contain", border: "2px solid #e5e7eb" }}
             />
           </div>
           <p className="text-center text-sm font-semibold text-gray-500 tracking-wide uppercase mb-3">
-            GenZ Pizza Land
+            {brandName}
           </p>
 
           <h2 className="text-xl font-bold text-center mb-2">Order Receipt</h2>

@@ -14,12 +14,12 @@ const PageShell = ({ children }) => (
   </main>
 );
 
-export const PrivacyPolicy = () => (
+export const PrivacyPolicy = ({ brandName = "GenZ Pizza Land" }) => (
   <PageShell>
     <article>
       <h1 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", margin: "0 0 8px" }}>Privacy Policy</h1>
       <p>Last updated: October 22, 2026</p>
-      <p>GenZ Pizza Land respects your privacy. This policy explains what information is used when you browse our online store, place an order, create a customer account, or submit a review.</p>
+      <p>{brandName} respects your privacy. This policy explains what information is used when you browse our online store, place an order, create a customer account, or submit a review.</p>
 
       <h2>Information we collect</h2>
       <ul>
@@ -46,17 +46,17 @@ export const PrivacyPolicy = () => (
       <p>We use access controls and technical safeguards appropriate to operate the service, but no internet transmission or storage system can be guaranteed completely secure. This store is intended for customers placing orders with the restaurant; an adult should place orders on behalf of children.</p>
 
       <h2>Contact us</h2>
-      <p>For a privacy question or request, contact GenZ Pizza Land using the WhatsApp contact link on our <a href="/#section-contact" style={{ color: "#c92f27" }}>home page</a>.</p>
+      <p>For a privacy question or request, contact {brandName} using the WhatsApp contact link on our <a href="/#section-contact" style={{ color: "#c92f27" }}>home page</a>.</p>
     </article>
   </PageShell>
 );
 
-export const TermsAndConditions = () => (
+export const TermsAndConditions = ({ brandName = "GenZ Pizza Land" }) => (
   <PageShell>
     <article>
       <h1 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", margin: "0 0 8px" }}>Terms and Conditions</h1>
       <p>Last updated: October 26, 2026</p>
-      <p>These terms apply when you browse or place an order through the GenZ Pizza Land online store. By using the store, you agree to these terms. If you have a question, please visit our <a href="/help" style={{ color: "#c92f27" }}>Help page</a> or contact the restaurant before placing an order.</p>
+      <p>These terms apply when you browse or place an order through the {brandName} online store. By using the store, you agree to these terms. If you have a question, please visit our <a href="/help" style={{ color: "#c92f27" }}>Help page</a> or contact the restaurant before placing an order.</p>
 
       <h2>Orders and availability</h2>
       <p>Menu items, prices, offers, delivery availability and estimated times may change. Your order request is subject to restaurant confirmation and item availability. Please check your order details, phone number, delivery address and the total shown at checkout before submitting. We may contact you if we need to clarify an order or cannot fulfil an item as requested.</p>
@@ -79,11 +79,11 @@ export const TermsAndConditions = () => (
   </PageShell>
 );
 
-export const HelpPage = () => (
+export const HelpPage = ({ brandName = "GenZ Pizza Land" }) => (
   <PageShell>
     <article>
       <h1 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", margin: "0 0 8px" }}>Customer Help</h1>
-      <p>Need help ordering, paying or checking on an order? Here are quick answers. For personal order assistance, <a href="/#section-contact" style={{ color: "#c92f27" }}>contact GenZ Pizza Land</a>.</p>
+      <p>Need help ordering, paying or checking on an order? Here are quick answers. For personal order assistance, <a href="/#section-contact" style={{ color: "#c92f27" }}>contact {brandName}</a>.</p>
 
       <h2>How do I place an order?</h2>
       <p>Choose items from the <a href="/" style={{ color: "#c92f27" }}>online menu</a>, add them to your order, select delivery or pickup, enter your contact details and review the total before submitting.</p>

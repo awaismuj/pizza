@@ -17,7 +17,9 @@
     "backfill:order-numbers": "node scripts/backfill-order-numbers.js",
     "db:setup": "node scripts/db-bootstrap.js",
     "migrate:rbac": "node scripts/migrate-rbac.js",
-    "rbac:promote-owner": "node scripts/promote-owner.js"
+    "rbac:promote-owner": "node scripts/promote-owner.js",
+    "owner:totp-secret": "node scripts/generate-owner-totp.js",
+    "owner:hash-password": "node scripts/hash-owner-password.js"
   },
   "keywords": [],
   "author": "",

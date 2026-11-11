@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
+import useBrand from "../../hooks/useBrand";
 import {
   deleteCoupon,
   generateFridayCoupons,
@@ -88,12 +89,12 @@ const couponRecipient = (coupon) => {
   };
 };
 
-const customerCouponMessage = (coupon, customer, currency, timezone) => {
+const customerCouponMessage = (coupon, customer, currency, timezone, brandName) => {
   const greetingName = String(customer?.name || "").trim() || "there";
   const expiresAt = formatDate(coupon.expiresAt, timezone);
   const minimumOrder = formatCurrency(coupon.minimumOrderAmount, currency);
   return [
-    `Hi ${greetingName}! 🍕 A special offer from GenZ Pizza Land.`,
+    `Hi ${greetingName}! 🍕 A special offer from ${brandName}.`,
     "",
     `🎉 **${coupon.discountValue}% OFF on your order!**`,
     "",
@@ -109,13 +110,13 @@ const customerCouponMessage = (coupon, customer, currency, timezone) => {
   ].join("\n");
 };
 
-const birthdayCouponMessage = (coupon, customer, currency, timezone) => {
+const birthdayCouponMessage = (coupon, customer, currency, timezone, brandName) => {
   const customerName = String(customer?.name || "").trim();
   const greeting = customerName ? `🎂 Happy Birthday, ${customerName}! 🎉🍕` : "🎂 Happy Birthday! 🎉🍕";
   return [
     greeting,
     "",
-    "GenZ Pizza Land has a special birthday treat just for you!",
+    `${brandName} has a special birthday treat just for you!`,
     "",
     `🎁 **Enjoy ${coupon.discountValue}% OFF on your order!**`,
     "",
@@ -320,6 +321,7 @@ CampaignSettingsPanel.propTypes = {
 };
 
 const CouponsManager = ({ canManage }) => {
+  const { brandName } = useBrand();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -590,7 +592,7 @@ const CouponsManager = ({ canManage }) => {
                         {["friday", "welcome"].includes(coupon.campaignType) && (
                           <button
                             className="rounded bg-[#333] px-2 py-1 text-xs"
-                            onClick={() => copyMessage(customerCouponMessage(coupon, customer, currency, timezone))}
+                            onClick={() => copyMessage(customerCouponMessage(coupon, customer, currency, timezone, brandName))}
                           >
                             Copy message
                           </button>
@@ -680,7 +682,7 @@ const CouponsManager = ({ canManage }) => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => copyCode(coupon.code)}>Copy coupon</button>
-                  <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => copyMessage(birthdayCouponMessage(coupon, customer, currency, timezone))}>Copy birthday message</button>
+                  <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => copyMessage(birthdayCouponMessage(coupon, customer, currency, timezone, brandName))}>Copy birthday message</button>
                   <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View customer</button>
                   <button className="rounded bg-[#333] px-3 py-1.5 text-xs" onClick={() => setSelectedCouponId(coupon._id)}>View history</button>
                   {!coupon.notificationReadAt && canManage && <button className="rounded bg-[#f6b100] px-3 py-1.5 text-xs font-semibold text-[#171717]" onClick={() => readMutation.mutate(coupon._id)}>Mark as read</button>}
@@ -748,7 +750,8 @@ const CouponsManager = ({ canManage }) => {
                           detail.coupon,
                           couponRecipient(detail.coupon),
                           currency,
-                          expiryTimezone(detail.coupon, settings)
+                          expiryTimezone(detail.coupon, settings),
+                          brandName
                         ))}
                       >
                         Copy Birthday Message
@@ -759,7 +762,8 @@ const CouponsManager = ({ canManage }) => {
                         detail.coupon,
                         couponRecipient(detail.coupon),
                         currency,
-                        expiryTimezone(detail.coupon, settings)
+                        expiryTimezone(detail.coupon, settings),
+                        brandName
                       )}
                     </p>
                   </div>

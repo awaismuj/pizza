@@ -5,6 +5,10 @@ const mongoose = require("mongoose");
 const settingsSchema = new mongoose.Schema(
   {
     key: { type: String, required: true, unique: true, default: "global" },
+    branding: {
+      name: { type: String, default: "GenZ Pizza Land", trim: true, maxlength: 80 },
+      logo: { type: String, default: "", trim: true, maxlength: 300 },
+    },
     // Applied to every order - dine-in, outdoor/takeaway and online - from
     // wherever it's read. Admin-editable from Dashboard > Tax.
     taxRatePercent: { type: Number, required: true, default: 16, min: 0 },
