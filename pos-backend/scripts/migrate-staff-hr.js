@@ -28,6 +28,9 @@ const migrate = async () => {
   try {
     const needsBackfill = await Staff.find({
       $or: [
+        { joinDate: { $exists: false } },
+        { joinDate: null },
+        { joinDate: "" },
         { employeeId: { $exists: false } },
         { employeeId: null },
         { employeeId: "" },
@@ -39,7 +42,16 @@ const migrate = async () => {
     const migrationDate = new Date().toISOString().slice(0, 10);
     let generatedIds = 0;
     let backfilledSalaries = 0;
+    let backfilledJoinDates = 0;
     for (const staff of needsBackfill) {
+      if (!staff.joinDate) {
+        const createdAt = staff.createdAt ? new Date(staff.createdAt) : null;
+        staff.joinDate =
+          createdAt && !Number.isNaN(createdAt.getTime())
+            ? createdAt.toISOString().slice(0, 10)
+            : migrationDate;
+        backfilledJoinDates += 1;
+      }
       if (!staff.employeeId) {
         generatedIds += 1;
       }
@@ -59,7 +71,9 @@ const migrate = async () => {
       }
       await staff.save();
     }
-    console.log(`Generated ${generatedIds} employee IDs and recorded ${backfilledSalaries} salary effective dates.`);
+    console.log(
+      `Generated ${generatedIds} employee IDs, backfilled ${backfilledJoinDates} join dates, and recorded ${backfilledSalaries} salary effective dates.`
+    );
 
     const models = [
       Staff,
