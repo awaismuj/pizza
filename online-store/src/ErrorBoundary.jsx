@@ -34,14 +34,8 @@ export default class ErrorBoundary extends React.Component {
   }
 
   handleReload = () => {
-    // A fresh load re-runs the app from scratch. If the crash was caused by
-    // a bad "last order" pointer, clear it first so reloading doesn't just
-    // walk straight back into the same broken render.
-    try {
-      localStorage.removeItem("gzp_last_order");
-    } catch {
-      // ignore — storage may be unavailable (private mode, etc.)
-    }
+    // Keep the last order ID so the app can recover its status after a
+    // checkout confirmation render fails.
     window.location.reload();
   };
 
@@ -67,8 +61,8 @@ export default class ErrorBoundary extends React.Component {
             Something went wrong on our end
           </h1>
           <p style={{ maxWidth: 420, opacity: 0.8, margin: 0 }}>
-            Your order may still have gone through — if you already saw an
-            order number, it's safe. Reloading usually fixes this.
+            We couldn't show your confirmation. If you placed an order, reload
+            to check its status. Your saved order details will be kept.
           </p>
           <button
             type="button"
@@ -83,7 +77,7 @@ export default class ErrorBoundary extends React.Component {
               cursor: "pointer",
             }}
           >
-            Reload
+            Reload and check order
           </button>
         </div>
       );
