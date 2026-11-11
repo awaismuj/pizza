@@ -562,8 +562,6 @@ export const SiteFooter = ({ taxRatePercent, onNavigate, onTrack }) => (
           <h4>Help</h4>
           <ul>
             <li><button type="button" onClick={onTrack}>Track an order</button></li>
-            <li><button type="button" onClick={() => onNavigate("how")}>How it works</button></li>
-            <li><button type="button" onClick={() => onNavigate("contact")}>Contact us</button></li>
             <li><a href="/help">Customer help</a></li>
             <li><a href="/terms">Terms and Conditions</a></li>
             <li><a href="/privacy">Privacy policy</a></li>

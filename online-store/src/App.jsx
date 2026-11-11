@@ -29,7 +29,7 @@ import {
   JazzCashCard,
   PaymentStatusBanner,
 } from "./Payment.jsx";
-import { HeroIntro, FeaturesSection, HowItWorks, ReviewsSection, ContactSection, SiteFooter, SECTIONS_STYLES } from "./Sections.jsx";
+import { HeroIntro, ReviewsSection, SiteFooter, SECTIONS_STYLES } from "./Sections.jsx";
 import { I, FoodIcon } from "./AppIcons.jsx";
 import { FulfillmentPicker, FULFILLMENT_STYLES, useFulfillment } from "./Fulfillment.jsx";
 import { BYO_STYLES, ByoBanner, ByoBuilder, normalizeByo, byoPercentFor, byoNudge } from "./ByoBuilder.jsx";
@@ -1444,6 +1444,36 @@ select {
   font-weight: 800;
   font-size: 1.25rem;
   letter-spacing: -0.025em;
+}
+
+.gzp-coupon-disclosure {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.gzp-coupon-disclosure > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-weight: 700;
+}
+
+.gzp-coupon-disclosure > summary small {
+  display: block;
+  margin: 3px 0 0 20px;
+  color: var(--flour-dim);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.gzp-coupon-disclosure[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.gzp-coupon-disclosure-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .gzp-sheet-body {
@@ -4328,6 +4358,9 @@ function StorefrontHome() {
     const stepIndex = steps.indexOf(order.orderStatus);
     const isCancelled = order.orderStatus === "Cancelled";
     const orderRef = String(order._id || "").slice(-6).toUpperCase();
+    const bills = order.bills || {};
+    const deliveryFee = Number(bills.deliveryFee) || 0;
+    const deliveryDiscount = Number(bills.couponDeliveryDiscount) || 0;
     const helpHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
       `Hello GenZ Pizza Land, I need help with order #${orderRef}.`
     )}`;
@@ -4368,7 +4401,7 @@ function StorefrontHome() {
               ) : (
                 <>
                   <p className="gzp-eta">
-                    This page updates itself every few seconds. Keep it open and watch it move.
+                    Order status updates automatically.
                   </p>
                   <ol className="gzp-steps">
                     {steps.map((step, i) => (
@@ -4398,7 +4431,7 @@ function StorefrontHome() {
             </div>
 
             <div className="gzp-panel">
-              <h3>What's coming</h3>
+              <h3>Your order</h3>
               {(order.items || []).map((item, idx) => (
                 <div key={idx}>
                   <div className="gzp-order-line">
@@ -4419,25 +4452,41 @@ function StorefrontHome() {
               ))}
 
               <div className="gzp-totals" style={{ marginTop: 14 }}>
-                {Number(order.bills?.deliveryFee) > 0 && (
-                  <div>
-                    <span>Delivery fee</span>
-                    <span>{formatRs(order.bills.deliveryFee)}</span>
+                <div>
+                  <span>Items subtotal</span>
+                  <span>{formatRs(bills.subtotal ?? bills.total ?? 0)}</span>
+                </div>
+                {Number(bills.discount) > 0 && (
+                  <div className="is-discount">
+                    <span>{bills.discountLabel || "Discount"}</span>
+                    <span>−{formatRs(bills.discount)}</span>
                   </div>
                 )}
-                  {Number(order.bills?.couponDiscount) > 0 && (
-                    <div className="is-discount">
-                      <span>Coupon {order.coupon?.code ? `(${order.coupon.code})` : "discount"}</span>
-                      <span>−{formatRs(order.bills.couponDiscount)}</span>
-                    </div>
-                  )}
-                  {Number(order.bills?.couponDeliveryDiscount) > 0 && (
-                    <div className="is-discount">
-                      <span>Free delivery coupon</span>
-                      <span>−{formatRs(order.bills.couponDeliveryDiscount)}</span>
-                    </div>
-                  )}
-                  <div className="gzp-grand">
+                {Number(bills.couponDiscount) > 0 && (
+                  <div className="is-discount">
+                    <span>Coupon {order.coupon?.code ? `(${order.coupon.code})` : "discount"}</span>
+                    <span>−{formatRs(bills.couponDiscount)}</span>
+                  </div>
+                )}
+                {deliveryFee + deliveryDiscount > 0 && (
+                  <div>
+                    <span>Delivery fee</span>
+                    <span>{formatRs(deliveryFee + deliveryDiscount)}</span>
+                  </div>
+                )}
+                {deliveryDiscount > 0 && (
+                  <div className="is-discount">
+                    <span>Free delivery coupon</span>
+                    <span>−{formatRs(deliveryDiscount)}</span>
+                  </div>
+                )}
+                {Number(bills.tax) > 0 && (
+                  <div>
+                    <span>Tax</span>
+                    <span>{formatRs(bills.tax)}</span>
+                  </div>
+                )}
+                <div className="gzp-grand">
                   <span>
                     {isPaidFlow
                       ? order.payment?.status === "Verified"
@@ -4445,7 +4494,7 @@ function StorefrontHome() {
                         : "Total (JazzCash/Raast)"
                       : order.fulfillment?.method === "pickup" ? "Pay at pickup" : "Pay on delivery"}
                   </span>
-                  <span>{formatRs(order.bills?.totalWithTax || 0)}</span>
+                  <span>{formatRs(bills.totalWithTax || 0)}</span>
                 </div>
               </div>
             </div>
@@ -5023,10 +5072,7 @@ function StorefrontHome() {
           </>
         )}
 
-        <FeaturesSection />
         <ReviewsSection onSummary={setReviewSummary} />
-        <HowItWorks />
-        <ContactSection whatsappLink={WHATSAPP_LINK} onTrack={() => setTrackOpen(true)} />
       </div>
 
       <SiteFooter
@@ -5571,7 +5617,7 @@ function StorefrontHome() {
               >
                 <IconChevron dir="left" />
               </button>
-              <h2>Delivery or pickup</h2>
+              <h2>Complete your order</h2>
             </div>
 
             <form onSubmit={handleCheckout} style={{ display: "contents" }}>
@@ -5609,72 +5655,78 @@ function StorefrontHome() {
                     />
                   </label>
 
-                  <div style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 14 }}>
-                    <div className="gzp-form" style={{ marginBottom: 14 }}>
-                      <label className="gzp-field" htmlFor="welcome-coupon-identity">
-                        <span>New customer? Check for a welcome coupon</span>
+                  <details className="gzp-coupon-disclosure">
+                    <summary>
+                      {appliedCoupon
+                        ? `${appliedCoupon.code} applied · Save ${formatRs(appliedCoupon.totalDiscount)}`
+                        : "Have a coupon?"}
+                      <small>Enter a code or check for a welcome offer</small>
+                    </summary>
+                    <div className="gzp-coupon-disclosure-body">
+                      <div className="gzp-form" style={{ marginBottom: 14 }}>
+                        <label className="gzp-field" htmlFor="welcome-coupon-identity">
+                          <span>New customer? Check for a welcome coupon</span>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <input
+                              id="welcome-coupon-identity"
+                              value={welcomeIdentifier}
+                              onChange={(event) => setWelcomeIdentifier(event.target.value)}
+                              autoComplete="email tel"
+                              placeholder="Mobile number or email"
+                              style={{ flex: 1, minWidth: 0 }}
+                            />
+                            <button
+                              type="button"
+                              className="gzp-btn gzp-btn-ghost"
+                              onClick={handleWelcomeCoupon}
+                              disabled={checkingWelcomeCoupon}
+                            >
+                              {checkingWelcomeCoupon ? "Checking…" : "Check coupon"}
+                            </button>
+                          </div>
+                        </label>
+                        {welcomeMessage && <p role="status">{welcomeMessage}</p>}
+                      </div>
+                      <label className="gzp-field" htmlFor="checkout-coupon-code">
+                        <span>Coupon code</span>
                         <div style={{ display: "flex", gap: 8 }}>
                           <input
-                            id="welcome-coupon-identity"
-                            value={welcomeIdentifier}
-                            onChange={(event) => setWelcomeIdentifier(event.target.value)}
-                            autoComplete="email tel"
-                            placeholder="Mobile number or email"
+                            id="checkout-coupon-code"
+                            value={couponCode}
+                            onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                            autoComplete="off"
+                            maxLength={40}
+                            placeholder="Enter coupon code"
                             style={{ flex: 1, minWidth: 0 }}
                           />
                           <button
                             type="button"
                             className="gzp-btn gzp-btn-ghost"
-                            onClick={handleWelcomeCoupon}
-                            disabled={checkingWelcomeCoupon}
+                            onClick={handleApplyCoupon}
+                            disabled={applyingCoupon || !fulfil.ready}
                           >
-                            {checkingWelcomeCoupon ? "Checking…" : "Check coupon"}
+                            {applyingCoupon ? "Checking…" : appliedCoupon ? "Replace" : "Apply"}
                           </button>
                         </div>
                       </label>
-                      {welcomeMessage && <p role="status">{welcomeMessage}</p>}
+                      {appliedCoupon && (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                          <small className="gzp-success">Coupon applied</small>
+                          <button
+                            type="button"
+                            className="gzp-btn gzp-btn-ghost"
+                            onClick={() => {
+                              setAppliedCoupon(null);
+                              setCouponMessage("");
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                      {couponMessage && <p className={appliedCoupon ? "gzp-success" : "gzp-error"} role="status">{couponMessage}</p>}
                     </div>
-                    <label className="gzp-field" htmlFor="checkout-coupon-code">
-                      <span>Coupon code</span>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <input
-                          id="checkout-coupon-code"
-                          value={couponCode}
-                          onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                          autoComplete="off"
-                          maxLength={40}
-                          placeholder="Enter coupon code"
-                          style={{ flex: 1, minWidth: 0 }}
-                        />
-                        <button
-                          type="button"
-                          className="gzp-btn gzp-btn-ghost"
-                          onClick={handleApplyCoupon}
-                          disabled={applyingCoupon || !fulfil.ready}
-                        >
-                          {applyingCoupon ? "Checking…" : appliedCoupon ? "Replace" : "Apply"}
-                        </button>
-                      </div>
-                    </label>
-                    {appliedCoupon && (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                        <small className="gzp-success">
-                          {appliedCoupon.code} applied · save {formatRs(appliedCoupon.totalDiscount)}
-                        </small>
-                        <button
-                          type="button"
-                          className="gzp-btn gzp-btn-ghost"
-                          onClick={() => {
-                            setAppliedCoupon(null);
-                            setCouponMessage("");
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
-                    {couponMessage && <p className={appliedCoupon ? "gzp-success" : "gzp-error"} role="status">{couponMessage}</p>}
-                  </div>
+                  </details>
 
                   <PaymentMethodPicker
                     cfg={payments}
@@ -5706,25 +5758,37 @@ function StorefrontHome() {
               <div className="gzp-sheet-foot">
                 <div className="gzp-totals">
                   <div>
-                    <span>Subtotal + tax</span>
-                    <span>{formatRs(cartTotal)}</span>
+                    <span>Items subtotal</span>
+                    <span>{formatRs(grossSubtotal)}</span>
                   </div>
+                  {byoDiscount > 0 && (
+                    <div className="is-discount">
+                      <span>Build your own discount</span>
+                      <span>−{formatRs(byoDiscount)}</span>
+                    </div>
+                  )}
                   {couponDiscount > 0 && (
                     <div className="is-discount">
                       <span>Coupon {appliedCoupon?.code ? `(${appliedCoupon.code})` : "discount"}</span>
                       <span>−{formatRs(couponDiscount)}</span>
                     </div>
                   )}
-                  {deliveryDiscount > 0 && (
-                    <div className="is-discount">
-                      <span>Free delivery</span>
-                      <span>−{formatRs(deliveryDiscount)}</span>
+                  {tax > 0 && (
+                    <div>
+                      <span>Tax</span>
+                      <span>{formatRs(tax)}</span>
                     </div>
                   )}
                   {fulfil.branch?.customerDisplay?.showDeliveryFees === true && (
                     <div>
                       <span>{fulfil.method === "pickup" ? "Pickup" : "Delivery fee"}</span>
-                      <span>{fulfil.quote?.ok ? (payableDeliveryFee > 0 ? formatRs(payableDeliveryFee) : "Free") : "—"}</span>
+                      <span>{fulfil.quote?.ok ? (fulfil.fee > 0 ? formatRs(fulfil.fee) : "Free") : "—"}</span>
+                    </div>
+                  )}
+                  {deliveryDiscount > 0 && (
+                    <div className="is-discount">
+                      <span>Free delivery</span>
+                      <span>−{formatRs(deliveryDiscount)}</span>
                     </div>
                   )}
                   <div className="gzp-grand">
