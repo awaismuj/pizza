@@ -239,15 +239,9 @@ const Outdoor = () => {
         <MenuContainer onAddToCart={handleAddToCart} />
       </div>
 
-      {/* Right: local cart + one-click submit. No explicit lg:h-full
-          (h-auto instead) so the flex row's default align-items:stretch
-          auto-computes the height - that's what makes lg:mb-36 actually
-          reserve real space instead of just pushing the panel past the
-          container's bottom. That reserved space is for the fixed
-          BottomNav *and* the WhatsApp button that floats above it (both
-          global, on every page) - without it, the Submit Order button ends
-          up rendered underneath them. */}
-      <div className="w-full lg:flex-[1] bg-[#1a1a1a] mx-3 mb-4 lg:mx-0 lg:mt-4 lg:mr-3 lg:mb-36 lg:h-auto rounded-lg pt-2 flex flex-col">
+      {/* Keep the cart panel within the visible area above the fixed bottom
+          navigation. The item list gets the flexible, scrollable space. */}
+      <div className="w-full lg:flex-[1] bg-[#1a1a1a] mx-3 mb-4 lg:mx-0 lg:mt-4 lg:mr-3 lg:mb-20 lg:h-[calc(100vh-11rem)] lg:min-h-0 lg:overflow-y-auto rounded-lg pt-2 flex flex-col">
         <div className="px-5 pt-3 pb-2">
           <h1 className="text-lg text-[#f5f5f5] font-semibold tracking-wide">
             Takeaway Order
@@ -256,65 +250,75 @@ const Outdoor = () => {
             {cart.length} item{cart.length === 1 ? "" : "s"}
           </p>
         </div>
-        <div className="px-5 py-3 space-y-3">
-          <label className="block text-xs text-[#ababab]">
-            Customer name (optional)
-            <input
-              type="text"
-              value={customerName}
-              onChange={(event) => setCustomerName(event.target.value)}
-              maxLength={120}
-              autoComplete="name"
-              className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5]"
-              placeholder="Name"
-            />
-          </label>
-          <label className="block text-xs text-[#ababab]">
-            Mobile number (optional)
-            <input
-              type="tel"
-              value={customerPhone}
-              onChange={(event) => setCustomerPhone(event.target.value)}
-              maxLength={30}
-              autoComplete="tel"
-              className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5]"
-              placeholder="e.g. 0301 333 0954 or +92 301 3330954"
-            />
-          </label>
-          <label className="block text-xs text-[#ababab]">
-            Date of birth (optional, for birthday coupons)
-            <input
-              type="date"
-              value={customerDateOfBirth}
-              onChange={(event) => setCustomerDateOfBirth(event.target.value)}
-              disabled={!customerPhone.trim()}
-              max={new Date().toISOString().slice(0, 10)}
-              className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5] disabled:opacity-50"
-            />
-            {!customerPhone.trim() && (
-              <span className="mt-1 block text-[10px] text-[#777]">
-                Enter a mobile number to save a birthday to the customer record.
-              </span>
-            )}
-          </label>
-        </div>
+        <details className="mx-5 mb-3 rounded-lg border border-[#383838] bg-[#202020]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-[#f5f5f5] [&::-webkit-details-marker]:hidden">
+            <span>Customer details <span className="font-normal text-[#999]">(optional)</span></span>
+            <span className="text-right text-xs font-normal text-[#999]">Skip for a faster order</span>
+          </summary>
+          <div className="grid gap-3 border-t border-[#383838] p-3 sm:grid-cols-2">
+            <label className="block text-xs text-[#ababab]">
+              Name
+              <input
+                type="text"
+                value={customerName}
+                onChange={(event) => setCustomerName(event.target.value)}
+                maxLength={120}
+                autoComplete="name"
+                className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5]"
+                placeholder="Customer name"
+              />
+            </label>
+            <label className="block text-xs text-[#ababab]">
+              Mobile number
+              <input
+                type="tel"
+                value={customerPhone}
+                onChange={(event) => setCustomerPhone(event.target.value)}
+                maxLength={30}
+                autoComplete="tel"
+                className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5]"
+                placeholder="e.g. 0301 333 0954"
+              />
+            </label>
+            <label className="block text-xs text-[#ababab] sm:col-span-2">
+              Birthday <span className="font-normal text-[#777]">(optional, for birthday offers)</span>
+              <input
+                type="date"
+                value={customerDateOfBirth}
+                onChange={(event) => setCustomerDateOfBirth(event.target.value)}
+                disabled={!customerPhone.trim()}
+                max={new Date().toISOString().slice(0, 10)}
+                className="mt-1 w-full rounded border border-[#383737] bg-[#1f1f1f] px-3 py-2 text-sm text-[#f5f5f5] disabled:opacity-50"
+              />
+              {!customerPhone.trim() && (
+                <span className="mt-1 block text-[10px] text-[#777]">
+                  Add a mobile number to save a birthday.
+                </span>
+              )}
+            </label>
+          </div>
+        </details>
         <hr className="border-[#2a2a2a] border-t-2" />
 
-        <div className="flex-1 overflow-y-auto px-5 py-3">
+        <div className="min-h-32 flex-1 overflow-y-auto px-5 py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-[#f5f5f5]">Items in order</h2>
+            <span className="text-xs text-[#999]">{cart.length} selected</span>
+          </div>
           {cart.length === 0 ? (
-            <p className="text-[#5f5f5f] text-sm text-center mt-10">
-              No items yet — tap the cart button on any menu item to add it here.
+            <p className="rounded-lg border border-dashed border-[#383838] py-5 text-center text-sm text-[#888]">
+              Your order is empty. Choose items from the menu to get started.
             </p>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col">
               {cart.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-2">
+                <div key={item.id} className="flex items-center justify-between gap-2 border-b border-[#333] py-2.5 last:border-0">
                   <div className="min-w-0">
                     <p className="text-[#f5f5f5] text-sm font-medium truncate">
                       {item.icon ? `${item.icon} ` : ""}
-                      {item.name} x{item.quantity}
+                      {item.name} <span className="text-[#aaa]">× {item.quantity}</span>
                     </p>
-                    <p className="text-[#ababab] text-xs">Rs {item.price.toFixed(2)}</p>
+                    <p className="mt-0.5 text-[#ababab] text-xs">Rs {item.price.toFixed(2)}</p>
                   </div>
                   <button
                     onClick={() => removeItem(item.id)}
