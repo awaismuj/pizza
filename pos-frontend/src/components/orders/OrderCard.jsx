@@ -128,7 +128,7 @@ const OrderCard = ({ order }) => {
             onClick={() => setPrintOrder(order)}
             className="inline-flex items-center gap-1.5 rounded-md bg-[#2a2a2a] px-2.5 py-1.5 text-xs font-semibold text-[#f5f5f5] hover:bg-[#333]"
           >
-            <FaPrint size={11} /> Print
+            <FaPrint size={11} /> {isTerminal ? "Print Bill" : "Print"}
           </button>
         </div>
       )}

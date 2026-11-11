@@ -3,6 +3,7 @@ const permissions = [
   ["orders.view", "View orders"],
   ["orders.create", "Create orders"],
   ["orders.edit", "Edit order items"],
+  ["orders.applySpecialDiscount", "Apply special order discounts"],
   ["orders.update", "Edit orders and status"],
   ["orders.cancel", "Cancel orders"],
   ["kitchen.update", "Update kitchen preparation status"],
@@ -75,7 +76,7 @@ const roleDefaults = {
   "super admin": allPermissions,
   admin: standardAdminPermissions,
   cashier: [
-    "dashboard.view", "orders.view", "orders.create", "orders.edit", "orders.update", "orders.cancel", "orders.delete",
+    "dashboard.view", "orders.view", "orders.create", "orders.edit", "orders.applySpecialDiscount", "orders.update", "orders.cancel", "orders.delete",
     "payments.process", "tables.view", "tables.manage", "menu.view", "coupons.apply",
     "inventory.view", "expenses.view", "expenses.create", "staff.view",
     "attendance.view", "attendance.manage",

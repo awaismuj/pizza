@@ -32,6 +32,9 @@ at `/robots.txt`. Configure the static host to serve `404.html` with an HTTP
 are updated per route. The POS dashboard is a separate, private app and is
 marked `noindex`.
 
+The decorative food icons remain as a fixed background; clicking or tapping
+the page does not create additional icons.
+
 Customer accounts created from the storefront are activated immediately and
 signed in without email approval or verification. Their customer session is
 limited to storefront account and ordering endpoints; it does not grant access

@@ -20,6 +20,9 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
 
   const isWalkIn = orderInfo.customerDetails?.name === "Walk-in Customer";
   const discount = Number(orderInfo.bills?.discount) || 0;
+  const couponDiscount = Number(orderInfo.bills?.couponDiscount) || 0;
+  const specialDiscountAmount = Number(orderInfo.bills?.specialDiscount?.amount) || 0;
+  const hasDiscount = discount > 0 || couponDiscount > 0 || specialDiscountAmount > 0;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center px-4">
@@ -110,25 +113,29 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           {/* Bills Summary */}
 
           <div className="mt-4 border-t pt-4 text-sm">
-            {Number(orderInfo.bills.discount) > 0 ? (
+            <p>
+              <strong>Subtotal:</strong> Rs{" "}
+              {Number(orderInfo.bills.subtotal ?? orderInfo.bills.total + discount + couponDiscount + specialDiscountAmount).toFixed(2)}
+            </p>
+            {discount > 0 && <p><strong>Deal discount:</strong> −Rs {discount.toFixed(2)}</p>}
+            {couponDiscount > 0 && <p><strong>Coupon discount:</strong> −Rs {couponDiscount.toFixed(2)}</p>}
+            {specialDiscountAmount > 0 && (
               <>
+                <p><strong>Special discount:</strong> −Rs {specialDiscountAmount.toFixed(2)}</p>
                 <p>
-                  <strong>Subtotal:</strong> Rs{" "}
-                  {Number(orderInfo.bills.subtotal ?? orderInfo.bills.total + orderInfo.bills.discount).toFixed(2)}
+                  <strong>Given by:</strong>{" "}
+                  {orderInfo.bills.specialDiscount?.appliedBy?.name || "Staff"}
                 </p>
-                {discount > 0 && (
+                {orderInfo.bills.specialDiscount?.appliedAt && (
                   <p>
-                    <strong>Discount:</strong> -Rs {discount.toFixed(2)}
+                    <strong>Discount time:</strong>{" "}
+                    {new Date(orderInfo.bills.specialDiscount.appliedAt).toLocaleString()}
                   </p>
                 )}
-                <p>
-                  <strong>After discount:</strong> Rs {orderInfo.bills.total.toFixed(2)}
-                </p>
               </>
-            ) : (
-              <p>
-                <strong>Subtotal:</strong> Rs {orderInfo.bills.total.toFixed(2)}
-              </p>
+            )}
+            {hasDiscount && (
+              <p><strong>After discount:</strong> Rs {orderInfo.bills.total.toFixed(2)}</p>
             )}
             <p>
               <strong>Tax:</strong> Rs {orderInfo.bills.tax.toFixed(2)}
@@ -228,6 +235,14 @@ Invoice.propTypes = {
     bills: PropTypes.shape({
       subtotal: PropTypes.number,
       discount: PropTypes.number,
+      couponDiscount: PropTypes.number,
+      specialDiscount: PropTypes.shape({
+        amount: PropTypes.number,
+        appliedAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+        appliedBy: PropTypes.shape({
+          name: PropTypes.string,
+        }),
+      }),
       total: PropTypes.number,
       tax: PropTypes.number,
       totalWithTax: PropTypes.number,

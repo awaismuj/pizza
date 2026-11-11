@@ -20,7 +20,7 @@ const useLoadData = () => {
         phone: "",
         role: "Admin",
         permissions: [
-          "dashboard.view", "orders.view", "orders.create", "orders.edit", "orders.update",
+          "dashboard.view", "orders.view", "orders.create", "orders.edit", "orders.applySpecialDiscount", "orders.update",
           "orders.cancel", "kitchen.update", "orders.delete", "orders.viewDeleted", "payments.process",
           "tables.view", "tables.manage", "tables.delete", "menu.view", "menu.create",
           "menu.edit", "menu.delete", "menu.changePrice", "categories.manage", "deals.manage",

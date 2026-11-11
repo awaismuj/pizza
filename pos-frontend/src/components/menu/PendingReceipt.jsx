@@ -10,7 +10,18 @@ import { printReceipt } from "../../utils/printReceipt";
 // hand the customer/kitchen a copy of the current cart without waiting for
 // checkout. This is separate from Invoice.jsx (which prints a *placed*
 // order) because there is no saved order yet to show.
-const PendingReceipt = ({ customerData, cartData, total, tax, taxRate, totalPriceWithTax, onClose }) => {
+const PendingReceipt = ({
+  customerData,
+  cartData,
+  total,
+  tax,
+  taxRate,
+  totalPriceWithTax,
+  couponDiscount,
+  specialDiscountAmount,
+  specialDiscountGivenBy,
+  onClose,
+}) => {
   const receiptRef = useRef(null);
 
   const handlePrint = () => {
@@ -82,6 +93,20 @@ const PendingReceipt = ({ customerData, cartData, total, tax, taxRate, totalPric
             <p>
               <strong>Subtotal:</strong> Rs {total.toFixed(2)}
             </p>
+            {couponDiscount > 0 && (
+              <p><strong>Coupon discount:</strong> −Rs {couponDiscount.toFixed(2)}</p>
+            )}
+            {specialDiscountAmount > 0 && (
+              <>
+                <p><strong>Special discount:</strong> −Rs {specialDiscountAmount.toFixed(2)}</p>
+                <p><strong>Given by:</strong> {specialDiscountGivenBy || "Staff"}</p>
+              </>
+            )}
+            {(couponDiscount > 0 || specialDiscountAmount > 0) && (
+              <p>
+                <strong>After discount:</strong> Rs {(total - couponDiscount - specialDiscountAmount).toFixed(2)}
+              </p>
+            )}
             <p>
               <strong>Tax ({taxRate}%):</strong> Rs {tax.toFixed(2)}
             </p>
@@ -124,6 +149,9 @@ PendingReceipt.propTypes = {
   tax: PropTypes.number.isRequired,
   taxRate: PropTypes.number.isRequired,
   totalPriceWithTax: PropTypes.number.isRequired,
+  couponDiscount: PropTypes.number,
+  specialDiscountAmount: PropTypes.number,
+  specialDiscountGivenBy: PropTypes.string,
   onClose: PropTypes.func.isRequired,
 };
 

@@ -17,6 +17,7 @@ import useTaxRate from "../../hooks/useTaxRate";
 import PendingReceipt from "./PendingReceipt";
 import KitchenSlip from "./KitchenSlip";
 import CouponApply from "./CouponApply";
+import SpecialDiscountInput from "./SpecialDiscountInput";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -37,12 +38,25 @@ const Bill = () => {
   const queryClient = useQueryClient();
 
   const customerData = useSelector((state) => state.customer);
+  const user = useSelector((state) => state.user);
   const cartData = useSelector((state) => state.cart);
   const total = useSelector(getTotalPrice);
-  const { taxRate } = useTaxRate();
+  const { taxRate, specialDiscountEnabled } = useTaxRate();
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [specialDiscountInput, setSpecialDiscountInput] = useState("");
   const couponDiscount = Number(appliedCoupon?.discountAmount) || 0;
-  const discountedSubtotal = Math.max(0, total - couponDiscount);
+  const specialDiscountAmount = specialDiscountInput.trim() === "" ? 0 : Number(specialDiscountInput);
+  const remainingSubtotal = Math.max(0, total - couponDiscount);
+  const canStaffApplySpecialDiscount =
+    user.permissions?.includes("orders.applySpecialDiscount") ||
+    ["cashier", "admin", "super admin"].includes(String(user.role || "").toLowerCase());
+  const canApplySpecialDiscount =
+    specialDiscountEnabled && canStaffApplySpecialDiscount;
+  const isSpecialDiscountValid =
+    Number.isInteger(specialDiscountAmount) &&
+    specialDiscountAmount >= 0 &&
+    specialDiscountAmount <= remainingSubtotal;
+  const discountedSubtotal = Math.max(0, remainingSubtotal - specialDiscountAmount);
   const tax = (discountedSubtotal * taxRate) / 100;
   const totalPriceWithTax = discountedSubtotal + tax;
   const paymentFingerprint = JSON.stringify({
@@ -68,6 +82,12 @@ const Bill = () => {
   const [showPendingReceipt, setShowPendingReceipt] = useState(false);
 
   const handlePlaceOrder = async () => {
+    if (!isSpecialDiscountValid) {
+      enqueueSnackbar("Enter a whole rupee discount no greater than the remaining subtotal.", {
+        variant: "warning",
+      });
+      return;
+    }
     if (!paymentMethod) {
       enqueueSnackbar("Please select a payment method!", {
         variant: "warning",
@@ -145,6 +165,7 @@ const Bill = () => {
                 },
                 items: cartData,
                 couponCode: appliedCoupon?.code,
+                specialDiscountAmount: specialDiscountAmount || undefined,
                 orderType: "dineIn",
                 table: customerData.table.tableId,
                 paymentMethod: paymentMethod,
@@ -197,6 +218,7 @@ const Bill = () => {
         },
         items: cartData,
         couponCode: appliedCoupon?.code,
+        specialDiscountAmount: specialDiscountAmount || undefined,
         orderType: "dineIn",
         table: customerData.table.tableId,
         paymentMethod: paymentMethod,
@@ -213,6 +235,7 @@ const Bill = () => {
 
       setOrderInfo(data);
       setAppliedCoupon(null);
+      setSpecialDiscountInput("");
 
       // The order is paid for right now (Cash was just handed over, or the
       // Razorpay charge just went through) — the Payments/Profit/Home
@@ -275,6 +298,14 @@ const Bill = () => {
         onApply={setAppliedCoupon}
         onRemove={() => setAppliedCoupon(null)}
       />
+      {canApplySpecialDiscount && (
+        <SpecialDiscountInput
+          id="dine-in-special-discount"
+          subtotal={remainingSubtotal}
+          value={specialDiscountInput}
+          onChange={setSpecialDiscountInput}
+        />
+      )}
       <div className="flex items-center justify-between px-5 mt-2">
         <p className="text-xs text-[#ababab] font-medium mt-2">
           Items({cartData.length})
@@ -287,6 +318,12 @@ const Bill = () => {
         <div className="flex items-center justify-between px-5 mt-2">
           <p className="text-xs text-green-400 font-medium">Coupon discount</p>
           <h1 className="text-green-400 text-md font-bold">−Rs {couponDiscount.toFixed(2)}</h1>
+        </div>
+      )}
+      {specialDiscountAmount > 0 && (
+        <div className="flex items-center justify-between px-5 mt-2">
+          <p className="text-xs text-green-400 font-medium">Special discount</p>
+          <h1 className="text-green-400 text-md font-bold">−Rs {specialDiscountAmount.toFixed(2)}</h1>
         </div>
       )}
       <div className="flex items-center justify-between px-5 mt-2">
@@ -323,7 +360,7 @@ const Bill = () => {
       <div className="flex items-center gap-3 px-5 mt-4">
         <button
           onClick={() => setShowPendingReceipt(true)}
-          disabled={cartData.length === 0}
+          disabled={cartData.length === 0 || !isSpecialDiscountValid}
           className="bg-[#025cca] px-4 py-3 w-full rounded-lg text-[#f5f5f5] font-semibold text-lg disabled:opacity-60"
         >
           Print Receipt
@@ -350,6 +387,9 @@ const Bill = () => {
           taxRate={taxRate}
           totalPriceWithTax={totalPriceWithTax}
           onClose={() => setShowPendingReceipt(false)}
+          couponDiscount={couponDiscount}
+          specialDiscountAmount={specialDiscountAmount}
+          specialDiscountGivenBy={user.name}
         />
       )}
     </>

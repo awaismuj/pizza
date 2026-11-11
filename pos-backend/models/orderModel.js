@@ -99,6 +99,14 @@ const orderSchema = new mongoose.Schema({
         discountLabel: { type: String, default: "" },
         couponDiscount: { type: Number, default: 0 },
         couponDeliveryDiscount: { type: Number, default: 0 },
+        specialDiscount: {
+            amount: { type: Number, default: 0, min: 0 },
+            appliedBy: {
+                userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+                name: { type: String, default: "", maxlength: 120 },
+            },
+            appliedAt: { type: Date },
+        },
         // Delivery charge, added AFTER tax (it is not taxed). 0 for pickup.
         deliveryFee: { type: Number, default: 0 },
     },

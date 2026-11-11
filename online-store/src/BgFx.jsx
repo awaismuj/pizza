@@ -6,8 +6,6 @@ import { useEffect, useRef } from "react";
    - A constellation of soft glowing nodes.
    - Tiny, soft food emojis drifting and
      slowly spinning behind the content.
-   - Interactive: clicks and taps burst food emojis from
-     the touch point.
 
    It is a single fixed <canvas> behind the page (pointer-events: none), so
    it never blocks a button. It pauses when the tab is hidden, caps its own
@@ -17,7 +15,6 @@ import { useEffect, useRef } from "react";
 
 const FOOD_EMOJIS = ["🍔", "🍟", "🍕", "🌮", "🌯", "🥪", "🥤", "🧋", "🍗"];
 const rand = (a, b) => a + Math.random() * (b - a);
-const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
 export default function BgFx() {
   const ref = useRef(null);
@@ -36,16 +33,6 @@ export default function BgFx() {
     let raf = 0;
     let running = false;
     const pointer = { x: -9999, y: -9999, active: false };
-    const popupLayer = document.createElement("div");
-    popupLayer.setAttribute("aria-hidden", "true");
-    Object.assign(popupLayer.style, {
-      position: "fixed",
-      inset: "0",
-      zIndex: "1001",
-      overflow: "hidden",
-      pointerEvents: "none",
-    });
-    document.body.appendChild(popupLayer);
 
     const isSmall = () => window.innerWidth < 700;
 
@@ -85,73 +72,6 @@ export default function BgFx() {
         alpha: rand(0.3, 0.55),
         phase: rand(0, 6.28),
       }));
-    };
-
-    const showClickFood = (x, y) => {
-      if (!reduce) {
-        const maxDistance = Math.hypot(W, H) || 1;
-        icons.forEach((icon) => {
-          const dx = icon.x - x;
-          const dy = icon.y - y;
-          const distance = Math.hypot(dx, dy);
-          const angle = distance > 1 ? Math.atan2(dy, dx) : rand(0, Math.PI * 2);
-          const strength = 3 + (1 - Math.min(distance / maxDistance, 1)) * 3;
-          icon.vx += Math.cos(angle) * strength + rand(-1, 1);
-          icon.vy += Math.sin(angle) * strength + rand(-1, 1);
-          icon.vr += rand(-0.08, 0.08);
-        });
-      }
-
-      const count = 2 + Math.floor(Math.random() * 3);
-      const burst = Array.from({ length: count }, () => ({
-        emoji: pick(FOOD_EMOJIS),
-        size: rand(22, 34),
-      }));
-
-      burst.forEach(({ emoji, size }, index) => {
-        const angle = (index / burst.length) * Math.PI * 2 + rand(-0.35, 0.35);
-        const distance = rand(55, 115);
-        const driftX = Math.cos(angle) * distance;
-        const driftY = Math.sin(angle) * distance - rand(18, 48);
-        const item = document.createElement("span");
-        item.textContent = emoji;
-        Object.assign(item.style, {
-          position: "absolute",
-          left: `${x}px`,
-          top: `${y}px`,
-          fontSize: `${size}px`,
-          lineHeight: "1",
-          pointerEvents: "none",
-          userSelect: "none",
-          filter: "drop-shadow(0 2px 5px rgba(30,20,10,0.3))",
-          transform: "translate(-50%, -50%) scale(0.3)",
-        });
-        popupLayer.appendChild(item);
-
-        if (reduce) {
-          item.style.transform = `translate(calc(-50% + ${driftX * 0.35}px), calc(-50% + ${driftY * 0.35}px)) scale(1)`;
-          window.setTimeout(() => item.remove(), 550);
-          return;
-        }
-
-        const animation = item.animate(
-          [
-            { opacity: 0, transform: "translate(-50%, -50%) scale(0.3) rotate(0deg)" },
-            { opacity: 1, transform: "translate(-50%, -50%) scale(1.25) rotate(10deg)", offset: 0.18 },
-            { opacity: 1, transform: "translate(-50%, -50%) scale(1) rotate(-5deg)", offset: 0.34 },
-            {
-              opacity: 0,
-              transform: `translate(calc(-50% + ${driftX}px), calc(-50% + ${driftY}px)) scale(0.7) rotate(${rand(-55, 55)}deg)`,
-            },
-          ],
-          {
-            duration: rand(750, 1050),
-            easing: "cubic-bezier(0.2, 0.75, 0.3, 1)",
-            fill: "forwards",
-          }
-        );
-        animation.onfinish = () => item.remove();
-      });
     };
 
     const frame = (time) => {
@@ -280,19 +200,10 @@ export default function BgFx() {
     const onLeave = () => {
       pointer.active = false;
     };
-    const onDown = (e) => {
-      pointer.x = e.clientX;
-      pointer.y = e.clientY;
-      pointer.active = true;
-      showClickFood(e.clientX, e.clientY);
-      // on touch there is no hover, so let the pointer glow fade shortly after
-      if (e.pointerType === "touch") setTimeout(onLeave, 900);
-    };
     const onVis = () => (document.hidden ? stop() : start());
 
     window.addEventListener("resize", onResize);
     window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerdown", onDown, { passive: true });
     window.addEventListener("pointerleave", onLeave);
     document.addEventListener("mouseleave", onLeave);
     document.addEventListener("visibilitychange", onVis);
@@ -300,10 +211,8 @@ export default function BgFx() {
     return () => {
       stop();
       clearTimeout(resizeT);
-      popupLayer.remove();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerleave", onLeave);
       document.removeEventListener("mouseleave", onLeave);
       document.removeEventListener("visibilitychange", onVis);

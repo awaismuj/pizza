@@ -10,6 +10,7 @@ const SETTINGS_KEY = "global";
 
 const publicShape = (settings) => ({
   taxRatePercent: settings.taxRatePercent,
+  specialDiscountEnabled: settings.specialDiscountEnabled,
   buildYourOwnDeal: normalizeByoConfig(settings.buildYourOwnDeal),
   payments: publicPaymentsShape(settings),
   orderPrep: normalizePrepSettings(settings.orderPrep),
@@ -48,7 +49,7 @@ const getSettings = async (req, res, next) => {
 // "apply everywhere".
 const updateSettings = async (req, res, next) => {
   try {
-    const { taxRatePercent, buildYourOwnDeal, payments, orderPrep, passwordPolicy } = req.body;
+    const { taxRatePercent, specialDiscountEnabled, buildYourOwnDeal, payments, orderPrep, passwordPolicy } = req.body;
     const settings = await getOrCreateSettings();
     const messages = [];
 
@@ -59,6 +60,14 @@ const updateSettings = async (req, res, next) => {
       }
       settings.taxRatePercent = value;
       messages.push("Tax rate updated!");
+    }
+
+    if (specialDiscountEnabled !== undefined) {
+      if (typeof specialDiscountEnabled !== "boolean") {
+        return next(createHttpError(400, "Special discount must be enabled or disabled."));
+      }
+      settings.specialDiscountEnabled = specialDiscountEnabled;
+      messages.push(`Special discounts ${specialDiscountEnabled ? "enabled" : "disabled"}!`);
     }
 
     if (buildYourOwnDeal !== undefined) {

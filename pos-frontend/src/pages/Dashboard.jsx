@@ -40,6 +40,7 @@ import HeroSliderManager from "../components/dashboard/HeroSliderManager";
 import ProfitExpenses from "../components/dashboard/ProfitExpenses";
 import PaymentsOverview from "../components/dashboard/PaymentsOverview";
 import TaxManager from "../components/dashboard/TaxManager";
+import SpecialDiscountManager from "../components/dashboard/SpecialDiscountManager";
 import PrepSettingsManager from "../components/dashboard/PrepSettingsManager";
 import BuildYourOwnManager from "../components/dashboard/BuildYourOwnManager";
 import StaffManagement from "../components/dashboard/StaffManagement";
@@ -83,7 +84,7 @@ const tabGroups = [
   { label: "Storefront", tabs: ["Menu", "Deals", "Coupons", "Hero Slider", "Build Your Own", "Reviews"] },
   { label: "Delivery & Pickup", tabs: ["Branches"] },
   { label: "Operations", tabs: ["Inventory", "Staff", "Assets", "User & Employees"] },
-  { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Music"] },
+  { label: "Settings", tabs: ["Order Prep", "Payment Settings", "Tax", "Special Discount", "Music"] },
 ];
 
 // Icon per tab, so the bar can be scanned at a glance.
@@ -104,6 +105,7 @@ const tabIcons = {
   "Build Your Own": <MdTune />,
   "Order Prep": <MdTimer />,
   Tax: <MdAccountBalance />,
+  "Special Discount": <MdLocalOffer />,
   Music: <MdMusicNote />,
   Assets: <MdDevices />,
   Branches: <MdStorefront />,
@@ -128,6 +130,7 @@ const tabTheme = {
   "Payment Settings": "#6366f1",
   "Order Prep": "#fb923c",
   Tax: "#f59e0b",
+  "Special Discount": "#22c55e",
   Music: "#f43f5e",
 };
 const groupTheme = {
@@ -157,6 +160,7 @@ const Dashboard = () => {
     "Build Your Own": "menu.edit",
     "Order Prep": "settings.manage",
     Tax: "settings.manage",
+    "Special Discount": "settings.manage",
     Music: "settings.view",
     Assets: "assets.view",
     Branches: "settings.manage",
@@ -657,6 +661,7 @@ const Dashboard = () => {
       {activeTab === "Payments" && <PaymentsOverview />}
       {activeTab === "Payment Settings" && <PaymentSettingsManager />}
       {activeTab === "Tax" && <TaxManager />}
+      {activeTab === "Special Discount" && <SpecialDiscountManager />}
       {activeTab === "Order Prep" && <PrepSettingsManager />}
       {activeTab === "Build Your Own" && <BuildYourOwnManager />}
       {activeTab === "Staff" && <StaffManagement />}

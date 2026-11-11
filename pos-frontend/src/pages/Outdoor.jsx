@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FaTrash } from "react-icons/fa";
@@ -15,6 +16,7 @@ import {
 } from "../https";
 import useTaxRate from "../hooks/useTaxRate";
 import CouponApply from "../components/menu/CouponApply";
+import SpecialDiscountInput from "../components/menu/SpecialDiscountInput";
 
 function loadScript(src) {
   return new Promise((resolve) => {
@@ -39,11 +41,24 @@ const Outdoor = () => {
   const [orderInfo, setOrderInfo] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [specialDiscountInput, setSpecialDiscountInput] = useState("");
 
-  const { taxRate } = useTaxRate();
+  const user = useSelector((state) => state.user);
+  const { taxRate, specialDiscountEnabled } = useTaxRate();
   const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
   const couponDiscount = Number(appliedCoupon?.discountAmount) || 0;
-  const total = Math.max(0, subtotal - couponDiscount);
+  const specialDiscountAmount = specialDiscountInput.trim() === "" ? 0 : Number(specialDiscountInput);
+  const remainingSubtotal = Math.max(0, subtotal - couponDiscount);
+  const canStaffApplySpecialDiscount =
+    user.permissions?.includes("orders.applySpecialDiscount") ||
+    ["cashier", "admin", "super admin"].includes(String(user.role || "").toLowerCase());
+  const canApplySpecialDiscount =
+    specialDiscountEnabled && canStaffApplySpecialDiscount;
+  const isSpecialDiscountValid =
+    Number.isInteger(specialDiscountAmount) &&
+    specialDiscountAmount >= 0 &&
+    specialDiscountAmount <= remainingSubtotal;
+  const total = Math.max(0, remainingSubtotal - specialDiscountAmount);
   const tax = (total * taxRate) / 100;
   const totalWithTax = total + tax;
   const cartFingerprint = JSON.stringify(cart.map((item) => [
@@ -80,6 +95,7 @@ const Outdoor = () => {
       setOrderInfo(data);
       setShowInvoice(true);
       setCart([]);
+      setSpecialDiscountInput("");
       setCustomerName("");
       setCustomerPhone("");
       setCustomerDateOfBirth("");
@@ -110,12 +126,19 @@ const Outdoor = () => {
     bills: { total, tax, totalWithTax, subtotal, couponDiscount },
     items: cart,
     couponCode: appliedCoupon?.code,
+    specialDiscountAmount: specialDiscountAmount || undefined,
     orderType: "pickup",
     paymentMethod,
     ...extra,
   });
 
   const handleSubmit = async () => {
+    if (!isSpecialDiscountValid) {
+      enqueueSnackbar("Enter a whole rupee discount no greater than the remaining subtotal.", {
+        variant: "warning",
+      });
+      return;
+    }
     if (cart.length === 0) {
       enqueueSnackbar("Add at least one item first.", { variant: "warning" });
       return;
@@ -315,6 +338,14 @@ const Outdoor = () => {
           onApply={setAppliedCoupon}
           onRemove={() => setAppliedCoupon(null)}
         />
+        {canApplySpecialDiscount && (
+          <SpecialDiscountInput
+            id="takeaway-special-discount"
+            subtotal={remainingSubtotal}
+            value={specialDiscountInput}
+            onChange={setSpecialDiscountInput}
+          />
+        )}
 
         <div className="px-5 pt-3">
           <div className="flex items-center justify-between mt-1">
@@ -325,6 +356,12 @@ const Outdoor = () => {
             <div className="flex items-center justify-between mt-2">
               <p className="text-xs text-green-400 font-medium">Coupon discount</p>
               <h1 className="text-green-400 text-md font-bold">−Rs {couponDiscount.toFixed(2)}</h1>
+            </div>
+          )}
+          {specialDiscountAmount > 0 && (
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-green-400 font-medium">Special discount</p>
+              <h1 className="text-green-400 text-md font-bold">−Rs {specialDiscountAmount.toFixed(2)}</h1>
             </div>
           )}
           <div className="flex items-center justify-between mt-2">
@@ -359,7 +396,7 @@ const Outdoor = () => {
         <div className="px-5 mt-4 mb-4">
           <button
             onClick={handleSubmit}
-            disabled={isProcessing || orderMutation.isPending || cart.length === 0}
+            disabled={isProcessing || orderMutation.isPending || cart.length === 0 || !isSpecialDiscountValid}
             className="bg-[#f6b100] px-4 py-4 w-full rounded-lg text-[#1f1f1f] font-bold text-lg disabled:opacity-60"
           >
             {isProcessing || orderMutation.isPending

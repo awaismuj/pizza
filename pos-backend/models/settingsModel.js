@@ -8,6 +8,7 @@ const settingsSchema = new mongoose.Schema(
     // Applied to every order - dine-in, outdoor/takeaway and online - from
     // wherever it's read. Admin-editable from Dashboard > Tax.
     taxRatePercent: { type: Number, required: true, default: 16, min: 0 },
+    specialDiscountEnabled: { type: Boolean, default: false },
     // "Build Your Own Deal" (online store): the customer picks any items from
     // the menu - at least `minItems` of them - and gets a discount that grows
     // with how many they pick. Every number here is admin-editable from

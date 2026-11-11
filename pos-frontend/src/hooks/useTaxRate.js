@@ -15,9 +15,11 @@ const useTaxRate = () => {
   });
 
   const taxRatePercent = data?.data?.data?.taxRatePercent;
+  const specialDiscountEnabled = data?.data?.data?.specialDiscountEnabled === true;
 
   return {
     taxRate: typeof taxRatePercent === "number" ? taxRatePercent : FALLBACK_TAX_RATE_PERCENT,
+    specialDiscountEnabled,
     isLoading,
   };
 };

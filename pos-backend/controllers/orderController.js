@@ -12,6 +12,7 @@ const { isDealLiveNow } = require("./dealController");
 const { findOrderShortages, shortageMessage, invalidateAvailabilityCache } = require("../utils/stockAvailability");
 const { getOrCreateSettings } = require("./settingsController");
 const { normalizeByoConfig, byoDiscountPercent } = require("../utils/byoDiscount");
+const { roundMoney, validateSpecialDiscount } = require("../utils/specialDiscount");
 const { generateOrderNumber } = require("../utils/orderNumber");
 const PaymentProof = require("../models/paymentProofModel");
 const Branch = require("../models/branchModel");
@@ -68,6 +69,82 @@ const canCancelOrder = (req) =>
   req.permissions?.includes("orders.cancel") ||
   ["cashier", "admin"].includes(String(req.user?.role || "").toLowerCase());
 
+const canApplySpecialDiscount = (req) =>
+  req.permissions?.includes("orders.applySpecialDiscount") ||
+  (
+    ["cashier", "admin", "super admin"].includes(String(req.user?.role || "").toLowerCase()) &&
+    !req.user?.permissionOverrides?.denied?.includes("orders.applySpecialDiscount")
+  );
+
+const resolvePosDiscountItems = async (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw createHttpError(400, "Add at least one item before applying a special discount.");
+  }
+
+  let subtotal = 0;
+  const resolvedItems = [];
+  for (const line of items) {
+    const quantity = Number(line?.quantity ?? 1);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      throw createHttpError(400, "Item quantities must be whole numbers from 1 to 99.");
+    }
+
+    if (line?.dealId || line?.isDeal) {
+      const dealId = line.dealId || line.id;
+      if (!mongoose.Types.ObjectId.isValid(dealId)) {
+        throw createHttpError(400, "One or more selected deals are no longer available.");
+      }
+      const deal = await Deal.findById(dealId).select("name price");
+      if (!deal) throw createHttpError(400, "One or more selected deals are no longer available.");
+      const price = roundMoney(Number(deal.price));
+      subtotal += price * quantity;
+      resolvedItems.push({
+        ...line,
+        dealId: deal._id,
+        name: deal.name,
+        pricePerQuantity: price,
+        price: roundMoney(price * quantity),
+        quantity,
+      });
+      continue;
+    }
+
+    const dishId = line?.dishId || line?.id;
+    if (!mongoose.Types.ObjectId.isValid(dishId)) {
+      throw createHttpError(400, "One or more selected items are no longer available.");
+    }
+    const dish = await Dish.findById(dishId).select("name price variants category");
+    if (!dish) throw createHttpError(400, "One or more selected items are no longer available.");
+
+    let price = Number(dish.price);
+    let name = dish.name;
+    if (Array.isArray(dish.variants) && dish.variants.length > 0) {
+      const size = String(line.size || "").trim();
+      const crust = String(line.crust || "").trim();
+      const variant = dish.variants.find(
+        (item) => item.size === size && (item.crust || "") === crust
+      );
+      if (!variant) throw createHttpError(400, `Choose a valid size for "${dish.name}".`);
+      price = Number(variant.price);
+      name = `${dish.name} (${[size, crust].filter(Boolean).join(", ")})`;
+    }
+
+    price = roundMoney(price);
+    subtotal += price * quantity;
+    resolvedItems.push({
+      ...line,
+      dishId: dish._id,
+      categoryId: dish.category,
+      name,
+      pricePerQuantity: price,
+      price: roundMoney(price * quantity),
+      quantity,
+    });
+  }
+
+  return { items: resolvedItems, subtotal: roundMoney(subtotal) };
+};
+
 const publicOrderResponse = (order) => {
   const orderData = order.toObject ? order.toObject() : order;
   delete orderData.idempotencyKeyHash;
@@ -100,6 +177,7 @@ const addOrder = async (req, res, next) => {
   let order;
   try {
     const orderPayload = req.body;
+    if (orderPayload.bills) delete orderPayload.bills.specialDiscount;
     const outdoorCustomer = Boolean(orderPayload.outdoorCustomer);
     delete orderPayload.outdoorCustomer;
     const outdoorPhone = String(orderPayload.customerDetails?.phone || "").trim();
@@ -131,8 +209,45 @@ const addOrder = async (req, res, next) => {
     }
     const couponCode = orderPayload.couponCode;
     delete orderPayload.couponCode;
+    const requestedSpecialDiscount = orderPayload.specialDiscountAmount;
+    delete orderPayload.specialDiscountAmount;
     if (couponCode && !req.permissions?.includes("coupons.apply")) {
       throw createHttpError(403, "You do not have permission to apply coupons.");
+    }
+    const hasSpecialDiscount =
+      requestedSpecialDiscount !== undefined &&
+      requestedSpecialDiscount !== null &&
+      String(requestedSpecialDiscount).trim() !== "" &&
+      Number(requestedSpecialDiscount) !== 0;
+    const settings = await getOrCreateSettings();
+    let specialDiscountAmount = 0;
+    let specialDiscountSubtotal = null;
+    if (hasSpecialDiscount) {
+      if (!canApplySpecialDiscount(req)) {
+        throw createHttpError(403, "You do not have permission to apply special discounts.");
+      }
+      const resolved = await resolvePosDiscountItems(orderPayload.items);
+      specialDiscountAmount = validateSpecialDiscount(requestedSpecialDiscount, resolved.subtotal);
+      if (!settings.specialDiscountEnabled) {
+        throw createHttpError(403, "Special discounts are currently disabled by an Admin.");
+      }
+      specialDiscountSubtotal = resolved.subtotal;
+      orderPayload.items = resolved.items;
+      if (!couponCode) {
+        const total = specialDiscountSubtotal;
+        const tax = (total * settings.taxRatePercent) / 100;
+        orderPayload.bills = {
+          ...orderPayload.bills,
+          subtotal: specialDiscountSubtotal,
+          total,
+          tax,
+          totalWithTax: total + tax + (Number(orderPayload.bills?.deliveryFee) || 0),
+          discount: 0,
+          discountPercent: 0,
+          discountLabel: "",
+          couponDiscount: 0,
+        };
+      }
     }
     const couponOrderItems = couponCode ? await resolveCouponItems(orderPayload.items) : null;
 
@@ -148,9 +263,12 @@ const addOrder = async (req, res, next) => {
         branch: fb,
         method: f.method,
         zoneId: f.zoneId,
-        subtotal: couponOrderItems
-          ? couponOrderItems.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-          : Number(orderPayload.bills?.total) || 0,
+        subtotal: Math.max(0, roundMoney(
+          (couponOrderItems
+            ? couponOrderItems.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+            : (specialDiscountSubtotal ?? (Number(orderPayload.bills?.total) || 0))) -
+          (hasSpecialDiscount ? specialDiscountAmount : 0)
+        )),
         staff: true,
       });
       if (!q.ok) return next(createHttpError(400, q.error));
@@ -168,7 +286,6 @@ const addOrder = async (req, res, next) => {
     deductions = await deductInventoryForOrderItems(orderPayload.items || []);
 
     // The countdown is the server's to set - never trust one from the browser.
-    const settings = await getOrCreateSettings();
     delete orderPayload.prep;
 
     order = new Order({
@@ -179,13 +296,15 @@ const addOrder = async (req, res, next) => {
     if (prep) order.prep = prep;
     order.orderNumber = await generateOrderNumber(order.orderDate || new Date());
     order.costOfGoods = totalDeductionCost(deductions);
+    let couponValidation = null;
+    let couponSubtotal = 0;
     if (couponCode) {
       const orderType = String(
         orderPayload.orderType || orderPayload.fulfillment?.method || (orderPayload.table ? "dineIn" : "pickup")
       );
-      const subtotal = couponOrderItems.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      couponSubtotal = couponOrderItems.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const deliveryFee = Number(orderPayload.fulfillment?.deliveryFee) || 0;
-      const validation = await validateCoupon({
+      couponValidation = await validateCoupon({
         code: couponCode,
         items: couponOrderItems.items,
         orderType,
@@ -195,8 +314,7 @@ const addOrder = async (req, res, next) => {
         email: orderPayload.customerEmail || "",
         hasPromotion: couponOrderItems.hasPromotion,
       });
-      const total = Math.max(0, Math.round((subtotal - validation.discountAmount) * 100) / 100);
-      const settings = await getOrCreateSettings();
+      const total = Math.max(0, Math.round((couponSubtotal - couponValidation.discountAmount) * 100) / 100);
       const tax = (total * settings.taxRatePercent) / 100;
       let quotedDeliveryFee = deliveryFee;
       if (order.fulfillment) {
@@ -211,7 +329,7 @@ const addOrder = async (req, res, next) => {
         if (!finalQuote.ok) throw createHttpError(400, finalQuote.error);
         quotedDeliveryFee = finalQuote.fee;
       }
-      const finalDeliveryFee = Math.max(0, quotedDeliveryFee - validation.deliveryDiscount);
+      const finalDeliveryFee = Math.max(0, quotedDeliveryFee - couponValidation.deliveryDiscount);
       orderPayload.items = couponOrderItems.items.map((item, index) => ({
         ...orderPayload.items[index],
         dishId: item.dishId,
@@ -227,30 +345,54 @@ const addOrder = async (req, res, next) => {
         total,
         tax,
         totalWithTax: total + tax + finalDeliveryFee,
-        subtotal,
-        couponDiscount: validation.discountAmount,
-        couponDeliveryDiscount: validation.deliveryDiscount,
+        subtotal: couponSubtotal,
+        couponDiscount: couponValidation.discountAmount,
+        couponDeliveryDiscount: couponValidation.deliveryDiscount,
         deliveryFee: finalDeliveryFee,
       };
       if (order.fulfillment) order.fulfillment.deliveryFee = finalDeliveryFee;
       order.coupon = {
-        couponId: validation.coupon._id,
-        code: validation.coupon.code,
-        name: validation.coupon.name,
-        discountType: validation.coupon.discountType,
-        discountValue: validation.coupon.discountValue,
-        discountAmount: validation.totalDiscount,
-        eligibleSubtotal: validation.eligibleSubtotal,
-        subtotalBeforeDiscount: subtotal,
-        totalBeforeDiscount: subtotal + (subtotal * settings.taxRatePercent) / 100 + quotedDeliveryFee,
+        couponId: couponValidation.coupon._id,
+        code: couponValidation.coupon.code,
+        name: couponValidation.coupon.name,
+        discountType: couponValidation.coupon.discountType,
+        discountValue: couponValidation.coupon.discountValue,
+        discountAmount: couponValidation.totalDiscount,
+        eligibleSubtotal: couponValidation.eligibleSubtotal,
+        subtotalBeforeDiscount: couponSubtotal,
+        totalBeforeDiscount: couponSubtotal + (couponSubtotal * settings.taxRatePercent) / 100 + quotedDeliveryFee,
         totalAfterDiscount: total + tax + finalDeliveryFee,
         orderType,
         appliedAt: new Date(),
       };
+    }
+    if (hasSpecialDiscount) {
+      const discountBase = roundMoney(Number(order.bills?.total) || 0);
+      const amount = validateSpecialDiscount(specialDiscountAmount, discountBase);
+      const total = roundMoney(discountBase - amount);
+      const tax = (total * settings.taxRatePercent) / 100;
+      const deliveryFee = Number(order.bills?.deliveryFee) || 0;
+      order.bills = {
+        ...(order.bills?.toObject ? order.bills.toObject() : order.bills),
+        total,
+        tax,
+        totalWithTax: total + tax + deliveryFee,
+        specialDiscount: {
+          amount,
+          appliedBy: {
+            userId: req.user?._id || null,
+            name: String(req.user?.name || "Staff").slice(0, 120),
+          },
+          appliedAt: new Date(),
+        },
+      };
+      if (order.fulfillment) order.fulfillment.deliveryFee = deliveryFee;
+    }
+    if (couponCode) {
       await reserveCoupon({
-        validation,
+        validation: couponValidation,
         order,
-        subtotal,
+        subtotal: couponSubtotal,
         finalTotal: order.bills.totalWithTax,
       });
       couponReservationCreated = true;
@@ -938,8 +1080,11 @@ const updateOrder = async (req, res, next) => {
         return next(stockError);
       }
 
-      const lineTotal = (it) =>
-        (Number(it?.price) || 0) * Math.max(1, Number(it?.quantity) || 1);
+      const lineTotal = (it) => {
+        const quantity = Math.max(1, Number(it?.quantity) || 1);
+        const unitPrice = Number(it?.pricePerQuantity);
+        return (Number.isFinite(unitPrice) ? unitPrice : Number(it?.price) || 0) * quantity;
+      };
       const subtotalBeforeDiscount = newItems.reduce((sum, it) => sum + lineTotal(it), 0);
 
       // If this order was placed with a Build Your Own Deal discount, keep
@@ -950,7 +1095,13 @@ const updateOrder = async (req, res, next) => {
       const byoSubtotal = newItems.filter((it) => it?.byo).reduce((sum, it) => sum + lineTotal(it), 0);
       const discount = grantedPercent > 0 ? Math.round((byoSubtotal * grantedPercent) / 100) : 0;
 
-      const total = subtotalBeforeDiscount - discount;
+      const specialDiscount = order.bills?.specialDiscount;
+      const specialDiscountAmount = Number(specialDiscount?.amount) || 0;
+      const totalBeforeSpecialDiscount = subtotalBeforeDiscount - discount;
+      if (specialDiscountAmount > totalBeforeSpecialDiscount) {
+        return next(createHttpError(400, "The order amount is below its special discount. Adjust the items before saving."));
+      }
+      const total = roundMoney(totalBeforeSpecialDiscount - specialDiscountAmount);
       const { taxRatePercent } = await getOrCreateSettings();
       const tax = (total * taxRatePercent) / 100;
 
@@ -963,6 +1114,7 @@ const updateOrder = async (req, res, next) => {
         discount,
         discountPercent: discount > 0 ? grantedPercent : 0,
         discountLabel: discount > 0 ? order.bills?.discountLabel || "" : "",
+        specialDiscount,
       };
       order.inventoryDeducted = shouldHoldStock;
       order.costOfGoods = shouldHoldStock ? totalDeductionCost(deductions) : 0;
